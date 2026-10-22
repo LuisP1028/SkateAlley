@@ -1,0 +1,14 @@
+{
+  "name": "skate-alley",
+  "private": true,
+  "scripts": {
+    "dev": "python3 -m http.server 8080",
+    "start": "python3 -m http.server 8080"
+  },
+  "dependencies": {
+    "three": "^0.186.1"
+  },
+  "devDependencies": {
+    "@ai-hero/sandcastle": "^0.12.0"
+  }
+}

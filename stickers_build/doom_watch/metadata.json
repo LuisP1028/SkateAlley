@@ -1,0 +1,38 @@
+{
+  "id": "doom_watch",
+  "code": "HOLO-STK-04",
+  "repoPath": "tags/DOOM_WATCH.jpg",
+  "preProcessingMode": "group_a_cutout",
+  "bypassExteriorCutout": false,
+  "sourceWidth": 1440,
+  "sourceHeight": 1376,
+  "sourceAspectRatio": 1.046512,
+  "masterBBoxInSource": [
+    320,
+    59,
+    1243,
+    1266
+  ],
+  "croppedWidth": 930,
+  "croppedHeight": 1214,
+  "croppedAspectRatio": 0.7660626029654036,
+  "planeWidthMeters": 1.0065,
+  "planeHeightMeters": 1.3139,
+  "edgeSafetyMarginPx": 3,
+  "dieCutBorderRadiusPx": 28,
+  "connectedStickerIslands": 1,
+  "triZonePixelCounts": {
+    "exteriorVoid": 306759,
+    "dieCutBorder": 96511,
+    "subjectInterior": 725750
+  },
+  "interiorWhitePixelsPreserved": 18495,
+  "bundleFiles": [
+    "base_color.png",
+    "master_alpha.png",
+    "foil_mask.png",
+    "border_mask.png",
+    "packed_control.png",
+    "metadata.json"
+  ]
+}

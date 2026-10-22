@@ -1,0 +1,28 @@
+# Node dependencies
+node_modules/
+
+# Python caches & test artifacts
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+
+# macOS metadata
+.DS_Store
+
+# Browser / MCP transient logs
+.playwright-mcp/
+
+# Local Blender working saves & backups
+*.blend
+*.blend1
+
+# Large intermediate 3D meshes & generated image/studio outputs
+*.obj
+HunYuan3D_Studio/inputs/
+HunYuan3D_Studio/outputs/diagnostics/
+HunYuan3D_Studio/outputs/meshes/*.glb
+screenshots/
+outputs/

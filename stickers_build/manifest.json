@@ -1,0 +1,241 @@
+{
+  "schemaVersion": "1.0.0",
+  "runId": "20261020T004604-878-nmhc",
+  "specificationPath": "anim/stickers.md",
+  "stage1OutputDir": "stickers_build",
+  "totalAssets": 6,
+  "groupACutoutCount": 5,
+  "groupBFullFrameCount": 1,
+  "edgeSafetyMarginPx": 3,
+  "baseStickerHeightMeters": 1.15,
+  "assets": [
+    {
+      "id": "doom_tag",
+      "code": "HOLO-STK-01",
+      "repoPath": "tags/1DOOMTAG.jpeg",
+      "preProcessingMode": "group_a_cutout",
+      "bypassExteriorCutout": false,
+      "sourceWidth": 3514,
+      "sourceHeight": 1184,
+      "sourceAspectRatio": 2.967905,
+      "masterBBoxInSource": [
+        358,
+        105,
+        3365,
+        1173
+      ],
+      "croppedWidth": 3014,
+      "croppedHeight": 1075,
+      "croppedAspectRatio": 2.8037209302325583,
+      "planeWidthMeters": 1.9256,
+      "planeHeightMeters": 0.6868,
+      "edgeSafetyMarginPx": 3,
+      "dieCutBorderRadiusPx": 36,
+      "connectedStickerIslands": 1,
+      "triZonePixelCounts": {
+        "exteriorVoid": 791342,
+        "dieCutBorder": 420312,
+        "subjectInterior": 2028396
+      },
+      "interiorWhitePixelsPreserved": 114842,
+      "bundleFiles": [
+        "base_color.png",
+        "master_alpha.png",
+        "foil_mask.png",
+        "border_mask.png",
+        "packed_control.png",
+        "metadata.json"
+      ]
+    },
+    {
+      "id": "glass_doom",
+      "code": "HOLO-STK-02",
+      "repoPath": "tags/Glass_DOOM.jpg",
+      "preProcessingMode": "group_a_cutout",
+      "bypassExteriorCutout": false,
+      "sourceWidth": 1440,
+      "sourceHeight": 1376,
+      "sourceAspectRatio": 1.046512,
+      "masterBBoxInSource": [
+        63,
+        404,
+        1439,
+        981
+      ],
+      "croppedWidth": 1383,
+      "croppedHeight": 584,
+      "croppedAspectRatio": 2.368150684931507,
+      "planeWidthMeters": 1.7697,
+      "planeHeightMeters": 0.7473,
+      "edgeSafetyMarginPx": 3,
+      "dieCutBorderRadiusPx": 28,
+      "connectedStickerIslands": 1,
+      "triZonePixelCounts": {
+        "exteriorVoid": 170142,
+        "dieCutBorder": 104553,
+        "subjectInterior": 532977
+      },
+      "interiorWhitePixelsPreserved": 109239,
+      "bundleFiles": [
+        "base_color.png",
+        "master_alpha.png",
+        "foil_mask.png",
+        "border_mask.png",
+        "packed_control.png",
+        "metadata.json"
+      ]
+    },
+    {
+      "id": "doom_cig",
+      "code": "HOLO-STK-03",
+      "repoPath": "tags/DOOMTAG_CIG.jpg",
+      "preProcessingMode": "group_a_cutout",
+      "bypassExteriorCutout": false,
+      "sourceWidth": 1456,
+      "sourceHeight": 1360,
+      "sourceAspectRatio": 1.070588,
+      "masterBBoxInSource": [
+        0,
+        393,
+        985,
+        1359
+      ],
+      "croppedWidth": 992,
+      "croppedHeight": 973,
+      "croppedAspectRatio": 1.0195272353545735,
+      "planeWidthMeters": 1.1611,
+      "planeHeightMeters": 1.1389,
+      "edgeSafetyMarginPx": 3,
+      "dieCutBorderRadiusPx": 28,
+      "connectedStickerIslands": 1,
+      "triZonePixelCounts": {
+        "exteriorVoid": 374365,
+        "dieCutBorder": 83906,
+        "subjectInterior": 506945
+      },
+      "interiorWhitePixelsPreserved": 2953,
+      "bundleFiles": [
+        "base_color.png",
+        "master_alpha.png",
+        "foil_mask.png",
+        "border_mask.png",
+        "packed_control.png",
+        "metadata.json"
+      ]
+    },
+    {
+      "id": "doom_watch",
+      "code": "HOLO-STK-04",
+      "repoPath": "tags/DOOM_WATCH.jpg",
+      "preProcessingMode": "group_a_cutout",
+      "bypassExteriorCutout": false,
+      "sourceWidth": 1440,
+      "sourceHeight": 1376,
+      "sourceAspectRatio": 1.046512,
+      "masterBBoxInSource": [
+        320,
+        59,
+        1243,
+        1266
+      ],
+      "croppedWidth": 930,
+      "croppedHeight": 1214,
+      "croppedAspectRatio": 0.7660626029654036,
+      "planeWidthMeters": 1.0065,
+      "planeHeightMeters": 1.3139,
+      "edgeSafetyMarginPx": 3,
+      "dieCutBorderRadiusPx": 28,
+      "connectedStickerIslands": 1,
+      "triZonePixelCounts": {
+        "exteriorVoid": 306759,
+        "dieCutBorder": 96511,
+        "subjectInterior": 725750
+      },
+      "interiorWhitePixelsPreserved": 18495,
+      "bundleFiles": [
+        "base_color.png",
+        "master_alpha.png",
+        "foil_mask.png",
+        "border_mask.png",
+        "packed_control.png",
+        "metadata.json"
+      ]
+    },
+    {
+      "id": "blueberry_tag",
+      "code": "HOLO-STK-05",
+      "repoPath": "tags/blueberrytag.jpeg",
+      "preProcessingMode": "group_a_cutout",
+      "bypassExteriorCutout": false,
+      "sourceWidth": 2106,
+      "sourceHeight": 2048,
+      "sourceAspectRatio": 1.02832,
+      "masterBBoxInSource": [
+        113,
+        44,
+        1880,
+        2018
+      ],
+      "croppedWidth": 1774,
+      "croppedHeight": 1981,
+      "croppedAspectRatio": 0.895507319535588,
+      "planeWidthMeters": 1.0882,
+      "planeHeightMeters": 1.2152,
+      "edgeSafetyMarginPx": 3,
+      "dieCutBorderRadiusPx": 34,
+      "connectedStickerIslands": 1,
+      "triZonePixelCounts": {
+        "exteriorVoid": 1054367,
+        "dieCutBorder": 284032,
+        "subjectInterior": 2175895
+      },
+      "interiorWhitePixelsPreserved": 31641,
+      "bundleFiles": [
+        "base_color.png",
+        "master_alpha.png",
+        "foil_mask.png",
+        "border_mask.png",
+        "packed_control.png",
+        "metadata.json"
+      ]
+    },
+    {
+      "id": "eye_tag",
+      "code": "HOLO-STK-06",
+      "repoPath": "tags/eyetag.jpeg",
+      "preProcessingMode": "group_b_full_frame",
+      "bypassExteriorCutout": true,
+      "sourceWidth": 2090,
+      "sourceHeight": 2048,
+      "sourceAspectRatio": 1.020508,
+      "masterBBoxInSource": [
+        0,
+        0,
+        2089,
+        2047
+      ],
+      "croppedWidth": 2168,
+      "croppedHeight": 2126,
+      "croppedAspectRatio": 1.019755409219191,
+      "planeWidthMeters": 1.1613,
+      "planeHeightMeters": 1.1388,
+      "edgeSafetyMarginPx": 3,
+      "dieCutBorderRadiusPx": 36,
+      "connectedStickerIslands": 1,
+      "triZonePixelCounts": {
+        "exteriorVoid": 31504,
+        "dieCutBorder": 299328,
+        "subjectInterior": 4278336
+      },
+      "interiorWhitePixelsPreserved": 1139773,
+      "bundleFiles": [
+        "base_color.png",
+        "master_alpha.png",
+        "foil_mask.png",
+        "border_mask.png",
+        "packed_control.png",
+        "metadata.json"
+      ]
+    }
+  ]
+}

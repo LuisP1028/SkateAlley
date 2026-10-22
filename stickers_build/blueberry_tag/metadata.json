@@ -1,0 +1,38 @@
+{
+  "id": "blueberry_tag",
+  "code": "HOLO-STK-05",
+  "repoPath": "tags/blueberrytag.jpeg",
+  "preProcessingMode": "group_a_cutout",
+  "bypassExteriorCutout": false,
+  "sourceWidth": 2106,
+  "sourceHeight": 2048,
+  "sourceAspectRatio": 1.02832,
+  "masterBBoxInSource": [
+    113,
+    44,
+    1880,
+    2018
+  ],
+  "croppedWidth": 1774,
+  "croppedHeight": 1981,
+  "croppedAspectRatio": 0.895507319535588,
+  "planeWidthMeters": 1.0882,
+  "planeHeightMeters": 1.2152,
+  "edgeSafetyMarginPx": 3,
+  "dieCutBorderRadiusPx": 34,
+  "connectedStickerIslands": 1,
+  "triZonePixelCounts": {
+    "exteriorVoid": 1054367,
+    "dieCutBorder": 284032,
+    "subjectInterior": 2175895
+  },
+  "interiorWhitePixelsPreserved": 31641,
+  "bundleFiles": [
+    "base_color.png",
+    "master_alpha.png",
+    "foil_mask.png",
+    "border_mask.png",
+    "packed_control.png",
+    "metadata.json"
+  ]
+}

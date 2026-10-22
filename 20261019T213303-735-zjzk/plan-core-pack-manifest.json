@@ -1,0 +1,2675 @@
+{
+  "count": 534,
+  "entries": [
+    {
+      "path": "assets/clean-audio/bail_1.wav",
+      "offset": 53,
+      "size": 26284
+    },
+    {
+      "path": "assets/clean-audio/bail_2.wav",
+      "offset": 26378,
+      "size": 11564
+    },
+    {
+      "path": "assets/clean-audio/catch_1.wav",
+      "offset": 37984,
+      "size": 16684
+    },
+    {
+      "path": "assets/clean-audio/catch_2.wav",
+      "offset": 54710,
+      "size": 13164
+    },
+    {
+      "path": "assets/clean-audio/catch_3.wav",
+      "offset": 67916,
+      "size": 22444
+    },
+    {
+      "path": "assets/clean-audio/chime.wav",
+      "offset": 90400,
+      "size": 45778
+    },
+    {
+      "path": "assets/clean-audio/CREDITS.json",
+      "offset": 136221,
+      "size": 4883
+    },
+    {
+      "path": "assets/clean-audio/flip_1.wav",
+      "offset": 141145,
+      "size": 27640
+    },
+    {
+      "path": "assets/clean-audio/flip_2.wav",
+      "offset": 168826,
+      "size": 17792
+    },
+    {
+      "path": "assets/clean-audio/flip_3.wav",
+      "offset": 186659,
+      "size": 22552
+    },
+    {
+      "path": "assets/clean-audio/footstep_1.wav",
+      "offset": 209256,
+      "size": 28812
+    },
+    {
+      "path": "assets/clean-audio/footstep_2.wav",
+      "offset": 238113,
+      "size": 31142
+    },
+    {
+      "path": "assets/clean-audio/footstep_3.wav",
+      "offset": 269300,
+      "size": 25024
+    },
+    {
+      "path": "assets/clean-audio/footstep_4.wav",
+      "offset": 294369,
+      "size": 39724
+    },
+    {
+      "path": "assets/clean-audio/grind_concrete.wav",
+      "offset": 334142,
+      "size": 160044
+    },
+    {
+      "path": "assets/clean-audio/grind_metal.wav",
+      "offset": 494232,
+      "size": 160044
+    },
+    {
+      "path": "assets/clean-audio/land_impact_1.wav",
+      "offset": 654324,
+      "size": 16044
+    },
+    {
+      "path": "assets/clean-audio/land_impact_2.wav",
+      "offset": 670416,
+      "size": 23724
+    },
+    {
+      "path": "assets/clean-audio/land_impact_3.wav",
+      "offset": 694188,
+      "size": 30124
+    },
+    {
+      "path": "assets/clean-audio/land_impact_4.wav",
+      "offset": 724360,
+      "size": 26284
+    },
+    {
+      "path": "assets/clean-audio/pop_1.wav",
+      "offset": 750684,
+      "size": 17644
+    },
+    {
+      "path": "assets/clean-audio/pop_2.wav",
+      "offset": 768368,
+      "size": 22444
+    },
+    {
+      "path": "assets/clean-audio/pop_3.wav",
+      "offset": 790852,
+      "size": 11884
+    },
+    {
+      "path": "assets/clean-audio/pop_4.wav",
+      "offset": 802776,
+      "size": 22444
+    },
+    {
+      "path": "assets/clean-audio/powerslide.wav",
+      "offset": 825265,
+      "size": 160044
+    },
+    {
+      "path": "assets/clean-audio/push_1.wav",
+      "offset": 985350,
+      "size": 38444
+    },
+    {
+      "path": "assets/clean-audio/push_2.wav",
+      "offset": 1023835,
+      "size": 21484
+    },
+    {
+      "path": "assets/clean-audio/push_3.wav",
+      "offset": 1045360,
+      "size": 38444
+    },
+    {
+      "path": "assets/clean-audio/roll_metal.wav",
+      "offset": 1083849,
+      "size": 128044
+    },
+    {
+      "path": "assets/clean-audio/roll_rough.wav",
+      "offset": 1211938,
+      "size": 160044
+    },
+    {
+      "path": "assets/clean-audio/roll_smooth.wav",
+      "offset": 1372028,
+      "size": 160044
+    },
+    {
+      "path": "assets/clean-audio/roll_wood.wav",
+      "offset": 1532116,
+      "size": 160044
+    },
+    {
+      "path": "assets/clean-audio/sounds.json",
+      "offset": 1692202,
+      "size": 3185
+    },
+    {
+      "path": "assets/private/character-lighting.json",
+      "offset": 1695437,
+      "size": 4920
+    },
+    {
+      "path": "assets/private/default_skater/textures/decoded/000000ae03e38818.png",
+      "offset": 1700436,
+      "size": 629256
+    },
+    {
+      "path": "assets/private/default_skater/textures/decoded/00000b8c03e38818.png",
+      "offset": 2329771,
+      "size": 112216
+    },
+    {
+      "path": "assets/private/default_skater/textures/decoded/00000b8d03e38818.png",
+      "offset": 2442066,
+      "size": 29929
+    },
+    {
+      "path": "assets/private/default_skater/textures/decoded/00000b8e03e38818.png",
+      "offset": 2472074,
+      "size": 112724
+    },
+    {
+      "path": "assets/private/default_skater/textures/decoded/00000bb803e38818.png",
+      "offset": 2584877,
+      "size": 7573
+    },
+    {
+      "path": "assets/private/default_skater/textures/decoded/00000bb903e38818.png",
+      "offset": 2592529,
+      "size": 7704
+    },
+    {
+      "path": "assets/private/default_skater/textures/decoded/00000bc103e38818.png",
+      "offset": 2600312,
+      "size": 79440
+    },
+    {
+      "path": "assets/private/default_skater/textures/decoded/00000e7403e38818.png",
+      "offset": 2679831,
+      "size": 405627
+    },
+    {
+      "path": "assets/private/default_skater/textures/decoded/00000f9603e38818.png",
+      "offset": 3085537,
+      "size": 27014
+    },
+    {
+      "path": "assets/private/default_skater/textures/decoded/00000fa103e38818.png",
+      "offset": 3112630,
+      "size": 112339
+    },
+    {
+      "path": "assets/private/default_skater/textures/decoded/00000fa203e38818.png",
+      "offset": 3225048,
+      "size": 427153
+    },
+    {
+      "path": "assets/private/default_skater/textures/decoded/0000128303e38818.png",
+      "offset": 3652280,
+      "size": 8127
+    },
+    {
+      "path": "assets/private/default_skater/textures/decoded/0000128503e38818.png",
+      "offset": 3660486,
+      "size": 117388
+    },
+    {
+      "path": "assets/private/default_skater/textures/decoded/0000135c03e38818.png",
+      "offset": 3777953,
+      "size": 96
+    },
+    {
+      "path": "assets/private/default_skater/textures/decoded/0000136403e38818.png",
+      "offset": 3778128,
+      "size": 440339
+    },
+    {
+      "path": "assets/private/default_skater/textures/decoded/0000137203e38818.png",
+      "offset": 4218546,
+      "size": 8376
+    },
+    {
+      "path": "assets/private/default_skater/textures/decoded/000013a703e38818.png",
+      "offset": 4227001,
+      "size": 29502
+    },
+    {
+      "path": "assets/private/default_skater/textures/decoded/000015b703e38818.png",
+      "offset": 4256582,
+      "size": 29921
+    },
+    {
+      "path": "assets/private/default_skater/textures/decoded/00001e8403e38818.png",
+      "offset": 4286582,
+      "size": 8173
+    },
+    {
+      "path": "assets/private/default_skater/textures/decoded/0000216603e38818.png",
+      "offset": 4294834,
+      "size": 104328
+    },
+    {
+      "path": "assets/private/default_skater/textures/decoded/0000228c03e38818.png",
+      "offset": 4399241,
+      "size": 106533
+    },
+    {
+      "path": "assets/private/default_skater/textures/decoded/0000228f03e38818.png",
+      "offset": 4505853,
+      "size": 420542
+    },
+    {
+      "path": "assets/private/default_skater/textures/decoded/0000229103e38818.png",
+      "offset": 4926474,
+      "size": 110835
+    },
+    {
+      "path": "assets/private/default_skater/textures/decoded/2c7f3818000201de.png",
+      "offset": 5037388,
+      "size": 104112
+    },
+    {
+      "path": "assets/private/default_skater/textures/decoded/2c7f3818001702f8.png",
+      "offset": 5141579,
+      "size": 405600
+    },
+    {
+      "path": "assets/private/default_skater/textures/decoded/2c7f3818001702f9.png",
+      "offset": 5547258,
+      "size": 75410
+    },
+    {
+      "path": "assets/private/default_skater/textures/decoded/2c7f3818001714ee.png",
+      "offset": 5622747,
+      "size": 424626
+    },
+    {
+      "path": "assets/private/default_skater/textures/decoded/2c7f3818001718a9.png",
+      "offset": 6047452,
+      "size": 408129
+    },
+    {
+      "path": "assets/private/default_skater/textures/decoded/2c7f3818001718aa.png",
+      "offset": 6455660,
+      "size": 113958
+    },
+    {
+      "path": "assets/private/default_skater/textures/decoded/2c7f381800171957.png",
+      "offset": 6569697,
+      "size": 121533
+    },
+    {
+      "path": "assets/private/default_skater/textures/decoded/2c7f381800171958.png",
+      "offset": 6691309,
+      "size": 480351
+    },
+    {
+      "path": "assets/private/default_skater/textures/decoded/2c7f381800171ebf.png",
+      "offset": 7171739,
+      "size": 404638
+    },
+    {
+      "path": "assets/private/default_skater/textures/decoded/2c7f381800171ec3.png",
+      "offset": 7576456,
+      "size": 454728
+    },
+    {
+      "path": "assets/private/default_skater/textures/materials/Arm_base_color.png",
+      "offset": 8031263,
+      "size": 106374
+    },
+    {
+      "path": "assets/private/default_skater/textures/materials/Arm_normal.png",
+      "offset": 8137712,
+      "size": 103841
+    },
+    {
+      "path": "assets/private/default_skater/textures/materials/Arm_roughness.png",
+      "offset": 8241631,
+      "size": 107733
+    },
+    {
+      "path": "assets/private/default_skater/textures/materials/Feet_base_color.png",
+      "offset": 8349444,
+      "size": 480488
+    },
+    {
+      "path": "assets/private/default_skater/textures/materials/Feet_normal.png",
+      "offset": 8830008,
+      "size": 108173
+    },
+    {
+      "path": "assets/private/default_skater/textures/materials/Hair_base_color.png",
+      "offset": 8938261,
+      "size": 111751
+    },
+    {
+      "path": "assets/private/default_skater/textures/materials/Hair_normal.png",
+      "offset": 9050088,
+      "size": 26613
+    },
+    {
+      "path": "assets/private/default_skater/textures/materials/Organ_base_color.png",
+      "offset": 9076782,
+      "size": 7596
+    },
+    {
+      "path": "assets/private/default_skater/textures/materials/Organ_normal.png",
+      "offset": 9084455,
+      "size": 7672
+    },
+    {
+      "path": "assets/private/default_skater/textures/materials/OuterTorso_base_color.png",
+      "offset": 9092213,
+      "size": 427028
+    },
+    {
+      "path": "assets/private/default_skater/textures/materials/OuterTorso_normal.png",
+      "offset": 9519323,
+      "size": 103357
+    },
+    {
+      "path": "assets/private/default_skater/textures/materials/Pants_base_color.png",
+      "offset": 9622761,
+      "size": 408016
+    },
+    {
+      "path": "assets/private/default_skater/textures/materials/Pants_normal.png",
+      "offset": 10030854,
+      "size": 106131
+    },
+    {
+      "path": "assets/private/default_skater/textures/materials/Rostral_base_color.png",
+      "offset": 10137068,
+      "size": 424588
+    },
+    {
+      "path": "assets/private/default_skater/textures/materials/Rostral_normal.png",
+      "offset": 10561735,
+      "size": 407635
+    },
+    {
+      "path": "assets/private/default_skater/textures/materials/Rostral_roughness.png",
+      "offset": 10969452,
+      "size": 420727
+    },
+    {
+      "path": "assets/private/default_skater/textures/materials/SkateBoard_base_color.png",
+      "offset": 11390265,
+      "size": 440444
+    },
+    {
+      "path": "assets/private/default_skater/textures/materials/SkateBoard_normal.png",
+      "offset": 11830791,
+      "size": 102993
+    },
+    {
+      "path": "assets/private/default_skater/textures/materials/SkateTruck_base_color.png",
+      "offset": 11933870,
+      "size": 29697
+    },
+    {
+      "path": "assets/private/default_skater/textures/materials/SkateTruck_normal.png",
+      "offset": 11963649,
+      "size": 7803
+    },
+    {
+      "path": "assets/private/default_skater/textures/materials/SkateWheel_base_color.png",
+      "offset": 11971538,
+      "size": 29941
+    },
+    {
+      "path": "assets/private/default_skater/textures/materials/SkateWheel_normal.png",
+      "offset": 12001561,
+      "size": 7649
+    },
+    {
+      "path": "assets/private/exposure-profiles.json",
+      "offset": 12009259,
+      "size": 2718
+    },
+    {
+      "path": "assets/private/exposure.json",
+      "offset": 12012017,
+      "size": 67
+    },
+    {
+      "path": "assets/private/game.json",
+      "offset": 12012120,
+      "size": 245
+    },
+    {
+      "path": "assets/private/hud/assets/data/fe/fonts/futuraheavy/0000_futuraheavy.Texture.rgba",
+      "offset": 12012458,
+      "size": 1048576
+    },
+    {
+      "path": "assets/private/hud/assets/data/fe/fonts/futurashadow/0000_futurashadow.Texture.rgba",
+      "offset": 13061129,
+      "size": 1048576
+    },
+    {
+      "path": "assets/private/hud/assets/data/fe/source/screens/hud2/trickdisplay2/0000_25.Texture.rgba",
+      "offset": 14109805,
+      "size": 16384
+    },
+    {
+      "path": "assets/private/hud/assets/data/fe/source/screens/hud2/trickdisplay2/0001_27.Texture.rgba",
+      "offset": 14126289,
+      "size": 8192
+    },
+    {
+      "path": "assets/private/hud/assets/data/fe/source/screens/hud2/trickdisplay2/0002_30.Texture.rgba",
+      "offset": 14134581,
+      "size": 8192
+    },
+    {
+      "path": "assets/private/hud/assets/data/fe/source/screens/hud2/trickdisplay2/0003_35.Texture.rgba",
+      "offset": 14142873,
+      "size": 16384
+    },
+    {
+      "path": "assets/private/hud/assets/data/fe/source/screens/hud2/trickdisplay2/0004_37.Texture.rgba",
+      "offset": 14159357,
+      "size": 16384
+    },
+    {
+      "path": "assets/private/hud/assets/data/fe/source/screens/hud2/trickdisplay2/0005_39.Texture.rgba",
+      "offset": 14175841,
+      "size": 16384
+    },
+    {
+      "path": "assets/private/hud/assets/data/fe/source/screens/hud2/trickdisplay2/0006_42.Texture.rgba",
+      "offset": 14192325,
+      "size": 16384
+    },
+    {
+      "path": "assets/private/hud/assets/data/fe/source/screens/hud2/trickdisplay2/0007_50.Texture.rgba",
+      "offset": 14208809,
+      "size": 16384
+    },
+    {
+      "path": "assets/private/hud/assets/data/fe/source/screens/hud2/trickdisplay2/0008_53.Texture.rgba",
+      "offset": 14225293,
+      "size": 16384
+    },
+    {
+      "path": "assets/private/hud/assets/data/fe/source/screens/hud2/trickdisplay2/0009_56.Texture.rgba",
+      "offset": 14241777,
+      "size": 4096
+    },
+    {
+      "path": "assets/private/hud/assets/data/fe/source/screens/hud2/trickdisplay2/0010_60.Texture.rgba",
+      "offset": 14245973,
+      "size": 4096
+    },
+    {
+      "path": "assets/private/hud/assets/data/fe/source/screens/hud2/trickdisplay2/0011_63.Texture.rgba",
+      "offset": 14250169,
+      "size": 1024
+    },
+    {
+      "path": "assets/private/hud/assets/data/fe/source/screens/hud2/trickdisplay2/0012_67.Texture.rgba",
+      "offset": 14251293,
+      "size": 16384
+    },
+    {
+      "path": "assets/private/hud/assets/data/fe/source/screens/hud2/trickdisplay2/0013_71.Texture.rgba",
+      "offset": 14267777,
+      "size": 16384
+    },
+    {
+      "path": "assets/private/hud/assets/data/fe/source/screens/hud2/trickdisplay2/0014_79.Texture.rgba",
+      "offset": 14284261,
+      "size": 4096
+    },
+    {
+      "path": "assets/private/hud/assets/data/fe/source/screens/hud2/trickdisplay2/0015_80.Texture.rgba",
+      "offset": 14288457,
+      "size": 2048
+    },
+    {
+      "path": "assets/private/hud/runtime/trickdisplay.json",
+      "offset": 14290561,
+      "size": 1629029
+    },
+    {
+      "path": "assets/private/native-character/Arm_specular.png",
+      "offset": 15919650,
+      "size": 104455
+    },
+    {
+      "path": "assets/private/native-character/Rostral_specular.png",
+      "offset": 16024169,
+      "size": 403080
+    },
+    {
+      "path": "assets/private/native-props/BlackBoxPark.json",
+      "offset": 16427306,
+      "size": 17141
+    },
+    {
+      "path": "assets/private/native-props/BlackBoxPark.skate",
+      "offset": 16444505,
+      "size": 1296496
+    },
+    {
+      "path": "assets/private/native-props/DownTownSkatePark.json",
+      "offset": 17741063,
+      "size": 118
+    },
+    {
+      "path": "assets/private/native-props/IndustrialSkatePark.json",
+      "offset": 17741245,
+      "size": 120
+    },
+    {
+      "path": "assets/private/native-props/MaloofMoneyCup.json",
+      "offset": 17741424,
+      "size": 43576
+    },
+    {
+      "path": "assets/private/native-props/MaloofMoneyCup.skate",
+      "offset": 17785060,
+      "size": 1683377
+    },
+    {
+      "path": "assets/private/native-props/MegaPark.json",
+      "offset": 19468490,
+      "size": 109
+    },
+    {
+      "path": "assets/private/native-props/SkateSchool.json",
+      "offset": 19468655,
+      "size": 112
+    },
+    {
+      "path": "assets/private/native-props/StartPark.json",
+      "offset": 19468821,
+      "size": 110
+    },
+    {
+      "path": "assets/private/native-skies/BlackBoxPark.json",
+      "offset": 19468988,
+      "size": 24759
+    },
+    {
+      "path": "assets/private/native-skies/BlackBoxPark.rgba",
+      "offset": 19493804,
+      "size": 2097152
+    },
+    {
+      "path": "assets/private/native-skies/BlackBoxPark.sun.rgba",
+      "offset": 21591017,
+      "size": 32768
+    },
+    {
+      "path": "assets/private/native-skies/DownTownSkatePark.json",
+      "offset": 21623847,
+      "size": 24790
+    },
+    {
+      "path": "assets/private/native-skies/DownTownSkatePark.rgba",
+      "offset": 21648699,
+      "size": 2097152
+    },
+    {
+      "path": "assets/private/native-skies/DownTownSkatePark.sun.rgba",
+      "offset": 23745917,
+      "size": 32768
+    },
+    {
+      "path": "assets/private/native-skies/IndustrialSkatePark.json",
+      "offset": 23778749,
+      "size": 24794
+    },
+    {
+      "path": "assets/private/native-skies/IndustrialSkatePark.rgba",
+      "offset": 23803607,
+      "size": 2097152
+    },
+    {
+      "path": "assets/private/native-skies/IndustrialSkatePark.sun.rgba",
+      "offset": 25900827,
+      "size": 32768
+    },
+    {
+      "path": "assets/private/native-skies/MaloofMoneyCup.json",
+      "offset": 25933654,
+      "size": 24761
+    },
+    {
+      "path": "assets/private/native-skies/MaloofMoneyCup.rgba",
+      "offset": 25958474,
+      "size": 2097152
+    },
+    {
+      "path": "assets/private/native-skies/MaloofMoneyCup.sun.rgba",
+      "offset": 28055689,
+      "size": 32768
+    },
+    {
+      "path": "assets/private/native-skies/MegaPark.json",
+      "offset": 28088510,
+      "size": 24782
+    },
+    {
+      "path": "assets/private/native-skies/MegaPark.rgba",
+      "offset": 28113345,
+      "size": 2097152
+    },
+    {
+      "path": "assets/private/native-skies/MegaPark.sun.rgba",
+      "offset": 30210554,
+      "size": 32768
+    },
+    {
+      "path": "assets/private/native-skies/SkateSchool.json",
+      "offset": 30243378,
+      "size": 24779
+    },
+    {
+      "path": "assets/private/native-skies/SkateSchool.rgba",
+      "offset": 30268213,
+      "size": 2097152
+    },
+    {
+      "path": "assets/private/native-skies/SkateSchool.sun.rgba",
+      "offset": 32365425,
+      "size": 32768
+    },
+    {
+      "path": "assets/private/native-skies/StartPark.json",
+      "offset": 32398247,
+      "size": 24784
+    },
+    {
+      "path": "assets/private/native-skies/StartPark.rgba",
+      "offset": 32423085,
+      "size": 2097152
+    },
+    {
+      "path": "assets/private/native-skies/StartPark.sun.rgba",
+      "offset": 34520295,
+      "size": 32768
+    },
+    {
+      "path": "assets/private/render-parameters.json",
+      "offset": 34553112,
+      "size": 1953
+    },
+    {
+      "path": "assets/private/session-marker/hud.json",
+      "offset": 34555115,
+      "size": 111745
+    },
+    {
+      "path": "assets/private/session-marker/texture-0.rgba",
+      "offset": 34666916,
+      "size": 4096
+    },
+    {
+      "path": "assets/private/session-marker/texture-1.rgba",
+      "offset": 34671068,
+      "size": 2048
+    },
+    {
+      "path": "assets/private/session-marker/texture-2.rgba",
+      "offset": 34673172,
+      "size": 16384
+    },
+    {
+      "path": "assets/private/session-marker/texture-3.rgba",
+      "offset": 34689612,
+      "size": 16384
+    },
+    {
+      "path": "assets/private/session-marker/texture-4.rgba",
+      "offset": 34706052,
+      "size": 16384
+    },
+    {
+      "path": "assets/private/session-marker/texture-5.rgba",
+      "offset": 34722492,
+      "size": 1048576
+    },
+    {
+      "path": "assets/private/session-marker/texture-6.rgba",
+      "offset": 35771124,
+      "size": 1048576
+    },
+    {
+      "path": "assets/private/skater.glb",
+      "offset": 36819737,
+      "size": 4369932
+    },
+    {
+      "path": "assets/private/stock/data/anim/cac_edit_female.abin",
+      "offset": 41189732,
+      "size": 3165904
+    },
+    {
+      "path": "assets/private/stock/data/anim/cac_edit_male.abin",
+      "offset": 44355697,
+      "size": 3191520
+    },
+    {
+      "path": "assets/private/stock/data/anim/cac_viewer_female.abin",
+      "offset": 47547282,
+      "size": 509744
+    },
+    {
+      "path": "assets/private/stock/data/anim/cac_viewer_male.abin",
+      "offset": 48057089,
+      "size": 509744
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/ai_skater_01.abin",
+      "offset": 48566903,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/ai_skater_02.abin",
+      "offset": 48569789,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/ai_skater_03.abin",
+      "offset": 48572675,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/ai_skater_04.abin",
+      "offset": 48575561,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/ai_skater_05.abin",
+      "offset": 48578447,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/ai_skater_06.abin",
+      "offset": 48581333,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/ai_skater_07.abin",
+      "offset": 48584219,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/ai_skater_08.abin",
+      "offset": 48587105,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/ai_skater_09.abin",
+      "offset": 48589991,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/alex_chalmers.abin",
+      "offset": 48592878,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/andrew_reynolds.abin",
+      "offset": 48595767,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/andrew_reynolds_prop.abin",
+      "offset": 48598661,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/attiba_jefferson.abin",
+      "offset": 48601551,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/attiba_jefferson_prop.abin",
+      "offset": 48604446,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/benny_fairfax.abin",
+      "offset": 48607333,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/big_black.abin",
+      "offset": 48610216,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/brayden_szafranski.abin",
+      "offset": 48613108,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/CAC_female.abin",
+      "offset": 48615992,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/CAC_male.abin",
+      "offset": 48618874,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/chris_cole.abin",
+      "offset": 48621758,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/chris_haslam.abin",
+      "offset": 48624644,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/coach_frank.abin",
+      "offset": 48627529,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/colin_mckay.abin",
+      "offset": 48630414,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/cuz.abin",
+      "offset": 48633291,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/cuz_can.abin",
+      "offset": 48636172,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/dan_drehobl.abin",
+      "offset": 48639057,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/dan_drehobl_prop.abin",
+      "offset": 48641947,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/danny_way.abin",
+      "offset": 48644830,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/darren_navarette.abin",
+      "offset": 48647720,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/darren_navarette_prop.abin",
+      "offset": 48650615,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/deerman_of_darkwoods.abin",
+      "offset": 48653509,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/dem_bones.abin",
+      "offset": 48656392,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/dem_bones_hom.abin",
+      "offset": 48659279,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/dennis_busenitz.abin",
+      "offset": 48662168,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/dennis_busenitz_prop.abin",
+      "offset": 48665062,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/eric_koston.abin",
+      "offset": 48667947,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/eric_koston_prop.abin",
+      "offset": 48670837,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/freeway.abin",
+      "offset": 48673718,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/giovanni_reda.abin",
+      "offset": 48676605,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/giovanni_reda_prop.abin",
+      "offset": 48679497,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/jake_brown.abin",
+      "offset": 48682381,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/jason_dill.abin",
+      "offset": 48685265,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/jerry_hsu.abin",
+      "offset": 48688148,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/joey_brezinski.abin",
+      "offset": 48691036,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/john_cardiel.abin",
+      "offset": 48693922,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/john_cardiel_prop.abin",
+      "offset": 48696813,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/john_rattray.abin",
+      "offset": 48699699,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/josh_kalis.abin",
+      "offset": 48702583,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/josh_kalis_prop.abin",
+      "offset": 48705472,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/lizard_king.abin",
+      "offset": 48708357,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/lizard_king_prop.abin",
+      "offset": 48711247,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/lucas_puig.abin",
+      "offset": 48714131,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/marc_johnson.abin",
+      "offset": 48717017,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/mark_appleyard.abin",
+      "offset": 48719905,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/mark_gonzales.abin",
+      "offset": 48722792,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/michael_burnette.abin",
+      "offset": 48725682,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/michael_burnette_prop.abin",
+      "offset": 48728577,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/mike.abin",
+      "offset": 48731455,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/mike_carroll.abin",
+      "offset": 48734341,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/mike_carroll_prop.abin",
+      "offset": 48737232,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/mike_prop.abin",
+      "offset": 48740115,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/pat_duffy.abin",
+      "offset": 48742998,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/pj_ladd.abin",
+      "offset": 48745879,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/ray_barbee.abin",
+      "offset": 48748763,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/rig_Tpose.abin",
+      "offset": 48751646,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/rob_dyrdek.abin",
+      "offset": 48754530,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/rob_dyrdek_prop.abin",
+      "offset": 48757419,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/ryan_gallant.abin",
+      "offset": 48760305,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/ryan_smith.abin",
+      "offset": 48763189,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/sammy.abin",
+      "offset": 48766068,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/sammy_prop.abin",
+      "offset": 48768952,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/seb.abin",
+      "offset": 48771829,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/seb_prop.abin",
+      "offset": 48774711,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/security_03.abin",
+      "offset": 48777596,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/shingo.abin",
+      "offset": 48780476,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/shingo_prop.abin",
+      "offset": 48783361,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/skate_ambassador.abin",
+      "offset": 48786251,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/skate_ambassador_prop.abin",
+      "offset": 48789146,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/slappy.abin",
+      "offset": 48792026,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/slappy_prop.abin",
+      "offset": 48794911,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/terry_kennedy.abin",
+      "offset": 48797798,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/tutorial_male.abin",
+      "offset": 48800685,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/z_architect.abin",
+      "offset": 48803570,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/z_architect_logo.abin",
+      "offset": 48806460,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/z_architect_prop.abin",
+      "offset": 48809350,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/z_artist.abin",
+      "offset": 48812232,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/z_artist_logo.abin",
+      "offset": 48815119,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/z_fresh_1.abin",
+      "offset": 48818002,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/z_fresh_2.abin",
+      "offset": 48820885,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/z_fresh_3.abin",
+      "offset": 48823768,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/z_hesh_1.abin",
+      "offset": 48826650,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/z_hesh_2.abin",
+      "offset": 48829532,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/z_hesh_3.abin",
+      "offset": 48832414,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/z_kook_1.abin",
+      "offset": 48835296,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/z_kook_2.abin",
+      "offset": 48838178,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/z_kook_3.abin",
+      "offset": 48841060,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/z_legend.abin",
+      "offset": 48843942,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/z_legend_logo.abin",
+      "offset": 48846829,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/z_masochist.abin",
+      "offset": 48849714,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/z_pipeline_marquee.abin",
+      "offset": 48852606,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/z_rob_dyrdek.abin",
+      "offset": 48855492,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/z_rookie.abin",
+      "offset": 48858374,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/facebinds/z_rookie_logo.abin",
+      "offset": 48861261,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/ai_skater_01.abin",
+      "offset": 48864143,
+      "size": 13504
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/ai_skater_02.abin",
+      "offset": 48877713,
+      "size": 12608
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/ai_skater_03.abin",
+      "offset": 48890387,
+      "size": 12736
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/ai_skater_04.abin",
+      "offset": 48903189,
+      "size": 12736
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/ai_skater_05.abin",
+      "offset": 48915991,
+      "size": 12736
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/ai_skater_06.abin",
+      "offset": 48928793,
+      "size": 12736
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/ai_skater_07.abin",
+      "offset": 48941595,
+      "size": 12736
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/ai_skater_08.abin",
+      "offset": 48954397,
+      "size": 12736
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/ai_skater_09.abin",
+      "offset": 48967199,
+      "size": 12608
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/alex_chalmers.abin",
+      "offset": 48979874,
+      "size": 15984
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/andrew_reynolds.abin",
+      "offset": 48995927,
+      "size": 16592
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/andrew_reynolds_prop.abin",
+      "offset": 49012593,
+      "size": 16592
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/attiba_jefferson.abin",
+      "offset": 49029255,
+      "size": 15984
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/attiba_jefferson_prop.abin",
+      "offset": 49045314,
+      "size": 15984
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/benny_fairfax.abin",
+      "offset": 49061365,
+      "size": 12736
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/big_black.abin",
+      "offset": 49074164,
+      "size": 16336
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/brayden_szafranski.abin",
+      "offset": 49090572,
+      "size": 15984
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/CAC_female.abin",
+      "offset": 49106620,
+      "size": 12736
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/CAC_male.abin",
+      "offset": 49119418,
+      "size": 12736
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/chris_cole.abin",
+      "offset": 49132218,
+      "size": 17424
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/chris_haslam.abin",
+      "offset": 49149708,
+      "size": 15984
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/coach_frank.abin",
+      "offset": 49165757,
+      "size": 12736
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/colin_mckay.abin",
+      "offset": 49178558,
+      "size": 12736
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/cuz.abin",
+      "offset": 49191351,
+      "size": 16704
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/cuz_can.abin",
+      "offset": 49208116,
+      "size": 16704
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/dan_drehobl.abin",
+      "offset": 49224885,
+      "size": 16704
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/dan_drehobl_prop.abin",
+      "offset": 49241659,
+      "size": 16704
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/danny_way.abin",
+      "offset": 49258426,
+      "size": 16704
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/darren_navarette.abin",
+      "offset": 49275200,
+      "size": 15984
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/darren_navarette_prop.abin",
+      "offset": 49291259,
+      "size": 15984
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/deerman_of_darkwoods.abin",
+      "offset": 49307317,
+      "size": 12736
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/dem_bones.abin",
+      "offset": 49320116,
+      "size": 2288
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/dem_bones_hom.abin",
+      "offset": 49322471,
+      "size": 2288
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/dennis_busenitz.abin",
+      "offset": 49324828,
+      "size": 15744
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/dennis_busenitz_prop.abin",
+      "offset": 49340646,
+      "size": 15744
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/dlc_test_cuz.abin",
+      "offset": 49356456,
+      "size": 16704
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/eric_koston.abin",
+      "offset": 49373225,
+      "size": 15984
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/eric_koston_prop.abin",
+      "offset": 49389279,
+      "size": 15984
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/freeway.abin",
+      "offset": 49405324,
+      "size": 17312
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/giovanni_reda.abin",
+      "offset": 49422703,
+      "size": 17424
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/giovanni_reda_prop.abin",
+      "offset": 49440199,
+      "size": 17424
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/jake_brown.abin",
+      "offset": 49457687,
+      "size": 16464
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/jason_dill.abin",
+      "offset": 49474215,
+      "size": 15984
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/jerry_hsu.abin",
+      "offset": 49490262,
+      "size": 12736
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/joey_brezinski.abin",
+      "offset": 49503066,
+      "size": 13104
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/john_cardiel.abin",
+      "offset": 49516236,
+      "size": 15872
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/john_cardiel_prop.abin",
+      "offset": 49532179,
+      "size": 15872
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/john_rattray.abin",
+      "offset": 49548117,
+      "size": 16592
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/josh_kalis.abin",
+      "offset": 49564773,
+      "size": 16224
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/josh_kalis_prop.abin",
+      "offset": 49581066,
+      "size": 16224
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/lizard_king.abin",
+      "offset": 49597355,
+      "size": 15872
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/lizard_king_prop.abin",
+      "offset": 49613297,
+      "size": 15872
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/lucas_puig.abin",
+      "offset": 49629233,
+      "size": 17424
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/marc_johnson.abin",
+      "offset": 49646723,
+      "size": 16704
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/mark_appleyard.abin",
+      "offset": 49663495,
+      "size": 15984
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/mark_gonzales.abin",
+      "offset": 49679546,
+      "size": 22592
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/michael_burnette.abin",
+      "offset": 49702208,
+      "size": 16592
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/michael_burnette_prop.abin",
+      "offset": 49718875,
+      "size": 16592
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/mike.abin",
+      "offset": 49735525,
+      "size": 13712
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/mike_carroll.abin",
+      "offset": 49749303,
+      "size": 16704
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/mike_carroll_prop.abin",
+      "offset": 49766078,
+      "size": 16704
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/mike_prop.abin",
+      "offset": 49782845,
+      "size": 13712
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/pat_duffy.abin",
+      "offset": 49796620,
+      "size": 16592
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/pj_ladd.abin",
+      "offset": 49813273,
+      "size": 16592
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/ray_barbee.abin",
+      "offset": 49829929,
+      "size": 15872
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/rig_Tpose.abin",
+      "offset": 49845864,
+      "size": 13504
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/rob_dyrdek.abin",
+      "offset": 49859432,
+      "size": 16592
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/rob_dyrdek_prop.abin",
+      "offset": 49876093,
+      "size": 16592
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/ryan_gallant.abin",
+      "offset": 49892751,
+      "size": 12736
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/ryan_smith.abin",
+      "offset": 49905551,
+      "size": 12736
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/sammy.abin",
+      "offset": 49918346,
+      "size": 13824
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/sammy_prop.abin",
+      "offset": 49932234,
+      "size": 13824
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/seb.abin",
+      "offset": 49946115,
+      "size": 16704
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/seb_prop.abin",
+      "offset": 49962881,
+      "size": 16704
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/security_03.abin",
+      "offset": 49979650,
+      "size": 16704
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/shingo.abin",
+      "offset": 49996414,
+      "size": 15856
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/shingo_prop.abin",
+      "offset": 50012335,
+      "size": 15856
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/skate_ambassador.abin",
+      "offset": 50028261,
+      "size": 16592
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/skate_ambassador_prop.abin",
+      "offset": 50044928,
+      "size": 16592
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/slappy.abin",
+      "offset": 50061580,
+      "size": 17312
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/slappy_prop.abin",
+      "offset": 50078957,
+      "size": 17312
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/terry_kennedy.abin",
+      "offset": 50096336,
+      "size": 15744
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/tutorial_male.abin",
+      "offset": 50112147,
+      "size": 12736
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/z_architect.abin",
+      "offset": 50124948,
+      "size": 12736
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/z_architect_logo.abin",
+      "offset": 50137754,
+      "size": 12736
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/z_architect_prop.abin",
+      "offset": 50150560,
+      "size": 12736
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/z_artist.abin",
+      "offset": 50163358,
+      "size": 12736
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/z_artist_logo.abin",
+      "offset": 50176161,
+      "size": 12736
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/z_fresh_1.abin",
+      "offset": 50188960,
+      "size": 16336
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/z_fresh_2.abin",
+      "offset": 50205359,
+      "size": 16336
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/z_fresh_3.abin",
+      "offset": 50221758,
+      "size": 16336
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/z_hesh_1.abin",
+      "offset": 50238156,
+      "size": 16336
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/z_hesh_2.abin",
+      "offset": 50254554,
+      "size": 16336
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/z_hesh_3.abin",
+      "offset": 50270952,
+      "size": 16704
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/z_kook_1.abin",
+      "offset": 50287718,
+      "size": 16336
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/z_kook_2.abin",
+      "offset": 50304116,
+      "size": 16336
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/z_kook_3.abin",
+      "offset": 50320514,
+      "size": 16336
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/z_legend.abin",
+      "offset": 50336912,
+      "size": 12736
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/z_legend_logo.abin",
+      "offset": 50349715,
+      "size": 12736
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/z_masochist.abin",
+      "offset": 50362516,
+      "size": 12736
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/z_pipeline_marquee.abin",
+      "offset": 50375324,
+      "size": 16592
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/z_rob_dyrdek.abin",
+      "offset": 50391982,
+      "size": 16592
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/z_rookie.abin",
+      "offset": 50408636,
+      "size": 12736
+    },
+    {
+      "path": "assets/private/stock/data/anim/faces/z_rookie_logo.abin",
+      "offset": 50421439,
+      "size": 12736
+    },
+    {
+      "path": "assets/private/stock/data/anim/gesture/cac_female_airguitar.abin",
+      "offset": 50434251,
+      "size": 73872
+    },
+    {
+      "path": "assets/private/stock/data/anim/gesture/cac_female_airplane.abin",
+      "offset": 50508198,
+      "size": 73136
+    },
+    {
+      "path": "assets/private/stock/data/anim/gesture/cac_female_axe.abin",
+      "offset": 50581404,
+      "size": 11984
+    },
+    {
+      "path": "assets/private/stock/data/anim/gesture/cac_female_boxing.abin",
+      "offset": 50593461,
+      "size": 97776
+    },
+    {
+      "path": "assets/private/stock/data/anim/gesture/cac_female_bruce.abin",
+      "offset": 50691309,
+      "size": 73872
+    },
+    {
+      "path": "assets/private/stock/data/anim/gesture/cac_female_checktime.abin",
+      "offset": 50765257,
+      "size": 95808
+    },
+    {
+      "path": "assets/private/stock/data/anim/gesture/cac_female_clothesline.abin",
+      "offset": 50861143,
+      "size": 73872
+    },
+    {
+      "path": "assets/private/stock/data/anim/gesture/cac_female_devil.abin",
+      "offset": 50935087,
+      "size": 73872
+    },
+    {
+      "path": "assets/private/stock/data/anim/gesture/cac_female_doublegun.abin",
+      "offset": 51009035,
+      "size": 73872
+    },
+    {
+      "path": "assets/private/stock/data/anim/gesture/cac_female_dunno.abin",
+      "offset": 51082979,
+      "size": 73872
+    },
+    {
+      "path": "assets/private/stock/data/anim/gesture/cac_female_fingerpoint.abin",
+      "offset": 51156929,
+      "size": 73872
+    },
+    {
+      "path": "assets/private/stock/data/anim/gesture/cac_female_fingerwag.abin",
+      "offset": 51230877,
+      "size": 73872
+    },
+    {
+      "path": "assets/private/stock/data/anim/gesture/cac_female_fists.abin",
+      "offset": 51304821,
+      "size": 73872
+    },
+    {
+      "path": "assets/private/stock/data/anim/gesture/cac_female_flex.abin",
+      "offset": 51378764,
+      "size": 73872
+    },
+    {
+      "path": "assets/private/stock/data/anim/gesture/cac_female_fliptable.abin",
+      "offset": 51452712,
+      "size": 73872
+    },
+    {
+      "path": "assets/private/stock/data/anim/gesture/cac_female_fonz.abin",
+      "offset": 51526655,
+      "size": 73872
+    },
+    {
+      "path": "assets/private/stock/data/anim/gesture/cac_female_freedom.abin",
+      "offset": 51600601,
+      "size": 73872
+    },
+    {
+      "path": "assets/private/stock/data/anim/gesture/cac_female_fu.abin",
+      "offset": 51674542,
+      "size": 73872
+    },
+    {
+      "path": "assets/private/stock/data/anim/gesture/cac_female_getoutahere.abin",
+      "offset": 51748492,
+      "size": 73872
+    },
+    {
+      "path": "assets/private/stock/data/anim/gesture/cac_female_getouttheway.abin",
+      "offset": 51822443,
+      "size": 66912
+    },
+    {
+      "path": "assets/private/stock/data/anim/gesture/cac_female_handcuffs.abin",
+      "offset": 51889431,
+      "size": 83856
+    },
+    {
+      "path": "assets/private/stock/data/anim/gesture/cac_female_paper.abin",
+      "offset": 51973359,
+      "size": 73872
+    },
+    {
+      "path": "assets/private/stock/data/anim/gesture/cac_female_peace.abin",
+      "offset": 52047303,
+      "size": 73872
+    },
+    {
+      "path": "assets/private/stock/data/anim/gesture/cac_female_prewind.abin",
+      "offset": 52121249,
+      "size": 103776
+    },
+    {
+      "path": "assets/private/stock/data/anim/gesture/cac_female_pumphigh.abin",
+      "offset": 52225100,
+      "size": 83856
+    },
+    {
+      "path": "assets/private/stock/data/anim/gesture/cac_female_pumplow.abin",
+      "offset": 52309030,
+      "size": 73872
+    },
+    {
+      "path": "assets/private/stock/data/anim/gesture/cac_female_push.abin",
+      "offset": 52382973,
+      "size": 74608
+    },
+    {
+      "path": "assets/private/stock/data/anim/gesture/cac_female_raisetheroof.abin",
+      "offset": 52457660,
+      "size": 74608
+    },
+    {
+      "path": "assets/private/stock/data/anim/gesture/cac_female_rock.abin",
+      "offset": 52532339,
+      "size": 73872
+    },
+    {
+      "path": "assets/private/stock/data/anim/gesture/cac_female_scissors.abin",
+      "offset": 52606286,
+      "size": 73872
+    },
+    {
+      "path": "assets/private/stock/data/anim/gesture/cac_female_shaka.abin",
+      "offset": 52680230,
+      "size": 74608
+    },
+    {
+      "path": "assets/private/stock/data/anim/gesture/cac_female_shrug.abin",
+      "offset": 52754910,
+      "size": 75344
+    },
+    {
+      "path": "assets/private/stock/data/anim/gesture/cac_female_sky.abin",
+      "offset": 52830324,
+      "size": 74608
+    },
+    {
+      "path": "assets/private/stock/data/anim/gesture/cac_female_snap.abin",
+      "offset": 52905003,
+      "size": 65904
+    },
+    {
+      "path": "assets/private/stock/data/anim/gesture/cac_female_soularch.abin",
+      "offset": 52970982,
+      "size": 88800
+    },
+    {
+      "path": "assets/private/stock/data/anim/gesture/cac_female_spock.abin",
+      "offset": 53059854,
+      "size": 73872
+    },
+    {
+      "path": "assets/private/stock/data/anim/gesture/cac_female_surfsup.abin",
+      "offset": 53133800,
+      "size": 73872
+    },
+    {
+      "path": "assets/private/stock/data/anim/gesture/cac_female_swinghigh.abin",
+      "offset": 53207748,
+      "size": 82848
+    },
+    {
+      "path": "assets/private/stock/data/anim/gesture/cac_female_swinglow.abin",
+      "offset": 53290671,
+      "size": 82848
+    },
+    {
+      "path": "assets/private/stock/data/anim/gesture/cac_female_throwarms.abin",
+      "offset": 53373595,
+      "size": 86832
+    },
+    {
+      "path": "assets/private/stock/data/anim/gesture/cac_female_thumbsdown.abin",
+      "offset": 53460504,
+      "size": 73872
+    },
+    {
+      "path": "assets/private/stock/data/anim/gesture/cac_female_wave.abin",
+      "offset": 53534447,
+      "size": 74608
+    },
+    {
+      "path": "assets/private/stock/data/anim/gesture/cac_female_what.abin",
+      "offset": 53609126,
+      "size": 73872
+    },
+    {
+      "path": "assets/private/stock/data/anim/gesture/cac_female_wings.abin",
+      "offset": 53683070,
+      "size": 74608
+    },
+    {
+      "path": "assets/private/stock/data/anim/gesture/cac_female_yardsale.abin",
+      "offset": 53757753,
+      "size": 63936
+    },
+    {
+      "path": "assets/private/stock/data/anim/gesture/cac_male_airguitar.abin",
+      "offset": 53821763,
+      "size": 73136
+    },
+    {
+      "path": "assets/private/stock/data/anim/gesture/cac_male_airplane.abin",
+      "offset": 53894972,
+      "size": 73136
+    },
+    {
+      "path": "assets/private/stock/data/anim/gesture/cac_male_axe.abin",
+      "offset": 53968176,
+      "size": 11984
+    },
+    {
+      "path": "assets/private/stock/data/anim/gesture/cac_male_boxing.abin",
+      "offset": 53980231,
+      "size": 97776
+    },
+    {
+      "path": "assets/private/stock/data/anim/gesture/cac_male_bruce.abin",
+      "offset": 54078077,
+      "size": 73872
+    },
+    {
+      "path": "assets/private/stock/data/anim/gesture/cac_male_checktime.abin",
+      "offset": 54152023,
+      "size": 95808
+    },
+    {
+      "path": "assets/private/stock/data/anim/gesture/cac_male_clothesline.abin",
+      "offset": 54247907,
+      "size": 73872
+    },
+    {
+      "path": "assets/private/stock/data/anim/gesture/cac_male_devil.abin",
+      "offset": 54321849,
+      "size": 73872
+    },
+    {
+      "path": "assets/private/stock/data/anim/gesture/cac_male_doublegun.abin",
+      "offset": 54395795,
+      "size": 73872
+    },
+    {
+      "path": "assets/private/stock/data/anim/gesture/cac_male_dunno.abin",
+      "offset": 54469737,
+      "size": 73872
+    },
+    {
+      "path": "assets/private/stock/data/anim/gesture/cac_male_fingerpoint.abin",
+      "offset": 54543685,
+      "size": 73872
+    },
+    {
+      "path": "assets/private/stock/data/anim/gesture/cac_male_fingerwag.abin",
+      "offset": 54617631,
+      "size": 73872
+    },
+    {
+      "path": "assets/private/stock/data/anim/gesture/cac_male_fists.abin",
+      "offset": 54691573,
+      "size": 73872
+    },
+    {
+      "path": "assets/private/stock/data/anim/gesture/cac_male_flex.abin",
+      "offset": 54765514,
+      "size": 73872
+    },
+    {
+      "path": "assets/private/stock/data/anim/gesture/cac_male_fliptable.abin",
+      "offset": 54839460,
+      "size": 73872
+    },
+    {
+      "path": "assets/private/stock/data/anim/gesture/cac_male_fonz.abin",
+      "offset": 54913401,
+      "size": 73872
+    },
+    {
+      "path": "assets/private/stock/data/anim/gesture/cac_male_freedom.abin",
+      "offset": 54987345,
+      "size": 73872
+    },
+    {
+      "path": "assets/private/stock/data/anim/gesture/cac_male_fu.abin",
+      "offset": 55061284,
+      "size": 73872
+    },
+    {
+      "path": "assets/private/stock/data/anim/gesture/cac_male_getoutahere.abin",
+      "offset": 55135232,
+      "size": 73872
+    },
+    {
+      "path": "assets/private/stock/data/anim/gesture/cac_male_getouttheway.abin",
+      "offset": 55209181,
+      "size": 66912
+    },
+    {
+      "path": "assets/private/stock/data/anim/gesture/cac_male_handcuffs.abin",
+      "offset": 55276167,
+      "size": 83856
+    },
+    {
+      "path": "assets/private/stock/data/anim/gesture/cac_male_paper.abin",
+      "offset": 55360093,
+      "size": 73872
+    },
+    {
+      "path": "assets/private/stock/data/anim/gesture/cac_male_peace.abin",
+      "offset": 55434035,
+      "size": 73872
+    },
+    {
+      "path": "assets/private/stock/data/anim/gesture/cac_male_prewind.abin",
+      "offset": 55507979,
+      "size": 103776
+    },
+    {
+      "path": "assets/private/stock/data/anim/gesture/cac_male_pumphigh.abin",
+      "offset": 55611828,
+      "size": 83856
+    },
+    {
+      "path": "assets/private/stock/data/anim/gesture/cac_male_pumplow.abin",
+      "offset": 55695756,
+      "size": 73872
+    },
+    {
+      "path": "assets/private/stock/data/anim/gesture/cac_male_push.abin",
+      "offset": 55769697,
+      "size": 74608
+    },
+    {
+      "path": "assets/private/stock/data/anim/gesture/cac_male_raisetheroof.abin",
+      "offset": 55844382,
+      "size": 74608
+    },
+    {
+      "path": "assets/private/stock/data/anim/gesture/cac_male_rock.abin",
+      "offset": 55919059,
+      "size": 73872
+    },
+    {
+      "path": "assets/private/stock/data/anim/gesture/cac_male_scissors.abin",
+      "offset": 55993004,
+      "size": 73872
+    },
+    {
+      "path": "assets/private/stock/data/anim/gesture/cac_male_shaka.abin",
+      "offset": 56066946,
+      "size": 74608
+    },
+    {
+      "path": "assets/private/stock/data/anim/gesture/cac_male_shrug.abin",
+      "offset": 56141624,
+      "size": 75344
+    },
+    {
+      "path": "assets/private/stock/data/anim/gesture/cac_male_sky.abin",
+      "offset": 56217036,
+      "size": 73872
+    },
+    {
+      "path": "assets/private/stock/data/anim/gesture/cac_male_snap.abin",
+      "offset": 56290977,
+      "size": 65904
+    },
+    {
+      "path": "assets/private/stock/data/anim/gesture/cac_male_soularch.abin",
+      "offset": 56356954,
+      "size": 88800
+    },
+    {
+      "path": "assets/private/stock/data/anim/gesture/cac_male_spock.abin",
+      "offset": 56445824,
+      "size": 73872
+    },
+    {
+      "path": "assets/private/stock/data/anim/gesture/cac_male_surfsup.abin",
+      "offset": 56519768,
+      "size": 73872
+    },
+    {
+      "path": "assets/private/stock/data/anim/gesture/cac_male_swinghigh.abin",
+      "offset": 56593714,
+      "size": 82848
+    },
+    {
+      "path": "assets/private/stock/data/anim/gesture/cac_male_swinglow.abin",
+      "offset": 56676635,
+      "size": 82848
+    },
+    {
+      "path": "assets/private/stock/data/anim/gesture/cac_male_throwarms.abin",
+      "offset": 56759557,
+      "size": 73872
+    },
+    {
+      "path": "assets/private/stock/data/anim/gesture/cac_male_thumbsdown.abin",
+      "offset": 56833504,
+      "size": 73872
+    },
+    {
+      "path": "assets/private/stock/data/anim/gesture/cac_male_wave.abin",
+      "offset": 56907445,
+      "size": 74608
+    },
+    {
+      "path": "assets/private/stock/data/anim/gesture/cac_male_what.abin",
+      "offset": 56982122,
+      "size": 73872
+    },
+    {
+      "path": "assets/private/stock/data/anim/gesture/cac_male_wings.abin",
+      "offset": 57056064,
+      "size": 74608
+    },
+    {
+      "path": "assets/private/stock/data/anim/gesture/cac_male_yardsale.abin",
+      "offset": 57130745,
+      "size": 63936
+    },
+    {
+      "path": "assets/private/stock/data/anim/marquee_viewer.abin",
+      "offset": 57194743,
+      "size": 1289472
+    },
+    {
+      "path": "assets/private/stock/data/anim/MarqueeSkeletonPres.abin",
+      "offset": 58484282,
+      "size": 7456
+    },
+    {
+      "path": "assets/private/stock/data/anim/OffBoard.abin",
+      "offset": 58491794,
+      "size": 3982936
+    },
+    {
+      "path": "assets/private/stock/data/anim/OnBoard.abin",
+      "offset": 62474785,
+      "size": 10783864
+    },
+    {
+      "path": "assets/private/stock/data/anim/PedestrianFaceFull.abin",
+      "offset": 73258715,
+      "size": 112384
+    },
+    {
+      "path": "assets/private/stock/data/anim/PedestrianFaceRegular.abin",
+      "offset": 73371168,
+      "size": 5744
+    },
+    {
+      "path": "assets/private/stock/data/anim/PedestrianLeftHandRegular.abin",
+      "offset": 73376985,
+      "size": 928
+    },
+    {
+      "path": "assets/private/stock/data/anim/PedestrianSkeletonPres.abin",
+      "offset": 73377983,
+      "size": 2193472
+    },
+    {
+      "path": "assets/private/stock/data/anim/PedestrianSkeletonSim.abin",
+      "offset": 75571524,
+      "size": 832
+    },
+    {
+      "path": "assets/private/stock/data/anim/sk83_marquee_viewer.abin",
+      "offset": 75572423,
+      "size": 1470432
+    },
+    {
+      "path": "assets/private/stock/data/anim/SkaterBodyPres.abin",
+      "offset": 77042917,
+      "size": 5824
+    },
+    {
+      "path": "assets/private/stock/data/anim/SkaterFacePres.abin",
+      "offset": 77048803,
+      "size": 114320
+    },
+    {
+      "path": "assets/private/stock/data/anim/SkaterFaceSimPres.abin",
+      "offset": 77163188,
+      "size": 2816
+    },
+    {
+      "path": "assets/private/stock/data/anim/SkaterLeftHand.abin",
+      "offset": 77166066,
+      "size": 14496
+    },
+    {
+      "path": "assets/private/stock/data/anim/SkaterLeftHandPres.abin",
+      "offset": 77180628,
+      "size": 1296
+    },
+    {
+      "path": "assets/private/stock/data/anim/SkaterPresentationDB.abin",
+      "offset": 77181992,
+      "size": 7312
+    },
+    {
+      "path": "assets/private/stock/data/anim/SkaterRightHand.abin",
+      "offset": 77189367,
+      "size": 5568
+    },
+    {
+      "path": "assets/private/stock/data/anim/SkaterRightHandPres.abin",
+      "offset": 77195002,
+      "size": 1024
+    },
+    {
+      "path": "assets/private/stock/data/anim/VehiclesDB.abin",
+      "offset": 77196084,
+      "size": 6656
+    },
+    {
+      "path": "assets/private/stock/data/camera/1.shk",
+      "offset": 77202790,
+      "size": 10603
+    },
+    {
+      "path": "assets/private/stock/data/camera/2.shk",
+      "offset": 77213443,
+      "size": 1004
+    },
+    {
+      "path": "assets/private/stock/data/config/input.cfg",
+      "offset": 77214501,
+      "size": 11687
+    },
+    {
+      "path": "assets/private/stock/data/joystick/skater.pat",
+      "offset": 77226245,
+      "size": 10252
+    },
+    {
+      "path": "assets/private/stock/data/joystick/skater90.pat",
+      "offset": 77236556,
+      "size": 10486
+    },
+    {
+      "path": "assets/private/stock/data/joystick/skater_air.pat",
+      "offset": 77247103,
+      "size": 2835
+    },
+    {
+      "path": "assets/private/stock/data/joystick/skater_fingerflip.pat",
+      "offset": 77250006,
+      "size": 1670
+    },
+    {
+      "path": "assets/private/stock/data/joystick/skaterls.pat",
+      "offset": 77251735,
+      "size": 1249
+    },
+    {
+      "path": "assets/private/stock/data/joystick/skaterN90.pat",
+      "offset": 77253044,
+      "size": 10560
+    },
+    {
+      "path": "assets/private/stock/data/joystick/skaterstep.pat",
+      "offset": 77263665,
+      "size": 923
+    },
+    {
+      "path": "assets/private/stock/data/livingworld/PluginDescriptor/actortracker_spectate.stategraph",
+      "offset": 77264687,
+      "size": 517
+    },
+    {
+      "path": "assets/private/stock/data/livingworld/PluginDescriptor/conversation.stategraph",
+      "offset": 77265294,
+      "size": 442
+    },
+    {
+      "path": "assets/private/stock/data/livingworld/PluginDescriptor/lookat.stategraph",
+      "offset": 77265820,
+      "size": 299
+    },
+    {
+      "path": "assets/private/stock/data/livingworld/PluginDescriptor/sit.stategraph",
+      "offset": 77266200,
+      "size": 635
+    },
+    {
+      "path": "assets/private/stock/data/livingworld/PluginDescriptor/spectate.stategraph",
+      "offset": 77266921,
+      "size": 348
+    },
+    {
+      "path": "assets/private/stock/data/livingworld/PluginDescriptor/useatm.stategraph",
+      "offset": 77267353,
+      "size": 584
+    },
+    {
+      "path": "assets/private/stock/data/livingworld/PluginDescriptor/usenewspaperbox.stategraph",
+      "offset": 77268030,
+      "size": 608
+    },
+    {
+      "path": "assets/private/stock/data/livingworld/PluginDescriptor/usetrashbin.stategraph",
+      "offset": 77268727,
+      "size": 525
+    },
+    {
+      "path": "assets/private/stock/data/livingworld/PluginDescriptor/usevendingmachine.stategraph",
+      "offset": 77269347,
+      "size": 595
+    },
+    {
+      "path": "assets/private/stock/data/livingworld/PluginDescriptor/usewaterfountain.stategraph",
+      "offset": 77270036,
+      "size": 594
+    },
+    {
+      "path": "assets/private/stock/data/script/camera/Default_cameragraph.stategraph",
+      "offset": 77270712,
+      "size": 27950
+    },
+    {
+      "path": "assets/private/stock/data/script/camera/replay01_cameragraph.stategraph",
+      "offset": 77298745,
+      "size": 1281
+    },
+    {
+      "path": "assets/private/stock/data/script/camera/replay02_cameragraph.stategraph",
+      "offset": 77300109,
+      "size": 577
+    },
+    {
+      "path": "assets/private/stock/data/script/camera/replay03_cameragraph.stategraph",
+      "offset": 77300769,
+      "size": 1282
+    },
+    {
+      "path": "assets/private/stock/data/script/camera/replay04_cameragraph.stategraph",
+      "offset": 77302134,
+      "size": 1284
+    },
+    {
+      "path": "assets/private/stock/data/state/ActionGraph_OnBoard.stategraph",
+      "offset": 77303492,
+      "size": 102758
+    },
+    {
+      "path": "assets/private/stock/data/state/livingworldentities/marquee/marquee.stategraph",
+      "offset": 77406340,
+      "size": 749
+    },
+    {
+      "path": "assets/private/stock/data/state/livingworldentities/marquee/motiongraph_marquee.stategraph",
+      "offset": 77407191,
+      "size": 2492
+    },
+    {
+      "path": "assets/private/stock/data/state/livingworldentities/marquee/Motiongraph_Photographer.stategraph",
+      "offset": 77409790,
+      "size": 4000
+    },
+    {
+      "path": "assets/private/stock/data/state/livingworldentities/marquee/Photographer.stategraph",
+      "offset": 77413885,
+      "size": 1257
+    },
+    {
+      "path": "assets/private/stock/data/state/livingworldentities/pedestrian/MotionGraph_Pedestrian.stategraph",
+      "offset": 77415250,
+      "size": 153363
+    },
+    {
+      "path": "assets/private/stock/data/state/livingworldentities/pedestrian/Pedestrian.stategraph",
+      "offset": 77568709,
+      "size": 40511
+    },
+    {
+      "path": "assets/private/stock/data/state/livingworldentities/pedestrian/plugin/actortracker_spectate.stategraph",
+      "offset": 77609334,
+      "size": 2254
+    },
+    {
+      "path": "assets/private/stock/data/state/livingworldentities/pedestrian/plugin/conversation.stategraph",
+      "offset": 77611693,
+      "size": 3717
+    },
+    {
+      "path": "assets/private/stock/data/state/livingworldentities/pedestrian/plugin/lookat.stategraph",
+      "offset": 77615509,
+      "size": 336
+    },
+    {
+      "path": "assets/private/stock/data/state/livingworldentities/pedestrian/plugin/sit.stategraph",
+      "offset": 77615941,
+      "size": 3401
+    },
+    {
+      "path": "assets/private/stock/data/state/livingworldentities/pedestrian/plugin/spectate.stategraph",
+      "offset": 77619443,
+      "size": 2376
+    },
+    {
+      "path": "assets/private/stock/data/state/livingworldentities/pedestrian/plugin/useatm.stategraph",
+      "offset": 77621918,
+      "size": 2748
+    },
+    {
+      "path": "assets/private/stock/data/state/livingworldentities/pedestrian/plugin/usenewspaperbox.stategraph",
+      "offset": 77624774,
+      "size": 2767
+    },
+    {
+      "path": "assets/private/stock/data/state/livingworldentities/pedestrian/plugin/usetrashbin.stategraph",
+      "offset": 77627645,
+      "size": 323
+    },
+    {
+      "path": "assets/private/stock/data/state/livingworldentities/pedestrian/plugin/usevendingmachine.stategraph",
+      "offset": 77628078,
+      "size": 2958
+    },
+    {
+      "path": "assets/private/stock/data/state/livingworldentities/pedestrian/plugin/usewaterfountain.stategraph",
+      "offset": 77631145,
+      "size": 3285
+    },
+    {
+      "path": "assets/private/stock/data/state/livingworldentities/vehicle/Vehicle.stategraph",
+      "offset": 77634520,
+      "size": 2960
+    },
+    {
+      "path": "assets/private/stock/data/state/MotionGraph_OnBoard.stategraph",
+      "offset": 77637554,
+      "size": 1020422
+    },
+    {
+      "path": "assets/private/stock/physics-skeletons.json",
+      "offset": 78658031,
+      "size": 8404
+    },
+    {
+      "path": "assets/private/stock/skater-collections.json",
+      "offset": 78666491,
+      "size": 9765921
+    },
+    {
+      "path": "assets/private/teleports.json",
+      "offset": 88432453,
+      "size": 37436
+    },
+    {
+      "path": "maps/BlackBoxPark.irradiance",
+      "offset": 88469929,
+      "size": 16332
+    },
+    {
+      "path": "maps/DownTownSkatePark.irradiance",
+      "offset": 88486306,
+      "size": 31704
+    },
+    {
+      "path": "maps/IndustrialSkatePark.irradiance",
+      "offset": 88518057,
+      "size": 29296
+    },
+    {
+      "path": "maps/MaloofMoneyCup.irradiance",
+      "offset": 88547395,
+      "size": 43700
+    },
+    {
+      "path": "maps/MegaPark.irradiance",
+      "offset": 88591131,
+      "size": 34744
+    },
+    {
+      "path": "maps/SkateSchool.irradiance",
+      "offset": 88625914,
+      "size": 140548
+    },
+    {
+      "path": "maps/StartPark.irradiance",
+      "offset": 88766499,
+      "size": 14576
+    },
+    {
+      "path": "mods/freestyle-mx/bike.glb",
+      "offset": 88781113,
+      "size": 5752996
+    },
+    {
+      "path": "mods/freestyle-mx/main.lua",
+      "offset": 94534147,
+      "size": 12420
+    },
+    {
+      "path": "mods/freestyle-mx/mod.json",
+      "offset": 94546605,
+      "size": 6297
+    },
+    {
+      "path": "mods/freestyle-mx/rider.json",
+      "offset": 94552942,
+      "size": 176001
+    },
+    {
+      "path": "mods/freestyle-mx/vehicle.json",
+      "offset": 94728985,
+      "size": 2850
+    },
+    {
+      "path": "settings/default-map.json",
+      "offset": 94731872,
+      "size": 23
+    },
+    {
+      "path": "settings/mods/community.freestyle-mx.json",
+      "offset": 94731948,
+      "size": 19
+    }
+  ]
+}

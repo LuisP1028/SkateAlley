@@ -1,0 +1,38 @@
+{
+  "id": "doom_cig",
+  "code": "HOLO-STK-03",
+  "repoPath": "tags/DOOMTAG_CIG.jpg",
+  "preProcessingMode": "group_a_cutout",
+  "bypassExteriorCutout": false,
+  "sourceWidth": 1456,
+  "sourceHeight": 1360,
+  "sourceAspectRatio": 1.070588,
+  "masterBBoxInSource": [
+    0,
+    393,
+    985,
+    1359
+  ],
+  "croppedWidth": 992,
+  "croppedHeight": 973,
+  "croppedAspectRatio": 1.0195272353545735,
+  "planeWidthMeters": 1.1611,
+  "planeHeightMeters": 1.1389,
+  "edgeSafetyMarginPx": 3,
+  "dieCutBorderRadiusPx": 28,
+  "connectedStickerIslands": 1,
+  "triZonePixelCounts": {
+    "exteriorVoid": 374365,
+    "dieCutBorder": 83906,
+    "subjectInterior": 506945
+  },
+  "interiorWhitePixelsPreserved": 2953,
+  "bundleFiles": [
+    "base_color.png",
+    "master_alpha.png",
+    "foil_mask.png",
+    "border_mask.png",
+    "packed_control.png",
+    "metadata.json"
+  ]
+}

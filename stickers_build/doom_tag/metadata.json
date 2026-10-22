@@ -1,0 +1,38 @@
+{
+  "id": "doom_tag",
+  "code": "HOLO-STK-01",
+  "repoPath": "tags/1DOOMTAG.jpeg",
+  "preProcessingMode": "group_a_cutout",
+  "bypassExteriorCutout": false,
+  "sourceWidth": 3514,
+  "sourceHeight": 1184,
+  "sourceAspectRatio": 2.967905,
+  "masterBBoxInSource": [
+    358,
+    105,
+    3365,
+    1173
+  ],
+  "croppedWidth": 3014,
+  "croppedHeight": 1075,
+  "croppedAspectRatio": 2.8037209302325583,
+  "planeWidthMeters": 1.9256,
+  "planeHeightMeters": 0.6868,
+  "edgeSafetyMarginPx": 3,
+  "dieCutBorderRadiusPx": 36,
+  "connectedStickerIslands": 1,
+  "triZonePixelCounts": {
+    "exteriorVoid": 791342,
+    "dieCutBorder": 420312,
+    "subjectInterior": 2028396
+  },
+  "interiorWhitePixelsPreserved": 114842,
+  "bundleFiles": [
+    "base_color.png",
+    "master_alpha.png",
+    "foil_mask.png",
+    "border_mask.png",
+    "packed_control.png",
+    "metadata.json"
+  ]
+}

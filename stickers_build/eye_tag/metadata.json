@@ -1,0 +1,38 @@
+{
+  "id": "eye_tag",
+  "code": "HOLO-STK-06",
+  "repoPath": "tags/eyetag.jpeg",
+  "preProcessingMode": "group_b_full_frame",
+  "bypassExteriorCutout": true,
+  "sourceWidth": 2090,
+  "sourceHeight": 2048,
+  "sourceAspectRatio": 1.020508,
+  "masterBBoxInSource": [
+    0,
+    0,
+    2089,
+    2047
+  ],
+  "croppedWidth": 2168,
+  "croppedHeight": 2126,
+  "croppedAspectRatio": 1.019755409219191,
+  "planeWidthMeters": 1.1613,
+  "planeHeightMeters": 1.1388,
+  "edgeSafetyMarginPx": 3,
+  "dieCutBorderRadiusPx": 36,
+  "connectedStickerIslands": 1,
+  "triZonePixelCounts": {
+    "exteriorVoid": 31504,
+    "dieCutBorder": 299328,
+    "subjectInterior": 4278336
+  },
+  "interiorWhitePixelsPreserved": 1139773,
+  "bundleFiles": [
+    "base_color.png",
+    "master_alpha.png",
+    "foil_mask.png",
+    "border_mask.png",
+    "packed_control.png",
+    "metadata.json"
+  ]
+}

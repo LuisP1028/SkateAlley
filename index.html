@@ -1,0 +1,1529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Freeman Alley — Scroll-Driven Walk &amp; Interactive Free-Roam</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect width='16' height='16' rx='3' fill='%232563eb'/></svg>" />
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "./node_modules/three/build/three.module.js",
+        "three/addons/": "./node_modules/three/examples/jsm/"
+      }
+    }
+  </script>
+  <style>
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      min-height: 100vh;
+      overflow-x: hidden;
+      overflow-y: auto;
+      background-color: #101216;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: #f0f4f8;
+    }
+    body.freeroam-mode {
+      overflow: hidden;
+    }
+    #scroll-track {
+      width: 1px;
+      height: 600vh;
+      pointer-events: none;
+    }
+    body.freeroam-mode #scroll-track {
+      height: 100vh;
+    }
+    #viewport-container {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      z-index: 1;
+    }
+    canvas {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+      cursor: grab;
+    }
+    canvas:active {
+      cursor: grabbing;
+    }
+    #sandbox-hud {
+      position: fixed;
+      top: 14px;
+      left: 14px;
+      max-height: calc(100vh - 28px);
+      overflow-y: auto;
+      z-index: 20;
+      width: 356px;
+      background: rgba(14, 17, 23, 0.88);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 10px;
+      padding: 12px 14px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.55);
+      pointer-events: auto;
+      font-size: 12px;
+      line-height: 1.4;
+    }
+    .hud-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .hud-title {
+      font-weight: 700;
+      font-size: 13px;
+      letter-spacing: 0.02em;
+      color: #ffffff;
+    }
+    .hud-badge {
+      background: rgba(34, 197, 94, 0.2);
+      color: #4ade80;
+      border: 1px solid rgba(74, 222, 128, 0.4);
+      padding: 2px 7px;
+      border-radius: 999px;
+      font-size: 10px;
+      font-weight: 600;
+    }
+    .hud-badge.error {
+      background: rgba(239, 68, 68, 0.25);
+      color: #f87171;
+      border-color: rgba(248, 113, 113, 0.5);
+    }
+    .hud-section {
+      margin-bottom: 10px;
+    }
+    .hud-label {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #94a3b8;
+      margin-bottom: 4px;
+      font-weight: 600;
+    }
+    .hud-row {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+    .mode-banner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(37, 99, 235, 0.18);
+      border: 1px solid rgba(59, 130, 246, 0.45);
+      border-radius: 6px;
+      padding: 6px 9px;
+      margin-bottom: 6px;
+      font-weight: 600;
+      font-size: 11.5px;
+      color: #93c5fd;
+    }
+    .mode-banner.freeroam {
+      background: rgba(16, 185, 129, 0.2);
+      border-color: rgba(52, 211, 153, 0.5);
+      color: #6ee7b7;
+    }
+    .mode-banner.mount-focus {
+      background: rgba(217, 119, 6, 0.25);
+      border-color: rgba(245, 158, 11, 0.78);
+      color: #fef3c7;
+      box-shadow: 0 0 16px rgba(245, 158, 11, 0.30);
+    }
+    body.mount-pointer-hover canvas {
+      cursor: pointer;
+    }
+    .scroll-progress-track {
+      width: 100%;
+      height: 6px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 999px;
+      overflow: hidden;
+      margin-bottom: 6px;
+    }
+    .scroll-progress-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #3b82f6, #10b981);
+      border-radius: 999px;
+      transition: width 0.05s linear;
+    }
+    button.hud-btn {
+      background: #2563eb;
+      color: #ffffff;
+      border: 1px solid #3b82f6;
+      border-radius: 6px;
+      padding: 6px 10px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s ease;
+    }
+    button.hud-btn:hover {
+      background: #1d4ed8;
+    }
+    button.hud-btn.secondary {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.18);
+      color: #e2e8f0;
+      padding: 4px 7px;
+      font-size: 11px;
+    }
+    button.hud-btn.secondary:hover {
+      background: rgba(255, 255, 255, 0.16);
+    }
+    select.hud-select {
+      flex: 1;
+      background: rgba(15, 23, 42, 0.95);
+      color: #f8fafc;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 6px;
+      padding: 5px 8px;
+      font-size: 12px;
+      outline: none;
+    }
+    .emote-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 4px;
+      margin-top: 6px;
+    }
+    .telemetry-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px 10px;
+      background: rgba(0, 0, 0, 0.32);
+      border-radius: 6px;
+      padding: 7px 9px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 11px;
+      color: #cbd5e1;
+    }
+    .telemetry-grid span.val {
+      color: #38bdf8;
+      font-weight: 600;
+    }
+    .controls-hint {
+      font-size: 11px;
+      color: #94a3b8;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      padding-top: 7px;
+      margin-top: 4px;
+    }
+    .controls-hint kbd {
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 3px;
+      padding: 1px 4px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 10px;
+      color: #f8fafc;
+    }
+    #fatal-error-banner {
+      display: none;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 100;
+      background: rgba(127, 29, 29, 0.96);
+      border: 2px solid #ef4444;
+      color: #fef2f2;
+      padding: 20px 24px;
+      border-radius: 10px;
+      max-width: 620px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 13px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
+    }
+
+    /* ======================================================================
+       Proximity & Direct Wall-Mount Interaction Prompt (Free-Roam Mode)
+       ====================================================================== */
+    #mount-proximity-prompt {
+      position: fixed;
+      bottom: 26px;
+      left: 50%;
+      transform: translateX(-50%) translateY(14px);
+      z-index: 22;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: rgba(42, 20, 4, 0.92);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid rgba(245, 158, 11, 0.80);
+      border-radius: 999px;
+      padding: 9px 18px;
+      color: #fef3c7;
+      font-size: 12.5px;
+      font-weight: 600;
+      box-shadow:
+        0 10px 28px rgba(0, 0, 0, 0.65),
+        0 0 22px rgba(245, 158, 11, 0.35);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease, transform 0.2s ease;
+      cursor: pointer;
+    }
+    #mount-proximity-prompt.visible {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+      pointer-events: auto;
+    }
+    #mount-proximity-prompt .prompt-key {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(217, 119, 6, 0.38);
+      border: 1px solid #fcd34d;
+      border-radius: 6px;
+      padding: 2px 8px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 11px;
+      font-weight: 800;
+      color: #fffbeb;
+      box-shadow: 0 0 10px rgba(245, 158, 11, 0.55);
+    }
+    #mount-proximity-prompt .prompt-station {
+      color: #fbbf24;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 11.5px;
+      font-weight: 700;
+    }
+
+    /* ======================================================================
+       Large-Scale See-Through Holographic Project Pop-Up Window
+       ====================================================================== */
+    @keyframes holoScanlineSweep {
+      0% { top: -8%; opacity: 0.0; }
+      15% { opacity: 0.75; }
+      85% { opacity: 0.75; }
+      100% { top: 104%; opacity: 0.0; }
+    }
+
+    @keyframes holoPulseGlow {
+      0%, 100% {
+        box-shadow:
+          0 0 32px rgba(217, 119, 6, 0.28),
+          0 0 80px rgba(245, 158, 11, 0.14),
+          inset 0 0 30px rgba(245, 158, 11, 0.16);
+      }
+      50% {
+        box-shadow:
+          0 0 44px rgba(217, 119, 6, 0.40),
+          0 0 96px rgba(245, 158, 11, 0.20),
+          inset 0 0 40px rgba(245, 158, 11, 0.24);
+      }
+    }
+
+    #holo-projection-stage {
+      position: fixed;
+      top: 0;
+      bottom: 0;
+      left: 382px;
+      right: 24px;
+      z-index: 15;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      perspective: 1200px;
+    }
+
+    @media (max-width: 1024px) {
+      #holo-projection-stage {
+        left: 20px;
+        right: 20px;
+        align-items: flex-end;
+        padding-bottom: 24px;
+      }
+    }
+
+    .holo-window {
+      position: relative;
+      width: min(860px, 100%);
+      min-height: 420px;
+      padding: 26px 32px 24px;
+      border-radius: 14px;
+      border: 1px solid rgba(251, 191, 36, 0.88);
+      /* Translucent smoked-amber holographic glass (Spec 025 §4.2) */
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      background-color: rgba(38, 18, 4, 0.36);
+      background-image:
+        linear-gradient(
+          135deg,
+          rgba(38, 18, 4, 0.38) 0%,
+          rgba(64, 30, 6, 0.34) 48%,
+          rgba(44, 20, 4, 0.40) 100%
+        );
+      color: #fef3c7;
+      overflow: hidden;
+      opacity: 0;
+      transform-origin: center center;
+      transform: translateY(18px) rotateX(12deg) scaleX(0.92) scaleY(0.08);
+      transition:
+        opacity 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+        transform 0.34s cubic-bezier(0.16, 1, 0.3, 1),
+        border-color 0.25s ease;
+      animation: holoPulseGlow 4s ease-in-out infinite;
+      pointer-events: none;
+      --holo-flicker-gain: 1;
+      --holo-glitch-shift-x: 0px;
+      box-shadow:
+        0 0 28px rgba(245, 158, 11, calc(0.24 * var(--holo-flicker-gain, 1))),
+        0 0 54px rgba(217, 119, 6, calc(0.18 * var(--holo-flicker-gain, 1)));
+    }
+
+    .holo-window.holo-glitch-active {
+      transform: translate(var(--holo-glitch-shift-x, 0px), 0px) !important;
+      filter: drop-shadow(calc(var(--holo-glitch-shift-x, 0px) * -1) 0 4px rgba(245, 158, 11, 0.65));
+    }
+
+    .holo-window.active {
+      opacity: 1;
+      transform: translateY(0px) rotateX(0deg) scaleX(1) scaleY(1);
+    }
+
+    .holo-window.mount-focus-active {
+      border-color: rgba(252, 211, 77, 0.96);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      background:
+        linear-gradient(
+          135deg,
+          rgba(38, 18, 4, 0.42) 0%,
+          rgba(64, 30, 6, 0.38) 48%,
+          rgba(44, 20, 4, 0.44) 100%
+        );
+    }
+
+    /* Fine holographic scanlines + coordinate reticle mesh */
+    .holo-window::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        repeating-linear-gradient(
+          0deg,
+          rgba(245, 158, 11, 0.07) 0px,
+          rgba(245, 158, 11, 0.07) 1px,
+          transparent 1px,
+          transparent 4px
+        ),
+        linear-gradient(90deg, rgba(245, 158, 11, 0.05) 1px, transparent 1px),
+        linear-gradient(0deg, rgba(245, 158, 11, 0.05) 1px, transparent 1px);
+      background-size: 100% 4px, 36px 36px, 36px 36px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .holo-scanbeam {
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(245, 158, 11, 0.78) 20%,
+        rgba(253, 230, 138, 0.95) 50%,
+        rgba(245, 158, 11, 0.78) 80%,
+        transparent 100%
+      );
+      box-shadow: 0 0 16px rgba(245, 158, 11, 0.85);
+      animation: holoScanlineSweep 4.2s linear infinite;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .holo-corner {
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      border-color: #f59e0b;
+      border-style: solid;
+      pointer-events: none;
+      z-index: 2;
+      filter: drop-shadow(0 0 6px rgba(245, 158, 11, 0.9));
+    }
+    .holo-corner.tl { top: 8px; left: 8px; border-width: 2px 0 0 2px; }
+    .holo-corner.tr { top: 8px; right: 8px; border-width: 2px 2px 0 0; }
+    .holo-corner.bl { bottom: 8px; left: 8px; border-width: 0 0 2px 2px; }
+    .holo-corner.br { bottom: 8px; right: 8px; border-width: 0 2px 2px 0; }
+
+    .holo-content {
+      position: relative;
+      z-index: 3;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-height: 368px;
+      gap: 16px;
+    }
+
+    .holo-top-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid rgba(245, 158, 11, 0.35);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #fcd34d;
+      text-shadow: 0 0 8px rgba(245, 158, 11, 0.55);
+    }
+
+    .holo-top-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .holo-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      background: rgba(217, 119, 6, 0.24);
+      border: 1px solid rgba(245, 158, 11, 0.68);
+      padding: 4px 10px;
+      border-radius: 999px;
+      color: #fef3c7;
+      font-weight: 700;
+      box-shadow: 0 0 12px rgba(245, 158, 11, 0.32);
+    }
+
+    .holo-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #fbbf24;
+      box-shadow: 0 0 8px #fbbf24;
+    }
+
+    button.holo-exit-focus-btn {
+      display: none;
+      align-items: center;
+      gap: 6px;
+      background: rgba(239, 68, 68, 0.26);
+      border: 1px solid rgba(248, 113, 113, 0.8);
+      color: #fef2f2;
+      border-radius: 6px;
+      padding: 5px 11px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      box-shadow: 0 0 14px rgba(239, 68, 68, 0.35);
+    }
+
+    button.holo-exit-focus-btn:hover {
+      background: rgba(239, 68, 68, 0.5);
+      border-color: #ffffff;
+    }
+
+    .holo-window.mount-focus-active button.holo-exit-focus-btn {
+      display: inline-flex;
+      pointer-events: auto;
+    }
+
+    .holo-body-grid {
+      display: grid;
+      grid-template-columns: 1.25fr 0.9fr;
+      gap: 22px;
+      align-items: center;
+      margin: 4px 0;
+    }
+
+    @media (max-width: 860px) {
+      .holo-body-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .holo-kicker {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 11.5px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #fbbf24;
+      margin-bottom: 6px;
+      text-shadow: 0 0 10px rgba(245, 158, 11, 0.7);
+    }
+
+    .holo-title {
+      margin: 0 0 10px 0;
+      font-size: clamp(22px, 2.5vw, 31px);
+      font-weight: 800;
+      letter-spacing: -0.01em;
+      line-height: 1.15;
+      color: #fffbeb;
+      text-shadow:
+        0 0 18px rgba(245, 158, 11, 0.75),
+        0 2px 10px rgba(0, 0, 0, 0.85);
+    }
+
+    .holo-description {
+      margin: 0 0 14px 0;
+      font-size: 14px;
+      line-height: 1.58;
+      color: #fef3c7;
+      text-shadow:
+        0 1px 6px rgba(0, 0, 0, 0.95),
+        0 0 12px rgba(217, 119, 6, 0.45);
+    }
+
+    .holo-tag-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+    }
+
+    .holo-tag {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 11px;
+      font-weight: 600;
+      color: #fde68a;
+      background: rgba(68, 30, 6, 0.72);
+      border: 1px solid rgba(245, 158, 11, 0.65);
+      padding: 3px 9px;
+      border-radius: 5px;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+    }
+
+    .holo-Visual-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding: 14px 16px;
+      border-radius: 10px;
+      border: 1px solid rgba(245, 158, 11, 0.58);
+      background: rgba(28, 12, 2, 0.68);
+      box-shadow: inset 0 0 20px rgba(245, 158, 11, 0.18);
+    }
+
+    .holo-metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .holo-metric-box {
+      padding: 8px 6px;
+      border-radius: 6px;
+      border: 1px solid rgba(245, 158, 11, 0.52);
+      background: rgba(54, 22, 4, 0.74);
+      text-align: center;
+    }
+
+    .holo-metric-val {
+      display: block;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 13px;
+      font-weight: 800;
+      color: #fbbf24;
+      text-shadow: 0 0 10px rgba(245, 158, 11, 0.65);
+    }
+
+    .holo-metric-lbl {
+      display: block;
+      font-size: 9.5px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #fde68a;
+      margin-top: 2px;
+    }
+
+    .holo-cta-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    a.holo-link-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: space-between;
+      text-decoration: none;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 12.5px;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      color: #fffbeb;
+      background: linear-gradient(90deg, rgba(217, 119, 6, 0.56), rgba(180, 83, 9, 0.56));
+      border: 1px solid rgba(252, 211, 77, 0.85);
+      box-shadow: 0 0 18px rgba(217, 119, 6, 0.35);
+      transition: all 0.18s ease;
+      cursor: pointer;
+    }
+
+    a.holo-link-btn:hover {
+      background: linear-gradient(90deg, rgba(245, 158, 11, 0.82), rgba(217, 119, 6, 0.82));
+      border-color: #fffbeb;
+      box-shadow: 0 0 26px rgba(245, 158, 11, 0.72);
+      transform: translateY(-1px);
+    }
+
+    a.holo-link-btn.secondary {
+      background: rgba(68, 30, 6, 0.42);
+      border-color: rgba(245, 158, 11, 0.55);
+      color: #fde68a;
+      padding: 8px 14px;
+      font-size: 11.5px;
+      box-shadow: none;
+    }
+
+    a.holo-link-btn.secondary:hover {
+      background: rgba(146, 64, 14, 0.58);
+      color: #fffbeb;
+      border-color: #fcd34d;
+    }
+
+    .holo-window.active a.holo-link-btn,
+    .holo-window.active button.holo-pip-btn,
+    .holo-window.active button.holo-nav-btn {
+      pointer-events: auto;
+    }
+
+    .holo-footer-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      padding-top: 10px;
+      border-top: 1px solid rgba(245, 158, 11, 0.32);
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 10.5px;
+      color: #fde68a;
+    }
+
+    .holo-station-nav-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .holo-station-pips {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    button.holo-pip-btn,
+    button.holo-nav-btn {
+      background: rgba(68, 30, 6, 0.45);
+      border: 1px solid rgba(245, 158, 11, 0.48);
+      color: #fde68a;
+      border-radius: 4px;
+      padding: 3px 7px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 10px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    button.holo-pip-btn.current,
+    button.holo-pip-btn:hover,
+    button.holo-nav-btn:hover {
+      background: rgba(217, 119, 6, 0.68);
+      border-color: #fef3c7;
+      color: #fffbeb;
+      box-shadow: 0 0 10px rgba(245, 158, 11, 0.58);
+    }
+
+    /* Primary Emissive Top & Bottom Light Bars + Inter-Module Tether Bridge (SFX.md §4.3) */
+    .holo-light-bar {
+      position: absolute;
+      left: 14px;
+      right: 14px;
+      height: 5px;
+      border-radius: 999px;
+      background: linear-gradient(
+        90deg,
+        rgba(245, 158, 11, 0.35) 0%,
+        #fffbeb 18%,
+        #fef08a 50%,
+        #fffbeb 82%,
+        rgba(245, 158, 11, 0.35) 100%
+      );
+      box-shadow:
+        0 0 18px rgba(251, 191, 36, 0.95),
+        0 0 36px rgba(217, 119, 6, 0.85);
+      transform: scaleX(0.08);
+      opacity: 0.15;
+      transition:
+        transform 0.24s cubic-bezier(0.16, 1, 0.3, 1),
+        opacity 0.22s ease,
+        box-shadow 0.24s ease;
+      pointer-events: none;
+      z-index: 4;
+    }
+    .holo-light-bar.top { top: 2px; }
+    .holo-light-bar.bottom { bottom: 2px; }
+    .holo-window.active .holo-light-bar,
+    .holo-light-bar.ignited {
+      transform: scaleX(1);
+      opacity: 1;
+    }
+
+    .holo-tether-bridge {
+      display: inline-flex;
+      flex-direction: column;
+      gap: 3px;
+      padding: 4px 8px;
+      border-radius: 6px;
+      border: 1px solid rgba(245, 158, 11, 0.48);
+      background: rgba(45, 18, 3, 0.68);
+      cursor: pointer;
+      pointer-events: auto;
+      transition: all 0.15s ease;
+    }
+    .holo-tether-bridge:hover,
+    .holo-tether-bridge.pulsing {
+      border-color: #fffbeb;
+      box-shadow: 0 0 14px rgba(251, 191, 36, 0.72);
+    }
+    .holo-tether-trace {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      height: 3px;
+    }
+    .holo-tether-node {
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: #fffbeb;
+      box-shadow: 0 0 6px #fbbf24;
+    }
+    .holo-tether-line {
+      width: 24px;
+      height: 1.5px;
+      background: linear-gradient(90deg, #fbbf24, #fffbeb, #fbbf24);
+      box-shadow: 0 0 6px rgba(245, 158, 11, 0.85);
+    }
+    .holo-data-streaming {
+      animation: holoPulseGlow 0.32s ease-in-out 2;
+    }
+    input.hud-slider {
+      flex: 1;
+      accent-color: #f59e0b;
+      height: 5px;
+      cursor: pointer;
+    }
+
+    /* Right-Hand "Water Color" Configuration Drawer (shader.md §5.2) */
+    .watercolor-drawer {
+      position: fixed;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      width: 320px;
+      z-index: 30;
+      background-color: #000000;
+      border-left: 1px solid #ffffff;
+      color: #ffffff;
+      display: flex;
+      flex-direction: column;
+      pointer-events: auto;
+      transition: transform 0.22s ease, opacity 0.22s ease;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    .watercolor-drawer:not(.open) {
+      transform: translateX(100%);
+      opacity: 0;
+      pointer-events: none;
+    }
+    .watercolor-drawer-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 20px;
+      border-bottom: 1px solid #ffffff;
+    }
+    .watercolor-drawer-title {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 700;
+      color: #ffffff;
+      letter-spacing: 0.04em;
+    }
+    .watercolor-close-btn {
+      background: #000000;
+      color: #ffffff;
+      border: 1px solid #ffffff;
+      width: 28px;
+      height: 28px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      line-height: 1;
+      padding: 0;
+    }
+    .watercolor-close-btn:hover {
+      background: #ffffff;
+      color: #000000;
+    }
+    .watercolor-drawer-body {
+      padding: 24px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+    }
+    .watercolor-param-group {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .watercolor-param-label {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      color: #ffffff;
+      text-transform: uppercase;
+    }
+    .watercolor-slider-container {
+      position: relative;
+      padding-bottom: 24px;
+    }
+    .watercolor-slider-track {
+      position: relative;
+      width: 100%;
+      height: 8px;
+      background: #141414;
+      border: 1px solid #ffffff;
+      overflow: hidden;
+    }
+    .watercolor-slider-fill {
+      height: 100%;
+      background: #ffffff;
+      pointer-events: none;
+    }
+    .watercolor-range-input {
+      position: absolute;
+      top: -4px;
+      left: 0;
+      width: 100%;
+      height: 16px;
+      opacity: 0;
+      cursor: pointer;
+      margin: 0;
+      z-index: 2;
+    }
+    .watercolor-badge-rail {
+      position: relative;
+      width: 100%;
+      height: 20px;
+      margin-top: 6px;
+    }
+    .watercolor-value-badge {
+      position: absolute;
+      top: 0;
+      transform: translateX(-50%);
+      background: #000000;
+      color: #ffffff;
+      border: 1px solid #ffffff;
+      padding: 2px 8px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 11px;
+      font-weight: 700;
+      line-height: 1.2;
+      white-space: nowrap;
+    }
+
+    /* Cyber-Tactical 2D HUD Radial Menu Overlay (anim/radial_menu.md §5) */
+    #cyber-radial-menu-overlay {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 25;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    #cyber-radial-menu-overlay.open {
+      pointer-events: auto;
+      opacity: 1;
+    }
+    #cyber-radial-menu-overlay.dormant {
+      pointer-events: none;
+      opacity: 0;
+    }
+    #spray-paint-loader-overlay {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 9500;
+      background-color: #000000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 1;
+      transition: opacity 0.32s ease;
+      pointer-events: auto;
+    }
+    #spray-paint-loader-overlay.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+    #spray-paint-loader-canvas {
+      width: 100vw;
+      height: 100vh;
+      display: block;
+      background-color: #000000;
+      cursor: pointer;
+    }
+    .spray-loader-hud-bar {
+      position: absolute;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 6px 14px;
+      border-radius: 999px;
+      background: rgba(10, 10, 12, 0.78);
+      border: 1px solid rgba(168, 36, 40, 0.45);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 11px;
+      letter-spacing: 0.06em;
+      color: #e2e8f0;
+      z-index: 9505;
+    }
+    .spray-loader-stage-tag {
+      color: #f87171;
+      font-weight: 700;
+    }
+    .spray-loader-skip-btn {
+      background: rgba(168, 36, 40, 0.25);
+      color: #fca5a5;
+      border: 1px solid rgba(248, 113, 113, 0.45);
+      border-radius: 999px;
+      padding: 2px 10px;
+      font-size: 10px;
+      font-weight: 600;
+      cursor: pointer;
+      letter-spacing: 0.05em;
+    }
+    .spray-loader-skip-btn:hover {
+      background: rgba(168, 36, 40, 0.48);
+      color: #ffffff;
+    }
+  </style>
+</head>
+<body>
+  <!-- Interactive Graffiti Spray-Paint Loading Screen & Intro Overlay (spray_paint.md §1–§8) -->
+  <div id="spray-paint-loader-overlay" role="region" aria-label="PLATO DOOM Graffiti Spray-Paint Loading Screen">
+    <canvas id="spray-paint-loader-canvas"></canvas>
+    <div class="spray-loader-hud-bar">
+      <span id="spray-loader-stage-label" class="spray-loader-stage-tag">STAGE 0 // BLACKOUT</span>
+      <span id="spray-loader-pct-label">0%</span>
+      <button id="spray-loader-skip-btn" class="spray-loader-skip-btn" type="button" title="Skip Spray Intro (Esc)">
+        SKIP INTRO
+      </button>
+    </div>
+  </div>
+
+  <div id="scroll-track" aria-hidden="true"></div>
+  <div id="viewport-container"></div>
+
+  <!-- Proximity / Hover Wall Mount Interaction Prompt -->
+  <div id="mount-proximity-prompt" role="status" aria-live="polite">
+    <span class="prompt-key">E</span>
+    <span id="mount-prompt-label">
+      <span class="prompt-station">SCREEN_MOUNT_01</span> — Press E or Click Mount to Focus
+    </span>
+  </div>
+
+  <!-- Large-Scale See-Through Holographic Project Pop-Up Stage -->
+  <section id="holo-projection-stage" aria-live="polite" aria-label="Holographic Project Showcase">
+    <article id="holo-popup-window" class="holo-window" aria-hidden="true">
+      <div id="holo-top-light-bar" class="holo-light-bar top"></div>
+      <div id="holo-bottom-light-bar" class="holo-light-bar bottom"></div>
+      <div class="holo-scanbeam"></div>
+      <div class="holo-corner tl"></div>
+      <div class="holo-corner tr"></div>
+      <div class="holo-corner bl"></div>
+      <div class="holo-corner br"></div>
+
+      <div class="holo-content">
+        <header class="holo-top-bar">
+          <span class="holo-badge" data-holo-interactive="badge">
+            <span class="holo-dot"></span>
+            <span id="holo-station-badge">HOLO-PROJ // 01 OF 06</span>
+          </span>
+          <div
+            id="holo-tether-bridge"
+            class="holo-tether-bridge"
+            role="button"
+            tabindex="0"
+            data-holo-interactive="tether-bridge"
+            title="Switch Active Data State Across Inter-Module Tether Lines"
+          >
+            <div class="holo-tether-trace" data-trace="upper">
+              <span class="holo-tether-node"></span>
+              <span class="holo-tether-line"></span>
+              <span class="holo-tether-node"></span>
+            </div>
+            <div class="holo-tether-trace" data-trace="center">
+              <span class="holo-tether-node"></span>
+              <span class="holo-tether-line"></span>
+              <span class="holo-tether-node"></span>
+            </div>
+            <div class="holo-tether-trace" data-trace="lower">
+              <span class="holo-tether-node"></span>
+              <span class="holo-tether-line"></span>
+              <span class="holo-tether-node"></span>
+            </div>
+          </div>
+          <div class="holo-top-right">
+            <span id="holo-coords-label">ALLEY CORRIDOR Z: 5.0m // SCROLL WINDOW: 05%–18%</span>
+            <button
+              id="exit-mount-focus-btn"
+              class="holo-exit-focus-btn"
+              type="button"
+              data-holo-interactive="exit-focus"
+              title="Exit Mount Focus and Return to Third-Person Alley Free-Roam (Esc)"
+            >
+              ✕ Exit Mount Focus / Back to Alley (Esc)
+            </button>
+          </div>
+        </header>
+
+        <div class="holo-body-grid">
+          <div id="holo-right-data-pane" class="holo-main-col" data-holo-interactive="data-pane">
+            <div id="holo-kicker" class="holo-kicker">3D ENVIRONMENT &amp; SPATIAL ENGINE</div>
+            <h2 id="holo-title" class="holo-title">Freeman Alley Photogrammetry Pipeline</h2>
+            <p id="holo-description" class="holo-description">
+              Automated Blender-to-Three.js spatial pipeline converting 1.1M-polygon raw photogrammetry scans into 1:1 human-calibrated browser environments with invisible bumper-cage physics.
+            </p>
+            <div id="holo-tags" class="holo-tag-row"></div>
+          </div>
+
+          <div class="holo-Visual-panel" data-holo-interactive="telemetry-panel">
+            <div id="holo-metrics" class="holo-metrics-grid"></div>
+            <div class="holo-cta-stack">
+              <a
+                id="holo-primary-link"
+                class="holo-link-btn"
+                data-holo-interactive="primary-cta"
+                href="https://github.com/mrdoob/three.js"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <span id="holo-primary-link-text">Launch Project Showcase</span>
+                <span aria-hidden="true">↗</span>
+              </a>
+              <a
+                id="holo-secondary-link"
+                class="holo-link-btn secondary"
+                data-holo-interactive="secondary-cta"
+                href="./scene_preparation.md"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <span id="holo-secondary-link-text">Read Technical Specification</span>
+                <span aria-hidden="true">↗</span>
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <footer class="holo-footer-bar">
+          <span id="holo-footer-status">HOLOGRAPHIC PROJECTION // TRANSPARENT CHARACTER OVERLAY</span>
+          <div class="holo-station-nav-group">
+            <button id="holo-prev-mount-btn" class="holo-nav-btn" data-holo-interactive="prev-station" type="button" title="Previous Wall Mount">
+              ← Prev
+            </button>
+            <div id="holo-station-pips" class="holo-station-pips" aria-label="Jump to Project Station"></div>
+            <button id="holo-next-mount-btn" class="holo-nav-btn" data-holo-interactive="next-station" type="button" title="Next Wall Mount">
+              Next →
+            </button>
+          </div>
+        </footer>
+      </div>
+    </article>
+  </section>
+
+  <!-- Cyber-Tactical 2D HUD Radial Menu Overlay (anim/radial_menu.md §5) -->
+  <div
+    id="cyber-radial-menu-overlay"
+    class="cyber-radial-overlay dormant"
+    role="dialog"
+    aria-modal="false"
+    aria-hidden="true"
+    aria-label="Cyber-Tactical Radial Command Menu"
+  ></div>
+
+  <aside id="sandbox-hud" aria-label="Sandbox Controls">
+    <div class="hud-header">
+      <span class="hud-title">Freeman Alley Scrolly-Walk</span>
+      <span id="hud-status-badge" class="hud-badge">Loading...</span>
+    </div>
+
+    <div class="hud-section">
+      <span class="hud-label">
+        <span>Locomotion Mode</span>
+        <span id="hud-scroll-pct">0% Scroll</span>
+      </span>
+      <div id="hud-mode-banner" class="mode-banner" role="status">
+        <span id="hud-mode-text">Scroll-Walk Mode</span>
+        <span id="hud-mode-sub">Scroll Down Alley</span>
+      </div>
+      <div class="scroll-progress-track" aria-label="Scroll Progress">
+        <div id="hud-scroll-bar-fill" class="scroll-progress-fill"></div>
+      </div>
+      <div class="hud-row">
+        <button id="return-scroll-btn" class="hud-btn secondary" style="flex: 1;" type="button" title="Key R">
+          Return to Scroll Mode (R)
+        </button>
+        <button id="reset-entrance-btn" class="hud-btn secondary" type="button" title="Reset to 0% Scroll Entrance">
+          Reset 0%
+        </button>
+        <button id="toggle-radial-menu-btn" class="hud-btn secondary" type="button" title="Toggle Cyber-Tactical Radial Menu (Key Q)">
+          Radial HUD (Q)
+        </button>
+      </div>
+      <div class="hud-row" style="margin-top: 6px;">
+        <button id="toggle-fly-freeroam-btn" class="hud-btn secondary" style="flex: 1;" type="button" title="Toggle Unrestricted 3D Scene Fly / No-Clip Free-Roam (Key F)">
+          3D Fly / No-Clip Free-Roam: OFF (F)
+        </button>
+        <button id="replay-spray-intro-btn" class="hud-btn secondary" type="button" title="Replay PLATO DOOM Spray-Paint Intro (Key P)">
+          Spray Intro (P)
+        </button>
+      </div>
+    </div>
+
+    <!-- Entrance Lamppost Cone Light Editor -->
+    <div class="hud-section" style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(251, 191, 36, 0.35); border-radius: 8px; padding: 8px 10px;">
+      <span class="hud-label" style="color: #fbbf24;">
+        <span>Lamppost Cone Light (SpotLight)</span>
+        <span id="lamppost-status-label" style="color: #fde68a;">18.0 Int | 32&deg; Cone</span>
+      </span>
+      <div class="hud-row" style="margin-bottom: 5px; gap: 4px;">
+        <button id="lamppost-edit-toggle-btn" class="hud-btn secondary" type="button" style="flex: 1.3;" title="Show 3D Gizmo on Cone Landing Target (Key L)">
+          Aim Cone Target: OFF (L)
+        </button>
+        <button id="lamppost-focus-btn" class="hud-btn secondary" type="button" style="flex: 1;" title="Teleport Camera to View Lamppost Cone">
+          Teleport To
+        </button>
+      </div>
+      <div style="display: grid; grid-template-columns: 62px 24px 1fr 24px 48px; gap: 4px; align-items: center; margin-bottom: 4px;">
+        <label for="lamppost-intensity-slider" style="font-size: 10.5px; color: #fde68a; font-weight: 600;">Intensity:</label>
+        <button id="lamppost-intensity-down-btn" class="hud-btn secondary" type="button" style="padding: 1px 0; font-size: 12px; font-weight: bold;" title="Decrease Cone Intensity">&minus;</button>
+        <input id="lamppost-intensity-slider" class="hud-slider" type="range" min="0.0" max="60.0" step="0.5" value="18.0" />
+        <button id="lamppost-intensity-up-btn" class="hud-btn secondary" type="button" style="padding: 1px 0; font-size: 12px; font-weight: bold;" title="Increase Cone Intensity">+</button>
+        <input id="lamppost-intensity-input" type="number" step="0.5" min="0" max="80" value="18.0" style="width: 48px; background: rgba(15,23,42,0.85); color: #e2e8f0; border: 1px solid rgba(251,191,36,0.4); border-radius: 3px; font-size: 10.5px; padding: 2px 3px; text-align: right;" />
+      </div>
+      <div style="display: grid; grid-template-columns: 62px 1fr 48px; gap: 4px; align-items: center; margin-bottom: 3px;">
+        <label for="lamppost-target-x-slider" style="font-size: 10.5px; color: #94a3b8;">Land X (m):</label>
+        <input id="lamppost-target-x-slider" class="hud-slider" type="range" min="-6.0" max="6.0" step="0.05" value="0.40" />
+        <input id="lamppost-target-x-input" type="number" step="0.1" value="0.40" style="width: 48px; background: rgba(15,23,42,0.85); color: #e2e8f0; border: 1px solid rgba(56,189,248,0.3); border-radius: 3px; font-size: 10.5px; padding: 2px 3px; text-align: right;" />
+      </div>
+      <div style="display: grid; grid-template-columns: 62px 1fr 48px; gap: 4px; align-items: center; margin-bottom: 3px;">
+        <label for="lamppost-target-y-slider" style="font-size: 10.5px; color: #94a3b8;">Land Y (m):</label>
+        <input id="lamppost-target-y-slider" class="hud-slider" type="range" min="-1.0" max="5.0" step="0.05" value="0.00" />
+        <input id="lamppost-target-y-input" type="number" step="0.1" value="0.00" style="width: 48px; background: rgba(15,23,42,0.85); color: #e2e8f0; border: 1px solid rgba(56,189,248,0.3); border-radius: 3px; font-size: 10.5px; padding: 2px 3px; text-align: right;" />
+      </div>
+      <div style="display: grid; grid-template-columns: 62px 1fr 48px; gap: 4px; align-items: center; margin-bottom: 3px;">
+        <label for="lamppost-target-z-slider" style="font-size: 10.5px; color: #94a3b8;">Land Z (m):</label>
+        <input id="lamppost-target-z-slider" class="hud-slider" type="range" min="-10.0" max="24.0" step="0.05" value="1.50" />
+        <input id="lamppost-target-z-input" type="number" step="0.1" value="1.50" style="width: 48px; background: rgba(15,23,42,0.85); color: #e2e8f0; border: 1px solid rgba(56,189,248,0.3); border-radius: 3px; font-size: 10.5px; padding: 2px 3px; text-align: right;" />
+      </div>
+      <div style="display: grid; grid-template-columns: 62px 1fr 48px; gap: 4px; align-items: center; margin-bottom: 3px;">
+        <label for="lamppost-angle-slider" style="font-size: 10.5px; color: #94a3b8;">Cone (&deg;):</label>
+        <input id="lamppost-angle-slider" class="hud-slider" type="range" min="8.0" max="75.0" step="0.5" value="32.1" />
+        <input id="lamppost-angle-input" type="number" step="1.0" min="5" max="85" value="32.1" style="width: 48px; background: rgba(15,23,42,0.85); color: #e2e8f0; border: 1px solid rgba(56,189,248,0.3); border-radius: 3px; font-size: 10.5px; padding: 2px 3px; text-align: right;" />
+      </div>
+      <div style="display: grid; grid-template-columns: 62px 1fr 48px; gap: 4px; align-items: center; margin-bottom: 6px;">
+        <label for="lamppost-penumbra-slider" style="font-size: 10.5px; color: #94a3b8;">Softness:</label>
+        <input id="lamppost-penumbra-slider" class="hud-slider" type="range" min="0.0" max="1.0" step="0.02" value="0.52" />
+        <input id="lamppost-penumbra-input" type="number" step="0.05" min="0" max="1" value="0.52" style="width: 48px; background: rgba(15,23,42,0.85); color: #e2e8f0; border: 1px solid rgba(56,189,248,0.3); border-radius: 3px; font-size: 10.5px; padding: 2px 3px; text-align: right;" />
+      </div>
+      <div class="hud-row" style="gap: 4px;">
+        <button id="lamppost-reset-btn" class="hud-btn secondary" type="button" style="flex: 1; font-size: 10.5px; padding: 4px 6px;">Reset Cone</button>
+        <button id="lamppost-copy-json-btn" class="hud-btn" type="button" style="flex: 1.2; font-size: 10.5px; padding: 4px 6px;" title="Copy Lamppost Cone Light JSON">Copy Cone JSON</button>
+      </div>
+    </div>
+
+    <div class="hud-section">
+      <span class="hud-label">
+        <span>Character "X" &amp; Isolated .GLB Shader Test</span>
+      </span>
+      <div class="hud-row" style="margin-bottom: 6px;">
+        <select id="glb-variant-select" class="hud-select" aria-label="Select Individual GLB Variant to Test">
+          <option value="luis_holo">LUIS_HOLOSYS_RIGGED.glb (Iridescent Holo)</option>
+          <option value="luis_clay">LUIS_RIGGED_CLAY.glb (Clay + Holo)</option>
+          <option value="luis_color">LUIS_RIGGED.glb (Full Color + Holo)</option>
+          <option value="platodoom_holo">PLATODOOM_HOLOSYS_RIGGED.glb (Iridescent Holo)</option>
+          <option value="platodoom_color">PLATODOOM_RIGGED.glb (Full Color + Holo)</option>
+        </select>
+        <button id="solo-character-btn" class="hud-btn secondary" type="button" title="Isolate Active Character GLB Alone">
+          Solo: ON
+        </button>
+      </div>
+      <div class="hud-row">
+        <button id="swap-character-btn" class="hud-btn" style="flex: 1;" type="button">
+          Active: Hoodie (Character X) ⇄ Swap
+        </button>
+        <button id="toggle-holo-shader-btn" class="hud-btn secondary" type="button" title="Toggle HOLO.SYS Iridescent Shader (Key H)">
+          Holo Shader: ON (H)
+        </button>
+      </div>
+    </div>
+
+    <div class="hud-section">
+      <span class="hud-label">
+        <span>Ready Player Me (RPM) Animation Library (<span id="clip-count-label">0</span> Clips)</span>
+      </span>
+      <div class="hud-row" style="margin-bottom: 5px;">
+        <button id="toggle-dialogue-btn" class="hud-btn secondary" type="button" style="flex: 1;" title="Toggle Dynamic Conversational Dialogue Cycling (Key T)">
+          Start Dialogue (T)
+        </button>
+      </div>
+      <div class="hud-row">
+        <select id="animation-select" class="hud-select" aria-label="Select Ready Player Me Animation"></select>
+        <button id="play-anim-btn" class="hud-btn secondary" type="button">Play</button>
+      </div>
+      <div class="emote-grid" id="quick-emote-grid">
+        <button type="button" class="hud-btn secondary" data-clip="TALK_EXPLAIN" title="Key 1">1:Explain</button>
+        <button type="button" class="hud-btn secondary" data-clip="TALK_EMPHASIS" title="Key 2">2:Emphasis</button>
+        <button type="button" class="hud-btn secondary" data-clip="TALK_SUBTLE" title="Key 3">3:Subtle</button>
+        <button type="button" class="hud-btn secondary" data-clip="DANCE_DEFAULT" title="Key 4">4:Dance</button>
+        <button type="button" class="hud-btn secondary" data-clip="ACKNOWLEDGE" title="Key 5">5:Ack</button>
+        <button type="button" class="hud-btn secondary" data-clip="EXPRESS_WAVE" title="Key 6">6:Wave</button>
+        <button type="button" class="hud-btn secondary" data-clip="EXPRESS_SHRUG" title="Key 7">7:Shrug</button>
+        <button type="button" class="hud-btn secondary" data-clip="EXPRESS_POINT" title="Key 8">8:Point</button>
+        <button type="button" class="hud-btn secondary" data-clip="EXPRESS_THUMBS_UP" title="Key 9">9:ThumbsUp</button>
+        <button type="button" class="hud-btn secondary" data-clip="IDLE_DEFAULT" title="Key 0">0:Idle</button>
+      </div>
+    </div>
+
+    <div class="hud-section">
+      <span class="hud-label">
+        <span>Audio &amp; Surface Optics Subsystem</span>
+        <span id="audio-gain-label">Gain: 75%</span>
+      </span>
+      <div class="hud-row" style="margin-bottom: 5px;">
+        <button id="audio-mute-btn" class="hud-btn secondary" type="button" title="Toggle Master Audio Mute (Key M)">
+          Audio: ON (M)
+        </button>
+        <input
+          id="audio-gain-slider"
+          class="hud-slider"
+          type="range"
+          min="0"
+          max="1"
+          step="0.01"
+          value="0.75"
+          aria-label="Master Audio Gain"
+        />
+      </div>
+      <div class="hud-row">
+        <span style="font-size: 10.5px; color: #94a3b8;">Floor Blur:</span>
+        <input
+          id="reflection-blur-slider"
+          class="hud-slider"
+          type="range"
+          min="0.1"
+          max="3.0"
+          step="0.05"
+          value="1.0"
+          aria-label="Planar Floor Reflection Blur Kernel"
+        />
+        <span id="reflection-blur-label" style="font-size: 10.5px; color: #fbbf24; min-width: 34px; text-align: right;">1.00x</span>
+      </div>
+    </div>
+
+    <div class="hud-section">
+      <span class="hud-label">
+        <span>2D Holographic Media Columns (14 Assets)</span>
+        <span id="holo-column-status-label">Active: 14/14</span>
+      </span>
+      <div class="hud-row" style="margin-bottom: 5px;">
+        <select id="holo-column-select" class="hud-select" aria-label="Select Hologram Column Asset">
+          <option value="frenchfry_tag">3: frenchfry_tag (IMG, 0.847:1)</option>
+          <option value="gun_tag">4: gun_tag (IMG, 1.031:1)</option>
+          <option value="movie_tag">5: movie_tag (IMG, 0.907:1)</option>
+          <option value="screen_tag">7: screen_tag (IMG, 1.039:1)</option>
+          <option value="soulja_tag">8: soulja_tag (IMG, 1.030:1)</option>
+          <option value="thigh_tag">9: thigh_tag (IMG, 0.837:1)</option>
+          <option value="daffy_vid">10: daffy_vid (VID 24fps, 1.000:1)</option>
+          <option value="doomlambo_vid">11: doomlambo_vid (VID 24fps, 1.593:1)</option>
+          <option value="doomnuns_vid">12: doomnuns_vid (VID 24fps, 1.379:1)</option>
+          <option value="doomsnake_vid">13: doomsnake_vid (VID 24fps, 0.838:1)</option>
+          <option value="eyedoom_vid">14: eyedoom_vid (VID 24fps, 1.000:1)</option>
+          <option value="nokia_vid">15: nokia_vid (VID 24fps, 1.029:1)</option>
+          <option value="pinkpanther_vid">16: pinkpanther_vid (VID 24fps, 1.300:1)</option>
+          <option value="tiger_vid">17: tiger_vid (VID 24fps, 1.061:1)</option>
+        </select>
+      </div>
+      <div class="hud-row" style="margin-bottom: 6px;">
+        <select id="holo-column-state-select" class="hud-select" aria-label="Hologram Column Lifecycle State" style="flex: 1; margin-right: 4px;">
+          <option value="active">State: Active</option>
+          <option value="materializing">State: Materialize</option>
+          <option value="agitated">State: Agitated</option>
+          <option value="swapping">State: Media Swap</option>
+          <option value="dematerializing">State: Dematerialize</option>
+          <option value="inactive">State: Inactive</option>
+        </select>
+        <select id="holo-column-tint-select" class="hud-select" aria-label="Spectral Tint Preset" style="flex: 1;">
+          <option value="cyan">Tint: Cyan</option>
+          <option value="amber">Tint: Amber</option>
+          <option value="emerald">Tint: Emerald</option>
+          <option value="magenta">Tint: Magenta</option>
+          <option value="crimson_alert">Tint: Crimson Alert</option>
+        </select>
+      </div>
+
+      <!-- In-Scene 3D Transform & Resize Controls for 17 Media Columns -->
+      <div style="border-top: 1px solid rgba(56, 189, 248, 0.18); padding-top: 6px; margin-top: 4px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+          <span style="font-size: 10.5px; color: #38bdf8; font-weight: 600; letter-spacing: 0.04em;">3D SCENE TRANSFORM &amp; RESIZE EDITOR</span>
+          <span id="holo-edit-dims-label" style="font-size: 10px; color: #fbbf24; font-family: monospace;">1.997m &times; 1.440m</span>
+        </div>
+        <div class="hud-row" style="margin-bottom: 5px; gap: 4px;">
+          <button id="holo-edit-toggle-btn" class="hud-btn secondary" type="button" style="flex: 1.3;" title="Toggle 3D Gizmo &amp; Click-to-Select Hologram Edit Mode (Key G)">
+            Edit 3D Gizmo: OFF (G)
+          </button>
+          <button id="holo-focus-selected-btn" class="hud-btn secondary" type="button" style="flex: 1;" title="Teleport Camera in Front of Selected Hologram">
+            Teleport To
+          </button>
+        </div>
+        <div class="hud-row" style="margin-bottom: 6px; gap: 4px;">
+          <button id="holo-gizmo-translate-btn" class="hud-btn" type="button" style="flex: 1; font-size: 10.5px; padding: 4px 6px;">Move</button>
+          <button id="holo-gizmo-rotate-btn" class="hud-btn secondary" type="button" style="flex: 1; font-size: 10.5px; padding: 4px 6px;">Rotate</button>
+          <button id="holo-gizmo-scale-btn" class="hud-btn secondary" type="button" style="flex: 1; font-size: 10.5px; padding: 4px 6px;">Scale</button>
+          <button id="holo-snap-left-btn" class="hud-btn secondary" type="button" style="flex: 0.85; font-size: 10.5px; padding: 4px 4px;" title="Snap to Left Corridor Wall">Wall L</button>
+          <button id="holo-snap-right-btn" class="hud-btn secondary" type="button" style="flex: 0.85; font-size: 10.5px; padding: 4px 4px;" title="Snap to Right Corridor Wall">Wall R</button>
+        </div>
+        <div style="display: grid; grid-template-columns: 54px 1fr 48px; gap: 4px; align-items: center; margin-bottom: 3px;">
+          <label for="holo-pos-x-slider" style="font-size: 10.5px; color: #94a3b8;">Pos X (m):</label>
+          <input id="holo-pos-x-slider" class="hud-slider" type="range" min="-3.0" max="3.0" step="0.01" value="-1.18" />
+          <input id="holo-pos-x-input" type="number" step="0.02" value="-1.18" style="width: 48px; background: rgba(15,23,42,0.85); color: #e2e8f0; border: 1px solid rgba(56,189,248,0.3); border-radius: 3px; font-size: 10.5px; padding: 2px 3px; text-align: right;" />
+        </div>
+        <div style="display: grid; grid-template-columns: 54px 1fr 48px; gap: 4px; align-items: center; margin-bottom: 3px;">
+          <label for="holo-pos-y-slider" style="font-size: 10.5px; color: #94a3b8;">Pos Y (m):</label>
+          <input id="holo-pos-y-slider" class="hud-slider" type="range" min="0.1" max="5.0" step="0.01" value="1.58" />
+          <input id="holo-pos-y-input" type="number" step="0.02" value="1.58" style="width: 48px; background: rgba(15,23,42,0.85); color: #e2e8f0; border: 1px solid rgba(56,189,248,0.3); border-radius: 3px; font-size: 10.5px; padding: 2px 3px; text-align: right;" />
+        </div>
+        <div style="display: grid; grid-template-columns: 54px 1fr 48px; gap: 4px; align-items: center; margin-bottom: 3px;">
+          <label for="holo-pos-z-slider" style="font-size: 10.5px; color: #94a3b8;">Pos Z (m):</label>
+          <input id="holo-pos-z-slider" class="hud-slider" type="range" min="-2.0" max="56.0" step="0.05" value="4.20" />
+          <input id="holo-pos-z-input" type="number" step="0.1" value="4.20" style="width: 48px; background: rgba(15,23,42,0.85); color: #e2e8f0; border: 1px solid rgba(56,189,248,0.3); border-radius: 3px; font-size: 10.5px; padding: 2px 3px; text-align: right;" />
+        </div>
+        <div style="display: grid; grid-template-columns: 54px 24px 1fr 24px 48px; gap: 4px; align-items: center; margin-bottom: 3px;">
+          <label for="holo-rot-yaw-slider" style="font-size: 10.5px; color: #94a3b8;">Yaw (rad):</label>
+          <button id="holo-yaw-down-btn" class="hud-btn secondary" type="button" style="padding: 1px 0; font-size: 12px; font-weight: bold;" title="Rotate Left (< or ,)">&minus;</button>
+          <input id="holo-rot-yaw-slider" class="hud-slider" type="range" min="-3.1416" max="3.1416" step="0.01" value="0.38" />
+          <button id="holo-yaw-up-btn" class="hud-btn secondary" type="button" style="padding: 1px 0; font-size: 12px; font-weight: bold;" title="Rotate Right (> or .)">+</button>
+          <input id="holo-rot-yaw-input" type="number" step="0.02" value="0.38" style="width: 48px; background: rgba(15,23,42,0.85); color: #e2e8f0; border: 1px solid rgba(56,189,248,0.3); border-radius: 3px; font-size: 10.5px; padding: 2px 3px; text-align: right;" />
+        </div>
+        <div style="display: grid; grid-template-columns: 54px 24px 1fr 24px 48px; gap: 4px; align-items: center; margin-bottom: 6px;">
+          <label for="holo-scale-slider" style="font-size: 10.5px; color: #94a3b8;">Scale (x):</label>
+          <button id="holo-scale-down-btn" class="hud-btn secondary" type="button" style="padding: 1px 0; font-size: 12px; font-weight: bold;" title="Shrink Hologram (- or _)">&minus;</button>
+          <input id="holo-scale-slider" class="hud-slider" type="range" min="0.2" max="4.0" step="0.01" value="1.00" />
+          <button id="holo-scale-up-btn" class="hud-btn secondary" type="button" style="padding: 1px 0; font-size: 12px; font-weight: bold;" title="Enlarge Hologram (Shift + '+' or '=')">+</button>
+          <input id="holo-scale-input" type="number" step="0.05" min="0.1" max="10.0" value="1.00" style="width: 48px; background: rgba(15,23,42,0.85); color: #e2e8f0; border: 1px solid rgba(56,189,248,0.3); border-radius: 3px; font-size: 10.5px; padding: 2px 3px; text-align: right;" />
+        </div>
+        <div class="hud-row" style="gap: 4px;">
+          <button id="holo-reset-selected-btn" class="hud-btn secondary" type="button" style="flex: 1; font-size: 10.5px; padding: 4px 6px;">Reset Selected</button>
+          <button id="holo-reset-all-btn" class="hud-btn secondary" type="button" style="flex: 1; font-size: 10.5px; padding: 4px 6px;">Reset All</button>
+          <button id="holo-copy-json-btn" class="hud-btn" type="button" style="flex: 1.2; font-size: 10.5px; padding: 4px 6px;" title="Copy Updated 14-Column Placement JSON to Clipboard">Copy JSON</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="hud-section">
+      <span class="hud-label">Live Telemetry</span>
+      <div class="telemetry-grid">
+        <div>Mode: <span id="tel-mode" class="val">Scroll-Walk</span></div>
+        <div>Scroll: <span id="tel-scroll" class="val">0%</span></div>
+        <div>Avatar: <span id="tel-avatar" class="val">hoodie</span></div>
+        <div>State: <span id="tel-state" class="val">Idle</span></div>
+        <div>Clip: <span id="tel-clip" class="val">IDLE_DEFAULT</span></div>
+        <div>Speed: <span id="tel-speed" class="val">0.00 m/s</span></div>
+        <div>Pos: <span id="tel-pos" class="val">0.00, 0.00, 3.00</span></div>
+        <div>Ground: <span id="tel-ground" class="val">true</span></div>
+        <div>Mounts: <span id="tel-mounts" class="val">0 / 6 Mounted</span></div>
+        <div>Wall Target: <span id="tel-mount-target" class="val">None</span></div>
+        <div>Holo: <span id="tel-holo" class="val">Standby</span></div>
+        <div>Project: <span id="tel-project" class="val">None</span></div>
+        <div>SFX: <span id="tel-sfx" class="val">Active</span></div>
+        <div>Audio: <span id="tel-audio" class="val">2D+3D+UI</span></div>
+        <div>Pods: <span id="tel-pods" class="val">6 / 6 Active</span></div>
+        <div>Water Color: <span id="tel-watercolor" class="val">SKYBOX (DIV:6 SCALE:6)</span></div>
+        <div>Running: <span id="tel-running" class="val">Idle</span></div>
+        <div>Shadows: <span id="tel-shadows" class="val">Active</span></div>
+        <div>Cables: <span id="tel-cables" class="val">20 / 20 Active</span></div>
+        <div>Columns: <span id="tel-holo-columns" class="val">14 / 14 Active</span></div>
+        <div>Radial: <span id="tel-radial" class="val">IDLE</span></div>
+        <div>Spray: <span id="tel-spray-loader" class="val">READY</span></div>
+      </div>
+    </div>
+
+    <div class="controls-hint">
+      <kbd>+</kbd>/<kbd>-</kbd> Resize &bull;
+      <kbd>&lt;</kbd>/<kbd>&gt;</kbd> Rotate &bull;
+      <kbd>G</kbd> Gizmo (Move/Rotate/Scale) &bull;
+      <kbd>L</kbd> Aim Lamppost Cone &bull;
+      <kbd>F</kbd> 3D Fly/No-Clip &bull;
+      <kbd>P</kbd> Spray Intro &bull;
+      <kbd>E</kbd> Inspect Wall Mount &bull;
+      <kbd>Q</kbd> Radial Menu &bull;
+      <kbd>WASD</kbd>/<kbd>Arrows</kbd> Move &bull;
+      <kbd>Shift</kbd> Run &bull;
+      <kbd>Space</kbd> Jump &bull;
+      <kbd>1-9</kbd>/<kbd>0</kbd> Emotes &bull;
+      <kbd>Scroll</kbd> Walk &bull;
+      <kbd>H</kbd> Holo &bull;
+      <kbd>M</kbd> Mute
+    </div>
+  </aside>
+
+  <div id="fatal-error-banner" role="alert"></div>
+
+  <script type="module" src="./sandbox.js?v=044"></script>
+</body>
+</html>
