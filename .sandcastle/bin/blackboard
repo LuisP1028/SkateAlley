@@ -1,0 +1,416 @@
+#!/usr/bin/env node
+// Auto-generated Sandcastle Three-Way Ephemeral Blackboard CLI shim
+// Communicates strictly over loopback HTTP (127.0.0.1) without touching Git worktrees or Ultra keychain auth.
+
+import { execFileSync } from "node:child_process";
+import { existsSync, readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+
+const VALID_AGENTS = new Set(["plan", "plan-scan-1", "plan-scan-2"]);
+const VALID_TARGETS = new Set(["all", "scanners", "plan", "plan-scan-1", "plan-scan-2"]);
+
+function printUsage() {
+    const usage = [
+        "Usage: blackboard <command> [options] [content...]",
+        "",
+        "Commands:",
+        "  post-finding [--to <target>] <content>       Publish a finding (default --to all)",
+        "  post-request --to <target> <content>         Publish a request to scanners|plan|plan-scan-1|plan-scan-2|all",
+        "  claim [--seq <seq>] [content]                Claim an open request (--seq) or announce a directory/module scan scope",
+        "  reply --reply-to <seq> <content>             Publish a response resolving request <seq>",
+        "  read [--since <seq>] [--wait <sec>]          Read ledger entries since <seq> (default 0) with optional bounded long-poll",
+        "  wait-request --seq <seq> [--wait <sec>]      Block until request <seq> resolves or target peer(s) are no longer active",
+        "  wait-scanners [--since <seq>] [--wait <sec>] Block until both plan-scan-1 and plan-scan-2 reach done/settled/terminated",
+        "  done                                         Mark calling agent done (enforces unread & open-request Obligation Gate)",
+        "  status                                       Read unread delta and current peer/request statuses",
+    ].join("\n");
+    console.log(usage);
+}
+
+function parseArgs(argv) {
+    const positional = [];
+    const flags = {};
+    for (let i = 0; i < argv.length; i++) {
+        const arg = argv[i];
+        if (arg === "--help" || arg === "-h") {
+            flags.help = true;
+        } else if (arg === "--json") {
+            flags.json = true;
+        } else if (arg === "--unread") {
+            flags.unread = true;
+        } else if (arg.startsWith("--") && arg.includes("=")) {
+            const idx = arg.indexOf("=");
+            const key = arg.slice(2, idx);
+            const val = arg.slice(idx + 1);
+            flags[key] = val;
+        } else if (
+            arg === "--to" ||
+            arg === "--target" ||
+            arg === "--seq" ||
+            arg === "--reply-to" ||
+            arg === "--since" ||
+            arg === "--wait" ||
+            arg === "--type" ||
+            arg === "--content" ||
+            arg === "--message" ||
+            arg === "--scope" ||
+            arg === "-m" ||
+            arg === "--agent" ||
+            arg === "--run-id" ||
+            arg === "--url"
+        ) {
+            const next = argv[i + 1];
+            if (next === undefined) {
+                throw new Error(`Missing value for flag ${arg}`);
+            }
+            const key = arg === "-m" ? "content" : arg.replace(/^-+/, "");
+            flags[key] = next;
+            i++;
+        } else {
+            positional.push(arg);
+        }
+    }
+    return { positional, flags };
+}
+
+function detectGitBranchContext() {
+    try {
+        const branch = execFileSync("git", ["rev-parse", "--abbrev-ref", "HEAD"], {
+            encoding: "utf8",
+            stdio: ["ignore", "pipe", "ignore"],
+        }).trim();
+        const match = /^agent\/(plan-scan-1|plan-scan-2|plan)-(.+)$/.exec(branch);
+        if (!match) return null;
+        return { agentId: match[1], runId: match[2] };
+    } catch {
+        return null;
+    }
+}
+
+function detectRepoRoot() {
+    try {
+        const commonDir = execFileSync("git", ["rev-parse", "--git-common-dir"], {
+            encoding: "utf8",
+            stdio: ["ignore", "pipe", "ignore"],
+        }).trim();
+        if (commonDir) {
+            return dirname(resolve(process.cwd(), commonDir));
+        }
+    } catch {
+        // Fallback to process.cwd() if not in git worktree
+    }
+    return process.cwd();
+}
+
+function resolveContext(flags) {
+    let agentId = flags.agent || process.env.SANDCASTLE_AGENT_ID || "";
+    let runId = flags["run-id"] || process.env.SANDCASTLE_RUN_ID || "";
+    let url = flags.url || process.env.SANDCASTLE_BLACKBOARD_URL || "";
+
+    if (!agentId || !runId) {
+        const gitCtx = detectGitBranchContext();
+        if (gitCtx) {
+            if (!agentId) agentId = gitCtx.agentId;
+            if (!runId) runId = gitCtx.runId;
+        }
+    }
+
+    if (!url && runId) {
+        const repoRoot = detectRepoRoot();
+        const snapshotPath = resolve(repoRoot, ".sandcastle", "logs", `${runId}-blackboard.json`);
+        if (existsSync(snapshotPath)) {
+            try {
+                const snap = JSON.parse(readFileSync(snapshotPath, "utf8"));
+                if (typeof snap.url === "string" && snap.url.length > 0) {
+                    url = snap.url;
+                }
+            } catch {
+                // Handled below by fail-fast validation
+            }
+        }
+    }
+
+    if (!agentId || !VALID_AGENTS.has(agentId)) {
+        throw new Error(
+            `Blackboard context error: missing or invalid agent identity '${agentId}'. Expected SANDCASTLE_AGENT_ID in {plan, plan-scan-1, plan-scan-2}.`,
+        );
+    }
+    if (!runId) {
+        throw new Error("Blackboard context error: missing SANDCASTLE_RUN_ID.");
+    }
+    if (!url) {
+        throw new Error(
+            `Blackboard context error: missing SANDCASTLE_BLACKBOARD_URL for runId=${runId}.`,
+        );
+    }
+
+    return { agentId, runId, url: url.replace(/\/+$/, "") };
+}
+
+function formatEntryLine(entry) {
+    const meta = [`type=${entry.type}`];
+    if (entry.status) meta.push(`status=${entry.status}`);
+    if (entry.replyTo !== undefined && entry.replyTo !== null) meta.push(`replyTo=#${entry.replyTo}`);
+    if (entry.claimedBy) meta.push(`claimedBy=${entry.claimedBy}`);
+    if (entry.resolvedBy) meta.push(`resolvedBy=${entry.resolvedBy}`);
+    if (entry.responseSeq !== undefined && entry.responseSeq !== null) meta.push(`responseSeq=#${entry.responseSeq}`);
+    return `  [seq=#${entry.seq}] [${entry.timestamp}] ${entry.sender} -> ${entry.target} (${meta.join(", ")}): ${entry.content}`;
+}
+
+function formatOutput(data, isWrite) {
+    const lines = [];
+    const p = data.participants || {};
+    const peerStr = ["plan", "plan-scan-1", "plan-scan-2"]
+        .map((id) => `${id}=${p[id]?.status || "unknown"}`)
+        .join(" | ");
+
+    lines.push(
+        `=== BLACKBOARD [run_id=${data.runId} | agent=${data.caller} | last_seq=${data.last_seq}] ===`,
+    );
+    lines.push(`STATUS: ${data.action_status || (data.ok ? "OK" : "ERROR")}`);
+    lines.push(`PEERS: ${peerStr}`);
+
+    if (data.message) {
+        lines.push(`MESSAGE: ${data.message}`);
+    }
+
+    if (data.entry) {
+        lines.push(`PUBLISHED: ${formatEntryLine(data.entry).trim()}`);
+    }
+
+    if (data.scanners_complete !== undefined) {
+        lines.push(`BARRIER: scanners_complete=${Boolean(data.scanners_complete)}`);
+    }
+
+    if (data.waited_request) {
+        const wr = data.waited_request;
+        lines.push(
+            `WAITED REQUEST #${wr.seq}: status=${wr.status} target=${wr.target} claimedBy=${wr.claimedBy || "none"} resolvedBy=${wr.resolvedBy || "none"} responseSeq=${wr.responseSeq ?? "none"}`,
+        );
+        if (data.resolving_response) {
+            lines.push(`RESOLVING RESPONSE: ${formatEntryLine(data.resolving_response).trim()}`);
+        }
+    }
+
+    const reqForYou = Array.isArray(data.requests_for_you) ? data.requests_for_you : [];
+    lines.push(`REQUESTS TARGETING YOU (${reqForYou.length}):`);
+    if (reqForYou.length === 0) {
+        lines.push("  (none)");
+    } else {
+        for (const r of reqForYou) {
+            lines.push(formatEntryLine(r));
+        }
+    }
+
+    const otherReqs = Array.isArray(data.other_open_requests) ? data.other_open_requests : [];
+    if (otherReqs.length > 0) {
+        lines.push(`OTHER UNRESOLVED REQUESTS (${otherReqs.length}):`);
+        for (const r of otherReqs) {
+            lines.push(formatEntryLine(r));
+        }
+    }
+
+    const deltaList = isWrite
+        ? Array.isArray(data.piggybacked_entries)
+            ? data.piggybacked_entries
+            : []
+        : Array.isArray(data.entries)
+          ? data.entries
+          : [];
+    const deltaHeader = isWrite
+        ? `PIGGYBACKED UNREAD DELTA (${deltaList.length}):`
+        : `LEDGER DELTA (${deltaList.length}):`;
+    lines.push(deltaHeader);
+    if (deltaList.length === 0) {
+        lines.push("  (none)");
+    } else {
+        for (const entry of deltaList) {
+            lines.push(formatEntryLine(entry));
+        }
+    }
+
+    if (Array.isArray(data.pending_obligations) && data.pending_obligations.length > 0) {
+        lines.push(`PENDING OBLIGATIONS BLOCKING DONE (${data.pending_obligations.length}):`);
+        for (const req of data.pending_obligations) {
+            lines.push(formatEntryLine(req));
+        }
+    }
+
+    return lines.join("\n");
+}
+
+async function main() {
+    const rawArgs = process.argv.slice(2);
+    const { positional, flags } = parseArgs(rawArgs);
+
+    if (flags.help || positional.length === 0) {
+        printUsage();
+        process.exit(positional.length === 0 && !flags.help ? 1 : 0);
+    }
+
+    let subcommand = positional[0];
+    const restPositional = positional.slice(1);
+
+    if (subcommand === "help") {
+        printUsage();
+        process.exit(0);
+    }
+
+    if (subcommand === "post") {
+        const t = flags.type || "finding";
+        if (t === "finding") subcommand = "post-finding";
+        else if (t === "request") subcommand = "post-request";
+        else if (t === "claim") subcommand = "claim";
+        else if (t === "response" || t === "reply") subcommand = "reply";
+        else throw new Error(`Unsupported --type '${t}' for post command.`);
+    }
+
+    const { agentId, runId, url } = resolveContext(flags);
+    const contentText = (
+        flags.content ??
+        flags.message ??
+        flags.scope ??
+        restPositional.join(" ")
+    ).trim();
+
+    let endpoint = "";
+    let method = "GET";
+    let bodyObj = null;
+    let isWrite = false;
+
+    if (subcommand === "post-finding" || subcommand === "finding") {
+        const target = flags.to || flags.target || "all";
+        if (!VALID_TARGETS.has(target)) {
+            throw new Error(`Invalid target '${target}'. Expected one of: all, scanners, plan, plan-scan-1, plan-scan-2.`);
+        }
+        if (!contentText) {
+            throw new Error("post-finding requires non-empty content.");
+        }
+        endpoint = `${url}/api/finding`;
+        method = "POST";
+        bodyObj = { sender: agentId, target, content: contentText };
+        isWrite = true;
+    } else if (subcommand === "post-request" || subcommand === "request") {
+        const defaultTarget = agentId === "plan" ? "scanners" : "plan";
+        const target = flags.to || flags.target || defaultTarget;
+        if (!VALID_TARGETS.has(target)) {
+            throw new Error(`Invalid target '${target}'. Expected one of: all, scanners, plan, plan-scan-1, plan-scan-2.`);
+        }
+        if (!contentText) {
+            throw new Error("post-request requires non-empty content.");
+        }
+        endpoint = `${url}/api/request`;
+        method = "POST";
+        bodyObj = { sender: agentId, target, content: contentText };
+        isWrite = true;
+    } else if (subcommand === "claim") {
+        const seqRaw = flags.seq ?? flags["reply-to"];
+        const seq = seqRaw !== undefined ? Number.parseInt(String(seqRaw), 10) : null;
+        if (seqRaw !== undefined && (!Number.isInteger(seq) || seq < 1)) {
+            throw new Error(`Invalid --seq '${seqRaw}' for claim. Must be a positive integer.`);
+        }
+        const target = flags.to || flags.target || "all";
+        const claimContent =
+            contentText || (seq !== null ? `Claimed request #${seq} for investigation.` : "");
+        if (!claimContent) {
+            throw new Error("claim requires either --seq <seq> or a scope description.");
+        }
+        endpoint = `${url}/api/claim`;
+        method = "POST";
+        bodyObj = { sender: agentId, target, seq, content: claimContent };
+        isWrite = true;
+    } else if (subcommand === "reply" || subcommand === "respond") {
+        const seqRaw = flags["reply-to"] ?? flags.seq;
+        if (seqRaw === undefined) {
+            throw new Error("reply requires --reply-to <seq> (or --seq <seq>).");
+        }
+        const seq = Number.parseInt(String(seqRaw), 10);
+        if (!Number.isInteger(seq) || seq < 1) {
+            throw new Error(`Invalid --reply-to '${seqRaw}'. Must be a positive integer.`);
+        }
+        if (!contentText) {
+            throw new Error("reply requires non-empty response content.");
+        }
+        endpoint = `${url}/api/reply`;
+        method = "POST";
+        bodyObj = { sender: agentId, replyTo: seq, content: contentText };
+        isWrite = true;
+    } else if (subcommand === "read" || subcommand === "poll" || subcommand === "status") {
+        const sinceRaw =
+            flags.since !== undefined
+                ? Number.parseInt(String(flags.since), 10)
+                : flags.unread || subcommand === "status"
+                  ? -1
+                  : 0;
+        if (Number.isNaN(sinceRaw) || sinceRaw < -1) {
+            throw new Error(`Invalid --since '${flags.since}'.`);
+        }
+        const waitSec = flags.wait !== undefined ? Number.parseFloat(String(flags.wait)) : 0;
+        const params = new URLSearchParams({
+            agent: agentId,
+            since: String(sinceRaw),
+            wait: String(Number.isFinite(waitSec) && waitSec > 0 ? waitSec : 0),
+        });
+        endpoint = `${url}/api/read?${params.toString()}`;
+        method = "GET";
+    } else if (subcommand === "wait-request") {
+        const seqRaw = flags.seq ?? flags["reply-to"];
+        if (seqRaw === undefined) {
+            throw new Error("wait-request requires --seq <seq>.");
+        }
+        const seq = Number.parseInt(String(seqRaw), 10);
+        if (!Number.isInteger(seq) || seq < 1) {
+            throw new Error(`Invalid --seq '${seqRaw}'.`);
+        }
+        const waitSec = flags.wait !== undefined ? Number.parseFloat(String(flags.wait)) : 30;
+        const params = new URLSearchParams({
+            agent: agentId,
+            seq: String(seq),
+            wait: String(Number.isFinite(waitSec) && waitSec > 0 ? waitSec : 30),
+        });
+        endpoint = `${url}/api/wait-request?${params.toString()}`;
+        method = "GET";
+    } else if (subcommand === "wait-scanners") {
+        const sinceRaw =
+            flags.since !== undefined ? Number.parseInt(String(flags.since), 10) : -1;
+        if (Number.isNaN(sinceRaw) || sinceRaw < -1) {
+            throw new Error(`Invalid --since '${flags.since}'.`);
+        }
+        const waitSec = flags.wait !== undefined ? Number.parseFloat(String(flags.wait)) : 45;
+        const params = new URLSearchParams({
+            agent: agentId,
+            since: String(sinceRaw),
+            wait: String(Number.isFinite(waitSec) && waitSec > 0 ? waitSec : 45),
+        });
+        endpoint = `${url}/api/wait-scanners?${params.toString()}`;
+        method = "GET";
+    } else if (subcommand === "done") {
+        endpoint = `${url}/api/done`;
+        method = "POST";
+        bodyObj = { sender: agentId };
+    } else {
+        throw new Error(`Unknown blackboard subcommand '${subcommand}'. Run 'blackboard --help' for usage.`);
+    }
+
+    const response = await fetch(endpoint, {
+        method,
+        headers: bodyObj ? { "content-type": "application/json" } : undefined,
+        body: bodyObj ? JSON.stringify(bodyObj) : undefined,
+    });
+
+    const data = await response.json();
+    if (flags.json) {
+        console.log(JSON.stringify(data, null, 2));
+    } else {
+        console.log(formatOutput(data, isWrite));
+    }
+
+    if (!response.ok || data.ok === false) {
+        process.exit(1);
+    }
+}
+
+main().catch((err) => {
+    console.error(`[blackboard error] ${err instanceof Error ? err.message : String(err)}`);
+    process.exit(1);
+});

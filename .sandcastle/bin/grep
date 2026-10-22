@@ -1,0 +1,83 @@
+#!/usr/bin/env bash
+# Auto-generated Sandcastle POSIX-compatible grep shim
+# Prevents agents from hanging by respecting .gitignore on recursive searches while preserving POSIX/BSD grep flags
+
+# 1. Locate the real system grep (bypassing this shim) to avoid infinite fork loops
+REAL_GREP="/usr/bin/grep"
+if [ ! -x "$REAL_GREP" ]; then
+    REAL_GREP=$(PATH=$(getconf PATH 2>/dev/null || echo "/usr/bin:/bin") command -v grep || echo "/usr/bin/grep")
+fi
+
+# 2. Detect whether grep was invoked with recursive directory flags (-r, -R, --recursive, -d recurse)
+IS_RECURSIVE=0
+ prev_arg=""
+for arg in "$@"; do
+    if [[ "$arg" == "--" ]]; then
+        break
+    fi
+    if [[ "$prev_arg" == "-d" || "$prev_arg" == "--directories" ]] && [[ "$arg" == "recurse" ]]; then
+        IS_RECURSIVE=1
+        break
+    fi
+    case "$arg" in
+        --recursive|--directories=recurse)
+            IS_RECURSIVE=1
+            break
+            ;;
+        -[!-]*)
+            # Short flag cluster (e.g. -r, -rn, -RnE); ignore values attached to -e/-f/-m/-A/-B/-C/-d
+            short_flags="${arg#-}"
+            case "$short_flags" in
+                e*|f*|m*|A*|B*|C*|d*) ;;
+                *r*|*R*)
+                    IS_RECURSIVE=1
+                    break
+                    ;;
+            esac
+            ;;
+    esac
+    prev_arg="$arg"
+done
+
+# If not a recursive search (e.g. grepping an explicit file or stdin pipe), execute real grep directly
+if [[ "$IS_RECURSIVE" -eq 0 ]]; then
+    exec "$REAL_GREP" "$@"
+fi
+
+# 3. Parse .gitignore to build exclusion flags for recursive grep (honoring !-negated file patterns)
+GIT_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || echo ".")
+EXCLUDES=("--exclude-dir=.git" "--exclude-dir=node_modules" "--exclude-dir=.venv" "--exclude-dir=__pycache__")
+
+if [ -f "$GIT_ROOT/.gitignore" ]; then
+    NEGATED="|"
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        line="${line%$'\r'}"
+        line="${line#"${line%%[![:space:]]*}"}"
+        line="${line%"${line##*[![:space:]]}"}"
+        if [[ "$line" == \!* ]]; then
+            neg_base=$(basename "${line#!}")
+            [[ -n "$neg_base" ]] && NEGATED="${NEGATED}${neg_base}|"
+        fi
+    done < "$GIT_ROOT/.gitignore"
+
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        line="${line%$'\r'}"
+        line="${line#"${line%%[![:space:]]*}"}"
+        line="${line%"${line##*[![:space:]]}"}"
+        [[ -z "$line" || "$line" == \#* || "$line" == \!* ]] && continue
+        clean_name=$(basename "${line%/}")
+        [[ -z "$clean_name" || "$clean_name" == "." || "$clean_name" == ".." ]] && continue
+        [[ "$NEGATED" == *"|${clean_name}|"* ]] && continue
+
+        if [[ "$line" == */ ]]; then
+            EXCLUDES+=("--exclude-dir=$clean_name")
+        elif [[ "$line" == *.* ]]; then
+            EXCLUDES+=("--exclude=$clean_name")
+        else
+            EXCLUDES+=("--exclude-dir=$clean_name" "--exclude=$clean_name")
+        fi
+    done < "$GIT_ROOT/.gitignore"
+fi
+
+# 4. Execute the system grep with the injected exclusions
+exec "$REAL_GREP" "${EXCLUDES[@]}" "$@"
