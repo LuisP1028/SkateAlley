@@ -8,6 +8,8 @@ Retargeting Pipeline for Character A ("LUIS") and Character B ("PLATODOOM").
 Governed by rigging.md and Wayfinder tickets 026-031.
 """
 
+from __future__ import annotations
+
 import os
 import sys
 import math
@@ -16,10 +18,56 @@ import struct
 import hashlib
 from typing import Dict, List, Tuple, Any
 
-import bpy
-import bmesh
-import mathutils
-import numpy as np
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+if SCRIPT_DIR not in sys.path:
+    sys.path.insert(0, SCRIPT_DIR)
+
+try:
+    import bpy
+    import bmesh
+    import mathutils
+    HAS_BLENDER = True
+except ImportError:
+    bpy = None  # type: ignore
+    bmesh = None  # type: ignore
+    HAS_BLENDER = False
+
+    class _VectorStub:
+        def __init__(self, coords: Tuple[float, ...]) -> None:
+            self.coords = tuple(float(c) for c in coords)
+            self.x = self.coords[0]
+            self.y = self.coords[1]
+            self.z = self.coords[2]
+
+        def normalized(self) -> "_VectorStub":
+            l = math.sqrt(sum(c * c for c in self.coords)) or 1.0
+            return _VectorStub(tuple(c / l for c in self.coords))
+
+    class _MathutilsStub:
+        Vector = _VectorStub
+
+    mathutils = _MathutilsStub()  # type: ignore
+
+try:
+    import numpy as np
+except ImportError:
+    np = None  # type: ignore
+
+from rig_skate3_character import (
+    SKATE3_JOINT_NAMES,
+    SKATE3_DEFORM_BONE_INDICES,
+    SKATE3_SOCKET_BONE_INDICES,
+    load_skate3_rig_contract,
+    normalize_and_sanitize_mesh,
+    compute_skate3_skin_weights,
+    audit_skin_weights,
+    compute_skate3_ibms,
+    AbinDecoder,
+    evaluate_clip_deformation,
+    rig_glb_to_skate3,
+    verify_skate3_glb,
+    build_all_skate3_deliverables,
+)
 
 # Canonical Paths
 DOOM_RIG_DIR = "/Users/diesel/Desktop/Doom_Rig"
@@ -2518,7 +2566,9 @@ def run_pipeline():
 
 
 if __name__ == "__main__":
-    if "--holo-only" in sys.argv:
+    if not HAS_BLENDER or "--skate3" in sys.argv:
+        build_all_skate3_deliverables()
+    elif "--holo-only" in sys.argv:
         run_holo_only_pipeline()
     else:
         run_pipeline()

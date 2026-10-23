@@ -1,0 +1,36 @@
+{
+  "tracks": [
+    {
+      "id": "01_doom_alloy_intro",
+      "title": "DOOM ALLOY // INTRO",
+      "src": "assets/tracks/01_doom_alloy_intro.mp3",
+      "duration": 32,
+      "bitrateKbps": 128,
+      "format": "MP3 / STEREO"
+    },
+    {
+      "id": "02_sys990_amber_pulse",
+      "title": "SYS-990 AMBER PULSE",
+      "src": "assets/tracks/02_sys990_amber_pulse.mp3",
+      "duration": 36,
+      "bitrateKbps": 128,
+      "format": "MP3 / STEREO"
+    },
+    {
+      "id": "03_freeman_alley_cipher",
+      "title": "FREEMAN ALLEY CIPHER",
+      "src": "assets/tracks/03_freeman_alley_cipher.mp3",
+      "duration": 40,
+      "bitrateKbps": 128,
+      "format": "MP3 / STEREO"
+    },
+    {
+      "id": "04_iron_mask_dub",
+      "title": "IRON MASK DUB v2",
+      "src": "assets/tracks/04_iron_mask_dub.mp3",
+      "duration": 34,
+      "bitrateKbps": 128,
+      "format": "MP3 / STEREO"
+    }
+  ]
+}

@@ -1,15 +1,15 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { TransformControls } from 'three/addons/controls/TransformControls.js';
-import { buildMathHologramPods, HOLO_POD_PALETTE, HOLO_POD_SPECS } from './math_pods.js?v=041';
-import { WALK_THROUGH_GLITCH_SPEC, evaluatePodWalkThroughGlitch } from './math_pods.js?v=041';
+import { buildMathHologramPods, HOLO_POD_PALETTE, HOLO_POD_SPECS } from './math_pods.js?v=074';
+import { WALK_THROUGH_GLITCH_SPEC, evaluatePodWalkThroughGlitch } from './math_pods.js?v=074';
 import {
   createMathPodPopupManager,
   MathPodPopupCallout,
   MATHPOD_CALLOUT_PROFILES,
   CALLOUT_PALETTE_THEMES,
   UNIVERSAL_ASSET_CALLOUT_PRESETS,
-} from './mathpod_popup.js?v=041';
+} from './mathpod_popup.js?v=058';
 import {
   buildWaterColorGallerySystem,
   buildWaterColorSkyboxSystem,
@@ -17,8 +17,7 @@ import {
   WATERCOLOR_DEFAULT_PARAMS,
   WATERCOLOR_GALLERY_SPEC,
   WATERCOLOR_SKYBOX_SPEC,
-  computeSliderFillPercent,
-} from './watercolor_shader.js';
+} from './watercolor_shader.js?v=079';
 import {
   BINARY_TRAIL_PALETTE,
   RUNNING_EFFECTS_SPEC,
@@ -38,7 +37,7 @@ import {
   OVERHEAD_CABLE_SCHEDULE,
   evaluateOverheadCableCatenaryPoint,
   buildOverheadHangingCablesSubsystem,
-} from './alley_atmosphere_023.js';
+} from './alley_atmosphere_023.js?v=074';
 import {
   RadialMenu,
   createCyberRadialMenuHUD,
@@ -67,12 +66,14 @@ import {
   buildHologramColumnsSystem,
   HOLO_MEDIA_MANIFEST,
   HOLO_MEDIA_BY_ID,
+  HOLO_CAROUSEL_DEFAULT_SLIDES,
   HOLO_SPECTRAL_TINT_PRESETS,
   HOLO_LIFECYCLE_STATES,
   HOLO_GLITCH_MODES,
   HOLO_DEFAULT_RUNTIME_PARAMS,
   resolveHoloMediaSpec,
   computeHologramColumnGeometrySpec,
+  createProceduralSlideCardTexture,
   createHoloMediaTextureController,
   evaluateHologramPixelPreProcessing,
   evaluateSteadyStateHologramOptics,
@@ -81,7 +82,7 @@ import {
   createHologramColumnShaderMaterial,
   createHologramColumnInstance,
   HoloVideoStreamController,
-} from './hologram_columns.js?v=041';
+} from './hologram_columns.js?v=078';
 
 import {
   STICKER_ASSET_MANIFEST,
@@ -132,6 +133,34 @@ import {
   buildChoreographedNozzleTrajectory,
   resolveLogoPixelLetterIndex,
 } from './spray_paint_loader.js?v=044';
+import {
+  ALLEY_METAL_PIPES_ASSET_URL,
+  PIPE_VARIATION_SPECS,
+  ALLEY_PIPE_PLACEMENT_SCHEDULE,
+  PIPE_STEAM_NOZZLE_SPECS,
+  PIPE_STEAM_INTERVAL_SCHEDULE,
+  resolvePipeNozzleWorldTransform,
+  evaluatePipeSteamEnvelope,
+  resolveAlleyWallProfileX,
+  buildAlleyMetalPipesSubsystem,
+} from './alley_metal_pipes.js?v=074';
+import {
+  buildSceneCutterSubsystem,
+} from './scene_cutter.js?v=076';
+import {
+  createDoomTracksMp3HUD,
+  DOOM_TRACKS_DEFAULT_CATALOG,
+  MP3_CONTROL_HIT_ZONES,
+  MP3_SCREEN_HIT_ZONES,
+  MP3_PALETTE,
+  MP3_CHASSIS_CROP,
+  MP3_SCREEN_ONLY_CROP,
+  MP3_NATIVE_WIDTH,
+  MP3_NATIVE_HEIGHT,
+  processMp3ChassisBitmap,
+  drawTechnoVectorText,
+  measureTechnoVectorText,
+} from './doom_tracks_mp3_hud.js?v=070';
 
 // ============================================================================
 // Constants & Deterministic Configuration (functional_specification_013 & 014)
@@ -140,6 +169,8 @@ const ASSET_PATHS = {
   alley: './freeman_alley.glb',
   alarmLight: './alarm_light.glb',
   hologram: './hologram.glb',
+  alleyPipes: ALLEY_METAL_PIPES_ASSET_URL,
+  villainySign: './villainy_inc_textured.glb',
   luisSign: './LUIS_AI_ENGINEER_SIGN.glb',
   hoodie: './LUIS_HOLOSYS_RIGGED.glb?v=044',
   hoodieHolo: './LUIS_HOLOSYS_RIGGED.glb?v=044',
@@ -148,6 +179,8 @@ const ASSET_PATHS = {
   tunic: './PLATODOOM_HOLOSYS_RIGGED.glb?v=044',
   tunicHolo: './PLATODOOM_HOLOSYS_RIGGED.glb?v=044',
   tunicColor: './character_tunic.glb?v=044',
+  platodoom_skate3: './PLATODOOM_SKATE3_RIGGED.glb',
+  luis_skate3: './LUIS_SKATE3_RIGGED.glb',
 };
 
 // ============================================================================
@@ -401,6 +434,28 @@ const GLB_VARIANT_CATALOG = {
     defaultHoloShader: false,
     baseColor: 0xf5efe6,
   },
+  platodoom_skate3: {
+    key: 'platodoom_skate3',
+    label: 'PLATODOOM (Skate 3 35-Joint Master Rig)',
+    url: ASSET_PATHS.platodoom_skate3,
+    path: ASSET_PATHS.platodoom_skate3,
+    characterSlot: 'tunic',
+    character: 'platodoom',
+    rigProfile: 'SKATE3_RX2_RIG',
+    defaultHoloShader: false,
+    baseColor: 0xf5efe6,
+  },
+  luis_skate3: {
+    key: 'luis_skate3',
+    label: 'LUIS (Skate 3 35-Joint Master Rig)',
+    url: ASSET_PATHS.luis_skate3,
+    path: ASSET_PATHS.luis_skate3,
+    characterSlot: 'hoodie',
+    character: 'luis',
+    rigProfile: 'SKATE3_RX2_RIG',
+    defaultHoloShader: false,
+    baseColor: 0xe2e8f0,
+  },
 };
 
 const REQUIRED_COLLIDER_NAMES = [
@@ -559,11 +614,11 @@ const HOLO_PROJECT_STATIONS = [
     ],
     primaryLink: {
       label: 'Launch Environment Spec',
-      url: './scene_preparation.md',
+      url: './functional_specification_034.md',
     },
     secondaryLink: {
-      label: 'Inspect Blender Pipeline',
-      url: './prepare_scene.py',
+      label: 'Inspect Scene Cutter Spec',
+      url: './functional_specification_036.md',
     },
   },
   {
@@ -611,23 +666,23 @@ const HOLO_PROJECT_STATIONS = [
     mountedRotationDeg: 90,
     startProgress: 0.37,
     endProgress: 0.50,
-    kicker: 'STATION 03 // GENERATIVE 3D CHARACTER STUDIO',
-    title: 'HunYuan3D Orthographic Asset Studio',
+    kicker: 'STATION 03 // SKATE 3 RUST / BEVY WEBGPU CLEAN-ROOM',
+    title: 'SkateRoom 35-Joint Physics & Skate Park Engine',
     description:
-      'End-to-end 3D character synthesis pipeline transforming deterministic multi-view orthographic turnarounds into watertight, articulated glTF humanoid meshes on GPU runtimes.',
-    tags: ['HunYuan3D', 'PyTorch CUDA', 'Orthographic A-Pose', 'glTF 2.0 Export'],
+      'Playable Rust/Bevy WebAssembly & WebGPU clean-room port featuring custom 35-joint Skate 3 humanoid rigs (PlatoDoom, Luis, and Iridescent Holo), Havok-derived deck physics, and multi-chunk pack streaming.',
+    tags: ['Rust + Bevy', 'WebGPU / WASM', '35-Joint RX2 Rig', 'StartPark + BlackBox'],
     metrics: [
-      { value: '2.00m', label: 'Human Scale' },
-      { value: '100%', label: 'Watertight' },
-      { value: 'Colab', label: 'GPU Engine' },
+      { value: '3', label: 'Skater Rigs' },
+      { value: '2', label: 'Playable Parks' },
+      { value: '60 FPS', label: 'WebGPU WASM' },
     ],
     primaryLink: {
-      label: 'Open HunYuan3D Studio Code',
-      url: './hunyuan3d_colab_studio.py',
+      label: 'Enter SkateRoom (Play Now)',
+      url: './skate3_cleanroom/',
     },
     secondaryLink: {
-      label: 'Read Studio Specification',
-      url: './functional_specification_012.md',
+      label: 'Read Clean-Room Port Spec',
+      url: './skate_port.md',
     },
   },
   {
@@ -643,23 +698,23 @@ const HOLO_PROJECT_STATIONS = [
     mountedRotationDeg: -90,
     startProgress: 0.53,
     endProgress: 0.66,
-    kicker: 'STATION 04 // MULTI-MODAL VIDEO ORCHESTRATION',
-    title: 'MiniMax H3 Autonomous Scene Chainer',
+    kicker: 'STATION 04 // QUANTITATIVE MACRO & AI POLICY ENGINE',
+    title: 'Lag-Policy Engine & Bartending AI Systems',
     description:
-      'Deterministic prompt compiler and temporal scene-chaining engine maintaining character identity, keyframe lighting continuity, and voice reference sync across multi-shot sequences.',
-    tags: ['MiniMax H3', 'Scene Chainer', 'Prompt Compiler', 'Voice Sync'],
+      'Production-hosted quantitative macro lag-policy engine and full-stack AI cocktail mixology platform running live on the dedicated Server Mac cluster with zero-config HTTPS Cloudflare tunnels.',
+    tags: ['Lag-Policy Engine', 'Bartending AI', 'Server Mac Cluster', 'Cloudflare HTTPS'],
     metrics: [
-      { value: 'H3', label: 'Video Engine' },
-      { value: '100%', label: 'Continuity' },
-      { value: 'SHA-256', label: 'Asset Verify' },
+      { value: 'Live', label: 'HTTPS Tunnels' },
+      { value: '100%', label: 'Self-Hosted' },
+      { value: 'SHA-256', label: 'Verified' },
     ],
     primaryLink: {
-      label: 'Inspect Scene Chainer Engine',
-      url: './minimax_h3_scene_chainer.py',
+      label: 'Launch Lag-Policy Showcase',
+      url: 'https://luisp1028.github.io/lag-policy-engine-showcase/',
     },
     secondaryLink: {
-      label: 'Read Generation Benchmarks',
-      url: './research_minimax_h3_generation_benchmarks.md',
+      label: 'Launch Bartending AI App',
+      url: 'https://luisp1028.github.io/Bartending/',
     },
   },
   {
@@ -675,23 +730,23 @@ const HOLO_PROJECT_STATIONS = [
     mountedRotationDeg: -90,
     startProgress: 0.69,
     endProgress: 0.81,
-    kicker: 'STATION 05 // REAL-TIME TELEMETRY & MCP DEVTOOLS',
-    title: 'Three.js MCP Live Scene Inspector',
+    kicker: 'STATION 05 // DIEGETIC AUDIO & DOOM TRACKS DECK',
+    title: 'SYS-990-AMBER MP3 Deck & Procedural Spray Loader',
     description:
-      'Zero-latency Model Context Protocol bridge exposing live WebGL scene graphs, skeletal bone transforms, draw-call telemetry, and deterministic frame-stepping for automated verification.',
-    tags: ['Three.js DevTools', 'Playwright MCP', 'GLBForge', 'Fail-Fast Audit'],
+      'Interactive hardware-cropped MP3 audio deck with real-time WebAudio FFT spectrum visualization, 3D spatial footsteps, and a 60 FPS particle-choreographed PLATO DOOM spray-paint intro.',
+    tags: ['WebAudio FFT', 'SYS-990-AMBER', 'Spray-Paint Intro', 'Fail-Fast Audit'],
     metrics: [
       { value: '1:1', label: 'Scene Bridge' },
       { value: '0', label: 'Console Errors' },
       { value: 'Live', label: 'Telemetry' },
     ],
     primaryLink: {
-      label: 'Read Three.js MCP Evaluation',
-      url: './research_threejs_mcp_evaluation.md',
+      label: 'Read DOOM TRACKS Spec 035',
+      url: './functional_specification_035.md',
     },
     secondaryLink: {
-      label: 'View Operational Runbook',
-      url: './operational_runbook.md',
+      label: 'Read Spray-Paint Spec',
+      url: './spray_paint.md',
     },
   },
   {
@@ -707,19 +762,19 @@ const HOLO_PROJECT_STATIONS = [
     mountedRotationDeg: -90,
     startProgress: 0.84,
     endProgress: 0.95,
-    kicker: 'STATION 06 // SCROLLY-TELLING TO PLAYABLE HANDOFF',
-    title: 'Freeman Alley Interactive Free-Roam Sandbox',
+    kicker: 'STATION 06 // HYBRID STATIC PAGES & SERVER MAC DEPLOY',
+    title: 'Freeman Alley Interactive Free-Roam & Dual-Host Architecture',
     description:
-      'Bidirectional scroll-driven corridor walk with damped acceleration that seamlessly hands off at 100% scroll into live WASD locomotion, jumping, and interactive wall mounts.',
-    tags: ['Scrolly-Walk', 'Wall Mount Focus', '360° Orbit', 'Bumper Collision'],
+      'Bidirectional scroll-driven corridor walk and WASD free-roam sandbox deployed simultaneously across GitHub Static Pages and the dedicated Server SSH Mac cluster.',
+    tags: ['Scrolly-Walk', 'Wall Mount Focus', '360° Orbit', 'Dual-Host Architecture'],
     metrics: [
       { value: '6 / 6', label: 'Wall Mounts' },
       { value: '360°', label: 'Camera Orbit' },
       { value: '26 Tris', label: 'Collider Cage' },
     ],
     primaryLink: {
-      label: 'View Functional Spec 014',
-      url: './functional_specification_014.md',
+      label: 'View Deployment Spec 037',
+      url: './functional_specification_037.md',
     },
     secondaryLink: {
       label: 'Inspect Sandbox Runtime',
@@ -759,7 +814,7 @@ const NEON_CORNER_VERTICES = {
     id: 'L_MOUTH_00M',
     label: 'Left Alley Mouth Floor Corner (Z=0m)',
     wallSide: 'L',
-    nominalX: -1.60,
+    nominalX: -1.72,
     nominalY: 0.32,
     nominalZ: 0.00,
     inwardNormalX: 1.0,
@@ -769,7 +824,7 @@ const NEON_CORNER_VERTICES = {
     id: 'L_CORRIDOR_08M',
     label: 'Left Corridor Floor Knot (Z=8m)',
     wallSide: 'L',
-    nominalX: -1.60,
+    nominalX: -2.04,
     nominalY: 0.25,
     nominalZ: 8.00,
     inwardNormalX: 1.0,
@@ -779,7 +834,7 @@ const NEON_CORNER_VERTICES = {
     id: 'L_CORRIDOR_16M',
     label: 'Left Corridor Floor Knot (Z=16m)',
     wallSide: 'L',
-    nominalX: -1.58,
+    nominalX: -2.38,
     nominalY: 0.05,
     nominalZ: 16.00,
     inwardNormalX: 1.0,
@@ -789,7 +844,7 @@ const NEON_CORNER_VERTICES = {
     id: 'L_CORRIDOR_32M',
     label: 'Left Corridor Floor Knot (Z=32m)',
     wallSide: 'L',
-    nominalX: -1.56,
+    nominalX: -2.32,
     nominalY: 0.05,
     nominalZ: 32.00,
     inwardNormalX: 1.0,
@@ -799,7 +854,7 @@ const NEON_CORNER_VERTICES = {
     id: 'L_CORRIDOR_44M',
     label: 'Left Mid-Alley Transition Floor Corner (Z=44m)',
     wallSide: 'L',
-    nominalX: -1.55,
+    nominalX: -1.64,
     nominalY: 0.14,
     nominalZ: 44.00,
     inwardNormalX: 1.0,
@@ -809,7 +864,7 @@ const NEON_CORNER_VERTICES = {
     id: 'L_CUTOFF_46M',
     label: 'Left Primary Section Cutoff Floor Corner (Z=46m)',
     wallSide: 'L',
-    nominalX: -1.55,
+    nominalX: -1.68,
     nominalY: 0.14,
     nominalZ: 46.00,
     inwardNormalX: 1.0,
@@ -831,7 +886,7 @@ const NEON_CORNER_VERTICES = {
     id: 'R_MOUTH_00M',
     label: 'Right Alley Mouth Floor Corner (Z=0m)',
     wallSide: 'R',
-    nominalX: 1.98,
+    nominalX: 2.21,
     nominalY: 0.32,
     nominalZ: 0.00,
     inwardNormalX: -1.0,
@@ -841,7 +896,7 @@ const NEON_CORNER_VERTICES = {
     id: 'R_CORRIDOR_08M',
     label: 'Right Corridor Floor Knot (Z=8m)',
     wallSide: 'R',
-    nominalX: 1.90,
+    nominalX: 2.04,
     nominalY: 0.25,
     nominalZ: 8.00,
     inwardNormalX: -1.0,
@@ -851,7 +906,7 @@ const NEON_CORNER_VERTICES = {
     id: 'R_CORRIDOR_16M',
     label: 'Right Corridor Floor Knot (Z=16m)',
     wallSide: 'R',
-    nominalX: 1.82,
+    nominalX: 1.84,
     nominalY: 0.05,
     nominalZ: 16.00,
     inwardNormalX: -1.0,
@@ -861,7 +916,7 @@ const NEON_CORNER_VERTICES = {
     id: 'R_CORRIDOR_32M',
     label: 'Right Corridor Floor Knot (Z=32m)',
     wallSide: 'R',
-    nominalX: 1.72,
+    nominalX: 1.54,
     nominalY: 0.05,
     nominalZ: 32.00,
     inwardNormalX: -1.0,
@@ -871,7 +926,7 @@ const NEON_CORNER_VERTICES = {
     id: 'R_MID_INNER_44M',
     label: 'Right Mid-Alley Inner Floor Corner (Z=44m)',
     wallSide: 'R',
-    nominalX: 1.65,
+    nominalX: 1.85,
     nominalY: 0.14,
     nominalZ: 44.00,
     inwardNormalX: -1.0,
@@ -881,7 +936,7 @@ const NEON_CORNER_VERTICES = {
     id: 'R_MID_STEP_OUT_44M',
     label: 'Right Mid-Alley Step-Out Floor Corner (Z=44m)',
     wallSide: 'R',
-    nominalX: 3.25,
+    nominalX: 3.45,
     nominalY: 0.14,
     nominalZ: 44.00,
     inwardNormalX: -1.0,
@@ -891,7 +946,7 @@ const NEON_CORNER_VERTICES = {
     id: 'R_CUTOFF_46M',
     label: 'Right Primary Section Cutoff Floor Corner (Z=46m)',
     wallSide: 'R',
-    nominalX: 3.23,
+    nominalX: 3.43,
     nominalY: 0.14,
     nominalZ: 46.00,
     inwardNormalX: -1.0,
@@ -1148,6 +1203,209 @@ function sanitizeRPMAnimationClip(rawClip, spec) {
 }
 
 // ============================================================================
+// Skate 3 35-Joint Master Rig (SKATE3_RX2_RIG) Contract & Clip Retargeter (Spec 033 §4.1–§4.4)
+// ============================================================================
+const SKATE3_REQUIRED_MASTER_RIG_BONES = Object.freeze([
+  'HIPS',
+  'SPINE',
+  'SPINE1',
+  'SPINE2',
+  'SPINE3',
+  'NECK',
+  'NECK1',
+  'HEAD',
+  'RIGHTSHOULDER',
+  'RIGHTARM',
+  'RIGHTFOREARM',
+  'RIGHTHAND',
+  'LEFTSHOULDER',
+  'LEFTARM',
+  'LEFTFOREARM',
+  'LEFTHAND',
+  'RIGHTUPLEG',
+  'RIGHTLEG',
+  'RIGHTFOOT',
+  'RIGHTTOEBASE',
+  'LEFTUPLEG',
+  'LEFTLEG',
+  'LEFTFOOT',
+  'LEFTTOEBASE',
+  'SKATEBOARD_ROOT',
+  'TRUCK_FRONT',
+  'RIGHT_WHEELFRONT',
+  'LEFT_WHEELFRONT',
+  'TRUCK_BACK',
+  'LEFT_WHEELBACK',
+  'RIGHT_WHEELBACK',
+  'RIGHTTOEBASE_REPARENTED',
+  'LEFTTOEBASE_REPARENTED',
+  'LEFTHAND_REPARENTED',
+  'RIGHTHAND_REPARENTED',
+]);
+
+const RPM_TO_SKATE3_BONE_MAP = Object.freeze({
+  Hips: 'HIPS',
+  Spine: 'SPINE',
+  Spine1: 'SPINE1',
+  Spine2: 'SPINE2',
+  Neck: 'NECK',
+  Head: 'HEAD',
+  LeftShoulder: 'LEFTSHOULDER',
+  LeftArm: 'LEFTARM',
+  LeftForeArm: 'LEFTFOREARM',
+  LeftHand: 'LEFTHAND',
+  RightShoulder: 'RIGHTSHOULDER',
+  RightArm: 'RIGHTARM',
+  RightForeArm: 'RIGHTFOREARM',
+  RightHand: 'RIGHTHAND',
+  LeftUpLeg: 'LEFTUPLEG',
+  LeftLeg: 'LEFTLEG',
+  LeftFoot: 'LEFTFOOT',
+  LeftToeBase: 'LEFTTOEBASE',
+  RightUpLeg: 'RIGHTUPLEG',
+  RightLeg: 'RIGHTLEG',
+  RightFoot: 'RIGHTFOOT',
+  RightToeBase: 'RIGHTTOEBASE',
+});
+
+const RPM_HUMANOID_PARENT_MAP = Object.freeze({
+  Hips: null,
+  Spine: 'Hips',
+  Spine1: 'Spine',
+  Spine2: 'Spine1',
+  Neck: 'Spine2',
+  Head: 'Neck',
+  LeftShoulder: 'Spine2',
+  LeftArm: 'LeftShoulder',
+  LeftForeArm: 'LeftArm',
+  LeftHand: 'LeftForeArm',
+  RightShoulder: 'Spine2',
+  RightArm: 'RightShoulder',
+  RightForeArm: 'RightArm',
+  RightHand: 'RightForeArm',
+  LeftUpLeg: 'Hips',
+  LeftLeg: 'LeftUpLeg',
+  LeftFoot: 'LeftLeg',
+  LeftToeBase: 'LeftFoot',
+  RightUpLeg: 'Hips',
+  RightLeg: 'RightUpLeg',
+  RightFoot: 'RightLeg',
+  RightToeBase: 'RightFoot',
+});
+
+function adaptSharedClipsForSkate3Rig(sharedClips, root, bonesByName) {
+  root.updateMatrixWorld(true);
+  const idleClip = sharedClips.find((c) => c.name === 'IDLE_DEFAULT') || sharedClips[0];
+  const rpmIdleLocalQuat = new Map();
+  for (const rpmBone of RPM_REQUIRED_HUMANOID_BONES) {
+    rpmIdleLocalQuat.set(rpmBone, new THREE.Quaternion(0, 0, 0, 1));
+  }
+  if (idleClip) {
+    for (const track of idleClip.tracks) {
+      if (!track.name.endsWith('.quaternion') || !track.values || track.values.length < 4) continue;
+      const rpmBone = track.name.slice(0, track.name.lastIndexOf('.'));
+      if (rpmIdleLocalQuat.has(rpmBone)) {
+        rpmIdleLocalQuat.set(
+          rpmBone,
+          new THREE.Quaternion(track.values[0], track.values[1], track.values[2], track.values[3]).normalize()
+        );
+      }
+    }
+  }
+
+  const rpmIdleWorldQuat = new Map();
+  for (const rpmBone of RPM_REQUIRED_HUMANOID_BONES) {
+    const pName = RPM_HUMANOID_PARENT_MAP[rpmBone];
+    const localQ = rpmIdleLocalQuat.get(rpmBone);
+    if (!pName) {
+      rpmIdleWorldQuat.set(rpmBone, localQ.clone());
+    } else {
+      const parentWorldQ = rpmIdleWorldQuat.get(pName) || new THREE.Quaternion(0, 0, 0, 1);
+      rpmIdleWorldQuat.set(rpmBone, parentWorldQ.clone().multiply(localQ).normalize());
+    }
+  }
+
+  const targetBindLocalQuat = new Map();
+  const basisChangeQuat = new Map();
+  const basisChangeInvQuat = new Map();
+  const rpmIdleLocalInvQuat = new Map();
+
+  for (const [rpmBone, sk3Name] of Object.entries(RPM_TO_SKATE3_BONE_MAP)) {
+    const boneNode = bonesByName.get(sk3Name);
+    if (!boneNode) continue;
+    const qBind = boneNode.quaternion.clone().normalize();
+    const qWorldTarget = new THREE.Quaternion();
+    boneNode.getWorldQuaternion(qWorldTarget).normalize();
+    const qWorldSource = rpmIdleWorldQuat.get(rpmBone) || new THREE.Quaternion(0, 0, 0, 1);
+    const cQuat = qWorldTarget.clone().invert().multiply(qWorldSource).normalize();
+    targetBindLocalQuat.set(rpmBone, qBind);
+    basisChangeQuat.set(rpmBone, cQuat);
+    basisChangeInvQuat.set(rpmBone, cQuat.clone().invert());
+    rpmIdleLocalInvQuat.set(rpmBone, (rpmIdleLocalQuat.get(rpmBone) || new THREE.Quaternion()).clone().invert());
+  }
+
+  const hipsNode = bonesByName.get('HIPS');
+  const hipsBindPos = hipsNode ? hipsNode.position.clone() : new THREE.Vector3(0, CHARACTER_BIND_HIP_HEIGHT, 0);
+
+  const qSample = new THREE.Quaternion();
+  const qDeltaS = new THREE.Quaternion();
+  const qDeltaT = new THREE.Quaternion();
+  const qOut = new THREE.Quaternion();
+
+  return sharedClips.map((srcClip) => {
+    const adaptedClip = srcClip.clone();
+    adaptedClip.userData = { ...(srcClip.userData || {}), rigProfile: 'SKATE3_RX2_RIG' };
+    const adaptedTracks = [];
+
+    for (const track of adaptedClip.tracks) {
+      const dotIdx = track.name.lastIndexOf('.');
+      if (dotIdx === -1) continue;
+      const boneName = track.name.slice(0, dotIdx);
+      const propName = track.name.slice(dotIdx + 1);
+      const sk3Name = RPM_TO_SKATE3_BONE_MAP[boneName];
+      if (!sk3Name) continue;
+
+      if (propName === 'position' && boneName === 'Hips') {
+        const clonedTrack = track.clone();
+        clonedTrack.name = 'HIPS.position';
+        const vals = clonedTrack.values;
+        for (let i = 0; i < vals.length; i += 3) {
+          const deltaY = vals[i + 1] - CHARACTER_BIND_HIP_HEIGHT;
+          vals[i] = hipsBindPos.x;
+          vals[i + 1] = hipsBindPos.y + deltaY;
+          vals[i + 2] = hipsBindPos.z;
+        }
+        adaptedTracks.push(clonedTrack);
+      } else if (propName === 'quaternion' && targetBindLocalQuat.has(boneName)) {
+        const clonedTrack = track.clone();
+        clonedTrack.name = `${sk3Name}.quaternion`;
+        const vals = clonedTrack.values;
+        const qIdleInv = rpmIdleLocalInvQuat.get(boneName);
+        const qBind = targetBindLocalQuat.get(boneName);
+        const cQuat = basisChangeQuat.get(boneName);
+        const cInv = basisChangeInvQuat.get(boneName);
+
+        for (let i = 0; i < vals.length; i += 4) {
+          qSample.set(vals[i], vals[i + 1], vals[i + 2], vals[i + 3]).normalize();
+          qDeltaS.copy(qIdleInv).multiply(qSample);
+          qDeltaT.copy(cQuat).multiply(qDeltaS).multiply(cInv);
+          qOut.copy(qBind).multiply(qDeltaT).normalize();
+          vals[i] = qOut.x;
+          vals[i + 1] = qOut.y;
+          vals[i + 2] = qOut.z;
+          vals[i + 3] = qOut.w;
+        }
+        adaptedTracks.push(clonedTrack);
+      }
+    }
+
+    adaptedClip.tracks = adaptedTracks;
+    adaptedClip.resetDuration();
+    return adaptedClip;
+  });
+}
+
+// ============================================================================
 // Fail-Fast Error Handler
 // ============================================================================
 function raiseFatalError(message) {
@@ -1318,8 +1576,8 @@ mathPodsRootGroup.renderOrder = 12;
 scene.add(mathPodsRootGroup);
 
 const watercolorRootGroup = new THREE.Group();
-watercolorRootGroup.name = 'WaterColorSkyboxGroup';
-watercolorRootGroup.renderOrder = 2;
+watercolorRootGroup.name = 'WaterColorGalleryRootGroup';
+watercolorRootGroup.renderOrder = 14;
 scene.add(watercolorRootGroup);
 
 const runningEffectsRootGroup = new THREE.Group();
@@ -1337,10 +1595,20 @@ overheadCablesRootGroup.name = 'OverheadHangingCablesGroup';
 overheadCablesRootGroup.renderOrder = 4;
 scene.add(overheadCablesRootGroup);
 
+const villainySignRootGroup = new THREE.Group();
+villainySignRootGroup.name = 'VillainyIncOverheadSignGroup';
+villainySignRootGroup.renderOrder = 5;
+scene.add(villainySignRootGroup);
+
 const hologramColumnsRootGroup = new THREE.Group();
 hologramColumnsRootGroup.name = 'HologramMediaColumnsRootGroup';
 hologramColumnsRootGroup.renderOrder = 11;
 scene.add(hologramColumnsRootGroup);
+
+const directorRootGroup = new THREE.Group();
+directorRootGroup.name = 'SpawnAndCameraDirectorGroup';
+directorRootGroup.renderOrder = 995;
+scene.add(directorRootGroup);
 
 // Keep root groups detached from scene so 6 stickers & LUIS AI ENGINEER sign are removed from the 3D scene while preserving module exports
 const holographicStickersRootGroup = new THREE.Group();
@@ -1389,321 +1657,532 @@ const REQUIRED_HOLOGRAM_SUBMESH_NAMES = Object.freeze([
 const HOLOGRAM_NATIVE_WIDTH = 2.0734;
 const HOLOGRAM_NATIVE_HEIGHT = 1.0;
 
-function wrapCanvasText(ctx, text, x, y, maxWidth, lineHeight, maxLines = 3) {
-  const words = text.split(' ');
+function drawRoundedRectPath(ctx, x, y, w, h, r) {
+  const rad = Math.max(0, Math.min(r, w * 0.5, h * 0.5));
+  ctx.beginPath();
+  ctx.moveTo(x + rad, y);
+  ctx.lineTo(x + w - rad, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + rad);
+  ctx.lineTo(x + w, y + h - rad);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - rad, y + h);
+  ctx.lineTo(x + rad, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - rad);
+  ctx.lineTo(x, y + rad);
+  ctx.quadraticCurveTo(x, y, x + rad, y);
+  ctx.closePath();
+}
+
+function wrapCanvasTextLines(ctx, text, maxWidth, maxLines = 3) {
+  const words = String(text || '').split(' ');
+  const lines = [];
   let line = '';
-  let lineCount = 0;
   for (let n = 0; n < words.length; n++) {
     const testLine = line ? `${line} ${words[n]}` : words[n];
     const metrics = ctx.measureText(testLine);
     if (metrics.width > maxWidth && n > 0) {
-      ctx.fillText(line, x, y + lineCount * lineHeight);
-      line = words[n];
-      lineCount++;
-      if (lineCount >= maxLines - 1) {
+      lines.push(line);
+      if (lines.length >= maxLines - 1) {
         const remaining = words.slice(n).join(' ');
-        ctx.fillText(
-          remaining.length > 58 ? `${remaining.slice(0, 55)}...` : remaining,
-          x,
-          y + lineCount * lineHeight
-        );
-        return;
+        let clipped = remaining;
+        while (clipped.length > 3 && ctx.measureText(`${clipped}...`).width > maxWidth) {
+          clipped = clipped.slice(0, -1).trimEnd();
+        }
+        lines.push(clipped.length < remaining.length ? `${clipped}...` : remaining);
+        return lines;
       }
+      line = words[n];
     } else {
       line = testLine;
     }
   }
   if (line) {
-    ctx.fillText(line, x, y + lineCount * lineHeight);
+    lines.push(line);
   }
+  return lines;
+}
+
+function wrapCanvasText(ctx, text, x, y, maxWidth, lineHeight, maxLines = 3) {
+  const lines = wrapCanvasTextLines(ctx, text, maxWidth, maxLines);
+  for (let i = 0; i < lines.length; i++) {
+    ctx.fillText(lines[i], x, y + i * lineHeight);
+  }
+  return lines.length;
 }
 
 function createStandbyDockTexture(st) {
-  const canvas = document.createElement('canvas');
-  canvas.width = 512;
-  canvas.height = 320;
-  const ctx = canvas.getContext('2d');
-
-  // Clear entire canvas to transparent (alpha = 0.0) so open-air inter-module tether gap stays unobstructed (Spec 025 §4.2)
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-  // Left and Right translucent smoked-amber glass modules separated by open-air gap x in [148, 182]
-  const leftModX = 8;
-  const leftModW = 140;
-  const rightModX = 182;
-  const rightModW = canvas.width - rightModX - 8;
-
-  ctx.fillStyle = 'rgba(28, 16, 4, 0.18)';
-  ctx.fillRect(leftModX, 8, leftModW, canvas.height - 16);
-  ctx.fillRect(rightModX, 8, rightModW, canvas.height - 16);
-
-  ctx.strokeStyle = 'rgba(245, 158, 11, 0.45)';
-  ctx.lineWidth = 3;
-  ctx.strokeRect(leftModX, 8, leftModW, canvas.height - 16);
-  ctx.strokeRect(rightModX, 8, rightModW, canvas.height - 16);
-
-  // 3 glowing horizontal tether bridge traces across the open-air gap [148, 182]
-  for (let t = 0; t < 3; t++) {
-    const ty = 136 + t * 24;
-    ctx.strokeStyle = 'rgba(251, 191, 36, 0.72)';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(leftModX + leftModW, ty);
-    ctx.lineTo(rightModX, ty);
-    ctx.stroke();
-  }
-
-  ctx.strokeStyle = 'rgba(245, 158, 11, 0.14)';
-  ctx.lineWidth = 1;
-  for (let gx = 32; gx < canvas.width; gx += 32) {
-    if (gx >= leftModX + leftModW && gx <= rightModX) continue;
-    ctx.beginPath();
-    ctx.moveTo(gx, 8);
-    ctx.lineTo(gx, canvas.height - 8);
-    ctx.stroke();
-  }
-
-  ctx.fillStyle = '#fbbf24';
-  ctx.font = 'bold 17px ui-monospace, SFMono-Regular, Menlo, monospace';
-  ctx.textAlign = 'center';
-  ctx.fillText('HOLO-DOCK', leftModX + leftModW / 2, 148);
-  ctx.fillText(st.code, leftModX + leftModW / 2, 178);
-
-  const rightCenterX = rightModX + rightModW / 2;
-  ctx.fillStyle = '#fbbf24';
-  ctx.font = 'bold 18px ui-monospace, SFMono-Regular, Menlo, monospace';
-  ctx.fillText(`${st.mountName} // STANDBY`, rightCenterX, 136);
-
-  ctx.fillStyle = '#fde68a';
-  ctx.font = '600 14px -apple-system, BlinkMacSystemFont, sans-serif';
-  ctx.fillText(`STATION ${st.code}: ${st.title}`, rightCenterX, 172);
-
-  ctx.fillStyle = 'rgba(252, 211, 77, 0.82)';
-  ctx.font = '12px ui-monospace, SFMono-Regular, Menlo, monospace';
-  ctx.fillText(
-    `Z = ${st.expectedZ.toFixed(1)}m • Y = ${st.expectedY.toFixed(2)}m • NORMAL ${st.wallSide === 'L' ? '+X' : '-X'}`,
-    rightCenterX,
-    206
-  );
-
-  const tex = new THREE.CanvasTexture(canvas);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  tex.needsUpdate = true;
-  return tex;
+  return createProjectScreenTexture(st);
 }
 
 function createProjectScreenTexture(st) {
   const canvas = document.createElement('canvas');
-  canvas.width = 1024;
-  canvas.height = 640;
+  canvas.width = 1280;
+  canvas.height = 784;
   const ctx = canvas.getContext('2d');
+  const W = canvas.width;
+  const H = canvas.height;
 
-  // Clear entire canvas to transparent (alpha = 0.0) so open-air inter-module tether gap stays unobstructed (Spec 025 §4.2)
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  // 1. Clear exterior canvas margin to 100% transparent (Spec 036 §3.1)
+  ctx.clearRect(0, 0, W, H);
 
-  // Translucent smoked-amber glass backing for left & right modules (alpha <= 0.24)
-  // Matches hologram.glb's left module [-1.0367, -0.4367], open gap [-0.4367, -0.2967], right module [-0.2967, +1.0367]
-  const gapLeftX = 296;
-  const gapRightX = 365;
-  const grad = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-  grad.addColorStop(0.0, 'rgba(36, 18, 4, 0.22)');
-  grad.addColorStop(0.5, 'rgba(62, 30, 6, 0.20)');
-  grad.addColorStop(1.0, 'rgba(42, 20, 4, 0.22)');
-  ctx.fillStyle = grad;
-  ctx.fillRect(10, 10, gapLeftX - 10, canvas.height - 20);
-  ctx.fillRect(gapRightX, 10, canvas.width - gapRightX - 10, canvas.height - 20);
+  const cardX = 20;
+  const cardY = 16;
+  const cardW = W - cardX * 2; // 1240
+  const cardH = H - cardY * 2; // 752
+  const cardR = 22;
 
-  // Scanline & coordinate grid texture inside left & right modules only
-  ctx.fillStyle = 'rgba(245, 158, 11, 0.05)';
-  for (let y = 12; y < canvas.height - 12; y += 6) {
-    ctx.fillRect(12, y, gapLeftX - 14, 2);
-    ctx.fillRect(gapRightX + 2, y, canvas.width - gapRightX - 14, 2);
+  // 2. Clipped Card Interior: 135° Smoked-Amber Gradient + 4px Scanlines + 36px Reticle Grid
+  ctx.save();
+  drawRoundedRectPath(ctx, cardX, cardY, cardW, cardH, cardR);
+  ctx.clip();
+
+  const bgGrad = ctx.createLinearGradient(cardX, cardY, cardX + cardW, cardY + cardH);
+  bgGrad.addColorStop(0.0, 'rgba(38, 18, 4, 0.46)');
+  bgGrad.addColorStop(0.48, 'rgba(64, 30, 6, 0.40)');
+  bgGrad.addColorStop(1.0, 'rgba(44, 20, 4, 0.48)');
+  ctx.fillStyle = bgGrad;
+  ctx.fillRect(cardX, cardY, cardW, cardH);
+
+  // Fine 4px horizontal scanlines
+  ctx.fillStyle = 'rgba(245, 158, 11, 0.07)';
+  for (let sy = cardY; sy < cardY + cardH; sy += 4) {
+    ctx.fillRect(cardX, sy, cardW, 1);
   }
 
-  // Outer illuminated frames for left & right hologram modules
+  // 36px coordinate reticle grid mesh
+  ctx.strokeStyle = 'rgba(245, 158, 11, 0.05)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  for (let gx = cardX + 36; gx < cardX + cardW; gx += 36) {
+    ctx.moveTo(gx, cardY);
+    ctx.lineTo(gx, cardY + cardH);
+  }
+  for (let gy = cardY + 36; gy < cardY + cardH; gy += 36) {
+    ctx.moveTo(cardX, gy);
+    ctx.lineTo(cardX + cardW, gy);
+  }
+  ctx.stroke();
+
+  // Subtle top & bottom warm inner bloom inside card bezel
+  const topInnerBloom = ctx.createLinearGradient(0, cardY, 0, cardY + 64);
+  topInnerBloom.addColorStop(0.0, 'rgba(251, 191, 36, 0.22)');
+  topInnerBloom.addColorStop(1.0, 'rgba(251, 191, 36, 0.0)');
+  ctx.fillStyle = topInnerBloom;
+  ctx.fillRect(cardX, cardY, cardW, 64);
+
+  const botInnerBloom = ctx.createLinearGradient(0, cardY + cardH - 64, 0, cardY + cardH);
+  botInnerBloom.addColorStop(0.0, 'rgba(251, 191, 36, 0.0)');
+  botInnerBloom.addColorStop(1.0, 'rgba(251, 191, 36, 0.22)');
+  ctx.fillStyle = botInnerBloom;
+  ctx.fillRect(cardX, cardY + cardH - 64, cardW, 64);
+
+  ctx.restore();
+
+  // 3. Outer Rounded Card Border Stroke (#fcd34d)
+  ctx.save();
+  ctx.shadowColor = 'rgba(245, 158, 11, 0.78)';
+  ctx.shadowBlur = 12;
+  ctx.strokeStyle = 'rgba(252, 211, 77, 0.96)';
+  ctx.lineWidth = 2.5;
+  drawRoundedRectPath(ctx, cardX, cardY, cardW, cardH, cardR);
+  ctx.stroke();
+  ctx.restore();
+
+  // 4. Ignited Top & Bottom Pill Light Bars (.holo-light-bar.top / .bottom)
+  const barX = cardX + 20;
+  const barW = cardW - 40;
+  const barH = 6;
+  const lightBarGrad = ctx.createLinearGradient(barX, 0, barX + barW, 0);
+  lightBarGrad.addColorStop(0.0, 'rgba(245, 158, 11, 0.35)');
+  lightBarGrad.addColorStop(0.18, '#fffbeb');
+  lightBarGrad.addColorStop(0.5, '#fef08a');
+  lightBarGrad.addColorStop(0.82, '#fffbeb');
+  lightBarGrad.addColorStop(1.0, 'rgba(245, 158, 11, 0.35)');
+
+  ctx.save();
+  ctx.shadowColor = 'rgba(251, 191, 36, 0.95)';
+  ctx.shadowBlur = 16;
+  ctx.fillStyle = lightBarGrad;
+  drawRoundedRectPath(ctx, barX, cardY + 3, barW, barH, 3);
+  ctx.fill();
+  drawRoundedRectPath(ctx, barX, cardY + cardH - 3 - barH, barW, barH, 3);
+  ctx.fill();
+  ctx.restore();
+
+  // 5. 4 L-Shaped Corner Brackets (.holo-corner.tl / .tr / .bl / .br)
+  ctx.save();
   ctx.strokeStyle = '#f59e0b';
-  ctx.lineWidth = 4;
-  ctx.strokeRect(10, 10, gapLeftX - 10, canvas.height - 20);
-  ctx.strokeRect(gapRightX, 10, canvas.width - gapRightX - 10, canvas.height - 20);
-
-  // 3 glowing horizontal tether bridge traces across the open-air gap [296, 365]
-  for (let t = 0; t < 3; t++) {
-    const ty = 260 + t * 56;
-    ctx.fillStyle = '#fffbeb';
-    ctx.beginPath();
-    ctx.arc(gapLeftX, ty, 4, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = '#fbbf24';
-    ctx.lineWidth = 2.5;
-    ctx.beginPath();
-    ctx.moveTo(gapLeftX + 4, ty);
-    ctx.lineTo(gapRightX - 4, ty);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.arc(gapRightX, ty, 4, 0, Math.PI * 2);
-    ctx.fill();
-  }
-
-  // 4 L-shaped Corner Targeting Reticles (Spec 023 §4.1)
-  ctx.strokeStyle = '#fbbf24';
-  ctx.lineWidth = 4;
-  const cornerSize = 24;
+  ctx.lineWidth = 3;
+  ctx.shadowColor = 'rgba(245, 158, 11, 0.90)';
+  ctx.shadowBlur = 8;
+  const cInset = 12;
+  const cArm = 24;
+  const cL = cardX + cInset;
+  const cR = cardX + cardW - cInset;
+  const cT = cardY + cInset;
+  const cB = cardY + cardH - cInset;
   // tl
   ctx.beginPath();
-  ctx.moveTo(14, 14 + cornerSize);
-  ctx.lineTo(14, 14);
-  ctx.lineTo(14 + cornerSize, 14);
+  ctx.moveTo(cL, cT + cArm);
+  ctx.lineTo(cL, cT);
+  ctx.lineTo(cL + cArm, cT);
   ctx.stroke();
   // tr
   ctx.beginPath();
-  ctx.moveTo(canvas.width - 14 - cornerSize, 14);
-  ctx.lineTo(canvas.width - 14, 14);
-  ctx.lineTo(canvas.width - 14, 14 + cornerSize);
+  ctx.moveTo(cR - cArm, cT);
+  ctx.lineTo(cR, cT);
+  ctx.lineTo(cR, cT + cArm);
   ctx.stroke();
   // bl
   ctx.beginPath();
-  ctx.moveTo(14, canvas.height - 14 - cornerSize);
-  ctx.lineTo(14, canvas.height - 14);
-  ctx.lineTo(14 + cornerSize, canvas.height - 14);
+  ctx.moveTo(cL, cB - cArm);
+  ctx.lineTo(cL, cB);
+  ctx.lineTo(cL + cArm, cB);
   ctx.stroke();
   // br
   ctx.beginPath();
-  ctx.moveTo(canvas.width - 14 - cornerSize, canvas.height - 14);
-  ctx.lineTo(canvas.width - 14, canvas.height - 14);
-  ctx.lineTo(canvas.width - 14, canvas.height - 14 - cornerSize);
+  ctx.moveTo(cR - cArm, cB);
+  ctx.lineTo(cR, cB);
+  ctx.lineTo(cR, cB - cArm);
+  ctx.stroke();
+  ctx.restore();
+
+  const padX = 56;
+  const rightEdge = W - 56; // 1224
+
+  // 6. Header Zone (.holo-top-bar)
+  // 6a. Row 1 Left: Pill Badge "● WALL MOUNT // SCREEN_MOUNT_0X (0X OF 06)"
+  const badgeText = `WALL MOUNT // ${st.mountName} (${st.code} OF 06)`;
+  ctx.font = 'bold 15px ui-monospace, SFMono-Regular, Menlo, monospace';
+  const badgeTextW = ctx.measureText(badgeText).width;
+  const pillX = padX;
+  const pillY = 52;
+  const pillW = Math.ceil(badgeTextW + 52);
+  const pillH = 38;
+
+  ctx.save();
+  ctx.fillStyle = 'rgba(217, 119, 6, 0.28)';
+  ctx.strokeStyle = 'rgba(245, 158, 11, 0.72)';
+  ctx.lineWidth = 1.5;
+  ctx.shadowColor = 'rgba(245, 158, 11, 0.32)';
+  ctx.shadowBlur = 10;
+  drawRoundedRectPath(ctx, pillX, pillY, pillW, pillH, pillH * 0.5);
+  ctx.fill();
   ctx.stroke();
 
-  // Primary Emissive Top & Bottom Neon Light Bars
-  const topGrad = ctx.createLinearGradient(0, 0, canvas.width, 0);
-  topGrad.addColorStop(0.0, 'rgba(245, 158, 11, 0.4)');
-  topGrad.addColorStop(0.18, '#fffbeb');
-  topGrad.addColorStop(0.5, '#fef08a');
-  topGrad.addColorStop(0.82, '#fffbeb');
-  topGrad.addColorStop(1.0, 'rgba(245, 158, 11, 0.4)');
-  ctx.fillStyle = topGrad;
-  ctx.fillRect(20, 6, gapLeftX - 24, 6);
-  ctx.fillRect(gapRightX + 4, 6, canvas.width - gapRightX - 24, 6);
-  ctx.fillRect(20, canvas.height - 12, gapLeftX - 24, 6);
-  ctx.fillRect(gapRightX + 4, canvas.height - 12, canvas.width - gapRightX - 24, 6);
+  // Glowing amber dot inside pill badge
+  ctx.fillStyle = '#fbbf24';
+  ctx.shadowColor = '#fbbf24';
+  ctx.shadowBlur = 8;
+  ctx.beginPath();
+  ctx.arc(pillX + 19, pillY + pillH * 0.5, 5.5, 0, Math.PI * 2);
+  ctx.fill();
 
-  // Left Module: Station Telemetry & Metrics
-  ctx.fillStyle = 'rgba(217, 119, 6, 0.22)';
-  ctx.fillRect(22, 26, gapLeftX - 26, 54);
-  ctx.strokeStyle = 'rgba(251, 191, 36, 0.72)';
-  ctx.lineWidth = 2;
-  ctx.strokeRect(22, 26, gapLeftX - 26, 54);
-
+  ctx.shadowBlur = 0;
   ctx.fillStyle = '#fef3c7';
-  ctx.font = 'bold 18px ui-monospace, SFMono-Regular, Menlo, monospace';
-  ctx.textAlign = 'center';
-  ctx.fillText(`${st.mountName} [${st.code}]`, 22 + (gapLeftX - 26) / 2, 59);
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(badgeText, pillX + 34, pillY + pillH * 0.5 + 1);
+  ctx.restore();
 
-  st.metrics.forEach((m, idx) => {
-    const my = 112 + idx * 142;
-    const mw = gapLeftX - 36;
-    const mh = 118;
-    ctx.fillStyle = 'rgba(54, 21, 3, 0.24)';
-    ctx.fillRect(26, my, mw, mh);
-    ctx.strokeStyle = 'rgba(245, 158, 11, 0.72)';
+  // 6b. Row 1 Right: 3-Trace Tether Bridge Icon (.holo-tether-bridge)
+  const tetherW = 78;
+  const tetherH = 38;
+  const tetherX = rightEdge - tetherW;
+  const tetherY = 52;
+
+  ctx.save();
+  ctx.fillStyle = 'rgba(45, 18, 3, 0.76)';
+  ctx.strokeStyle = 'rgba(245, 158, 11, 0.55)';
+  ctx.lineWidth = 1.5;
+  drawRoundedRectPath(ctx, tetherX, tetherY, tetherW, tetherH, 8);
+  ctx.fill();
+  ctx.stroke();
+
+  for (let t = 0; t < 3; t++) {
+    const ty = tetherY + 10 + t * 9;
+    ctx.strokeStyle = '#fbbf24';
     ctx.lineWidth = 2;
-    ctx.strokeRect(26, my, mw, mh);
+    ctx.beginPath();
+    ctx.moveTo(tetherX + 18, ty);
+    ctx.lineTo(tetherX + tetherW - 18, ty);
+    ctx.stroke();
+
+    ctx.fillStyle = '#fffbeb';
+    ctx.beginPath();
+    ctx.arc(tetherX + 13, ty, 3, 0, Math.PI * 2);
+    ctx.arc(tetherX + tetherW - 13, ty, 3, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+
+  // 6c. Row 2 Left: Wall & XYZ Readout + Row 2 Right: Red Exit Mount Focus Pill
+  const wallLabel = st.wallSide === 'L' ? 'LEFT WALL' : 'RIGHT WALL';
+  const normalLabel = st.wallSide === 'L' ? '+X' : '-X';
+  const coordsStr = `${wallLabel} // Z: ${st.expectedZ.toFixed(1)}M  •  Y: ${st.expectedY.toFixed(2)}M  •  NORMAL: ${normalLabel}`;
+
+  ctx.save();
+  ctx.font = '600 15px ui-monospace, SFMono-Regular, Menlo, monospace';
+  ctx.fillStyle = '#fcd34d';
+  ctx.shadowColor = 'rgba(245, 158, 11, 0.55)';
+  ctx.shadowBlur = 8;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(coordsStr, padX, 126);
+  const coordsW = ctx.measureText(coordsStr).width;
+  ctx.restore();
+
+  // Red Exit Mount Focus Pill ("✕ Exit Mount Focus / Back to Alley (Esc)")
+  const exitText = '✕ Exit Mount Focus / Back to Alley (Esc)';
+  ctx.save();
+  ctx.font = 'bold 15px ui-monospace, SFMono-Regular, Menlo, monospace';
+  const exitTextW = ctx.measureText(exitText).width;
+  const exitX = Math.max(544, Math.round(padX + coordsW + 22));
+  const exitY = 107;
+  const exitW = Math.ceil(exitTextW + 32);
+  const exitH = 38;
+
+  ctx.fillStyle = 'rgba(239, 68, 68, 0.28)';
+  ctx.strokeStyle = 'rgba(248, 113, 113, 0.85)';
+  ctx.lineWidth = 1.5;
+  ctx.shadowColor = 'rgba(239, 68, 68, 0.35)';
+  ctx.shadowBlur = 12;
+  drawRoundedRectPath(ctx, exitX, exitY, exitW, exitH, 8);
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = '#fef2f2';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(exitText, exitX + exitW * 0.5, exitY + exitH * 0.5 + 1);
+  ctx.restore();
+
+  // Header Bottom Divider Line
+  ctx.strokeStyle = 'rgba(245, 158, 11, 0.35)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(padX, 166);
+  ctx.lineTo(rightEdge, 166);
+  ctx.stroke();
+
+  // 7. 2-Column Body Grid (.holo-body-grid)
+  const leftX = padX;
+  const leftW = 640;
+
+  // 7a. Left Column — Kicker
+  ctx.save();
+  ctx.font = 'bold 16px ui-monospace, SFMono-Regular, Menlo, monospace';
+  ctx.fillStyle = '#fbbf24';
+  ctx.shadowColor = 'rgba(245, 158, 11, 0.70)';
+  ctx.shadowBlur = 10;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+  ctx.fillText(st.kicker, leftX, 214);
+  ctx.restore();
+
+  // 7b. Left Column — Multi-Line Station Title
+  ctx.save();
+  const titleFontSize = st.title.length > 42 ? 34 : 38;
+  const titleLineHeight = st.title.length > 42 ? 40 : 45;
+  ctx.font = `800 ${titleFontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
+  ctx.fillStyle = '#fffbeb';
+  ctx.shadowColor = 'rgba(245, 158, 11, 0.75)';
+  ctx.shadowBlur = 16;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+  const titleLines = wrapCanvasTextLines(ctx, st.title, leftW, 2);
+  let curTitleY = 264;
+  for (let i = 0; i < titleLines.length; i++) {
+    ctx.fillText(titleLines[i], leftX, curTitleY + i * titleLineHeight);
+  }
+  ctx.restore();
+
+  // 7c. Left Column — Description Paragraph
+  const descStartY = 264 + (titleLines.length - 1) * titleLineHeight + 44;
+  ctx.save();
+  ctx.font = '500 19.5px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+  ctx.fillStyle = '#fef3c7';
+  ctx.shadowColor = 'rgba(0, 0, 0, 0.90)';
+  ctx.shadowBlur = 6;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+  const descLines = wrapCanvasTextLines(ctx, st.description, leftW, 3);
+  const descLineHeight = 30;
+  for (let i = 0; i < descLines.length; i++) {
+    ctx.fillText(descLines[i], leftX, descStartY + i * descLineHeight);
+  }
+  ctx.restore();
+
+  // 7d. Left Column — Technology Tag Chips (1–2 wrapped rows, Spec 036 §7.2)
+  let tagX = leftX;
+  let tagY = descStartY + (descLines.length - 1) * descLineHeight + 24;
+  const chipH = 32;
+  ctx.save();
+  ctx.font = '600 15px ui-monospace, SFMono-Regular, Menlo, monospace';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  for (const tag of st.tags) {
+    const tw = Math.ceil(ctx.measureText(tag).width + 24);
+    if (tagX + tw > leftX + leftW && tagX > leftX) {
+      tagX = leftX;
+      tagY += chipH + 10;
+    }
+    ctx.fillStyle = 'rgba(68, 30, 6, 0.78)';
+    ctx.strokeStyle = 'rgba(245, 158, 11, 0.68)';
+    ctx.lineWidth = 1.5;
+    drawRoundedRectPath(ctx, tagX, tagY, tw, chipH, 6);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = '#fde68a';
+    ctx.fillText(tag, tagX + 12, tagY + chipH * 0.5 + 1);
+    tagX += tw + 10;
+  }
+  ctx.restore();
+
+  // 7e. Right Column — Visual Sub-Panel (.holo-Visual-panel)
+  const rightPanelX = 732;
+  const rightPanelW = rightEdge - rightPanelX; // 492
+  const panelY = 252;
+  const panelH = 294;
+
+  ctx.save();
+  ctx.fillStyle = 'rgba(28, 12, 2, 0.74)';
+  ctx.strokeStyle = 'rgba(245, 158, 11, 0.58)';
+  ctx.lineWidth = 1.5;
+  drawRoundedRectPath(ctx, rightPanelX, panelY, rightPanelW, panelH, 12);
+  ctx.fill();
+  ctx.stroke();
+
+  const innerX = rightPanelX + 20;
+  const innerW = rightPanelW - 40; // 452
+  const metricGap = 13;
+  const metricBoxW = (innerW - metricGap * 2) / 3;
+  const metricBoxY = panelY + 22;
+  const metricBoxH = 80;
+
+  // 3-Column Metrics Grid (.holo-metrics-grid)
+  st.metrics.slice(0, 3).forEach((m, idx) => {
+    const bx = innerX + idx * (metricBoxW + metricGap);
+    ctx.fillStyle = 'rgba(54, 22, 4, 0.80)';
+    ctx.strokeStyle = 'rgba(245, 158, 11, 0.54)';
+    ctx.lineWidth = 1.5;
+    drawRoundedRectPath(ctx, bx, metricBoxY, metricBoxW, metricBoxH, 8);
+    ctx.fill();
+    ctx.stroke();
 
     ctx.textAlign = 'center';
+    ctx.textBaseline = 'alphabetic';
     ctx.fillStyle = '#fbbf24';
-    ctx.font = '800 30px ui-monospace, SFMono-Regular, Menlo, monospace';
-    ctx.fillText(m.value, 26 + mw / 2, my + 54);
+    ctx.font = '800 20px ui-monospace, SFMono-Regular, Menlo, monospace';
+    ctx.fillText(m.value, bx + metricBoxW * 0.5, metricBoxY + 36);
 
     ctx.fillStyle = '#fde68a';
-    ctx.font = 'bold 15px -apple-system, BlinkMacSystemFont, sans-serif';
-    ctx.fillText(m.label.toUpperCase(), 26 + mw / 2, my + 88);
+    ctx.font = '600 12.5px -apple-system, BlinkMacSystemFont, sans-serif';
+    ctx.fillText(m.label.toUpperCase(), bx + metricBoxW * 0.5, metricBoxY + 60);
   });
 
-  // Right Module: Header bar, Kicker, Title, Description, Tags, CTA
-  const rLeft = gapRightX + 18;
-  const rWidth = canvas.width - rLeft - 24;
+  // Primary CTA Button (a.holo-link-btn)
+  const cta1Y = metricBoxY + metricBoxH + 20; // 374
+  const cta1H = 54;
+  const cta1Grad = ctx.createLinearGradient(innerX, 0, innerX + innerW, 0);
+  cta1Grad.addColorStop(0.0, 'rgba(217, 119, 6, 0.62)');
+  cta1Grad.addColorStop(1.0, 'rgba(180, 83, 9, 0.62)');
+  ctx.fillStyle = cta1Grad;
+  ctx.strokeStyle = 'rgba(252, 211, 77, 0.88)';
+  ctx.lineWidth = 1.5;
+  drawRoundedRectPath(ctx, innerX, cta1Y, innerW, cta1H, 10);
+  ctx.fill();
+  ctx.stroke();
 
-  ctx.fillStyle = 'rgba(217, 119, 6, 0.22)';
-  ctx.fillRect(rLeft, 26, rWidth, 54);
-  ctx.strokeStyle = 'rgba(251, 191, 36, 0.72)';
-  ctx.lineWidth = 2;
-  ctx.strokeRect(rLeft, 26, rWidth, 54);
-
-  ctx.fillStyle = '#fef3c7';
-  ctx.font = 'bold 18px ui-monospace, SFMono-Regular, Menlo, monospace';
-  ctx.textAlign = 'left';
-  ctx.fillText(
-    `STATION ${st.code} OF 06 (${st.wallSide === 'L' ? 'LEFT WALL +X' : 'RIGHT WALL -X'})`,
-    rLeft + 14,
-    59
-  );
-
-  ctx.fillStyle = '#fbbf24';
-  ctx.font = 'bold 15px ui-monospace, SFMono-Regular, Menlo, monospace';
-  ctx.textAlign = 'right';
-  ctx.fillText('[CLICK / E TO FOCUS]', rLeft + rWidth - 14, 59);
-
-  // Kicker
-  ctx.textAlign = 'left';
-  ctx.fillStyle = '#fbbf24';
-  ctx.font = 'bold 19px ui-monospace, SFMono-Regular, Menlo, monospace';
-  ctx.fillText(st.kicker, rLeft, 126);
-
-  // Title
   ctx.fillStyle = '#fffbeb';
-  ctx.font = '800 34px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-  ctx.fillText(st.title, rLeft, 174);
+  ctx.font = 'bold 17.5px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(
+    st.primaryLink ? st.primaryLink.label : 'Launch Environment Spec',
+    innerX + 18,
+    cta1Y + cta1H * 0.5 + 1
+  );
+  ctx.textAlign = 'right';
+  ctx.fillText('↗', innerX + innerW - 18, cta1Y + cta1H * 0.5 + 1);
 
-  // Description
+  // Secondary CTA Button (a.holo-link-btn.secondary)
+  const cta2Y = cta1Y + cta1H + 12; // 440
+  const cta2H = 48;
+  ctx.fillStyle = 'rgba(68, 30, 6, 0.50)';
+  ctx.strokeStyle = 'rgba(245, 158, 11, 0.58)';
+  ctx.lineWidth = 1.5;
+  drawRoundedRectPath(ctx, innerX, cta2Y, innerW, cta2H, 10);
+  ctx.fill();
+  ctx.stroke();
+
   ctx.fillStyle = '#fde68a';
-  ctx.font = '500 21px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-  wrapCanvasText(ctx, st.description, rLeft, 222, rWidth, 30, 3);
-
-  // Tags
-  let tagX = rLeft;
-  const tagY = 336;
-  ctx.font = 'bold 16px ui-monospace, SFMono-Regular, Menlo, monospace';
-  for (const tag of st.tags) {
-    const tw = ctx.measureText(tag).width + 24;
-    if (tagX + tw > rLeft + rWidth) break;
-    ctx.fillStyle = 'rgba(69, 26, 3, 0.26)';
-    ctx.fillRect(tagX, tagY, tw, 34);
-    ctx.strokeStyle = 'rgba(245, 158, 11, 0.78)';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(tagX, tagY, tw, 34);
-    ctx.fillStyle = '#fde68a';
-    ctx.fillText(tag, tagX + 12, tagY + 23);
-    tagX += tw + 12;
-  }
-
-  // Interactive CTA card in right module
-  const ctaY = 406;
-  const ctaH = 112;
-  ctx.fillStyle = 'rgba(217, 119, 6, 0.24)';
-  ctx.fillRect(rLeft, ctaY, rWidth, ctaH);
-  ctx.strokeStyle = '#fcd34d';
-  ctx.lineWidth = 3;
-  ctx.strokeRect(rLeft, ctaY, rWidth, ctaH);
-
-  ctx.textAlign = 'center';
-  ctx.fillStyle = '#fffbeb';
-  ctx.font = 'bold 21px -apple-system, BlinkMacSystemFont, sans-serif';
-  ctx.fillText('TRANSPARENT HOLOGRAM TERMINAL', rLeft + rWidth / 2, ctaY + 46);
-  ctx.fillStyle = '#fcd34d';
-  ctx.font = 'bold 17px ui-monospace, SFMono-Regular, Menlo, monospace';
-  ctx.fillText('OPEN SPECS & CODE ↗', rLeft + rWidth / 2, ctaY + 82);
-
-  // Footer status bar
+  ctx.font = 'bold 16px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
   ctx.textAlign = 'left';
-  ctx.fillStyle = 'rgba(252, 211, 77, 0.90)';
-  ctx.font = 'bold 16px ui-monospace, SFMono-Regular, Menlo, monospace';
+  ctx.textBaseline = 'middle';
   ctx.fillText(
-    `Z: ${st.expectedZ.toFixed(2)}m // Y: ${st.expectedY.toFixed(2)}m`,
-    rLeft,
-    588
+    st.secondaryLink ? st.secondaryLink.label : 'Inspect Blender Pipeline',
+    innerX + 18,
+    cta2Y + cta2H * 0.5 + 1
   );
   ctx.textAlign = 'right';
-  ctx.fillStyle = '#fbbf24';
-  ctx.fillText('● HOLOGRAM.GLB MOUNTED', rLeft + rWidth, 588);
+  ctx.fillText('↗', innerX + innerW - 18, cta2Y + cta2H * 0.5 + 1);
+  ctx.restore();
+
+  // 8. Footer Zone (.holo-footer-bar)
+  ctx.strokeStyle = 'rgba(245, 158, 11, 0.32)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(padX, 616);
+  ctx.lineTo(rightEdge, 616);
+  ctx.stroke();
+
+  // Footer Row 1: Status Readout
+  ctx.save();
+  ctx.font = '600 15px ui-monospace, SFMono-Regular, Menlo, monospace';
+  ctx.fillStyle = '#fde68a';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+  ctx.fillText(
+    `MOUNT FOCUS MODE // ${st.mountName} INTERACTIVE TERMINAL (ESC OR WASD TO EXIT)`,
+    padX,
+    650
+  );
+
+  // Footer Row 2: Station Pips Bar ([← Prev] [01] [02] [03] [04] [05] [06] [Next →])
+  const navItems = ['← Prev', '01', '02', '03', '04', '05', '06', 'Next →'];
+  let navX = padX;
+  const navY = 672;
+  const navH = 34;
+  ctx.font = 'bold 14px ui-monospace, SFMono-Regular, Menlo, monospace';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+
+  for (const item of navItems) {
+    const isCurrent = item === st.code;
+    const isArrow = item.length > 2;
+    const itemW = isArrow ? 78 : 42;
+
+    ctx.fillStyle = isCurrent ? 'rgba(217, 119, 6, 0.74)' : 'rgba(68, 30, 6, 0.52)';
+    ctx.strokeStyle = isCurrent ? '#fef3c7' : 'rgba(245, 158, 11, 0.52)';
+    ctx.lineWidth = isCurrent ? 2 : 1.5;
+    if (isCurrent) {
+      ctx.shadowColor = 'rgba(245, 158, 11, 0.58)';
+      ctx.shadowBlur = 10;
+    } else {
+      ctx.shadowBlur = 0;
+    }
+    drawRoundedRectPath(ctx, navX, navY, itemW, navH, 6);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = isCurrent ? '#fffbeb' : '#fde68a';
+    ctx.fillText(item, navX + itemW * 0.5, navY + navH * 0.5 + 1);
+    navX += itemW + 8;
+  }
+  ctx.restore();
 
   const tex = new THREE.CanvasTexture(canvas);
   tex.colorSpace = THREE.SRGBColorSpace;
@@ -1925,6 +2404,11 @@ function buildWallScreenMounts(markers, hologramGLTF) {
     // In freeman_alley.glb, each SCREEN_MOUNT_0X rotates local (0, 0, -1) to its outward wall normal (+X or -X)
     const outwardNormal = new THREE.Vector3(0, 0, -1).applyQuaternion(locatorQuaternion).normalize();
 
+    // Align locatorPosition.x flush to the actual VISUAL_ALLEY_MESH wall profile
+    locatorPosition.x = Number(
+      (resolveAlleyWallProfileX(st.wallSide, locatorPosition.z) + outwardNormal.x * 0.04).toFixed(4)
+    );
+
     if (
       Math.abs(locatorPosition.y - st.expectedY) > 0.08 ||
       Math.abs(locatorPosition.z - st.expectedZ) > 0.15 ||
@@ -1935,11 +2419,12 @@ function buildWallScreenMounts(markers, hologramGLTF) {
       );
     }
 
-    // 1. Standby Wall Mounting Frame permanently docked at SCREEN_MOUNT_0X (State A baseline with transparent hologram.glb)
+    // 1. Standby Wall Mounting Frame (Spec 036 §5.1–§5.2: kept detached/hidden so zero legacy overlays occur)
     const standbyBracketGroup = new THREE.Group();
     standbyBracketGroup.name = `WallBracket_${st.mountName}`;
     standbyBracketGroup.position.copy(locatorPosition);
     standbyBracketGroup.rotation.set(0, st.mountedRotationY, 0);
+    standbyBracketGroup.visible = false;
 
     const standbyHoloInstance = instantiateMountHologramHierarchy(
       hologramGLTF,
@@ -1949,7 +2434,7 @@ function buildWallScreenMounts(markers, hologramGLTF) {
       'Standby'
     );
     standbyHoloInstance.root.position.set(0, -0.5 * screenHeight, MOUNT_BRICK_CLEARANCE - 0.006);
-    standbyBracketGroup.add(standbyHoloInstance.root);
+    standbyHoloInstance.root.visible = false;
 
     const standbyTex = createStandbyDockTexture(st);
     const standbyPlateMat = new THREE.MeshBasicMaterial({
@@ -1972,7 +2457,7 @@ function buildWallScreenMounts(markers, hologramGLTF) {
     standbyPlateMesh.position.set(0, 0, MOUNT_BRICK_CLEARANCE - 0.004);
     standbyPlateMesh.userData.mountName = st.mountName;
     standbyPlateMesh.userData.stationIndex = st.index;
-    standbyBracketGroup.add(standbyPlateMesh);
+    standbyPlateMesh.visible = false;
 
     const bracketWireGeom = new THREE.EdgesGeometry(
       new THREE.BoxGeometry(screenWidth + 0.06, screenHeight + 0.06, 0.012)
@@ -1990,7 +2475,7 @@ function buildWallScreenMounts(markers, hologramGLTF) {
     bracketWireLines.name = `${st.mountName}_BracketFrameLines`;
     bracketWireLines.renderOrder = 10;
     bracketWireLines.position.set(0, 0, MOUNT_BRICK_CLEARANCE - 0.004);
-    standbyBracketGroup.add(bracketWireLines);
+    bracketWireLines.visible = false;
 
     const standbyDiffusedMat = createScreenMountDiffusedMaterial(`${st.mountName}_Standby`, 0.28);
     const standbyDiffusedMesh = new THREE.Mesh(mountDiffusedSphereGeom, standbyDiffusedMat);
@@ -1998,11 +2483,9 @@ function buildWallScreenMounts(markers, hologramGLTF) {
     standbyDiffusedMesh.renderOrder = 9;
     standbyDiffusedMesh.position.set(0, 0, MOUNT_BRICK_CLEARANCE);
     standbyDiffusedMesh.raycast = noOpRaycast;
-    standbyBracketGroup.add(standbyDiffusedMesh);
+    standbyDiffusedMesh.visible = false;
 
-    wallMountsRootGroup.add(standbyBracketGroup);
-
-    // 2. 3D Transparent Holographic Screen Unit (Rotates ±90° and translates into SCREEN_MOUNT_0X)
+    // 2. 3D Unified Holographic Showcase Card Unit (Spec 036 §3–§5: single-card hologram with zero overlapping hologram.glb / wireframes)
     const screenGroup = new THREE.Group();
     screenGroup.name = `WallScreen_${st.mountName}`;
     screenGroup.userData.mountName = st.mountName;
@@ -2012,7 +2495,6 @@ function buildWallScreenMounts(markers, hologramGLTF) {
     panelOffsetGroup.name = `${st.mountName}_PanelOffsetGroup`;
     screenGroup.add(panelOffsetGroup);
 
-    // Instantiate the 4-submesh hologram.glb hierarchy onto this TV mount (Spec 025 §4.1–§4.3)
     const activeHoloInstance = instantiateMountHologramHierarchy(
       hologramGLTF,
       st,
@@ -2020,7 +2502,7 @@ function buildWallScreenMounts(markers, hologramGLTF) {
       screenHeight,
       'Active'
     );
-    panelOffsetGroup.add(activeHoloInstance.root);
+    activeHoloInstance.root.visible = false;
 
     const screenTexture = createProjectScreenTexture(st);
 
@@ -2054,6 +2536,7 @@ function buildWallScreenMounts(markers, hologramGLTF) {
     backFaceMesh.rotation.set(0, Math.PI, 0);
     backFaceMesh.userData.mountName = st.mountName;
     backFaceMesh.userData.stationIndex = st.index;
+    backFaceMesh.visible = false;
     panelOffsetGroup.add(backFaceMesh);
 
     const borderWireGeom = new THREE.EdgesGeometry(
@@ -2071,7 +2554,7 @@ function buildWallScreenMounts(markers, hologramGLTF) {
     const borderWireLines = new THREE.LineSegments(borderWireGeom, borderWireMat);
     borderWireLines.name = `${st.mountName}_BorderLines`;
     borderWireLines.renderOrder = 11;
-    panelOffsetGroup.add(borderWireLines);
+    borderWireLines.visible = false;
 
     // Non-conical omnidirectional/ellipsoidal slight diffused light aura radiating from the screen mount hologram
     const diffusedLightMat = createScreenMountSlightDiffusiveGlowMaterial(
@@ -2098,11 +2581,8 @@ function buildWallScreenMounts(markers, hologramGLTF) {
     };
 
     raycastTargets.push(
-      ...activeHoloInstance.subMeshList,
-      ...standbyHoloInstance.subMeshList,
       frontFaceMesh,
-      backFaceMesh,
-      standbyPlateMesh
+      backFaceMesh
     );
 
     const mountRecord = {
@@ -2397,12 +2877,13 @@ function buildNeonWallCornerAccents(wallMounts) {
     segGroup.position.copy(midpoint);
     segGroup.quaternion.copy(orientationQuat);
 
+    const cylSegs = Math.max(1, Math.ceil(cylLength * 8));
     const coreGeom = new THREE.CylinderGeometry(
       NEON_CORE_RADIUS,
       NEON_CORE_RADIUS,
       cylLength,
       12,
-      1,
+      cylSegs,
       true
     );
     coreGeom.computeBoundingBox();
@@ -2418,7 +2899,7 @@ function buildNeonWallCornerAccents(wallMounts) {
       NEON_HALO_RADIUS,
       cylLength,
       12,
-      1,
+      cylSegs,
       true
     );
     haloGeom.computeBoundingBox();
@@ -3117,10 +3598,19 @@ function updateAlleyAlarmLightFixtures(timeSec) {
   }
   for (let i = 0; i < sandbox.alarmLights.length; i++) {
     const f = sandbox.alarmLights[i];
+    if (f.group && f.group.userData && f.group.userData.culledBySceneCutter) {
+      f.group.visible = false;
+      if (f.pointLight) {
+        f.pointLight.visible = false;
+        f.pointLight.intensity = 0.0;
+      }
+      continue;
+    }
     const pairFlicker = evaluateAlarmLightFlicker(timeSec, f.pairIndex);
     f.currentFlicker = pairFlicker;
     f.flickerFactor = pairFlicker;
     if (f.pointLight) {
+      f.pointLight.visible = true;
       f.pointLight.intensity = Number((2.65 * pairFlicker).toFixed(4));
     }
   }
@@ -3497,6 +3987,1898 @@ function updateEntranceLamppostLight(elapsedSec = 0.0) {
 }
 
 // ============================================================================
+// Player Spawn Coordinates & Startup Camera Pan Director System (Spec 034)
+// ============================================================================
+const SPAWN_STORAGE_KEY = 'skatealley_player_spawn_v1';
+const STARTUP_PAN_STORAGE_KEY = 'skatealley_startup_camera_pan_v1';
+
+const DEFAULT_PLAYER_SPAWN = Object.freeze({
+  x: 0.00,
+  y: 0.00,
+  z: 3.00,
+  yawRad: 0.00,
+});
+
+const DEFAULT_STARTUP_PAN = Object.freeze({
+  startPos: Object.freeze({ x: 0.00, y: 2.40, z: -1.50 }),
+  startLookAt: Object.freeze({ x: 0.00, y: 1.40, z: 3.00 }),
+  midPos: Object.freeze({ x: 0.18, y: 2.15, z: 0.025 }),
+  useCustomMidpoint: false,
+  endPos: Object.freeze({ x: 0.36, y: 1.50, z: 1.55 }),
+  endLookAt: Object.freeze({ x: 0.00, y: 1.45, z: 3.00 }),
+  durationSec: 2.60,
+});
+
+const STARTUP_TALKING_SEQUENCE_CLIPS = Object.freeze([
+  'TALK_CONVERSATION_06',
+  'TALK_CONVERSATION_05',
+  'TALK_CONVERSATION_04',
+  'TALK_EMPHASIS',
+]);
+
+const INTRO_DIALOGUE_STORAGE_KEY = 'skatealley_intro_dialogue_boxes_v1';
+
+const DEFAULT_INTRO_DIALOGUE_BOXES = Object.freeze([
+  Object.freeze({
+    id: 'dialogue_1',
+    title: '01 // WELCOME',
+    text: 'Welcome to Freeman Alley. I build interactive 3D spatial systems, real-time shaders, and full-stack engineering architectures.',
+  }),
+  Object.freeze({
+    id: 'dialogue_2',
+    title: '02 // PROJECTS & ARCHITECTURE',
+    text: 'Down this alley you will find interactive holographic projections showcasing my core engineering projects and technical specs.',
+  }),
+  Object.freeze({
+    id: 'dialogue_3',
+    title: '03 // EXPLORE THE ALLEY',
+    text: 'Tap once more to finish this intro — then scroll down at your own pace to walk into the alley and explore.',
+  }),
+]);
+
+function directorCubicEaseInOut(t) {
+  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+}
+
+function buildSpawnAndCameraDirectorSystem(floorY = 0.0) {
+  directorRootGroup.clear();
+
+  // 1. Player Spawn 3D Marker Group
+  const playerSpawnMarkerGroup = new THREE.Group();
+  playerSpawnMarkerGroup.name = 'DirectorPlayerSpawnMarkerGroup';
+  playerSpawnMarkerGroup.position.set(DEFAULT_PLAYER_SPAWN.x, floorY, DEFAULT_PLAYER_SPAWN.z);
+  playerSpawnMarkerGroup.rotation.y = DEFAULT_PLAYER_SPAWN.yawRad;
+
+  // Floor Reticle Ring
+  const spawnRingGeom = new THREE.RingGeometry(0.38, 0.48, 32);
+  spawnRingGeom.rotateX(-Math.PI / 2);
+  const spawnRingMat = new THREE.MeshBasicMaterial({
+    color: 0x00d5ff,
+    transparent: true,
+    opacity: 0.90,
+    side: THREE.DoubleSide,
+    depthTest: false,
+  });
+  const spawnRingMesh = new THREE.Mesh(spawnRingGeom, spawnRingMat);
+  spawnRingMesh.position.y = 0.02;
+  spawnRingMesh.renderOrder = 992;
+  playerSpawnMarkerGroup.add(spawnRingMesh);
+
+  // Directional Forward Chevron Arrow
+  const arrowGeom = new THREE.ConeGeometry(0.14, 0.32, 4);
+  arrowGeom.rotateX(-Math.PI / 2);
+  const arrowMat = new THREE.MeshBasicMaterial({
+    color: 0x38bdf8,
+    side: THREE.DoubleSide,
+    depthTest: false,
+  });
+  const arrowMesh = new THREE.Mesh(arrowGeom, arrowMat);
+  arrowMesh.position.set(0.0, 0.04, 0.65);
+  arrowMesh.renderOrder = 993;
+  playerSpawnMarkerGroup.add(arrowMesh);
+
+  // Vertical Avatar Holographic Silhouette / Beacon
+  const beaconGeom = new THREE.CylinderGeometry(0.06, 0.06, 1.85, 16);
+  const beaconMat = new THREE.MeshBasicMaterial({
+    color: 0x00d5ff,
+    transparent: true,
+    opacity: 0.28,
+    wireframe: true,
+    depthTest: false,
+  });
+  const beaconMesh = new THREE.Mesh(beaconGeom, beaconMat);
+  beaconMesh.position.y = 0.925;
+  beaconMesh.renderOrder = 991;
+  playerSpawnMarkerGroup.add(beaconMesh);
+
+  // Raycast Hit Proxy for Spawn Marker
+  const spawnHitGeom = new THREE.SphereGeometry(0.36, 12, 8);
+  const spawnHitMat = new THREE.MeshBasicMaterial({ visible: false });
+  const spawnHitMesh = new THREE.Mesh(spawnHitGeom, spawnHitMat);
+  spawnHitMesh.position.y = 0.925;
+  spawnHitMesh.name = 'DirectorSpawnHitProxy';
+  spawnHitMesh.userData = { isDirectorHandle: true, handleId: 'spawn' };
+  spawnHitMesh.renderOrder = 999;
+  playerSpawnMarkerGroup.add(spawnHitMesh);
+
+  directorRootGroup.add(playerSpawnMarkerGroup);
+
+  // 2. Camera Pan 3D Rig Group
+  const startupCameraPanGroup = new THREE.Group();
+  startupCameraPanGroup.name = 'DirectorStartupCameraPanGroup';
+
+  function createCameraHandle(colorHex, name, handleId) {
+    const grp = new THREE.Group();
+    grp.name = name;
+
+    const bodyGeom = new THREE.BoxGeometry(0.20, 0.16, 0.24);
+    const bodyMat = new THREE.MeshBasicMaterial({ color: colorHex, wireframe: true, depthTest: false });
+    const bodyMesh = new THREE.Mesh(bodyGeom, bodyMat);
+    bodyMesh.renderOrder = 994;
+    grp.add(bodyMesh);
+
+    const lensGeom = new THREE.ConeGeometry(0.14, 0.22, 4);
+    lensGeom.rotateX(-Math.PI / 2);
+    const lensMat = new THREE.MeshBasicMaterial({ color: colorHex, wireframe: true, depthTest: false });
+    const lensMesh = new THREE.Mesh(lensGeom, lensMat);
+    lensMesh.position.z = -0.22;
+    lensMesh.renderOrder = 994;
+    grp.add(lensMesh);
+
+    const sphGeom = new THREE.SphereGeometry(0.06, 12, 8);
+    const sphMat = new THREE.MeshBasicMaterial({ color: colorHex, depthTest: false });
+    const sphMesh = new THREE.Mesh(sphGeom, sphMat);
+    sphMesh.renderOrder = 995;
+    grp.add(sphMesh);
+
+    const hitMesh = new THREE.Mesh(new THREE.SphereGeometry(0.30, 12, 8), new THREE.MeshBasicMaterial({ visible: false }));
+    hitMesh.name = `${name}_HitProxy`;
+    hitMesh.userData = { isDirectorHandle: true, handleId };
+    hitMesh.renderOrder = 999;
+    grp.add(hitMesh);
+    grp.hitMesh = hitMesh;
+
+    return grp;
+  }
+
+  function createTargetHandle(colorHex, name, handleId) {
+    const grp = new THREE.Group();
+    grp.name = name;
+
+    const ringGeom = new THREE.RingGeometry(0.12, 0.18, 24);
+    const ringMat = new THREE.MeshBasicMaterial({ color: colorHex, side: THREE.DoubleSide, depthTest: false });
+    const ringMesh = new THREE.Mesh(ringGeom, ringMat);
+    ringMesh.renderOrder = 994;
+    grp.add(ringMesh);
+
+    const sphGeom = new THREE.SphereGeometry(0.07, 12, 8);
+    const sphMat = new THREE.MeshBasicMaterial({ color: colorHex, depthTest: false });
+    const sphMesh = new THREE.Mesh(sphGeom, sphMat);
+    sphMesh.renderOrder = 995;
+    grp.add(sphMesh);
+
+    const hitMesh = new THREE.Mesh(new THREE.SphereGeometry(0.28, 12, 8), new THREE.MeshBasicMaterial({ visible: false }));
+    hitMesh.name = `${name}_HitProxy`;
+    hitMesh.userData = { isDirectorHandle: true, handleId };
+    hitMesh.renderOrder = 999;
+    grp.add(hitMesh);
+    grp.hitMesh = hitMesh;
+
+    return grp;
+  }
+
+  const startCamHandle = createCameraHandle(0xf59e0b, 'DirectorCamStartHandle', 'cam_start');
+  startCamHandle.position.set(DEFAULT_STARTUP_PAN.startPos.x, DEFAULT_STARTUP_PAN.startPos.y, DEFAULT_STARTUP_PAN.startPos.z);
+  startupCameraPanGroup.add(startCamHandle);
+
+  const startLookAtHandle = createTargetHandle(0xf59e0b, 'DirectorLookStartHandle', 'look_start');
+  startLookAtHandle.position.set(DEFAULT_STARTUP_PAN.startLookAt.x, DEFAULT_STARTUP_PAN.startLookAt.y, DEFAULT_STARTUP_PAN.startLookAt.z);
+  startupCameraPanGroup.add(startLookAtHandle);
+
+  const startLineGeom = new THREE.BufferGeometry().setFromPoints([startCamHandle.position, startLookAtHandle.position]);
+  const startLineMat = new THREE.LineBasicMaterial({ color: 0xf59e0b, transparent: true, opacity: 0.65, depthTest: false });
+  const startLookAtLine = new THREE.Line(startLineGeom, startLineMat);
+  startLookAtLine.renderOrder = 989;
+  startupCameraPanGroup.add(startLookAtLine);
+
+  const midCamHandle = createTargetHandle(0xa855f7, 'DirectorCamMidHandle', 'cam_mid');
+  midCamHandle.position.set(DEFAULT_STARTUP_PAN.midPos.x, DEFAULT_STARTUP_PAN.midPos.y, DEFAULT_STARTUP_PAN.midPos.z);
+  startupCameraPanGroup.add(midCamHandle);
+
+  const endCamHandle = createCameraHandle(0x00d5ff, 'DirectorCamEndHandle', 'cam_end');
+  endCamHandle.position.set(DEFAULT_STARTUP_PAN.endPos.x, DEFAULT_STARTUP_PAN.endPos.y, DEFAULT_STARTUP_PAN.endPos.z);
+  startupCameraPanGroup.add(endCamHandle);
+
+  const endLookAtHandle = createTargetHandle(0x00d5ff, 'DirectorLookEndHandle', 'look_end');
+  endLookAtHandle.position.set(DEFAULT_STARTUP_PAN.endLookAt.x, DEFAULT_STARTUP_PAN.endLookAt.y, DEFAULT_STARTUP_PAN.endLookAt.z);
+  startupCameraPanGroup.add(endLookAtHandle);
+
+  const endLineGeom = new THREE.BufferGeometry().setFromPoints([endCamHandle.position, endLookAtHandle.position]);
+  const endLineMat = new THREE.LineBasicMaterial({ color: 0x00d5ff, transparent: true, opacity: 0.65, depthTest: false });
+  const endLookAtLine = new THREE.Line(endLineGeom, endLineMat);
+  endLookAtLine.renderOrder = 989;
+  startupCameraPanGroup.add(endLookAtLine);
+
+  // Flight path trajectory line
+  const trajectoryGeom = new THREE.BufferGeometry();
+  const trajectoryMat = new THREE.LineBasicMaterial({ color: 0xa855f7, transparent: true, opacity: 0.85, depthTest: false });
+  const trajectoryCurveMesh = new THREE.Line(trajectoryGeom, trajectoryMat);
+  trajectoryCurveMesh.renderOrder = 988;
+  startupCameraPanGroup.add(trajectoryCurveMesh);
+
+  // Scroll Walk Path floor preview line (emerald green)
+  const walkPathGeom = new THREE.BufferGeometry();
+  const walkPathMat = new THREE.LineBasicMaterial({ color: 0x4ade80, transparent: true, opacity: 0.92, depthTest: false });
+  const walkPathCurveMesh = new THREE.Line(walkPathGeom, walkPathMat);
+  walkPathCurveMesh.name = 'DirectorScrollWalkPathCurve';
+  walkPathCurveMesh.renderOrder = 989;
+  directorRootGroup.add(walkPathCurveMesh);
+
+  // Bounding Walls floor & lower-wall wireframe helper (amber)
+  const boundingWallsGeom = new THREE.BufferGeometry();
+  const boundingWallsMat = new THREE.LineBasicMaterial({ color: 0xf59e0b, transparent: true, opacity: 0.55, depthTest: false });
+  const boundingWallsLineMesh = new THREE.LineSegments(boundingWallsGeom, boundingWallsMat);
+  boundingWallsLineMesh.name = 'DirectorBoundingWallsHelper';
+  boundingWallsLineMesh.renderOrder = 987;
+  directorRootGroup.add(boundingWallsLineMesh);
+
+  directorRootGroup.add(startupCameraPanGroup);
+  directorRootGroup.visible = false;
+
+  const handlesById = {
+    spawn: playerSpawnMarkerGroup,
+    cam_start: startCamHandle,
+    look_start: startLookAtHandle,
+    cam_mid: midCamHandle,
+    cam_end: endCamHandle,
+    look_end: endLookAtHandle,
+  };
+
+  const raycastTargets = [
+    spawnHitMesh,
+    startCamHandle.hitMesh,
+    startLookAtHandle.hitMesh,
+    midCamHandle.hitMesh,
+    endCamHandle.hitMesh,
+    endLookAtHandle.hitMesh,
+  ];
+
+  const spawnState = {
+    x: DEFAULT_PLAYER_SPAWN.x,
+    y: floorY,
+    z: DEFAULT_PLAYER_SPAWN.z,
+    yawRad: DEFAULT_PLAYER_SPAWN.yawRad,
+    yawDeg: 0,
+  };
+
+  const cameraPanState = {
+    startPos: new THREE.Vector3(DEFAULT_STARTUP_PAN.startPos.x, DEFAULT_STARTUP_PAN.startPos.y, DEFAULT_STARTUP_PAN.startPos.z),
+    startLookAt: new THREE.Vector3(DEFAULT_STARTUP_PAN.startLookAt.x, DEFAULT_STARTUP_PAN.startLookAt.y, DEFAULT_STARTUP_PAN.startLookAt.z),
+    midPos: new THREE.Vector3(DEFAULT_STARTUP_PAN.midPos.x, DEFAULT_STARTUP_PAN.midPos.y, DEFAULT_STARTUP_PAN.midPos.z),
+    useCustomMidpoint: false,
+    endPos: new THREE.Vector3(DEFAULT_STARTUP_PAN.endPos.x, DEFAULT_STARTUP_PAN.endPos.y, DEFAULT_STARTUP_PAN.endPos.z),
+    endLookAt: new THREE.Vector3(DEFAULT_STARTUP_PAN.endLookAt.x, DEFAULT_STARTUP_PAN.endLookAt.y, DEFAULT_STARTUP_PAN.endLookAt.z),
+    durationSec: DEFAULT_STARTUP_PAN.durationSec,
+    mode: 'settled', // 'playing' | 'preview-start' | 'preview-mid' | 'preview-end' | 'settled' | 'orbit'
+    progress: 1.0,
+    elapsed: 0.0,
+    playing: false,
+  };
+
+  const povState = {
+    position: new THREE.Vector3(DEFAULT_STARTUP_PAN.startPos.x, DEFAULT_STARTUP_PAN.startPos.y, DEFAULT_STARTUP_PAN.startPos.z),
+    yaw: 0.0,
+    pitch: 0.18,
+    flySpeed: 6.0,
+    focusDistance: 2.5,
+  };
+
+  const introSequenceState = {
+    phase: 'pan-playing', // 'pan-playing' | 'dialogue-active' | 'ready-to-scroll' | 'scrolling-alley'
+    scrollLocked: true,
+    currentBoxIndex: 0,
+    selectedEditBoxIndex: 0,
+    boxes: DEFAULT_INTRO_DIALOGUE_BOXES.map((b) => ({ ...b })),
+    talkingSequence: [...STARTUP_TALKING_SEQUENCE_CLIPS],
+  };
+
+  function computeBezierControlPointFromMidpoint(startPos, midOnCurve, endPos, targetVec = new THREE.Vector3()) {
+    // Given B(0.5) = midOnCurve, the quadratic Bezier control point P1 is:
+    // P1 = 2 * midOnCurve - 0.5 * (startPos + endPos)
+    targetVec.set(
+      2.0 * midOnCurve.x - 0.5 * (startPos.x + endPos.x),
+      2.0 * midOnCurve.y - 0.5 * (startPos.y + endPos.y),
+      2.0 * midOnCurve.z - 0.5 * (startPos.z + endPos.z)
+    );
+    return targetVec;
+  }
+
+  function resolveLookAtFromCurrentCamera(defaultDepth = 2.5) {
+    const curCamPos = camera.position.clone();
+    const lookDir = camera.getWorldDirection(new THREE.Vector3()).normalize();
+    const activeChar = sandbox.getActiveCharacter ? sandbox.getActiveCharacter() : null;
+    let dist = defaultDepth;
+    if (activeChar) {
+      const torsoPos = new THREE.Vector3(activeChar.position.x, activeChar.position.y + 1.42, activeChar.position.z);
+      const toTorso = torsoPos.sub(curCamPos);
+      const proj = toTorso.dot(lookDir);
+      if (proj >= 0.6 && proj <= 18.0) {
+        dist = proj;
+      }
+    }
+    return curCamPos.clone().addScaledVector(lookDir, Number(dist.toFixed(3)));
+  }
+
+  const director = {
+    rootGroup: directorRootGroup,
+    spawnMarkerGroup: playerSpawnMarkerGroup,
+    cameraPanGroup: startupCameraPanGroup,
+    handlesById,
+    raycastTargets,
+    spawnState,
+    cameraPanState,
+    povState,
+    introSequenceState,
+    cameraPOVMode: false,
+    editMode: false,
+    selectedHandleId: 'spawn',
+    gizmoMode: 'translate',
+
+    isScrollLocked() {
+      if (sandbox.mode !== 'scroll') return false;
+      if (cameraPanState.mode === 'playing') return true;
+      return Boolean(introSequenceState.scrollLocked);
+    },
+
+    getIntroSequenceState() {
+      return {
+        phase: introSequenceState.phase,
+        scrollLocked: this.isScrollLocked(),
+        currentBoxIndex: introSequenceState.currentBoxIndex,
+        totalBoxes: introSequenceState.boxes.length,
+        boxes: introSequenceState.boxes.map((b) => ({ ...b })),
+        talkingSequence: [...introSequenceState.talkingSequence],
+      };
+    },
+
+    startIntroTalkingSequence() {
+      if (this.cameraPOVMode) {
+        this.toggleCameraPOVMode(false);
+      }
+      if (sandbox.mode === 'mount-focus') {
+        sandbox.exitMountFocusMode({ immediate: true });
+      }
+      if (sandbox.freeRoamFlyMode) {
+        sandbox.toggleFreeRoamFlyMode(false);
+      }
+      document.body.classList.remove('freeroam-mode');
+      sandbox.mode = 'scroll';
+      sandbox.scrollProgress = 0.0;
+      sandbox.targetScrollProgress = 0.0;
+      sandbox.scrollVelocity = 0.0;
+      syncWindowScrollToFraction(0.0);
+
+      // Lock camera firmly at the Pan End pose
+      cameraPanState.mode = 'settled';
+      cameraPanState.playing = false;
+      cameraPanState.progress = 1.0;
+      camera.position.copy(cameraPanState.endPos);
+      if (mountFocusCameraState) {
+        mountFocusCameraState.currentLookAt.copy(cameraPanState.endLookAt);
+      }
+      camera.lookAt(cameraPanState.endLookAt);
+      camera.updateMatrixWorld(true);
+
+      // Station character at Spawn Coordinates and start the ordered 4-clip talking loop
+      const activeChar = sandbox.getActiveCharacter ? sandbox.getActiveCharacter() : null;
+      if (activeChar) {
+        activeChar.position.set(spawnState.x, spawnState.y, spawnState.z);
+        activeChar.yaw = spawnState.yawRad;
+        activeChar.velocity.set(0, 0, 0);
+        activeChar.isGrounded = true;
+        activeChar.root.position.copy(activeChar.position);
+        activeChar.root.rotation.set(0, activeChar.yaw, 0);
+        activeChar.startOrderedDialogueSequence(introSequenceState.talkingSequence);
+        activeChar.mixer.update(0.0);
+        activeChar.root.updateMatrixWorld(true);
+      }
+
+      introSequenceState.currentBoxIndex = 0;
+      if (introSequenceState.boxes.length > 0) {
+        introSequenceState.phase = 'dialogue-active';
+        introSequenceState.scrollLocked = true;
+      } else {
+        introSequenceState.phase = 'ready-to-scroll';
+        introSequenceState.scrollLocked = false;
+      }
+
+      syncIntroDialogueOverlayUI();
+      syncDirectorHUDInputs();
+      updateTelemetryHUD();
+      renderer.render(scene, camera);
+      return this.getIntroSequenceState();
+    },
+
+    advanceDialogueBox() {
+      if (introSequenceState.phase !== 'dialogue-active') {
+        return this.getIntroSequenceState();
+      }
+      introSequenceState.currentBoxIndex += 1;
+      if (introSequenceState.currentBoxIndex >= introSequenceState.boxes.length) {
+        introSequenceState.currentBoxIndex = introSequenceState.boxes.length;
+        introSequenceState.phase = 'ready-to-scroll';
+        introSequenceState.scrollLocked = false;
+      } else {
+        introSequenceState.selectedEditBoxIndex = introSequenceState.currentBoxIndex;
+      }
+      syncIntroDialogueOverlayUI();
+      syncDirectorHUDInputs();
+      updateTelemetryHUD();
+      return this.getIntroSequenceState();
+    },
+
+    setDialogueBoxCount(count, persist = true) {
+      const n = Math.max(1, Math.min(12, Math.round(Number(count) || 3)));
+      const nextBoxes = [];
+      for (let i = 0; i < n; i++) {
+        if (i < introSequenceState.boxes.length && introSequenceState.boxes[i]) {
+          nextBoxes.push({ ...introSequenceState.boxes[i] });
+        } else if (i < DEFAULT_INTRO_DIALOGUE_BOXES.length) {
+          nextBoxes.push({ ...DEFAULT_INTRO_DIALOGUE_BOXES[i] });
+        } else {
+          const numStr = String(i + 1).padStart(2, '0');
+          nextBoxes.push({
+            id: `dialogue_${i + 1}`,
+            title: `${numStr} // DIALOGUE`,
+            text: `Dialogue box ${i + 1} of ${n}. Tap this box to continue.`,
+          });
+        }
+      }
+      introSequenceState.boxes = nextBoxes;
+      introSequenceState.selectedEditBoxIndex = Math.min(introSequenceState.selectedEditBoxIndex, n - 1);
+      if (introSequenceState.phase === 'dialogue-active' && introSequenceState.currentBoxIndex >= n) {
+        introSequenceState.currentBoxIndex = Math.max(0, n - 1);
+      }
+      if (persist) {
+        this.saveToStorage();
+      }
+      syncIntroDialogueOverlayUI();
+      syncDirectorHUDInputs();
+      return this.getIntroSequenceState();
+    },
+
+    setDialogueBoxes(boxes, persist = true) {
+      if (!Array.isArray(boxes) || boxes.length === 0) return this.getIntroSequenceState();
+      introSequenceState.boxes = boxes.slice(0, 12).map((b, idx) => {
+        const numStr = String(idx + 1).padStart(2, '0');
+        return {
+          id: b && b.id ? String(b.id) : `dialogue_${idx + 1}`,
+          title: b && typeof b.title === 'string' ? b.title : `${numStr} // DIALOGUE`,
+          text: b && typeof b.text === 'string' ? b.text : '',
+        };
+      });
+      introSequenceState.selectedEditBoxIndex = Math.min(
+        introSequenceState.selectedEditBoxIndex,
+        introSequenceState.boxes.length - 1
+      );
+      if (
+        introSequenceState.phase === 'dialogue-active' &&
+        introSequenceState.currentBoxIndex >= introSequenceState.boxes.length
+      ) {
+        introSequenceState.currentBoxIndex = Math.max(0, introSequenceState.boxes.length - 1);
+      }
+      if (persist) {
+        this.saveToStorage();
+      }
+      syncIntroDialogueOverlayUI();
+      syncDirectorHUDInputs();
+      return this.getIntroSequenceState();
+    },
+
+    updateDialogueBoxAtIndex(index, partial, persist = true) {
+      const idx = Math.max(0, Math.min(introSequenceState.boxes.length - 1, Number(index) || 0));
+      const box = introSequenceState.boxes[idx];
+      if (!box || !partial || typeof partial !== 'object') return this.getIntroSequenceState();
+      if (typeof partial.title === 'string') box.title = partial.title;
+      if (typeof partial.text === 'string') box.text = partial.text;
+      if (persist) {
+        this.saveToStorage();
+      }
+      syncIntroDialogueOverlayUI();
+      syncDirectorHUDInputs();
+      return this.getIntroSequenceState();
+    },
+
+    syncHandleGeometries() {
+      // 1. Sync spawn marker
+      playerSpawnMarkerGroup.position.set(spawnState.x, spawnState.y, spawnState.z);
+      playerSpawnMarkerGroup.rotation.y = spawnState.yawRad;
+
+      // 2. Sync auto-midpoint if custom midpoint is not active
+      if (!cameraPanState.useCustomMidpoint) {
+        cameraPanState.midPos.set(
+          Number((0.5 * (cameraPanState.startPos.x + cameraPanState.endPos.x)).toFixed(3)),
+          Number((0.5 * (cameraPanState.startPos.y + cameraPanState.endPos.y) + 0.20).toFixed(3)),
+          Number((0.5 * (cameraPanState.startPos.z + cameraPanState.endPos.z)).toFixed(3))
+        );
+      }
+
+      // 3. Sync camera pan handles
+      startCamHandle.position.copy(cameraPanState.startPos);
+      startLookAtHandle.position.copy(cameraPanState.startLookAt);
+      startCamHandle.lookAt(cameraPanState.startLookAt);
+      startLookAtLine.geometry.setFromPoints([cameraPanState.startPos, cameraPanState.startLookAt]);
+
+      midCamHandle.position.copy(cameraPanState.midPos);
+
+      endCamHandle.position.copy(cameraPanState.endPos);
+      endLookAtHandle.position.copy(cameraPanState.endLookAt);
+      endCamHandle.lookAt(cameraPanState.endLookAt);
+      endLookAtLine.geometry.setFromPoints([cameraPanState.endPos, cameraPanState.endLookAt]);
+
+      // 4. Sync flight trajectory curve passing directly through midPos at t = 0.5
+      const ctrlPt = computeBezierControlPointFromMidpoint(
+        cameraPanState.startPos,
+        cameraPanState.midPos,
+        cameraPanState.endPos
+      );
+      const curve = new THREE.QuadraticBezierCurve3(cameraPanState.startPos, ctrlPt, cameraPanState.endPos);
+      const pts = curve.getPoints(28);
+      trajectoryCurveMesh.geometry.setFromPoints(pts);
+
+      // 5. Sync 3D Scroll Walk Path floor preview curve from Spawn into the alley
+      const walkPts = [];
+      const walkSamples = 48;
+      for (let i = 0; i <= walkSamples; i++) {
+        const pSample = (i / walkSamples) * 0.55;
+        const poseSample = evaluateScrollCorridorPath(pSample, spawnState);
+        const ySample = spawnState.y + (floorY - spawnState.y) * Math.min(1.0, pSample / 0.05) + 0.05;
+        walkPts.push(new THREE.Vector3(poseSample.x, ySample, poseSample.z));
+      }
+      walkPathCurveMesh.geometry.setFromPoints(walkPts);
+
+      // 6. Sync 3D Bounding Walls outline helper if wallSegments are available
+      if (sandbox.environment && Array.isArray(sandbox.environment.wallSegments)) {
+        const wallPts = [];
+        const yBot = floorY + 0.06;
+        const yTop = floorY + 1.35;
+        for (const seg of sandbox.environment.wallSegments) {
+          wallPts.push(
+            new THREE.Vector3(seg.ax, yBot, seg.az),
+            new THREE.Vector3(seg.bx, yBot, seg.bz),
+            new THREE.Vector3(seg.ax, yTop, seg.az),
+            new THREE.Vector3(seg.bx, yTop, seg.bz),
+            new THREE.Vector3(seg.ax, yBot, seg.az),
+            new THREE.Vector3(seg.ax, yTop, seg.az)
+          );
+        }
+        boundingWallsLineMesh.geometry.setFromPoints(wallPts);
+      }
+
+      directorRootGroup.updateMatrixWorld(true);
+    },
+
+    setSpawnTransform(partial, persist = true) {
+      if (!partial || typeof partial !== 'object') return this.getSpawnTransform();
+      if (typeof partial.x === 'number' && Number.isFinite(partial.x)) {
+        spawnState.x = Number(partial.x.toFixed(3));
+      }
+      if (typeof partial.y === 'number' && Number.isFinite(partial.y)) {
+        spawnState.y = Number(partial.y.toFixed(3));
+      }
+      if (typeof partial.z === 'number' && Number.isFinite(partial.z)) {
+        spawnState.z = Number(partial.z.toFixed(3));
+      }
+      if (typeof partial.yawRad === 'number' && Number.isFinite(partial.yawRad)) {
+        let y = partial.yawRad;
+        while (y > Math.PI) y -= Math.PI * 2;
+        while (y < -Math.PI) y += Math.PI * 2;
+        spawnState.yawRad = Number(y.toFixed(4));
+        spawnState.yawDeg = Math.round(THREE.MathUtils.radToDeg(spawnState.yawRad));
+      } else if (typeof partial.yawDeg === 'number' && Number.isFinite(partial.yawDeg)) {
+        spawnState.yawDeg = Math.round(partial.yawDeg);
+        spawnState.yawRad = Number(THREE.MathUtils.degToRad(spawnState.yawDeg).toFixed(4));
+      } else if (typeof partial.yaw === 'number' && Number.isFinite(partial.yaw)) {
+        let y = partial.yaw;
+        while (y > Math.PI) y -= Math.PI * 2;
+        while (y < -Math.PI) y += Math.PI * 2;
+        spawnState.yawRad = Number(y.toFixed(4));
+        spawnState.yawDeg = Math.round(THREE.MathUtils.radToDeg(spawnState.yawRad));
+      }
+
+      this.syncHandleGeometries();
+
+      if (sandbox.environment) {
+        sandbox.environment.spawnPlayerPos.set(spawnState.x, spawnState.y, spawnState.z);
+        sandbox.environment.spawnPlayerYaw = spawnState.yawRad;
+      }
+
+      if (this.cameraPOVMode || (sandbox.mode === 'scroll' && sandbox.scrollProgress <= 0.001)) {
+        const activeChar = sandbox.getActiveCharacter ? sandbox.getActiveCharacter() : null;
+        if (activeChar) {
+          activeChar.position.set(spawnState.x, spawnState.y, spawnState.z);
+          activeChar.yaw = spawnState.yawRad;
+          activeChar.root.position.copy(activeChar.position);
+          activeChar.root.rotation.set(0, activeChar.yaw, 0);
+          activeChar.root.updateMatrixWorld(true);
+        }
+      }
+
+      if (persist) {
+        this.saveToStorage();
+      }
+      syncDirectorHUDInputs();
+      return this.getSpawnTransform();
+    },
+
+    getSpawnTransform() {
+      return {
+        x: spawnState.x,
+        y: spawnState.y,
+        z: spawnState.z,
+        yawRad: spawnState.yawRad,
+        yawDeg: spawnState.yawDeg,
+      };
+    },
+
+    resetSpawnTransform(persist = true) {
+      this.setSpawnTransform({
+        x: DEFAULT_PLAYER_SPAWN.x,
+        y: floorY,
+        z: DEFAULT_PLAYER_SPAWN.z,
+        yawRad: DEFAULT_PLAYER_SPAWN.yawRad,
+      }, persist);
+      if (persist && typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.removeItem(SPAWN_STORAGE_KEY);
+      }
+      return this.getSpawnTransform();
+    },
+
+    setCameraPan(partial, persist = true) {
+      if (!partial || typeof partial !== 'object') return this.getCameraPan();
+      if (partial.startPos && typeof partial.startPos === 'object') {
+        if (typeof partial.startPos.x === 'number') cameraPanState.startPos.x = Number(partial.startPos.x.toFixed(3));
+        if (typeof partial.startPos.y === 'number') cameraPanState.startPos.y = Number(partial.startPos.y.toFixed(3));
+        if (typeof partial.startPos.z === 'number') cameraPanState.startPos.z = Number(partial.startPos.z.toFixed(3));
+      }
+      if (partial.startLookAt && typeof partial.startLookAt === 'object') {
+        if (typeof partial.startLookAt.x === 'number') cameraPanState.startLookAt.x = Number(partial.startLookAt.x.toFixed(3));
+        if (typeof partial.startLookAt.y === 'number') cameraPanState.startLookAt.y = Number(partial.startLookAt.y.toFixed(3));
+        if (typeof partial.startLookAt.z === 'number') cameraPanState.startLookAt.z = Number(partial.startLookAt.z.toFixed(3));
+      }
+      if (typeof partial.useCustomMidpoint === 'boolean') {
+        cameraPanState.useCustomMidpoint = partial.useCustomMidpoint;
+      }
+      if (partial.midPos && typeof partial.midPos === 'object') {
+        if (typeof partial.midPos.x === 'number') cameraPanState.midPos.x = Number(partial.midPos.x.toFixed(3));
+        if (typeof partial.midPos.y === 'number') cameraPanState.midPos.y = Number(partial.midPos.y.toFixed(3));
+        if (typeof partial.midPos.z === 'number') cameraPanState.midPos.z = Number(partial.midPos.z.toFixed(3));
+        if (partial.useCustomMidpoint === undefined) {
+          cameraPanState.useCustomMidpoint = true;
+        }
+      }
+      if (partial.endPos && typeof partial.endPos === 'object') {
+        if (typeof partial.endPos.x === 'number') cameraPanState.endPos.x = Number(partial.endPos.x.toFixed(3));
+        if (typeof partial.endPos.y === 'number') cameraPanState.endPos.y = Number(partial.endPos.y.toFixed(3));
+        if (typeof partial.endPos.z === 'number') cameraPanState.endPos.z = Number(partial.endPos.z.toFixed(3));
+      }
+      if (partial.endLookAt && typeof partial.endLookAt === 'object') {
+        if (typeof partial.endLookAt.x === 'number') cameraPanState.endLookAt.x = Number(partial.endLookAt.x.toFixed(3));
+        if (typeof partial.endLookAt.y === 'number') cameraPanState.endLookAt.y = Number(partial.endLookAt.y.toFixed(3));
+        if (typeof partial.endLookAt.z === 'number') cameraPanState.endLookAt.z = Number(partial.endLookAt.z.toFixed(3));
+      }
+      if (typeof partial.durationSec === 'number' && Number.isFinite(partial.durationSec)) {
+        cameraPanState.durationSec = Math.max(0.2, Math.min(20.0, Number(partial.durationSec.toFixed(2))));
+      }
+
+      this.syncHandleGeometries();
+
+      if (persist) {
+        this.saveToStorage();
+      }
+      syncDirectorHUDInputs();
+      return this.getCameraPan();
+    },
+
+    getCameraPan() {
+      return {
+        startPos: { x: cameraPanState.startPos.x, y: cameraPanState.startPos.y, z: cameraPanState.startPos.z },
+        startLookAt: { x: cameraPanState.startLookAt.x, y: cameraPanState.startLookAt.y, z: cameraPanState.startLookAt.z },
+        midPos: { x: cameraPanState.midPos.x, y: cameraPanState.midPos.y, z: cameraPanState.midPos.z },
+        useCustomMidpoint: cameraPanState.useCustomMidpoint,
+        endPos: { x: cameraPanState.endPos.x, y: cameraPanState.endPos.y, z: cameraPanState.endPos.z },
+        endLookAt: { x: cameraPanState.endLookAt.x, y: cameraPanState.endLookAt.y, z: cameraPanState.endLookAt.z },
+        durationSec: cameraPanState.durationSec,
+        mode: cameraPanState.mode,
+        progress: cameraPanState.progress,
+      };
+    },
+
+    resetCameraPan(persist = true) {
+      this.setCameraPan({
+        startPos: DEFAULT_STARTUP_PAN.startPos,
+        startLookAt: DEFAULT_STARTUP_PAN.startLookAt,
+        midPos: DEFAULT_STARTUP_PAN.midPos,
+        useCustomMidpoint: false,
+        endPos: DEFAULT_STARTUP_PAN.endPos,
+        endLookAt: DEFAULT_STARTUP_PAN.endLookAt,
+        durationSec: DEFAULT_STARTUP_PAN.durationSec,
+      }, persist);
+      if (persist && typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.removeItem(STARTUP_PAN_STORAGE_KEY);
+      }
+      return this.getCameraPan();
+    },
+
+    straightenTrajectory(persist = true) {
+      return this.setCameraPan({
+        useCustomMidpoint: false,
+        midPos: {
+          x: 0.5 * (cameraPanState.startPos.x + cameraPanState.endPos.x),
+          y: 0.5 * (cameraPanState.startPos.y + cameraPanState.endPos.y),
+          z: 0.5 * (cameraPanState.startPos.z + cameraPanState.endPos.z),
+        },
+      }, persist);
+    },
+
+    captureCurrentViewAsPanStart() {
+      const curCamPos = camera.position.clone();
+      const curLookAt = resolveLookAtFromCurrentCamera(povState.focusDistance);
+      return this.setCameraPan({
+        startPos: { x: curCamPos.x, y: curCamPos.y, z: curCamPos.z },
+        startLookAt: { x: curLookAt.x, y: curLookAt.y, z: curLookAt.z },
+      }, true);
+    },
+
+    captureCurrentViewAsPanMid() {
+      const curCamPos = camera.position.clone();
+      return this.setCameraPan({
+        useCustomMidpoint: true,
+        midPos: { x: curCamPos.x, y: curCamPos.y, z: curCamPos.z },
+      }, true);
+    },
+
+    captureCurrentViewAsPanEnd() {
+      const curCamPos = camera.position.clone();
+      const curLookAt = resolveLookAtFromCurrentCamera(povState.focusDistance);
+      return this.setCameraPan({
+        endPos: { x: curCamPos.x, y: curCamPos.y, z: curCamPos.z },
+        endLookAt: { x: curLookAt.x, y: curLookAt.y, z: curLookAt.z },
+      }, true);
+    },
+
+    syncPOVStateFromPose(posVec, lookAtVec) {
+      povState.position.copy(posVec);
+      const dir = new THREE.Vector3().subVectors(lookAtVec, posVec);
+      const len = dir.length();
+      if (len > 1e-4) {
+        dir.divideScalar(len);
+        povState.focusDistance = Math.max(0.8, Math.min(16.0, len));
+        povState.yaw = Math.atan2(dir.x, dir.z);
+        povState.pitch = Math.asin(Math.max(-0.99, Math.min(0.99, -dir.y)));
+      }
+    },
+
+    previewPanStartPose() {
+      cameraPanState.mode = 'preview-start';
+      cameraPanState.playing = false;
+      this.syncPOVStateFromPose(cameraPanState.startPos, cameraPanState.startLookAt);
+      camera.position.copy(cameraPanState.startPos);
+      if (mountFocusCameraState) mountFocusCameraState.currentLookAt.copy(cameraPanState.startLookAt);
+      camera.lookAt(cameraPanState.startLookAt);
+      camera.updateMatrixWorld(true);
+      syncDirectorHUDInputs();
+      renderer.render(scene, camera);
+      return true;
+    },
+
+    previewPanMidPose() {
+      cameraPanState.mode = 'preview-mid';
+      cameraPanState.playing = false;
+      const midLook = new THREE.Vector3().lerpVectors(cameraPanState.startLookAt, cameraPanState.endLookAt, 0.5);
+      this.syncPOVStateFromPose(cameraPanState.midPos, midLook);
+      camera.position.copy(cameraPanState.midPos);
+      if (mountFocusCameraState) mountFocusCameraState.currentLookAt.copy(midLook);
+      camera.lookAt(midLook);
+      camera.updateMatrixWorld(true);
+      syncDirectorHUDInputs();
+      renderer.render(scene, camera);
+      return true;
+    },
+
+    previewPanEndPose() {
+      cameraPanState.mode = 'preview-end';
+      cameraPanState.playing = false;
+      this.syncPOVStateFromPose(cameraPanState.endPos, cameraPanState.endLookAt);
+      camera.position.copy(cameraPanState.endPos);
+      if (mountFocusCameraState) mountFocusCameraState.currentLookAt.copy(cameraPanState.endLookAt);
+      camera.lookAt(cameraPanState.endLookAt);
+      camera.updateMatrixWorld(true);
+      syncDirectorHUDInputs();
+      renderer.render(scene, camera);
+      return true;
+    },
+
+    playStartupPan() {
+      if (this.cameraPOVMode) {
+        this.toggleCameraPOVMode(false);
+      }
+      if (sandbox.mode === 'mount-focus') {
+        sandbox.exitMountFocusMode({ immediate: true });
+      }
+      if (sandbox.freeRoamFlyMode) {
+        sandbox.toggleFreeRoamFlyMode(false);
+      }
+      document.body.classList.remove('freeroam-mode');
+      sandbox.mode = 'scroll';
+      sandbox.scrollProgress = 0.0;
+      sandbox.targetScrollProgress = 0.0;
+      sandbox.scrollVelocity = 0.0;
+      syncWindowScrollToFraction(0.0);
+
+      // Lock scrolling while the startup camera pan plays
+      introSequenceState.phase = 'pan-playing';
+      introSequenceState.scrollLocked = true;
+      introSequenceState.currentBoxIndex = 0;
+
+      // Station character at Spawn Coordinates in Idle during the pan
+      const activeChar = sandbox.getActiveCharacter ? sandbox.getActiveCharacter() : null;
+      if (activeChar) {
+        activeChar.position.set(spawnState.x, spawnState.y, spawnState.z);
+        activeChar.yaw = spawnState.yawRad;
+        activeChar.velocity.set(0, 0, 0);
+        activeChar.isGrounded = true;
+        if (activeChar.dialogueActive) {
+          activeChar.stopDialogue();
+        }
+        activeChar.customEmoteActive = false;
+        activeChar.state = 'Idle';
+        activeChar.crossfadeTo('IDLE_DEFAULT', 0.12);
+        activeChar.root.position.copy(activeChar.position);
+        activeChar.root.rotation.set(0, activeChar.yaw, 0);
+        activeChar.root.updateMatrixWorld(true);
+      }
+      cameraPanState.mode = 'playing';
+      cameraPanState.playing = true;
+      cameraPanState.elapsed = 0.0;
+      cameraPanState.progress = 0.0;
+      camera.position.copy(cameraPanState.startPos);
+      if (mountFocusCameraState) mountFocusCameraState.currentLookAt.copy(cameraPanState.startLookAt);
+      camera.lookAt(cameraPanState.startLookAt);
+      camera.updateMatrixWorld(true);
+      syncIntroDialogueOverlayUI();
+      syncDirectorHUDInputs();
+      updateTelemetryHUD();
+      return true;
+    },
+
+    stopStartupPan(useOrbit = false) {
+      cameraPanState.mode = useOrbit ? 'orbit' : 'settled';
+      cameraPanState.playing = false;
+      syncDirectorHUDInputs();
+      return true;
+    },
+
+    updateCameraPan(dt) {
+      const pan = cameraPanState;
+      if (pan.mode !== 'playing') return;
+      pan.elapsed += dt;
+      const t = Math.min(1.0, pan.elapsed / Math.max(0.1, pan.durationSec));
+      pan.progress = t;
+      const ease = directorCubicEaseInOut(t);
+
+      const inv = 1.0 - ease;
+      const ctrlPt = computeBezierControlPointFromMidpoint(pan.startPos, pan.midPos, pan.endPos);
+
+      camera.position.set(
+        inv * inv * pan.startPos.x + 2.0 * inv * ease * ctrlPt.x + ease * ease * pan.endPos.x,
+        inv * inv * pan.startPos.y + 2.0 * inv * ease * ctrlPt.y + ease * ease * pan.endPos.y,
+        inv * inv * pan.startPos.z + 2.0 * inv * ease * ctrlPt.z + ease * ease * pan.endPos.z
+      );
+      if (mountFocusCameraState) {
+        mountFocusCameraState.currentLookAt.lerpVectors(pan.startLookAt, pan.endLookAt, ease);
+        camera.lookAt(mountFocusCameraState.currentLookAt);
+      } else {
+        camera.lookAt(pan.endLookAt);
+      }
+
+      if (t >= 1.0) {
+        pan.mode = 'settled';
+        pan.playing = false;
+        this.startIntroTalkingSequence();
+        return;
+      }
+      syncDirectorHUDInputs();
+    },
+
+    toggleCameraPOVMode(forceState = undefined) {
+      const nextState = typeof forceState === 'boolean' ? forceState : !this.cameraPOVMode;
+      this.cameraPOVMode = nextState;
+
+      if (nextState) {
+        if (sandbox.mode === 'mount-focus') {
+          sandbox.exitMountFocusMode({ immediate: true });
+        }
+        if (sandbox.freeRoamFlyMode) {
+          sandbox.toggleFreeRoamFlyMode(false);
+        }
+        cameraPanState.playing = false;
+        cameraPanState.mode = 'pov';
+
+        // Initialize POV camera pose seamlessly from current Three.js camera
+        povState.position.copy(camera.position);
+        const dir = camera.getWorldDirection(new THREE.Vector3()).normalize();
+        povState.yaw = Math.atan2(dir.x, dir.z);
+        povState.pitch = Math.asin(Math.max(-0.99, Math.min(0.99, -dir.y)));
+
+        // Station character at Spawn Coordinates so user can compose shots around the character
+        const activeChar = sandbox.getActiveCharacter ? sandbox.getActiveCharacter() : null;
+        if (activeChar) {
+          activeChar.position.set(spawnState.x, spawnState.y, spawnState.z);
+          activeChar.yaw = spawnState.yawRad;
+          activeChar.velocity.set(0, 0, 0);
+          activeChar.isGrounded = true;
+          if (!activeChar.customEmoteActive && !activeChar.dialogueActive) {
+            activeChar.state = 'Idle';
+            activeChar.crossfadeTo('IDLE_DEFAULT', 0.12);
+          }
+          activeChar.root.position.copy(activeChar.position);
+          activeChar.root.rotation.set(0, activeChar.yaw, 0);
+          activeChar.root.updateMatrixWorld(true);
+        }
+
+        // Automatically show 3D handles & trajectory so user can see the path while flying
+        this.editMode = true;
+        directorRootGroup.visible = true;
+      } else {
+        if (cameraPanState.mode === 'pov') {
+          cameraPanState.mode = 'settled';
+        }
+      }
+
+      const povOverlay = typeof document !== 'undefined' ? document.getElementById('director-pov-overlay') : null;
+      if (povOverlay) {
+        povOverlay.style.display = this.cameraPOVMode ? 'flex' : 'none';
+      }
+
+      updateCameraController(0.0);
+      syncDirectorHUDInputs();
+      updateTelemetryHUD();
+      renderer.render(scene, camera);
+      return this.cameraPOVMode;
+    },
+
+    updateCameraPOV(dt) {
+      if (!this.cameraPOVMode) return;
+
+      // Keep active character anchored at spawnState so user can compose camera shots around them
+      const activeChar = sandbox.getActiveCharacter ? sandbox.getActiveCharacter() : null;
+      if (activeChar) {
+        activeChar.position.set(spawnState.x, spawnState.y, spawnState.z);
+        activeChar.yaw = spawnState.yawRad;
+        activeChar.velocity.set(0, 0, 0);
+        activeChar.root.position.copy(activeChar.position);
+        activeChar.root.rotation.set(0, activeChar.yaw, 0);
+      }
+
+      const forwardPos = keysPressed.KeyW || keysPressed.ArrowUp ? 1.0 : 0.0;
+      const forwardNeg = keysPressed.KeyS || keysPressed.ArrowDown ? 1.0 : 0.0;
+      const rightPos = keysPressed.KeyD || keysPressed.ArrowRight ? 1.0 : 0.0;
+      const rightNeg = keysPressed.KeyA || keysPressed.ArrowLeft ? 1.0 : 0.0;
+      const upPos = keysPressed.Space || keysPressed.KeyE ? 1.0 : 0.0;
+      const downNeg = keysPressed.KeyQ || keysPressed.KeyZ || keysPressed.ControlLeft || keysPressed.ControlRight ? 1.0 : 0.0;
+
+      const forwardInput = forwardPos - forwardNeg;
+      const rightInput = rightPos - rightNeg;
+      const verticalInput = upPos - downNeg;
+
+      const isBoost = Boolean(keysPressed.ShiftLeft || keysPressed.ShiftRight);
+      const isSlow = Boolean(keysPressed.AltLeft || keysPressed.AltRight);
+      const speedMult = isBoost ? 2.6 : isSlow ? 0.25 : 1.0;
+      const effSpeed = povState.flySpeed * speedMult;
+
+      const cosPitch = Math.cos(povState.pitch);
+      const sinPitch = -Math.sin(povState.pitch);
+      const lookFwdX = Math.sin(povState.yaw) * cosPitch;
+      const lookFwdY = sinPitch;
+      const lookFwdZ = Math.cos(povState.yaw) * cosPitch;
+
+      const rightX = -Math.cos(povState.yaw);
+      const rightZ = Math.sin(povState.yaw);
+
+      const vx = (lookFwdX * forwardInput + rightX * rightInput) * effSpeed;
+      const vy = (lookFwdY * forwardInput + verticalInput) * effSpeed;
+      const vz = (lookFwdZ * forwardInput + rightZ * rightInput) * effSpeed;
+
+      if (Math.abs(vx) > 1e-5 || Math.abs(vy) > 1e-5 || Math.abs(vz) > 1e-5) {
+        povState.position.x = Number((povState.position.x + vx * dt).toFixed(4));
+        povState.position.y = Number((povState.position.y + vy * dt).toFixed(4));
+        povState.position.z = Number((povState.position.z + vz * dt).toFixed(4));
+        if (cameraPanState.mode === 'preview-start' || cameraPanState.mode === 'preview-mid' || cameraPanState.mode === 'preview-end') {
+          cameraPanState.mode = 'pov';
+        }
+        syncDirectorHUDInputs();
+      }
+    },
+
+    applyCameraPOVPose() {
+      const cosPitch = Math.cos(povState.pitch);
+      const sinPitch = -Math.sin(povState.pitch);
+      const lookFwdX = Math.sin(povState.yaw) * cosPitch;
+      const lookFwdY = sinPitch;
+      const lookFwdZ = Math.cos(povState.yaw) * cosPitch;
+
+      camera.position.copy(povState.position);
+      const lookTarget = new THREE.Vector3(
+        povState.position.x + lookFwdX * povState.focusDistance,
+        povState.position.y + lookFwdY * povState.focusDistance,
+        povState.position.z + lookFwdZ * povState.focusDistance
+      );
+      if (mountFocusCameraState) {
+        mountFocusCameraState.currentLookAt.copy(lookTarget);
+      }
+      camera.lookAt(lookTarget);
+    },
+
+    placeSpawnAtCameraGroundCrosshair() {
+      const origin = camera.position.clone();
+      const dir = camera.getWorldDirection(new THREE.Vector3()).normalize();
+      let targetX = origin.x + dir.x * 3.0;
+      let targetY = floorY;
+      let targetZ = origin.z + dir.z * 3.0;
+
+      // Intersect ray with floor collider or horizontal plane y = floorY
+      if (sandbox.environment && sandbox.environment.colliderMeshes && sandbox.environment.colliderMeshes.COLLIDER_FLOOR) {
+        const rc = new THREE.Raycaster(origin, dir, 0.1, 100.0);
+        const hits = rc.intersectObject(sandbox.environment.colliderMeshes.COLLIDER_FLOOR, false);
+        if (hits.length > 0) {
+          targetX = hits[0].point.x;
+          targetY = hits[0].point.y;
+          targetZ = hits[0].point.z;
+        } else if (Math.abs(dir.y) > 1e-3) {
+          const t = (floorY - origin.y) / dir.y;
+          if (t > 0.2 && t < 80.0) {
+            targetX = origin.x + dir.x * t;
+            targetZ = origin.z + dir.z * t;
+          }
+        }
+      } else if (Math.abs(dir.y) > 1e-3) {
+        const t = (floorY - origin.y) / dir.y;
+        if (t > 0.2 && t < 80.0) {
+          targetX = origin.x + dir.x * t;
+          targetZ = origin.z + dir.z * t;
+        }
+      }
+
+      return this.setSpawnTransform({
+        x: targetX,
+        y: targetY,
+        z: targetZ,
+      }, true);
+    },
+
+    onTransformControlsObjectChange() {
+      if (!sandbox.transformControls) return;
+      const obj = sandbox.transformControls.object;
+      if (!obj) return;
+      if (obj === playerSpawnMarkerGroup) {
+        const euler = new THREE.Euler().setFromQuaternion(playerSpawnMarkerGroup.quaternion, 'YXZ');
+        this.setSpawnTransform({
+          x: playerSpawnMarkerGroup.position.x,
+          y: playerSpawnMarkerGroup.position.y,
+          z: playerSpawnMarkerGroup.position.z,
+          yawRad: euler.y,
+        }, false);
+      } else if (obj === startCamHandle) {
+        this.setCameraPan({
+          startPos: {
+            x: startCamHandle.position.x,
+            y: startCamHandle.position.y,
+            z: startCamHandle.position.z,
+          },
+        }, false);
+      } else if (obj === startLookAtHandle) {
+        this.setCameraPan({
+          startLookAt: {
+            x: startLookAtHandle.position.x,
+            y: startLookAtHandle.position.y,
+            z: startLookAtHandle.position.z,
+          },
+        }, false);
+      } else if (obj === midCamHandle) {
+        this.setCameraPan({
+          useCustomMidpoint: true,
+          midPos: {
+            x: midCamHandle.position.x,
+            y: midCamHandle.position.y,
+            z: midCamHandle.position.z,
+          },
+        }, false);
+      } else if (obj === endCamHandle) {
+        this.setCameraPan({
+          endPos: {
+            x: endCamHandle.position.x,
+            y: endCamHandle.position.y,
+            z: endCamHandle.position.z,
+          },
+        }, false);
+      } else if (obj === endLookAtHandle) {
+        this.setCameraPan({
+          endLookAt: {
+            x: endLookAtHandle.position.x,
+            y: endLookAtHandle.position.y,
+            z: endLookAtHandle.position.z,
+          },
+        }, false);
+      }
+    },
+
+    toggleEditMode(forceState = undefined) {
+      const nextState = typeof forceState === 'boolean' ? forceState : !this.editMode;
+      this.editMode = nextState;
+      directorRootGroup.visible = nextState;
+
+      if (nextState) {
+        if (sandbox.lamppostEditMode) {
+          sandbox.toggleLamppostEditMode(false);
+        }
+        if (sandbox.holoEditMode) {
+          sandbox.toggleHoloEditMode(false);
+        }
+        if (sandbox.mode === 'mount-focus') {
+          sandbox.exitMountFocusMode({ immediate: true });
+        }
+        if (!this.cameraPOVMode && (cameraPanState.mode === 'settled' || cameraPanState.mode === 'playing')) {
+          cameraPanState.mode = 'orbit';
+          cameraPanState.playing = false;
+        }
+        if (!this.cameraPOVMode) {
+          cameraOrbit.desiredDistance = Math.max(cameraOrbit.desiredDistance, 4.6);
+          cameraOrbit.pitch = Math.max(cameraOrbit.pitch, 0.28);
+        }
+        this.selectHandle(this.selectedHandleId || 'spawn');
+      } else {
+        if (!this.cameraPOVMode && cameraPanState.mode === 'orbit') {
+          cameraPanState.mode = 'settled';
+        }
+        if (!this.cameraPOVMode) {
+          cameraOrbit.desiredDistance = CAM_DEFAULT_DISTANCE;
+          cameraOrbit.pitch = CAM_DEFAULT_PITCH;
+        }
+        if (sandbox.transformControls && this.isTransformControlsAttachedToDirector()) {
+          sandbox.transformControls.detach();
+          sandbox.transformControls.enabled = false;
+        }
+      }
+      updateCameraController(0.0);
+      syncDirectorHUDInputs();
+      renderer.render(scene, camera);
+      return this.editMode;
+    },
+
+    isTransformControlsAttachedToDirector() {
+      if (!sandbox.transformControls) return false;
+      const target = sandbox.transformControls.object;
+      return Object.values(handlesById).includes(target);
+    },
+
+    selectHandle(handleId) {
+      if (!handlesById[handleId]) return null;
+      this.selectedHandleId = handleId;
+      if (!this.editMode) {
+        this.toggleEditMode(true);
+      }
+      const targetObj = handlesById[handleId];
+      if (sandbox.transformControls) {
+        sandbox.transformControls.enabled = true;
+        const mode = handleId === 'spawn' ? this.gizmoMode : 'translate';
+        sandbox.transformControls.setMode(mode);
+        sandbox.transformControls.setSpace(mode === 'rotate' ? 'local' : 'world');
+        sandbox.transformControls.attach(targetObj);
+      }
+      syncDirectorHUDInputs();
+      renderer.render(scene, camera);
+      return targetObj;
+    },
+
+    setGizmoMode(mode) {
+      if (mode !== 'translate' && mode !== 'rotate') return false;
+      this.gizmoMode = mode;
+      if (sandbox.transformControls && this.isTransformControlsAttachedToDirector()) {
+        const effMode = this.selectedHandleId === 'spawn' ? mode : 'translate';
+        sandbox.transformControls.setMode(effMode);
+        sandbox.transformControls.setSpace(effMode === 'rotate' ? 'local' : 'world');
+      }
+      syncDirectorHUDInputs();
+      renderer.render(scene, camera);
+      return true;
+    },
+
+    resetDefaults(persist = true) {
+      this.resetSpawnTransform(persist);
+      this.resetCameraPan(persist);
+      introSequenceState.boxes = DEFAULT_INTRO_DIALOGUE_BOXES.map((b) => ({ ...b }));
+      introSequenceState.selectedEditBoxIndex = 0;
+      if (persist && typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.removeItem(INTRO_DIALOGUE_STORAGE_KEY);
+      }
+      syncIntroDialogueOverlayUI();
+      syncDirectorHUDInputs();
+      return this.exportJSON();
+    },
+
+    saveToStorage() {
+      if (typeof window === 'undefined' || !window.localStorage) return false;
+      try {
+        window.localStorage.setItem(SPAWN_STORAGE_KEY, JSON.stringify(this.getSpawnTransform()));
+        window.localStorage.setItem(STARTUP_PAN_STORAGE_KEY, JSON.stringify(this.getCameraPan()));
+        window.localStorage.setItem(INTRO_DIALOGUE_STORAGE_KEY, JSON.stringify(introSequenceState.boxes));
+        return true;
+      } catch (err) {
+        return false;
+      }
+    },
+
+    loadFromStorage() {
+      if (typeof window === 'undefined' || !window.localStorage) return false;
+      try {
+        const rawSpawn = window.localStorage.getItem(SPAWN_STORAGE_KEY);
+        if (rawSpawn) {
+          const parsed = JSON.parse(rawSpawn);
+          if (parsed && typeof parsed === 'object') {
+            this.setSpawnTransform(parsed, false);
+          }
+        }
+        const rawPan = window.localStorage.getItem(STARTUP_PAN_STORAGE_KEY);
+        if (rawPan) {
+          const parsed = JSON.parse(rawPan);
+          if (parsed && typeof parsed === 'object') {
+            this.setCameraPan(parsed, false);
+          }
+        }
+        const rawBoxes = window.localStorage.getItem(INTRO_DIALOGUE_STORAGE_KEY);
+        if (rawBoxes) {
+          const parsed = JSON.parse(rawBoxes);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            this.setDialogueBoxes(parsed, false);
+          }
+        }
+        return true;
+      } catch (err) {
+        return false;
+      }
+    },
+
+    exportJSON() {
+      return JSON.stringify({
+        spawn: this.getSpawnTransform(),
+        startupCameraPan: this.getCameraPan(),
+        introDialogueBoxes: introSequenceState.boxes.map((b) => ({ ...b })),
+        talkingSequence: [...introSequenceState.talkingSequence],
+      }, null, 2);
+    },
+  };
+
+  director.syncHandleGeometries();
+  director.loadFromStorage();
+
+  return director;
+}
+
+function syncIntroDialogueOverlayUI() {
+  if (typeof document === 'undefined' || !sandbox.director) return;
+  const d = sandbox.director;
+  const intro = d.introSequenceState;
+  const activeChar = sandbox.getActiveCharacter ? sandbox.getActiveCharacter() : null;
+
+  const overlay = document.getElementById('intro-dialogue-overlay');
+  const card = document.getElementById('intro-dialogue-card');
+  const counterEl = document.getElementById('intro-dialogue-counter');
+  const titleEl = document.getElementById('intro-dialogue-title');
+  const clipBadgeEl = document.getElementById('intro-dialogue-clip-badge');
+  const textEl = document.getElementById('intro-dialogue-text');
+  const pipsEl = document.getElementById('intro-dialogue-pips');
+  const nextBtnEl = document.getElementById('intro-dialogue-next-btn');
+  const unlockedPill = document.getElementById('intro-scroll-unlocked-pill');
+
+  const isScrollMode = sandbox.mode === 'scroll';
+  const isDialogueActive =
+    isScrollMode &&
+    intro.phase === 'dialogue-active' &&
+    d.cameraPanState.mode !== 'playing' &&
+    !d.cameraPOVMode &&
+    intro.currentBoxIndex < intro.boxes.length;
+  const isReadyToScroll =
+    isScrollMode &&
+    intro.phase === 'ready-to-scroll' &&
+    !d.cameraPOVMode &&
+    sandbox.scrollProgress <= 0.005;
+
+  if (overlay) {
+    overlay.style.display = isDialogueActive || isReadyToScroll ? 'flex' : 'none';
+  }
+  if (card) {
+    card.style.display = isDialogueActive ? 'flex' : 'none';
+  }
+  if (unlockedPill) {
+    unlockedPill.style.display = isReadyToScroll ? 'inline-flex' : 'none';
+  }
+
+  if (isDialogueActive) {
+    const total = intro.boxes.length;
+    const idx = Math.max(0, Math.min(total - 1, intro.currentBoxIndex));
+    const currentBox = intro.boxes[idx];
+
+    if (counterEl) {
+      counterEl.textContent = `DIALOGUE ${idx + 1} / ${total}`;
+    }
+    if (titleEl && currentBox) {
+      titleEl.textContent = currentBox.title || `0${idx + 1} // DIALOGUE`;
+    }
+    if (textEl && currentBox) {
+      textEl.textContent = currentBox.text || '';
+    }
+    if (clipBadgeEl && activeChar) {
+      const seqIdx = Array.isArray(activeChar.orderedDialogueSequence)
+        ? `${activeChar.orderedDialogueIndex + 1}/${activeChar.orderedDialogueSequence.length}`
+        : '';
+      clipBadgeEl.textContent = `🎙 ${activeChar.currentClipName || 'TALK_CONVERSATION_06'}${seqIdx ? ` (${seqIdx})` : ''}`;
+    }
+    if (pipsEl) {
+      pipsEl.innerHTML = '';
+      for (let i = 0; i < total; i++) {
+        const pip = document.createElement('span');
+        pip.style.display = 'inline-block';
+        pip.style.width = i === idx ? '20px' : '8px';
+        pip.style.height = '6px';
+        pip.style.borderRadius = '999px';
+        pip.style.transition = 'all 0.2s ease';
+        pip.style.background =
+          i < idx
+            ? 'rgba(56, 189, 248, 0.55)'
+            : i === idx
+            ? '#00d5ff'
+            : 'rgba(148, 163, 184, 0.30)';
+        pip.style.boxShadow = i === idx ? '0 0 8px rgba(0, 213, 255, 0.75)' : 'none';
+        pipsEl.appendChild(pip);
+      }
+    }
+    if (nextBtnEl) {
+      const isLast = idx + 1 >= total;
+      nextBtnEl.textContent = isLast
+        ? `Tap to Finish & Unlock Scroll (${idx + 1}/${total}) ✓`
+        : `Tap to Continue (${idx + 1}/${total}) →`;
+    }
+  }
+}
+
+function syncDirectorHUDInputs() {
+  if (typeof document === 'undefined' || !sandbox.director) return;
+  const d = sandbox.director;
+  const sp = d.spawnState;
+  const cp = d.cameraPanState;
+  const pov = d.povState;
+
+  const povBtn = document.getElementById('director-toggle-pov-btn');
+  if (povBtn) {
+    povBtn.textContent = d.cameraPOVMode
+      ? '🎥 Camera POV Mode: ON (C)'
+      : '🎥 Camera POV Mode: OFF (C)';
+    povBtn.classList.toggle('secondary', !d.cameraPOVMode);
+  }
+
+  const povReadout = document.getElementById('director-pov-coords-readout');
+  if (povReadout && camera) {
+    const yawDeg = Math.round(THREE.MathUtils.radToDeg(pov.yaw));
+    const pitchDeg = Math.round(THREE.MathUtils.radToDeg(-pov.pitch));
+    povReadout.textContent = `CAM POV: (${camera.position.x.toFixed(2)}, ${camera.position.y.toFixed(2)}, ${camera.position.z.toFixed(2)}) | Yaw ${yawDeg}° Pitch ${pitchDeg}°`;
+  }
+
+  const toggleBtn = document.getElementById('director-toggle-gizmos-btn');
+  if (toggleBtn) {
+    toggleBtn.textContent = d.editMode ? '3D Handles: ON (K)' : '3D Handles: OFF (K)';
+    toggleBtn.classList.toggle('secondary', !d.editMode);
+  }
+
+  const handleSelect = document.getElementById('director-handle-select');
+  if (handleSelect && handleSelect.value !== d.selectedHandleId) {
+    handleSelect.value = d.selectedHandleId;
+  }
+
+  const moveBtn = document.getElementById('director-gizmo-move-btn');
+  const rotBtn = document.getElementById('director-gizmo-rotate-btn');
+  if (moveBtn) moveBtn.classList.toggle('secondary', d.gizmoMode !== 'translate');
+  if (rotBtn) rotBtn.classList.toggle('secondary', d.gizmoMode !== 'rotate');
+
+  const summary = document.getElementById('director-spawn-summary');
+  if (summary) {
+    summary.textContent = `(${sp.x.toFixed(2)}, ${sp.y.toFixed(2)}, ${sp.z.toFixed(2)}) ${sp.yawDeg}°`;
+  }
+
+  const pairs = [
+    ['director-spawn-x-slider', 'director-spawn-x-input', sp.x.toFixed(2)],
+    ['director-spawn-y-slider', 'director-spawn-y-input', sp.y.toFixed(2)],
+    ['director-spawn-z-slider', 'director-spawn-z-input', sp.z.toFixed(2)],
+    ['director-spawn-yaw-slider', 'director-spawn-yaw-input', String(sp.yawDeg)],
+    ['director-pov-speed-slider', 'director-pov-speed-input', pov.flySpeed.toFixed(1)],
+    ['director-cam-start-x', null, cp.startPos.x.toFixed(2)],
+    ['director-cam-start-y', null, cp.startPos.y.toFixed(2)],
+    ['director-cam-start-z', null, cp.startPos.z.toFixed(2)],
+    ['director-look-start-x', null, cp.startLookAt.x.toFixed(2)],
+    ['director-look-start-y', null, cp.startLookAt.y.toFixed(2)],
+    ['director-look-start-z', null, cp.startLookAt.z.toFixed(2)],
+    ['director-cam-mid-x', null, cp.midPos.x.toFixed(2)],
+    ['director-cam-mid-y', null, cp.midPos.y.toFixed(2)],
+    ['director-cam-mid-z', null, cp.midPos.z.toFixed(2)],
+    ['director-cam-end-x', null, cp.endPos.x.toFixed(2)],
+    ['director-cam-end-y', null, cp.endPos.y.toFixed(2)],
+    ['director-cam-end-z', null, cp.endPos.z.toFixed(2)],
+    ['director-look-end-x', null, cp.endLookAt.x.toFixed(2)],
+    ['director-look-end-y', null, cp.endLookAt.y.toFixed(2)],
+    ['director-look-end-z', null, cp.endLookAt.z.toFixed(2)],
+    ['director-pan-duration-slider', 'director-pan-duration-input', cp.durationSec.toFixed(1)],
+  ];
+
+  for (const [id1, id2, valStr] of pairs) {
+    const el1 = document.getElementById(id1);
+    const el2 = id2 ? document.getElementById(id2) : null;
+    if (el1 && document.activeElement !== el1) el1.value = valStr;
+    if (el2 && document.activeElement !== el2) el2.value = valStr;
+  }
+
+  const panStatus = document.getElementById('director-pan-status');
+  if (panStatus) {
+    panStatus.textContent = d.cameraPOVMode
+      ? 'POV Navigation'
+      : cp.mode === 'playing'
+      ? `Playing (${Math.round(cp.progress * 100)}%)`
+      : cp.mode === 'preview-start'
+      ? 'Preview Start'
+      : cp.mode === 'preview-mid'
+      ? 'Preview Mid Arc'
+      : cp.mode === 'preview-end'
+      ? 'Preview End (Torso)'
+      : cp.mode === 'orbit'
+      ? 'Orbit Cam'
+      : `${cp.durationSec.toFixed(2)}s Pan`;
+  }
+
+  const intro = d.introSequenceState;
+  const introPhaseBadge = document.getElementById('director-intro-phase-badge');
+  if (introPhaseBadge && intro) {
+    const locked = d.isScrollLocked();
+    if (cp.mode === 'playing') {
+      introPhaseBadge.textContent = '🔒 Pan Playing';
+      introPhaseBadge.style.color = '#fbbf24';
+    } else if (intro.phase === 'dialogue-active' && locked) {
+      introPhaseBadge.textContent = `🔒 Box ${Math.min(intro.currentBoxIndex + 1, intro.boxes.length)}/${intro.boxes.length}`;
+      introPhaseBadge.style.color = '#38bdf8';
+    } else if (intro.phase === 'ready-to-scroll') {
+      introPhaseBadge.textContent = '🔓 Scroll Unlocked';
+      introPhaseBadge.style.color = '#4ade80';
+    } else {
+      introPhaseBadge.textContent = '🚶 Walking Alley';
+      introPhaseBadge.style.color = '#a855f7';
+    }
+  }
+
+  const countInput = document.getElementById('director-dialogue-count-input');
+  if (countInput && intro && document.activeElement !== countInput) {
+    countInput.value = String(intro.boxes.length);
+  }
+
+  const boxSelect = document.getElementById('director-dialogue-box-select');
+  if (boxSelect && intro) {
+    if (boxSelect.options.length !== intro.boxes.length) {
+      boxSelect.innerHTML = '';
+      for (let i = 0; i < intro.boxes.length; i++) {
+        const opt = document.createElement('option');
+        opt.value = String(i);
+        opt.textContent = `Box ${i + 1} / ${intro.boxes.length}`;
+        boxSelect.appendChild(opt);
+      }
+    }
+    const targetIdx = String(Math.min(intro.selectedEditBoxIndex || 0, Math.max(0, intro.boxes.length - 1)));
+    if (boxSelect.value !== targetIdx) {
+      boxSelect.value = targetIdx;
+    }
+  }
+
+  const boxTextInput = document.getElementById('director-dialogue-box-text-input');
+  if (boxTextInput && intro && document.activeElement !== boxTextInput) {
+    const editIdx = Math.min(intro.selectedEditBoxIndex || 0, Math.max(0, intro.boxes.length - 1));
+    const boxObj = intro.boxes[editIdx];
+    boxTextInput.value = boxObj ? boxObj.text : '';
+  }
+
+  const advanceHudBtn = document.getElementById('director-dialogue-advance-btn');
+  if (advanceHudBtn && intro) {
+    if (intro.phase === 'dialogue-active' && intro.currentBoxIndex < intro.boxes.length) {
+      advanceHudBtn.textContent = `Tap / Skip Box (${intro.currentBoxIndex + 1}/${intro.boxes.length}) →`;
+      advanceHudBtn.disabled = false;
+    } else {
+      advanceHudBtn.textContent = `All ${intro.boxes.length} Read (Scroll Ready)`;
+      advanceHudBtn.disabled = false;
+    }
+  }
+
+  syncIntroDialogueOverlayUI();
+}
+
+function bindDirectorHUDListeners() {
+  if (typeof document === 'undefined') return;
+
+  const povBtn = document.getElementById('director-toggle-pov-btn');
+  if (povBtn) {
+    povBtn.addEventListener('click', () => {
+      if (sandbox.director) sandbox.director.toggleCameraPOVMode();
+    });
+  }
+
+  const povSpeedSlider = document.getElementById('director-pov-speed-slider');
+  const povSpeedInput = document.getElementById('director-pov-speed-input');
+  if (povSpeedSlider) {
+    povSpeedSlider.addEventListener('input', (e) => {
+      const val = parseFloat(e.target.value);
+      if (Number.isFinite(val) && sandbox.director) {
+        sandbox.director.povState.flySpeed = Math.max(0.5, Math.min(30.0, val));
+        if (povSpeedInput) povSpeedInput.value = sandbox.director.povState.flySpeed.toFixed(1);
+      }
+    });
+  }
+  if (povSpeedInput) {
+    povSpeedInput.addEventListener('input', (e) => {
+      const val = parseFloat(e.target.value);
+      if (Number.isFinite(val) && sandbox.director) {
+        sandbox.director.povState.flySpeed = Math.max(0.5, Math.min(30.0, val));
+        if (povSpeedSlider) povSpeedSlider.value = String(sandbox.director.povState.flySpeed);
+      }
+    });
+  }
+
+  const toggleBtn = document.getElementById('director-toggle-gizmos-btn');
+  if (toggleBtn) {
+    toggleBtn.addEventListener('click', () => {
+      if (sandbox.director) sandbox.director.toggleEditMode();
+    });
+  }
+
+  const handleSelect = document.getElementById('director-handle-select');
+  if (handleSelect) {
+    handleSelect.addEventListener('change', (e) => {
+      if (sandbox.director) {
+        sandbox.director.selectHandle(e.target.value);
+      }
+    });
+  }
+
+  const moveBtn = document.getElementById('director-gizmo-move-btn');
+  if (moveBtn) {
+    moveBtn.addEventListener('click', () => {
+      if (sandbox.director) sandbox.director.setGizmoMode('translate');
+    });
+  }
+
+  const rotBtn = document.getElementById('director-gizmo-rotate-btn');
+  if (rotBtn) {
+    rotBtn.addEventListener('click', () => {
+      if (sandbox.director) sandbox.director.setGizmoMode('rotate');
+    });
+  }
+
+  function bindSpawnPair(sliderId, inputId, propKey, isDeg = false) {
+    const sEl = document.getElementById(sliderId);
+    const iEl = document.getElementById(inputId);
+    if (sEl) {
+      sEl.addEventListener('input', (e) => {
+        const val = parseFloat(e.target.value);
+        if (Number.isFinite(val) && sandbox.director) {
+          if (iEl) iEl.value = isDeg ? String(Math.round(val)) : val.toFixed(2);
+          sandbox.director.setSpawnTransform({ [propKey]: val }, true);
+        }
+      });
+    }
+    if (iEl) {
+      iEl.addEventListener('input', (e) => {
+        const val = parseFloat(e.target.value);
+        if (Number.isFinite(val) && sandbox.director) {
+          if (sEl) sEl.value = isDeg ? String(Math.round(val)) : String(val);
+          sandbox.director.setSpawnTransform({ [propKey]: val }, true);
+        }
+      });
+    }
+  }
+
+  bindSpawnPair('director-spawn-x-slider', 'director-spawn-x-input', 'x');
+  bindSpawnPair('director-spawn-y-slider', 'director-spawn-y-input', 'y');
+  bindSpawnPair('director-spawn-z-slider', 'director-spawn-z-input', 'z');
+  bindSpawnPair('director-spawn-yaw-slider', 'director-spawn-yaw-input', 'yawDeg', true);
+
+  const snapSpawnBtn = document.getElementById('director-spawn-snap-btn');
+  if (snapSpawnBtn) {
+    snapSpawnBtn.addEventListener('click', () => {
+      if (sandbox.director) {
+        const sp = sandbox.director.spawnState;
+        sandbox.teleportCharacterTo(sp.x, sp.y, sp.z, sp.yawRad);
+      }
+    });
+  }
+
+  const usePlayerBtn = document.getElementById('director-spawn-use-player-btn');
+  if (usePlayerBtn) {
+    usePlayerBtn.addEventListener('click', () => {
+      const activeChar = sandbox.getActiveCharacter ? sandbox.getActiveCharacter() : null;
+      if (activeChar && sandbox.director) {
+        sandbox.director.setSpawnTransform({
+          x: activeChar.position.x,
+          y: activeChar.position.y,
+          z: activeChar.position.z,
+          yawRad: activeChar.yaw,
+        }, true);
+      }
+    });
+  }
+
+  const spawnCrosshairBtn = document.getElementById('director-spawn-crosshair-btn');
+  if (spawnCrosshairBtn) {
+    spawnCrosshairBtn.addEventListener('click', () => {
+      if (sandbox.director) sandbox.director.placeSpawnAtCameraGroundCrosshair();
+    });
+  }
+
+  function bindCamInput(id, pathArray) {
+    const el = document.getElementById(id);
+    if (el) {
+      el.addEventListener('input', (e) => {
+        const val = parseFloat(e.target.value);
+        if (Number.isFinite(val) && sandbox.director) {
+          const [posType, coord] = pathArray;
+          sandbox.director.setCameraPan({
+            [posType]: { [coord]: val }
+          }, true);
+        }
+      });
+    }
+  }
+
+  bindCamInput('director-cam-start-x', ['startPos', 'x']);
+  bindCamInput('director-cam-start-y', ['startPos', 'y']);
+  bindCamInput('director-cam-start-z', ['startPos', 'z']);
+  bindCamInput('director-look-start-x', ['startLookAt', 'x']);
+  bindCamInput('director-look-start-y', ['startLookAt', 'y']);
+  bindCamInput('director-look-start-z', ['startLookAt', 'z']);
+
+  bindCamInput('director-cam-mid-x', ['midPos', 'x']);
+  bindCamInput('director-cam-mid-y', ['midPos', 'y']);
+  bindCamInput('director-cam-mid-z', ['midPos', 'z']);
+
+  bindCamInput('director-cam-end-x', ['endPos', 'x']);
+  bindCamInput('director-cam-end-y', ['endPos', 'y']);
+  bindCamInput('director-cam-end-z', ['endPos', 'z']);
+  bindCamInput('director-look-end-x', ['endLookAt', 'x']);
+  bindCamInput('director-look-end-y', ['endLookAt', 'y']);
+  bindCamInput('director-look-end-z', ['endLookAt', 'z']);
+
+  const durSlider = document.getElementById('director-pan-duration-slider');
+  const durInput = document.getElementById('director-pan-duration-input');
+  if (durSlider) {
+    durSlider.addEventListener('input', (e) => {
+      const val = parseFloat(e.target.value);
+      if (Number.isFinite(val) && sandbox.director) {
+        if (durInput) durInput.value = val.toFixed(1);
+        sandbox.director.setCameraPan({ durationSec: val }, true);
+      }
+    });
+  }
+  if (durInput) {
+    durInput.addEventListener('input', (e) => {
+      const val = parseFloat(e.target.value);
+      if (Number.isFinite(val) && sandbox.director) {
+        if (durSlider) durSlider.value = String(val);
+        sandbox.director.setCameraPan({ durationSec: val }, true);
+      }
+    });
+  }
+
+  const capStartBtn = document.getElementById('director-cam-capture-start-btn');
+  if (capStartBtn) {
+    capStartBtn.addEventListener('click', () => {
+      if (sandbox.director) sandbox.director.captureCurrentViewAsPanStart();
+    });
+  }
+  const prevStartBtn = document.getElementById('director-cam-preview-start-btn');
+  if (prevStartBtn) {
+    prevStartBtn.addEventListener('click', () => {
+      if (sandbox.director) sandbox.director.previewPanStartPose();
+    });
+  }
+
+  const capMidBtn = document.getElementById('director-cam-capture-mid-btn');
+  if (capMidBtn) {
+    capMidBtn.addEventListener('click', () => {
+      if (sandbox.director) sandbox.director.captureCurrentViewAsPanMid();
+    });
+  }
+  const prevMidBtn = document.getElementById('director-cam-preview-mid-btn');
+  if (prevMidBtn) {
+    prevMidBtn.addEventListener('click', () => {
+      if (sandbox.director) sandbox.director.previewPanMidPose();
+    });
+  }
+  const autoMidBtn = document.getElementById('director-cam-auto-mid-btn');
+  if (autoMidBtn) {
+    autoMidBtn.addEventListener('click', () => {
+      if (sandbox.director) sandbox.director.straightenTrajectory(true);
+    });
+  }
+
+  const capEndBtn = document.getElementById('director-cam-capture-end-btn');
+  if (capEndBtn) {
+    capEndBtn.addEventListener('click', () => {
+      if (sandbox.director) sandbox.director.captureCurrentViewAsPanEnd();
+    });
+  }
+  const prevEndBtn = document.getElementById('director-cam-preview-end-btn');
+  if (prevEndBtn) {
+    prevEndBtn.addEventListener('click', () => {
+      if (sandbox.director) sandbox.director.previewPanEndPose();
+    });
+  }
+
+  // Top-center POV Viewfinder Overlay bar buttons
+  const povSetStartBtn = document.getElementById('director-pov-set-start-btn');
+  if (povSetStartBtn) {
+    povSetStartBtn.addEventListener('click', () => {
+      if (sandbox.director) sandbox.director.captureCurrentViewAsPanStart();
+    });
+  }
+  const povSetMidBtn = document.getElementById('director-pov-set-mid-btn');
+  if (povSetMidBtn) {
+    povSetMidBtn.addEventListener('click', () => {
+      if (sandbox.director) sandbox.director.captureCurrentViewAsPanMid();
+    });
+  }
+  const povSetEndBtn = document.getElementById('director-pov-set-end-btn');
+  if (povSetEndBtn) {
+    povSetEndBtn.addEventListener('click', () => {
+      if (sandbox.director) sandbox.director.captureCurrentViewAsPanEnd();
+    });
+  }
+  const povSetSpawnBtn = document.getElementById('director-pov-set-spawn-btn');
+  if (povSetSpawnBtn) {
+    povSetSpawnBtn.addEventListener('click', () => {
+      if (sandbox.director) sandbox.director.placeSpawnAtCameraGroundCrosshair();
+    });
+  }
+  const povPlayPanBtn = document.getElementById('director-pov-play-pan-btn');
+  if (povPlayPanBtn) {
+    povPlayPanBtn.addEventListener('click', () => {
+      if (sandbox.director) sandbox.director.playStartupPan();
+    });
+  }
+  const povExitBtn = document.getElementById('director-pov-exit-btn');
+  if (povExitBtn) {
+    povExitBtn.addEventListener('click', () => {
+      if (sandbox.director) sandbox.director.toggleCameraPOVMode(false);
+    });
+  }
+
+  const playPanBtn = document.getElementById('director-pan-play-btn');
+  if (playPanBtn) {
+    playPanBtn.addEventListener('click', () => {
+      if (sandbox.director) sandbox.director.playStartupPan();
+    });
+  }
+
+  const resetCamBtn = document.getElementById('director-pan-reset-cam-btn');
+  if (resetCamBtn) {
+    resetCamBtn.addEventListener('click', () => {
+      if (sandbox.director) {
+        if (sandbox.director.cameraPOVMode) sandbox.director.toggleCameraPOVMode(false);
+        sandbox.director.stopStartupPan(true);
+      }
+      updateCameraController(1.0);
+      renderer.render(scene, camera);
+    });
+  }
+
+  // Intro Talking Loop & n-Dialogue-Box Gate Controls
+  const dlgCountInput = document.getElementById('director-dialogue-count-input');
+  if (dlgCountInput) {
+    dlgCountInput.addEventListener('input', (e) => {
+      const val = parseInt(e.target.value, 10);
+      if (Number.isFinite(val) && sandbox.director) {
+        sandbox.director.setDialogueBoxCount(val, true);
+      }
+    });
+  }
+
+  const dlgBoxSelect = document.getElementById('director-dialogue-box-select');
+  if (dlgBoxSelect) {
+    dlgBoxSelect.addEventListener('change', (e) => {
+      const idx = parseInt(e.target.value, 10);
+      if (Number.isFinite(idx) && sandbox.director) {
+        sandbox.director.introSequenceState.selectedEditBoxIndex = idx;
+        syncDirectorHUDInputs();
+      }
+    });
+  }
+
+  const dlgBoxTextInput = document.getElementById('director-dialogue-box-text-input');
+  if (dlgBoxTextInput) {
+    dlgBoxTextInput.addEventListener('input', (e) => {
+      if (sandbox.director) {
+        const idx = sandbox.director.introSequenceState.selectedEditBoxIndex || 0;
+        sandbox.director.updateDialogueBoxAtIndex(idx, { text: e.target.value }, true);
+      }
+    });
+  }
+
+  const dlgStartBtn = document.getElementById('director-dialogue-start-btn');
+  if (dlgStartBtn) {
+    dlgStartBtn.addEventListener('click', () => {
+      if (sandbox.director) sandbox.director.startIntroTalkingSequence();
+    });
+  }
+
+  const dlgAdvanceHudBtn = document.getElementById('director-dialogue-advance-btn');
+  if (dlgAdvanceHudBtn) {
+    dlgAdvanceHudBtn.addEventListener('click', () => {
+      if (sandbox.director) {
+        if (sandbox.director.introSequenceState.phase !== 'dialogue-active') {
+          sandbox.director.startIntroTalkingSequence();
+        } else {
+          sandbox.director.advanceDialogueBox();
+        }
+      }
+    });
+  }
+
+  const introCardEl = document.getElementById('intro-dialogue-card');
+  if (introCardEl) {
+    introCardEl.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (sandbox.director) sandbox.director.advanceDialogueBox();
+    });
+  }
+
+  const introNextBtnEl = document.getElementById('intro-dialogue-next-btn');
+  if (introNextBtnEl) {
+    introNextBtnEl.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (sandbox.director) sandbox.director.advanceDialogueBox();
+    });
+  }
+
+  const resetDefaultsBtn = document.getElementById('director-reset-defaults-btn');
+  if (resetDefaultsBtn) {
+    resetDefaultsBtn.addEventListener('click', () => {
+      if (sandbox.director) sandbox.director.resetDefaults();
+    });
+  }
+
+  const copyJsonBtn = document.getElementById('director-copy-json-btn');
+  if (copyJsonBtn) {
+    copyJsonBtn.addEventListener('click', async () => {
+      if (!sandbox.director) return;
+      const jsonStr = sandbox.director.exportJSON();
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(jsonStr);
+        }
+        const origText = copyJsonBtn.textContent;
+        copyJsonBtn.textContent = 'Copied!';
+        setTimeout(() => {
+          copyJsonBtn.textContent = origText;
+        }, 1400);
+      } catch (err) {
+        console.log('Director Config JSON:\n', jsonStr);
+      }
+    });
+  }
+}
+
+// ============================================================================
 // Spec 023 Pillar 1–4 Helper Wrappers (functional_specification_023.md)
 // ============================================================================
 function buildRunningEffectsSystem(floorY) {
@@ -3683,11 +6065,14 @@ function buildLowAltitudeGroundFog(floorY) {
   const minZ = 3.20;
   const maxZ = 43.50;
   const layerCount = 14;
+  const segsZ = 40;
+  const vertsPerLayer = (segsZ + 1) * 2;
+  const indicesPerLayer = segsZ * 6;
 
-  const positions = new Float32Array(layerCount * 4 * 3);
-  const uvs = new Float32Array(layerCount * 4 * 2);
-  const layerHeights = new Float32Array(layerCount * 4);
-  const indices = new Uint16Array(layerCount * 6);
+  const positions = new Float32Array(layerCount * vertsPerLayer * 3);
+  const uvs = new Float32Array(layerCount * vertsPerLayer * 2);
+  const layerHeights = new Float32Array(layerCount * vertsPerLayer);
+  const indices = new Uint16Array(layerCount * indicesPerLayer);
 
   for (let i = 0; i < layerCount; i++) {
     const t = i / (layerCount - 1);
@@ -3696,30 +6081,39 @@ function buildLowAltitudeGroundFog(floorY) {
     const zEnd = maxZ - ((i + 1) % 3) * 0.45;
     const halfW = 1.62 - 0.08 * Math.sin(i * 1.3);
 
-    const vBase = i * 4;
-    const pts = [
-      [-halfW, y, zStart, 0.0, 0.0],
-      [halfW, y, zStart, 1.0, 0.0],
-      [halfW, y, zEnd, 1.0, 1.0],
-      [-halfW, y, zEnd, 0.0, 1.0],
-    ];
-    for (let j = 0; j < 4; j++) {
-      const dst3 = (vBase + j) * 3;
-      const dst2 = (vBase + j) * 2;
-      positions[dst3] = pts[j][0];
-      positions[dst3 + 1] = pts[j][1];
-      positions[dst3 + 2] = pts[j][2];
-      uvs[dst2] = pts[j][3];
-      uvs[dst2 + 1] = pts[j][4];
-      layerHeights[vBase + j] = t;
+    const vLayerBase = i * vertsPerLayer;
+    for (let sz = 0; sz <= segsZ; sz++) {
+      const tz = sz / segsZ;
+      const z = zStart + tz * (zEnd - zStart);
+      const vRow = vLayerBase + sz * 2;
+
+      positions[vRow * 3 + 0] = -halfW;
+      positions[vRow * 3 + 1] = y;
+      positions[vRow * 3 + 2] = z;
+      uvs[vRow * 2 + 0] = 0.0;
+      uvs[vRow * 2 + 1] = tz;
+      layerHeights[vRow] = t;
+
+      positions[(vRow + 1) * 3 + 0] = halfW;
+      positions[(vRow + 1) * 3 + 1] = y;
+      positions[(vRow + 1) * 3 + 2] = z;
+      uvs[(vRow + 1) * 2 + 0] = 1.0;
+      uvs[(vRow + 1) * 2 + 1] = tz;
+      layerHeights[vRow + 1] = t;
     }
-    const iBase = i * 6;
-    indices[iBase] = vBase;
-    indices[iBase + 1] = vBase + 1;
-    indices[iBase + 2] = vBase + 2;
-    indices[iBase + 3] = vBase;
-    indices[iBase + 4] = vBase + 2;
-    indices[iBase + 5] = vBase + 3;
+
+    const iLayerBase = i * indicesPerLayer;
+    for (let sz = 0; sz < segsZ; sz++) {
+      const r0 = vLayerBase + sz * 2;
+      const r1 = r0 + 2;
+      const dst = iLayerBase + sz * 6;
+      indices[dst + 0] = r0;
+      indices[dst + 1] = r0 + 1;
+      indices[dst + 2] = r1 + 1;
+      indices[dst + 3] = r0;
+      indices[dst + 4] = r1 + 1;
+      indices[dst + 5] = r1;
+    }
   }
 
   const geom = new THREE.BufferGeometry();
@@ -4126,6 +6520,16 @@ function buildSuspendedAmbientParticulates() {
       worldPositions[i3] = centerPos.x + localOffsets[i3];
       worldPositions[i3 + 1] = centerPos.y + localOffsets[i3 + 1];
       worldPositions[i3 + 2] = centerPos.z + localOffsets[i3 + 2];
+      if (
+        sandbox.sceneCutter &&
+        sandbox.sceneCutter.isWorldPointInDeletedHalfSpace(
+          worldPositions[i3],
+          worldPositions[i3 + 1],
+          worldPositions[i3 + 2]
+        )
+      ) {
+        alphas[i] = 0.0;
+      }
     }
     posAttr.needsUpdate = true;
     alphaAttr.needsUpdate = true;
@@ -4230,9 +6634,22 @@ function buildPrecipitationEmitter(floorY) {
   }
 
   function writeStreakVertices() {
+    const cutter = sandbox.sceneCutter || null;
     for (let i = 0; i < streakCount; i++) {
       const d = dropStates[i];
       const vBase = i * 4;
+      const isClipped = Boolean(
+        cutter && cutter.isWorldPointInDeletedHalfSpace(d.x, d.y, d.z)
+      );
+      if (isClipped) {
+        for (let j = 0; j < 4; j++) {
+          const dst3 = (vBase + j) * 3;
+          positions[dst3] = 0.0;
+          positions[dst3 + 1] = -100.0;
+          positions[dst3 + 2] = 0.0;
+        }
+        continue;
+      }
       const yBottom = d.y;
       const yTop = d.y + streakLength;
       const pts = [
@@ -4363,7 +6780,7 @@ function buildPrecipitationEmitter(floorY) {
 function buildPlanarFloorReflectionSubsystem(floorY) {
   // Subdivided floor strip spanning entrance threshold (-6.0m), primary corridor, and exit courtyard (68.0m)
   const segsX = 6;
-  const segsZ = 36;
+  const segsZ = 74;
   const minX = -1.62;
   const maxX = 1.92;
   const minZ = -6.00;
@@ -4773,7 +7190,7 @@ class DiegeticAudioEngine {
   }
 }
 
-function buildAudioSubsystem(centralTerminalSystem, alarmFixtures) {
+function buildAudioSubsystem(centralTerminalSystem, alarmFixtures, alleyPipes = null) {
   let audioCtx = null;
   let masterGainNode = null;
   let weatherGainNode = null;
@@ -4789,6 +7206,22 @@ function buildAudioSubsystem(centralTerminalSystem, alarmFixtures) {
   let sirenGainNode = null;
   let sirenPannerNode = null;
   let synthInitialized = false;
+  let rainSourceNode = null;
+  let rainLoadInFlight = false;
+  const CITY_RAIN_AUDIO_URL = 'assets/audio/city_rain_loop.mp3';
+  const cityRainRawBufferPromise =
+    typeof fetch === 'function'
+      ? fetch(CITY_RAIN_AUDIO_URL)
+          .then((res) => {
+            if (!res.ok) {
+              throw new Error(`HTTP ${res.status} fetching ${CITY_RAIN_AUDIO_URL}`);
+            }
+            return res.arrayBuffer();
+          })
+          .catch(() => null)
+      : Promise.resolve(null);
+  const STEAM_VOICE_POOL_SIZE = 4;
+  const steamVoicePool = [];
 
   const state = {
     masterGain: 0.75,
@@ -4826,6 +7259,119 @@ function buildAudioSubsystem(centralTerminalSystem, alarmFixtures) {
     return audioCtx;
   }
 
+  function buildTrimmedGaplessRainBuffer(ctx, decodedBuffer) {
+    const numChannels = decodedBuffer.numberOfChannels || 1;
+    const sampleRate = decodedBuffer.sampleRate;
+    const totalFrames = decodedBuffer.length;
+    const winFrames = 256;
+    const silenceRmsThreshold = 0.008;
+    const safetyMarginFrames = Math.floor(sampleRate * 0.05);
+
+    const ch0 = decodedBuffer.getChannelData(0);
+    const ch1 = numChannels > 1 ? decodedBuffer.getChannelData(1) : ch0;
+
+    // 1. Locate leading steady-state start (excising any MP3 encoder delay / quiet head)
+    let firstActiveFrame = 0;
+    for (let i = 0; i + winFrames <= totalFrames; i += winFrames) {
+      let sumSq = 0.0;
+      for (let k = 0; k < winFrames; k++) {
+        const s0 = ch0[i + k];
+        const s1 = ch1[i + k];
+        sumSq += 0.5 * (s0 * s0 + s1 * s1);
+      }
+      if (Math.sqrt(sumSq / winFrames) >= silenceRmsThreshold) {
+        firstActiveFrame = i;
+        break;
+      }
+    }
+
+    // 2. Locate trailing steady-state end (excising any MP3 frame padding / quiet tail)
+    let lastActiveFrame = totalFrames;
+    for (let i = totalFrames - winFrames; i >= firstActiveFrame; i -= winFrames) {
+      let sumSq = 0.0;
+      for (let k = 0; k < winFrames; k++) {
+        const s0 = ch0[i + k];
+        const s1 = ch1[i + k];
+        sumSq += 0.5 * (s0 * s0 + s1 * s1);
+      }
+      if (Math.sqrt(sumSq / winFrames) >= silenceRmsThreshold) {
+        lastActiveFrame = i + winFrames;
+        break;
+      }
+    }
+
+    const trimStart = Math.min(
+      firstActiveFrame + safetyMarginFrames,
+      Math.floor(totalFrames * 0.25)
+    );
+    const trimEnd = Math.max(
+      lastActiveFrame - safetyMarginFrames,
+      Math.floor(totalFrames * 0.75)
+    );
+    const usableFrames = Math.max(winFrames * 4, trimEnd - trimStart);
+    const seamFrames = Math.min(
+      Math.floor(sampleRate * 0.5),
+      Math.floor(usableFrames * 0.1)
+    );
+    const loopFrames = usableFrames - seamFrames;
+    const bodyFrames = loopFrames - seamFrames;
+
+    const loopBuffer = ctx.createBuffer(numChannels, loopFrames, sampleRate);
+    for (let c = 0; c < numChannels; c++) {
+      const src = decodedBuffer.getChannelData(c);
+      const dst = loopBuffer.getChannelData(c);
+      // Copy continuous BODY [trimStart + seamFrames .. trimStart + seamFrames + bodyFrames)
+      const bodyOffset = trimStart + seamFrames;
+      for (let i = 0; i < bodyFrames; i++) {
+        dst[i] = src[bodyOffset + i];
+      }
+      // Equal-power C1 loop-seam crossfade: TAIL -> HEAD so end wraps seamlessly into dst[0]
+      const tailOffset = bodyOffset + bodyFrames;
+      const headOffset = trimStart;
+      for (let i = 0; i < seamFrames; i++) {
+        const u = i / seamFrames;
+        const wTail = Math.cos(0.5 * Math.PI * u);
+        const wHead = Math.sin(0.5 * Math.PI * u);
+        dst[bodyFrames + i] = src[tailOffset + i] * wTail + src[headOffset + i] * wHead;
+      }
+    }
+    return loopBuffer;
+  }
+
+  function loadAndStartCityRainLoop(ctx) {
+    if (rainSourceNode || rainLoadInFlight) return;
+    rainLoadInFlight = true;
+    cityRainRawBufferPromise
+      .then((rawBuf) => {
+        if (!rawBuf) {
+          return fetch(CITY_RAIN_AUDIO_URL).then((res) => {
+            if (!res.ok) {
+              throw new Error(`HTTP ${res.status} fetching ${CITY_RAIN_AUDIO_URL}`);
+            }
+            return res.arrayBuffer();
+          });
+        }
+        return rawBuf;
+      })
+      .then((arrayBuf) => ctx.decodeAudioData(arrayBuf.slice(0)))
+      .then((decodedBuffer) => {
+        const loopBuffer = buildTrimmedGaplessRainBuffer(ctx, decodedBuffer);
+        const rainSource = ctx.createBufferSource();
+        rainSource.buffer = loopBuffer;
+        rainSource.loop = true;
+        rainSource.loopStart = 0;
+        rainSource.loopEnd = loopBuffer.duration;
+        rainSource.connect(weatherGainNode);
+        rainSource.start(0);
+        rainSourceNode = rainSource;
+        ambientChannels.weatherLoop.bufferLoaded = true;
+        ambientChannels.weatherLoop.durationSec = Number(loopBuffer.duration.toFixed(3));
+      })
+      .catch(() => {
+        rainLoadInFlight = false;
+      });
+  }
+
   function startContinuousLoopsIfUnlocked() {
     const ctx = ensureAudioContext();
     if (!ctx) return;
@@ -4833,39 +7379,18 @@ function buildAudioSubsystem(centralTerminalSystem, alarmFixtures) {
       ctx.resume().catch(() => {});
     }
     state.contextState = ctx.state;
-    if (synthInitialized) return;
-    try {
-      // 4.1.1 Weather Loop: Continuous rain impacting concrete, puddles & metal surfaces (2D non-positional stereo)
-      const bufferFrames = ctx.sampleRate * 2;
-      const rainBuffer = ctx.createBuffer(2, bufferFrames, ctx.sampleRate);
-      for (let ch = 0; ch < 2; ch++) {
-        const channelData = rainBuffer.getChannelData(ch);
-        let b0 = 0.0;
-        let b1 = 0.0;
-        let b2 = 0.0;
-        for (let i = 0; i < bufferFrames; i++) {
-          const white = Math.random() * 2.0 - 1.0;
-          b0 = 0.997 * b0 + white * 0.036;
-          b1 = 0.982 * b1 + white * 0.058;
-          b2 = 0.910 * b2 + white * 0.082;
-          const dropletPing = (i % 1361 < 28) ? Math.sin(i * 0.46) * 0.115 : 0.0;
-          const puddlePatter = (i % 823 < 18) ? Math.cos(i * 0.78) * 0.075 : 0.0;
-          channelData[i] = (b0 + b1 + b2 + dropletPing + puddlePatter) * 0.48;
-        }
+    if (synthInitialized) {
+      if (!rainSourceNode && weatherGainNode) {
+        loadAndStartCityRainLoop(ctx);
       }
-      const rainSource = ctx.createBufferSource();
-      rainSource.buffer = rainBuffer;
-      rainSource.loop = true;
-      const rainFilter = ctx.createBiquadFilter();
-      rainFilter.type = 'bandpass';
-      rainFilter.frequency.value = 1480;
-      rainFilter.Q.value = 0.58;
+      return;
+    }
+    try {
+      // 4.1.1 Weather Loop: Trimmed, gapless city rain audio ('assets/audio/city_rain_loop.mp3')
       weatherGainNode = ctx.createGain();
       weatherGainNode.gain.value = 0.26;
-      rainSource.connect(rainFilter);
-      rainFilter.connect(weatherGainNode);
       weatherGainNode.connect(masterGainNode);
-      rainSource.start();
+      loadAndStartCityRainLoop(ctx);
 
       // 4.1.2 Sub-Bass Drone: Continuous low-frequency ambient synth / industrial hum (2D non-positional stereo)
       const droneOsc1 = ctx.createOscillator();
@@ -4978,6 +7503,69 @@ function buildAudioSubsystem(centralTerminalSystem, alarmFixtures) {
       termHumOsc.start();
       termCrtOsc.start();
 
+      // 4.2.3 Pooled 3D Spatial Pipe Steam Hiss Voices (Spec 036 §7.1: Shared Hybrid Noise + 4 Spatial Bandpass Voices)
+      const steamBufFrames = Math.floor(ctx.sampleRate * 3.0);
+      const steamBuffer = ctx.createBuffer(1, steamBufFrames, ctx.sampleRate);
+      const steamData = steamBuffer.getChannelData(0);
+      let sb0 = 0.0;
+      let sb1 = 0.0;
+      for (let i = 0; i < steamBufFrames; i++) {
+        const white = Math.random() * 2.0 - 1.0;
+        sb0 = 0.965 * sb0 + white * 0.14;
+        sb1 = 0.820 * sb1 + white * 0.24;
+        // 62% crisp thermal air hiss + 38% filtered vapor body
+        steamData[i] = (white * 0.62 + (sb0 + sb1) * 0.38) * 0.78;
+      }
+      // Smooth 4096-sample loop seam crossfade to prevent periodic click artifacts
+      const seamSamples = Math.min(4096, Math.floor(steamBufFrames * 0.1));
+      for (let i = 0; i < seamSamples; i++) {
+        const u = i / seamSamples;
+        steamData[steamBufFrames - seamSamples + i] =
+          steamData[steamBufFrames - seamSamples + i] * (1.0 - u) + steamData[i] * u;
+      }
+
+      steamVoicePool.length = 0;
+      for (let v = 0; v < STEAM_VOICE_POOL_SIZE; v++) {
+        const src = ctx.createBufferSource();
+        src.buffer = steamBuffer;
+        src.loop = true;
+
+        const hp = ctx.createBiquadFilter();
+        hp.type = 'highpass';
+        hp.frequency.value = 920.0;
+        hp.Q.value = 0.70;
+
+        const bp = ctx.createBiquadFilter();
+        bp.type = 'bandpass';
+        bp.frequency.value = 2350.0;
+        bp.Q.value = 1.45;
+
+        const panner = ctx.createStereoPanner ? ctx.createStereoPanner() : null;
+        const vGain = ctx.createGain();
+        vGain.gain.value = 0.0;
+
+        src.connect(hp);
+        hp.connect(bp);
+        if (panner) {
+          bp.connect(panner);
+          panner.connect(vGain);
+        } else {
+          bp.connect(vGain);
+        }
+        vGain.connect(masterGainNode);
+        src.start(0, (v * 0.73) % 2.9);
+
+        steamVoicePool.push({
+          voiceIndex: v,
+          source: src,
+          highpass: hp,
+          bandpass: bp,
+          panner,
+          gain: vGain,
+          assignedPipeId: null,
+        });
+      }
+
       synthInitialized = true;
     } catch (_e) {
       // Headless browser autoplay restriction; mathematical state still updates deterministically
@@ -5003,7 +7591,12 @@ function buildAudioSubsystem(centralTerminalSystem, alarmFixtures) {
   const ambientChannels = {
     weatherLoop: {
       id: 'weatherLoop',
-      label: 'Weather Loop (Louder Rain Impacting Concrete, Puddles & Metal)',
+      label: 'Weather Loop (City Rain Audio Loop - Trimmed & Gapless)',
+      sourceUrl: CITY_RAIN_AUDIO_URL,
+      trimmedEnds: true,
+      gaplessLoop: true,
+      bufferLoaded: false,
+      durationSec: 49.4,
       isPositional: false,
       channels: 2,
       loop: true,
@@ -5127,6 +7720,71 @@ function buildAudioSubsystem(centralTerminalSystem, alarmFixtures) {
     attenuationFactor: 0.0,
     currentGain: 0.0,
   }));
+
+  // 4.2.3 3D Positional Pipe Steam Hiss Emitters (Spec 036 §7: Light Spatial Steam Hiss across ALLEY_PIPE_01..15)
+  const sourcePipePlacements =
+    alleyPipes && Array.isArray(alleyPipes.placements)
+      ? alleyPipes.placements
+      : ALLEY_PIPE_PLACEMENT_SCHEDULE.map((entry) => {
+          const xL = resolveAlleyWallProfileX('left', entry.z);
+          const xR = resolveAlleyWallProfileX('right', entry.z);
+          const anchorX =
+            entry.mountMode === 'L'
+              ? xL + entry.standoffX
+              : entry.mountMode === 'R'
+              ? xR - entry.standoffX
+              : 0.5 * (xL + xR);
+          return {
+            ...entry,
+            worldY: entry.relY,
+            anchorX,
+          };
+        });
+
+  const pipeSteamEmitters = sourcePipePlacements.map((p) => {
+    const sched = PIPE_STEAM_INTERVAL_SCHEDULE[p.id] || {
+      pipeId: p.id,
+      cyclePeriodSec: 8.5,
+      phaseOffsetSec: 1.0,
+      attackSec: 0.24,
+      sustainSec: 1.9,
+      decaySec: 0.9,
+      hissCenterFreqHz: 2350,
+    };
+    const nozzle = resolvePipeNozzleWorldTransform(p);
+    const initEv = evaluatePipeSteamEnvelope(sched, 0.0, 0.0, false);
+    return {
+      id: `pipeSteamEmitter_${p.id}`,
+      pipeId: p.id,
+      pipeIndex: p.index,
+      zone: p.zone,
+      variationId: p.variationId,
+      mountMode: p.mountMode,
+      side: p.side,
+      isPositional: true,
+      loop: false,
+      isVenting: initEv.isVenting,
+      stage: initEv.stage,
+      envelope: initEv.envelope,
+      cyclePeriodSec: sched.cyclePeriodSec,
+      phaseOffsetSec: sched.phaseOffsetSec,
+      centerFrequencyHz: sched.hissCenterFreqHz,
+      currentFrequencyHz: sched.hissCenterFreqHz,
+      refDistance: 2.60,
+      maxDistance: 16.50,
+      rolloffFactor: 1.15,
+      baseGain: 0.052, // Light, airy diegetic steam hiss (capped <= 0.055 per Spec 036 §3.2)
+      worldPosition: { ...nozzle.primaryNozzlePos },
+      dischargeNormal: { ...nozzle.primaryDischargeNormal },
+      distanceToCamera: 4.0,
+      azimuthRad: 0.0,
+      stereoPan: 0.0,
+      attenuationFactor: 0.0,
+      currentGain: 0.0,
+      assignedVoiceIndex: -1,
+      scheduleSpec: sched,
+    };
+  });
 
   function evaluate3DSpatialPanAndGain(sourcePos, camPos, camForward, camRight, emitterSpec) {
     const dx = sourcePos.x - camPos.x;
@@ -5321,6 +7979,101 @@ function buildAudioSubsystem(centralTerminalSystem, alarmFixtures) {
         fe
       );
       Object.assign(fe, fSpatial);
+    }
+
+    // 3D Pipe Steam Hiss Emitters across ALLEY_PIPE_01..15 (Spec 036 §7: Light Spatial Steam Hiss)
+    const liveSteamSystem =
+      (alleyPipes && alleyPipes.steamSystem) ||
+      (sandbox.alleyPipes && sandbox.alleyPipes.steamSystem) ||
+      null;
+
+    for (let i = 0; i < pipeSteamEmitters.length; i++) {
+      const se = pipeSteamEmitters[i];
+      const liveEm =
+        liveSteamSystem && liveSteamSystem.emitters && liveSteamSystem.emitters[i]
+          ? liveSteamSystem.emitters[i]
+          : null;
+
+      if (liveEm) {
+        se.worldPosition.x = liveEm.nozzleWorldPos.x;
+        se.worldPosition.y = liveEm.nozzleWorldPos.y;
+        se.worldPosition.z = liveEm.nozzleWorldPos.z;
+        se.isVenting = liveEm.isVenting;
+        se.stage = liveEm.stage;
+        se.envelope = liveEm.envelope;
+      } else {
+        const ev = evaluatePipeSteamEnvelope(se.scheduleSpec, timeSec, 0.0, false);
+        se.isVenting = ev.isVenting;
+        se.stage = ev.stage;
+        se.envelope = ev.envelope;
+      }
+
+      const spatial = evaluate3DSpatialPanAndGain(
+        se.worldPosition,
+        cam.position,
+        camForwardVec,
+        camRightVec,
+        se
+      );
+      se.distanceToCamera = spatial.distanceToCamera;
+      se.azimuthRad = spatial.azimuthRad;
+      se.stereoPan = spatial.stereoPan;
+      se.attenuationFactor = spatial.attenuationFactor;
+      se.currentGain = Number((spatial.currentGain * se.envelope).toFixed(4));
+
+      // Envelope-coupled spectral shaping (Spec 036 §7.1: +18% attack transient, -15% decay bleed-off)
+      let freqMult = 1.0;
+      if (se.stage === 'PRESSURE_BUILD_ATTACK') {
+        freqMult = 1.0 + 0.18 * se.envelope;
+      } else if (se.stage === 'ACTIVE_VENTING') {
+        freqMult = 1.0 + 0.03 * Math.sin(timeSec * 11.0 + i);
+      } else if (se.stage === 'DISSIPATION_DECAY') {
+        freqMult = 0.85 + 0.15 * se.envelope;
+      }
+      se.currentFrequencyHz = Number((se.centerFrequencyHz * freqMult).toFixed(1));
+      se.assignedVoiceIndex = -1;
+    }
+
+    // Route top 4 highest-gain active pipe steam emitters to the 4 pooled Web Audio voices
+    let topIndices = [-1, -1, -1, -1];
+    let topGains = [0.0002, 0.0002, 0.0002, 0.0002];
+    for (let i = 0; i < pipeSteamEmitters.length; i++) {
+      const g = pipeSteamEmitters[i].currentGain;
+      if (g <= topGains[3]) continue;
+      for (let slot = 0; slot < STEAM_VOICE_POOL_SIZE; slot++) {
+        if (g > topGains[slot]) {
+          for (let shift = STEAM_VOICE_POOL_SIZE - 1; shift > slot; shift--) {
+            topGains[shift] = topGains[shift - 1];
+            topIndices[shift] = topIndices[shift - 1];
+          }
+          topGains[slot] = g;
+          topIndices[slot] = i;
+          break;
+        }
+      }
+    }
+
+    const nowAudio = synthInitialized && audioCtx ? audioCtx.currentTime : 0.0;
+    for (let v = 0; v < STEAM_VOICE_POOL_SIZE; v++) {
+      const emIdx = topIndices[v];
+      if (emIdx >= 0) {
+        pipeSteamEmitters[emIdx].assignedVoiceIndex = v;
+      }
+      if (synthInitialized && audioCtx && steamVoicePool[v]) {
+        const voice = steamVoicePool[v];
+        if (emIdx >= 0) {
+          const activeEm = pipeSteamEmitters[emIdx];
+          voice.assignedPipeId = activeEm.pipeId;
+          voice.bandpass.frequency.setTargetAtTime(activeEm.currentFrequencyHz, nowAudio, 0.03);
+          voice.gain.gain.setTargetAtTime(activeEm.currentGain, nowAudio, 0.035);
+          if (voice.panner) {
+            voice.panner.pan.setTargetAtTime(activeEm.stereoPan, nowAudio, 0.04);
+          }
+        } else {
+          voice.assignedPipeId = null;
+          voice.gain.gain.setTargetAtTime(0.0, nowAudio, 0.04);
+        }
+      }
     }
   }
 
@@ -5794,9 +8547,12 @@ function buildAudioSubsystem(centralTerminalSystem, alarmFixtures) {
     positionalEmitters: {
       terminalEmitter,
       fixtureEmitters,
+      pipeSteamEmitters,
     },
     terminalEmitter,
     fixtureEmitters,
+    pipeSteamEmitters,
+    steamVoicePool,
     terminalState,
     uiTriggers,
     eventHistory,
@@ -5869,6 +8625,9 @@ function updateSFXAndAudioSubsystems(dt, timeSec) {
   }
   if (sandbox.sfx.precipitation) {
     sandbox.sfx.precipitation.update(dt, camera.position);
+  }
+  if (sandbox.alleyPipes && typeof sandbox.alleyPipes.update === 'function') {
+    sandbox.alleyPipes.update(dt, timeSec, camera);
   }
   if (sandbox.audio) {
     sandbox.audio.updateSpatialAudio(camera, timeSec);
@@ -6262,12 +9021,82 @@ function extractWallSegmentsFromColliders(colliderMeshes) {
         continue;
       }
 
+      // Subdivide primary left alley wall (Z = 71.2 -> 0.0) along calibrated profile knots
+      if (name === 'COLLIDER_WALL_L' && Math.max(v0.z, v1.z) > 40.0 && Math.min(v0.z, v1.z) <= 0.5) {
+        const zKnots = [71.2, 44.0, 26.2, 16.0, 0.0];
+        for (let k = 0; k < zKnots.length - 1; k++) {
+          const zA = zKnots[k];
+          const zB = zKnots[k + 1];
+          const xA = zA > 58.0 ? -1.50 : resolveAlleyWallProfileX('L', zA);
+          const xB = resolveAlleyWallProfileX('L', zB);
+          wallSegments.push({
+            colliderName: name,
+            ax: xA,
+            az: zA,
+            bx: xB,
+            bz: zB,
+            nx: 1.0,
+            nz: 0.0,
+            minY: Math.min(v0.y, v1.y, v2.y),
+            maxY: Math.max(v0.y, v1.y, v2.y),
+          });
+        }
+        continue;
+      }
+
+      // Subdivide primary right alley wall (Z = 0.0 -> 44.0) along calibrated profile knots
+      if (
+        name === 'COLLIDER_WALL_R' &&
+        Math.min(v0.z, v1.z) <= 0.05 &&
+        Math.max(v0.z, v1.z) >= 40.0 &&
+        Math.max(Math.abs(v0.x), Math.abs(v1.x)) < 3.0
+      ) {
+        const zKnots = [0.0, 16.0, 34.0, 44.0];
+        for (let k = 0; k < zKnots.length - 1; k++) {
+          const zA = zKnots[k];
+          const zB = zKnots[k + 1];
+          const xA = resolveAlleyWallProfileX('R', zA);
+          const xB = resolveAlleyWallProfileX('R', zB);
+          wallSegments.push({
+            colliderName: name,
+            ax: xA,
+            az: zA,
+            bx: xB,
+            bz: zB,
+            nx: -1.0,
+            nz: 0.0,
+            minY: Math.min(v0.y, v1.y, v2.y),
+            maxY: Math.max(v0.y, v1.y, v2.y),
+          });
+        }
+        continue;
+      }
+
+      const segAx =
+        name === 'COLLIDER_WALL_L' && v0.z >= -0.05 && v0.z <= 44.5 && Math.abs(v0.x) < 3.0
+          ? resolveAlleyWallProfileX('L', Math.max(0.0, v0.z))
+          : name === 'COLLIDER_WALL_R' && v0.z >= -0.05 && v0.z <= 44.1 && Math.abs(v0.x) < 3.0
+            ? resolveAlleyWallProfileX('R', Math.max(0.0, v0.z))
+            : v0.x;
+      const segAz = v0.z;
+      const segBx =
+        name === 'COLLIDER_WALL_L' && v1.z >= -0.05 && v1.z <= 44.5 && Math.abs(v1.x) < 3.0
+          ? resolveAlleyWallProfileX('L', Math.max(0.0, v1.z))
+          : name === 'COLLIDER_WALL_R' && v1.z >= -0.05 && v1.z <= 44.1 && Math.abs(v1.x) < 3.0
+            ? resolveAlleyWallProfileX('R', Math.max(0.0, v1.z))
+            : v1.x;
+      const segBz = v1.z;
+
+      if (Math.hypot(segBx - segAx, segBz - segAz) < 0.05) {
+        continue;
+      }
+
       wallSegments.push({
         colliderName: name,
-        ax: v0.x,
-        az: v0.z,
-        bx: v1.x,
-        bz: v1.z,
+        ax: segAx,
+        az: segAz,
+        bx: segBx,
+        bz: segBz,
         nx: nx / nLen,
         nz: nz / nLen,
         minY: Math.min(v0.y, v1.y, v2.y),
@@ -6374,7 +9203,12 @@ function sampleSurfaceHeightAndNormal(x, z, floorTriangles, refY = undefined) {
 }
 
 function resolveCircleAgainstWalls(posXZ, velXZ, radius, wallSegments) {
-  if (typeof sandbox !== 'undefined' && sandbox.freeRoamFlyMode) {
+  if (
+    typeof sandbox !== 'undefined' &&
+    (sandbox.freeRoamFlyMode ||
+      !sandbox.wallCollisionEnabled ||
+      (sandbox.director && sandbox.director.cameraPOVMode))
+  ) {
     return 0.0;
   }
   let maxImpactSpeed = 0.0;
@@ -6702,24 +9536,60 @@ class CharacterController {
     if (!this.skinnedMesh || !this.skinnedMesh.skeleton) {
       raiseFatalError(`Character '${id}' is missing a valid SkinnedMesh or Skeleton.`);
     }
-    if (this.skinnedMesh.skeleton.bones.length !== 64) {
+    const skeletonBoneCount = this.skinnedMesh.skeleton.bones.length;
+    if (skeletonBoneCount === 64) {
+      this.rigProfile = 'RPM_64';
+      for (const jName of RPM_REQUIRED_HUMANOID_BONES) {
+        if (!this.bonesByName.has(jName) && !this.root.getObjectByName(jName)) {
+          raiseFatalError(`Character '${id}' is missing required Ready Player Me humanoid bone '${jName}'.`);
+        }
+      }
+      this.root.traverse((node) => {
+        if (
+          node.name &&
+          (node.name.startsWith('Skateboard_') ||
+            node.name.startsWith('SprayCan_') ||
+            node.name === 'SKATEBOARD_ROOT' ||
+            node.name === 'TRUCK_FRONT' ||
+            node.name === 'TRUCK_BACK')
+        ) {
+          raiseFatalError(`Character '${id}' contains prohibited legacy prop node '${node.name}'.`);
+        }
+      });
+    } else if (skeletonBoneCount === 35) {
+      this.rigProfile = 'SKATE3_RX2_RIG';
+      for (const jName of SKATE3_REQUIRED_MASTER_RIG_BONES) {
+        if (!this.bonesByName.has(jName) && !this.root.getObjectByName(jName)) {
+          raiseFatalError(`Character '${id}' is missing required Skate 3 35-joint master rig bone '${jName}'.`);
+        }
+      }
+      for (const [rpmName, sk3Name] of Object.entries(RPM_TO_SKATE3_BONE_MAP)) {
+        const boneNode = this.bonesByName.get(sk3Name) || this.root.getObjectByName(sk3Name);
+        if (boneNode) {
+          this.bonesByName.set(rpmName, boneNode);
+        }
+      }
+      this.root.traverse((node) => {
+        if (
+          node.name &&
+          !node.isBone &&
+          (node.name.startsWith('Skateboard_') || node.name.startsWith('SprayCan_'))
+        ) {
+          raiseFatalError(`Character '${id}' contains prohibited legacy prop mesh '${node.name}'.`);
+        }
+      });
+    } else {
       raiseFatalError(
-        `Character '${id}' expected 64 Ready Player Me (RPM) humanoid skeleton bones, found ${this.skinnedMesh.skeleton.bones.length}.`
+        `Character '${id}' expected 64 Ready Player Me (RPM) or 35 Skate 3 (SKATE3_RX2_RIG) skeleton bones, found ${skeletonBoneCount}.`
       );
     }
-    for (const jName of RPM_REQUIRED_HUMANOID_BONES) {
-      if (!this.bonesByName.has(jName) && !this.root.getObjectByName(jName)) {
-        raiseFatalError(`Character '${id}' is missing required Ready Player Me humanoid bone '${jName}'.`);
-      }
+    this.bones = this.bonesByName;
+    for (const [bKey, bNode] of this.bonesByName.entries()) {
+      this.bones[bKey] = bNode;
     }
-    if (id === 'hoodie' && !this.companionMesh) {
+    if (id === 'hoodie' && this.rigProfile !== 'SKATE3_RX2_RIG' && !this.companionMesh) {
       raiseFatalError(`Character '${id}' is missing required 'DOOM_Companion' mesh node.`);
     }
-    this.root.traverse((node) => {
-      if (node.name && (node.name.startsWith('Skateboard_') || node.name.startsWith('SprayCan_') || node.name === 'SKATEBOARD_ROOT' || node.name === 'TRUCK_FRONT' || node.name === 'TRUCK_BACK')) {
-        raiseFatalError(`Character '${id}' contains prohibited legacy prop node '${node.name}'.`);
-      }
-    });
 
     this.position = new THREE.Vector3(spawnPos.x, floorY, spawnPos.z);
     this.velocity = new THREE.Vector3(0, 0, 0);
@@ -6728,6 +9598,8 @@ class CharacterController {
     this.state = 'Idle';
     this.customEmoteActive = false;
     this.dialogueActive = false;
+    this.orderedDialogueSequence = null;
+    this.orderedDialogueIndex = 0;
     this.lastDialogueClipName = null;
     this.dialogueChainCount = 0;
     this.dialogueClipHistory = [];
@@ -6741,8 +9613,12 @@ class CharacterController {
 
     this.mixer = new THREE.AnimationMixer(this.root);
     this.actions = new Map();
+    this.adaptedClips =
+      this.rigProfile === 'SKATE3_RX2_RIG'
+        ? adaptSharedClipsForSkate3Rig(sharedClips, this.root, this.bonesByName)
+        : sharedClips;
 
-    for (const clip of sharedClips) {
+    for (const clip of this.adaptedClips) {
       const action = this.mixer.clipAction(clip);
       if (isLoopingClip(clip.name)) {
         action.setLoop(THREE.LoopRepeat, Infinity);
@@ -6875,6 +9751,16 @@ class CharacterController {
       return preferredClip;
     }
 
+    if (Array.isArray(this.orderedDialogueSequence) && this.orderedDialogueSequence.length > 0) {
+      this.orderedDialogueIndex = (this.orderedDialogueIndex + 1) % this.orderedDialogueSequence.length;
+      const orderedClip = this.orderedDialogueSequence[this.orderedDialogueIndex];
+      const resolved = this.actions.has(orderedClip) ? orderedClip : this.resolveClipName(orderedClip);
+      this.lastDialogueClipName = resolved;
+      this.dialogueClipHistory.push(resolved);
+      if (this.dialogueClipHistory.length > 16) this.dialogueClipHistory.shift();
+      return resolved;
+    }
+
     const candidates = RPM_DIALOGUE_CLIP_POOL.filter(
       (spec) => this.actions.has(spec.id) && spec.id !== this.lastDialogueClipName
     );
@@ -6906,7 +9792,43 @@ class CharacterController {
     return chosenId;
   }
 
+  startOrderedDialogueSequence(clipList = STARTUP_TALKING_SEQUENCE_CLIPS) {
+    const validList = Array.isArray(clipList) && clipList.length > 0
+      ? clipList.map((c) => this.resolveClipName(c))
+      : [...STARTUP_TALKING_SEQUENCE_CLIPS];
+    this.orderedDialogueSequence = validList;
+    this.orderedDialogueIndex = 0;
+    this.velocity.x = 0.0;
+    this.velocity.z = 0.0;
+    this.customEmoteActive = false;
+    const wasAlreadyTalking = this.dialogueActive;
+    this.dialogueActive = true;
+    this.state = 'Talking';
+
+    const firstClip = validList[0];
+    this.lastDialogueClipName = firstClip;
+    this.dialogueClipHistory.push(firstClip);
+    if (this.dialogueClipHistory.length > 16) this.dialogueClipHistory.shift();
+
+    const fadeDuration = wasAlreadyTalking ? DIALOGUE_CHAIN_CROSSFADE : DIALOGUE_ENTER_CROSSFADE;
+    this.crossfadeTo(firstClip, fadeDuration, true);
+    this.dialogueChainCount += 1;
+
+    const selectEl = typeof document !== 'undefined' ? document.getElementById('animation-select') : null;
+    if (selectEl && selectEl.value !== firstClip) {
+      selectEl.value = firstClip;
+    }
+    const dlgBtn = typeof document !== 'undefined' ? document.getElementById('toggle-dialogue-btn') : null;
+    if (dlgBtn) {
+      dlgBtn.textContent = 'Dialogue Mode: TALKING (T)';
+      dlgBtn.classList.remove('secondary');
+    }
+    return firstClip;
+  }
+
   startDialogue(preferredClip = null) {
+    this.orderedDialogueSequence = null;
+    this.orderedDialogueIndex = 0;
     this.velocity.x = 0.0;
     this.velocity.z = 0.0;
     this.customEmoteActive = false;
@@ -6936,6 +9858,8 @@ class CharacterController {
       return this.currentClipName || 'IDLE_DEFAULT';
     }
     this.dialogueActive = false;
+    this.orderedDialogueSequence = null;
+    this.orderedDialogueIndex = 0;
     this.customEmoteActive = false;
     this.state = 'Idle';
     const returnedClip = this.crossfadeTo('IDLE_DEFAULT', DIALOGUE_EXIT_CROSSFADE, false);
@@ -6964,6 +9888,7 @@ class CharacterController {
     if (!this.currentAction) {
       const nextClip = this.selectNextDialogueClip();
       this.crossfadeTo(nextClip, DIALOGUE_CHAIN_CROSSFADE, true);
+      syncIntroDialogueOverlayUI();
       return;
     }
     const clip = typeof this.currentAction.getClip === 'function' ? this.currentAction.getClip() : null;
@@ -6979,6 +9904,7 @@ class CharacterController {
       if (selectEl && selectEl.value !== nextClip) {
         selectEl.value = nextClip;
       }
+      syncIntroDialogueOverlayUI();
     }
   }
 
@@ -7059,6 +9985,8 @@ class CharacterController {
     this.velocity.x = 0.0;
     this.velocity.z = 0.0;
     this.dialogueActive = false;
+    this.orderedDialogueSequence = null;
+    this.orderedDialogueIndex = 0;
     this.customEmoteActive = true;
     this.state = isLoopingClip(resolvedName) ? 'EmoteLoop' : 'EmoteOnce';
     this.crossfadeTo(resolvedName, CROSSFADE_DURATION, true);
@@ -7081,6 +10009,8 @@ class CharacterController {
     this.isGrounded = true;
     this.customEmoteActive = false;
     this.dialogueActive = false;
+    this.orderedDialogueSequence = null;
+    this.orderedDialogueIndex = 0;
     this.state = 'Idle';
     this.root.position.copy(this.position);
     this.crossfadeTo('IDLE_DEFAULT', CROSSFADE_DURATION);
@@ -7116,6 +10046,7 @@ const keysPressed = {
   Space: false,
   KeyQ: false,
   KeyE: false,
+  KeyZ: false,
   KeyR: false,
   KeyF: false,
   KeyH: false,
@@ -7162,6 +10093,19 @@ const mountFocusCameraState = {
   toPos: new THREE.Vector3(),
   toLookAt: new THREE.Vector3(),
   currentLookAt: new THREE.Vector3(0, CAM_PIVOT_HEIGHT, 3.0),
+};
+
+const POPUP_FOCUS_CAM_DISTANCE = 0.92;
+const popupFocusCameraState = {
+  active: false,
+  returningToOrbit: false,
+  transitionProgress: 1.0,
+  calloutId: null,
+  fromPos: new THREE.Vector3(),
+  fromLookAt: new THREE.Vector3(),
+  toPos: new THREE.Vector3(),
+  toLookAt: new THREE.Vector3(),
+  viewOffset: new THREE.Vector3(0, 0, -POPUP_FOCUS_CAM_DISTANCE),
 };
 
 const pointerNDC = new THREE.Vector2(-999, -999);
@@ -7226,34 +10170,141 @@ function interpolateProgressFromCorridorZ(z) {
   return 0.96;
 }
 
-function evaluateScrollCorridorPath(progress) {
+const SCROLL_CORRIDOR_WALL_SAFE_CLEARANCE = 0.54; // m — safe inward clearance from alley walls (CHAR_COLLISION_RADIUS 0.38m + 0.16m shoulder margin)
+
+function resolveScrollEntranceProgressWindow(xStart, zStart, zAlleyMouth = 3.00) {
+  const needsEntranceApproach =
+    zStart < zAlleyMouth - 0.01 || (zStart < 1.25 && Math.abs(xStart) > 1.05);
+  if (!needsEntranceApproach) {
+    return 0.0;
+  }
+  const approachDist = Math.hypot(xStart, Math.max(2.0, zAlleyMouth - zStart));
+  return Math.max(0.06, Math.min(0.22, approachDist / (approachDist + 48.0)));
+}
+
+function evaluateScrollCorridorPath(progress, overrideSpawnState = null) {
   const env = sandbox.environment;
   const p = Math.max(0.0, Math.min(1.0, progress));
-  const xStart = env ? env.spawnPlayerPos.x : 0.0;
   const floorY = env ? env.floorY : 0.0;
   const npcZ = env ? env.spawnNpcPos.z : 16.0;
 
-  const z = interpolateCorridorZFromProgress(p);
+  const spawnState = overrideSpawnState || (sandbox.director ? sandbox.director.spawnState : null);
+  const xStart = spawnState ? spawnState.x : (env ? env.spawnPlayerPos.x : 0.0);
+  const zStart = spawnState ? spawnState.z : (env ? env.spawnPlayerPos.z : 3.00);
+  const zAlleyMouth = 3.00;
+  const pEntrance = resolveScrollEntranceProgressWindow(xStart, zStart, zAlleyMouth);
+
+  let z;
+  let x = 0.0;
+  let tx = 0.0;
+  let tz = 1.0;
+
+  if (pEntrance > 0.0) {
+    if (p <= pEntrance) {
+      const u = p / pEntrance;
+      const s = u * u * (3.0 - 2.0 * u);
+      const cornerAlpha =
+        zStart < 1.25
+          ? Math.max(0.0, Math.min(1.0, (Math.abs(xStart) - 0.70) / 0.75))
+          : 0.0;
+
+      const p0x = xStart;
+      const p0z = zStart;
+
+      const p1StraightX = xStart * 0.55;
+      const p1StraightZ = zStart + 0.33 * (zAlleyMouth - zStart);
+      const p2StraightX = 0.0;
+      const p2StraightZ = zStart + 0.67 * (zAlleyMouth - zStart);
+
+      const zForecourtClear = Math.min(zStart - 0.12, -1.15);
+      const p1CornerX = 0.0;
+      const p1CornerZ = zForecourtClear;
+      const p2CornerX = 0.0;
+      const p2CornerZ = -0.55;
+
+      const p1x = p1StraightX + (p1CornerX - p1StraightX) * cornerAlpha;
+      const p1z = p1StraightZ + (p1CornerZ - p1StraightZ) * cornerAlpha;
+      const p2x = p2StraightX + (p2CornerX - p2StraightX) * cornerAlpha;
+      const p2z = p2StraightZ + (p2CornerZ - p2StraightZ) * cornerAlpha;
+      const p3x = 0.0;
+      const p3z = zAlleyMouth;
+
+      const invS = 1.0 - s;
+      const b0 = invS * invS * invS;
+      const b1 = 3.0 * invS * invS * s;
+      const b2 = 3.0 * invS * s * s;
+      const b3 = s * s * s;
+
+      x = b0 * p0x + b1 * p1x + b2 * p2x + b3 * p3x;
+      z = b0 * p0z + b1 * p1z + b2 * p2z + b3 * p3z;
+
+      const d0 = 3.0 * invS * invS;
+      const d1 = 6.0 * invS * s;
+      const d2 = 3.0 * s * s;
+      tx = d0 * (p1x - p0x) + d1 * (p2x - p1x) + d2 * (p3x - p2x);
+      tz = d0 * (p1z - p0z) + d1 * (p2z - p1z) + d2 * (p3z - p2z);
+    } else {
+      const pRem = (p - pEntrance) / (1.0 - pEntrance);
+      z = interpolateCorridorZFromProgress(pRem);
+      x = 0.0;
+      tx = 0.0;
+      tz = 1.0;
+    }
+  } else {
+    if (Math.abs(zStart - zAlleyMouth) <= 0.01) {
+      z = interpolateCorridorZFromProgress(p);
+    } else {
+      const pStart = interpolateProgressFromCorridorZ(zStart);
+      const pEff = pStart + p * (1.0 - pStart);
+      z = p <= 1e-6 ? zStart : interpolateCorridorZFromProgress(pEff);
+    }
+    const uX = Math.min(1.0, p / 0.08);
+    const smoothUX = uX * uX * (3.0 - 2.0 * uX);
+    x = xStart * (1.0 - smoothUX);
+    const dz_dp = Math.max(1.0, SCROLL_TERMINAL_Z - zStart);
+    const dx_dp = p < 0.08 ? (-xStart * 6.0 * uX * (1.0 - uX)) / 0.08 : 0.0;
+    tx = dx_dp;
+    tz = dz_dp;
+  }
 
   // Smooth C1 raised-cosine lateral clearance pass around SPAWN_NPC (Spec 013 §3.1)
-  let x = xStart * (1.0 - p);
-  let dx_dz = 0.0;
   const dzNpc = z - npcZ;
   if (Math.abs(dzNpc) < SCROLL_NPC_AVOID_HALF_SPAN) {
+    const avoidWeight = p <= 1e-4 ? 0.0 : Math.min(1.0, p / 0.04);
     const u = dzNpc / SCROLL_NPC_AVOID_HALF_SPAN;
     const cosTerm = 0.5 * (1.0 + Math.cos(Math.PI * u));
     const dCos_dz = -0.5 * (Math.PI / SCROLL_NPC_AVOID_HALF_SPAN) * Math.sin(Math.PI * u);
-    x += SCROLL_NPC_AVOID_OFFSET_X * cosTerm;
-    dx_dz += SCROLL_NPC_AVOID_OFFSET_X * dCos_dz;
+    x += SCROLL_NPC_AVOID_OFFSET_X * cosTerm * avoidWeight;
+    tx += SCROLL_NPC_AVOID_OFFSET_X * dCos_dz * avoidWeight * Math.max(0.1, tz);
   }
+
+  // Enforce safe interior corridor clearance from calibrated Left & Right alley walls
+  if (z >= -0.15 && p > 1e-5) {
+    const minSafeX = resolveAlleyWallProfileX('L', Math.max(0.0, z)) + SCROLL_CORRIDOR_WALL_SAFE_CLEARANCE;
+    const maxSafeX = resolveAlleyWallProfileX('R', Math.max(0.0, z)) - SCROLL_CORRIDOR_WALL_SAFE_CLEARANCE;
+    if (x < minSafeX) {
+      x = minSafeX;
+    } else if (x > maxSafeX) {
+      x = maxSafeX;
+    }
+  }
+
+  const tLen = Math.hypot(tx, tz);
+  const normTx = tLen > 1e-6 ? tx / tLen : 0.0;
+  const normTz = tLen > 1e-6 ? tz / tLen : 1.0;
+  const dx_dz = Math.abs(normTz) > 1e-3 ? normTx / normTz : 0.0;
 
   return {
     progress: p,
+    pEntrance,
     x,
     y: floorY,
     z,
+    tx: normTx,
+    tz: normTz,
     dx_dz,
-    forwardYaw: Math.atan2(dx_dz, 1.0),
+    forwardYaw: Math.atan2(normTx, normTz),
+    backwardYaw: Math.atan2(-normTx, -normTz),
   };
 }
 
@@ -7283,10 +10334,23 @@ function updateWallScreenMounts(clampedDt = 1 / 60) {
 
   for (let i = 0; i < sandbox.wallMounts.length; i++) {
     const m = sandbox.wallMounts[i];
+    if (
+      (m.screenGroup && m.screenGroup.userData && m.screenGroup.userData.culledBySceneCutter) ||
+      (m.standbyBracketGroup && m.standbyBracketGroup.userData && m.standbyBracketGroup.userData.culledBySceneCutter)
+    ) {
+      m.screenGroup.visible = false;
+      m.standbyBracketGroup.visible = false;
+      if (m.frontFaceMesh) m.frontFaceMesh.visible = false;
+      if (m.backFaceMesh) m.backFaceMesh.visible = false;
+      if (m.wallGlowLight) m.wallGlowLight.intensity = 0.0;
+      continue;
+    }
     const st = m.station;
 
+    const isFocusedOverlayActive = sandbox.mode === 'mount-focus' && sandbox.focusedMount === m;
+
     if (effectiveProgress < st.startProgress) {
-      // State A — Pre-Station / Unmounted Standby (§3.1, Spec 025 §4.2: standbyOpacity in [0.10, 0.28])
+      // State A — Pre-Station / Unmounted Standby (Spec 036 §5.2: single-layer unified hologram card on wall)
       m.state = 'standby';
       m.isMounted = false;
       m.mountProgress = 0.0;
@@ -7294,10 +10358,10 @@ function updateWallScreenMounts(clampedDt = 1 / 60) {
       m.currentRotationDeg = 0.0;
       m.currentWorldNormal.set(0.0, 0.0, -1.0);
 
-      m.screenGroup.visible = true;
-      m.standbyBracketGroup.visible = true;
-      if (m.frontFaceMesh) m.frontFaceMesh.visible = true;
-      if (m.backFaceMesh) m.backFaceMesh.visible = true;
+      m.screenGroup.visible = !isFocusedOverlayActive;
+      m.standbyBracketGroup.visible = false;
+      if (m.frontFaceMesh) m.frontFaceMesh.visible = !isFocusedOverlayActive;
+      if (m.backFaceMesh) m.backFaceMesh.visible = false;
       m.screenGroup.position.copy(m.locatorPosition);
       m.screenGroup.rotation.set(0.0, m.mountedRotationY, 0.0);
       m.panelOffsetGroup.position.set(0.0, 0.0, MOUNT_BRICK_CLEARANCE);
@@ -7309,10 +10373,10 @@ function updateWallScreenMounts(clampedDt = 1 / 60) {
       m.bracketWireMat.opacity = 0.56;
       m.bracketWireMat.color.setHex(0xfbbf24);
       m.wallGlowLight.intensity = 0.65;
-      if (m.standbyDiffusedMat) m.standbyDiffusedMat.uniforms.uIntensity.value = 0.32;
+      if (m.standbyDiffusedMat) m.standbyDiffusedMat.uniforms.uIntensity.value = 0.0;
       if (m.diffusedLightMat) m.diffusedLightMat.uniforms.uIntensity.value = 0.65;
     } else if (effectiveProgress <= st.endProgress) {
-      // State B — Active Transparent Holographic Showcase in Corridor Ahead of Character X (§3.2, Spec 025 §4.2)
+      // State B — Active Transparent Holographic Showcase in Corridor Ahead of Character X (Spec 036 §5.2)
       m.state = 'showcase';
       m.isMounted = false;
       m.mountProgress = 0.0;
@@ -7328,10 +10392,10 @@ function updateWallScreenMounts(clampedDt = 1 / 60) {
         (activeChar ? activeChar.position.z : st.expectedZ) + 1.45
       );
 
-      m.screenGroup.visible = true;
-      m.standbyBracketGroup.visible = true;
+      m.screenGroup.visible = !isFocusedOverlayActive;
+      m.standbyBracketGroup.visible = false;
       if (m.frontFaceMesh) m.frontFaceMesh.visible = false;
-      if (m.backFaceMesh) m.backFaceMesh.visible = true;
+      if (m.backFaceMesh) m.backFaceMesh.visible = !isFocusedOverlayActive;
       m.screenGroup.position.set(showcaseX, showcaseY, showcaseZ);
       m.screenGroup.rotation.set(0.0, 0.0, 0.0);
       m.panelOffsetGroup.position.set(0.0, 0.0, 0.0);
@@ -7347,10 +10411,10 @@ function updateWallScreenMounts(clampedDt = 1 / 60) {
       m.standbyPlateMat.opacity = 0.22;
       m.bracketWireMat.opacity = 0.54;
       m.wallGlowLight.intensity = 0.95;
-      if (m.standbyDiffusedMat) m.standbyDiffusedMat.uniforms.uIntensity.value = 0.42;
+      if (m.standbyDiffusedMat) m.standbyDiffusedMat.uniforms.uIntensity.value = 0.0;
       if (m.diffusedLightMat) m.diffusedLightMat.uniforms.uIntensity.value = 0.95;
     } else {
-      // State C — Scroll-Past Rotation (±90°) & Flush Wall Mounting at SCREEN_MOUNT_0X (§3.3, Spec 025 §4.2)
+      // State C — Scroll-Past Rotation (±90°) & Flush Wall Mounting at SCREEN_MOUNT_0X (Spec 036 §5.2)
       const rawT = isScrollMode
         ? Math.max(0.0, Math.min(1.0, (effectiveProgress - st.endProgress) / DOCK_SCROLL_SPAN))
         : 1.0;
@@ -7369,10 +10433,10 @@ function updateWallScreenMounts(clampedDt = 1 / 60) {
       const startY = st.expectedY;
       const startZ = st.expectedZ;
 
-      m.screenGroup.visible = true;
-      m.standbyBracketGroup.visible = !m.isMounted;
-      if (m.frontFaceMesh) m.frontFaceMesh.visible = true;
-      if (m.backFaceMesh) m.backFaceMesh.visible = !m.isMounted;
+      m.screenGroup.visible = !isFocusedOverlayActive;
+      m.standbyBracketGroup.visible = false;
+      if (m.frontFaceMesh) m.frontFaceMesh.visible = !isFocusedOverlayActive;
+      if (m.backFaceMesh) m.backFaceMesh.visible = false;
       m.panelOffsetGroup.position.set(0.0, 0.0, MOUNT_BRICK_CLEARANCE * smoothT);
       if (m.isMounted) {
         m.screenGroup.position.copy(m.locatorPosition);
@@ -7441,7 +10505,7 @@ function updateProximityAndHoverWallMounts() {
   const promptEl = document.getElementById('mount-proximity-prompt');
   const promptLabelEl = document.getElementById('mount-prompt-label');
 
-  if (sandbox.mode !== 'freeroam') {
+  if (sandbox.mode !== 'freeroam' || sandbox.isPopupFocused) {
     sandbox.proximityMount = null;
     sandbox.hoveredMount = null;
     document.body.classList.remove('mount-pointer-hover');
@@ -7757,6 +10821,7 @@ const sandbox = {
   ready: false,
   error: null,
   radialMenu: null,
+  mp3Player: null,
   lastRadialAction: null,
   mode: 'scroll', // 'scroll' (Scroll-Walk Mode) | 'freeroam' (Interactive Free-Roam Mode) | 'mount-focus' (Mount Focus Mode)
   isMountFocused: false,
@@ -7774,12 +10839,13 @@ const sandbox = {
   mathPods: null,
   hoveredMathPod: null,
   draggedMathPod: null,
+  isPopupFocused: false,
+  focusedMathPodPopupId: null,
+  hoveredMathPodPopupId: null,
   waterColorGroup: watercolorRootGroup,
   skyboxGroup: watercolorRootGroup,
   waterColor: null,
   skybox: null,
-  isWaterColorFocused: false,
-  hoveredWaterColor: false,
   lamppostLight: null,
   streetLights: [],
   entranceLamppostLight: null,
@@ -7797,6 +10863,11 @@ const sandbox = {
       if (nextState) this.lamppostLight.spotHelper.update();
     }
     if (nextState) {
+      if (this.director && this.director.editMode) {
+        this.director.editMode = false;
+        this.director.rootGroup.visible = false;
+        syncDirectorHUDInputs();
+      }
       if (this.holoEditMode) {
         this.holoEditMode = false;
         if (this.hologramColumns) {
@@ -7817,7 +10888,7 @@ const sandbox = {
         this.transformControls.setSpace('world');
         this.transformControls.attach(this.lamppostLight.target);
       }
-    } else if (this.transformControls && !this.holoEditMode) {
+    } else if (this.transformControls && !this.holoEditMode && !(this.director && this.director.editMode)) {
       this.transformControls.detach();
       this.transformControls.enabled = false;
     }
@@ -7868,13 +10939,77 @@ const sandbox = {
   overheadCables: null,
   hologramColumnsGroup: hologramColumnsRootGroup,
   hologramColumns: null,
-  selectedHoloColumnId: 'frenchfry_tag',
+  selectedHoloColumnId: 'holo_slide_carousel',
   holoEditMode: false,
   holoGizmoMode: 'translate',
   transformControls: null,
   transformControlsHelper: null,
   getHologramColumn(idOrIndex) {
     return this.hologramColumns ? this.hologramColumns.getColumn(idOrIndex) : null;
+  },
+  nextHoloSlide(idOrIndex = this.selectedHoloColumnId) {
+    if (!this.hologramColumns) return -1;
+    const idx = this.hologramColumns.nextSlide(idOrIndex);
+    syncHoloEditorHUDInputs();
+    if (this.audio) {
+      this.audio.trigger('onUpdate', { target: idOrIndex, source: 'holo-carousel-next' });
+    }
+    return idx;
+  },
+  prevHoloSlide(idOrIndex = this.selectedHoloColumnId) {
+    if (!this.hologramColumns) return -1;
+    const idx = this.hologramColumns.prevSlide(idOrIndex);
+    syncHoloEditorHUDInputs();
+    if (this.audio) {
+      this.audio.trigger('onUpdate', { target: idOrIndex, source: 'holo-carousel-prev' });
+    }
+    return idx;
+  },
+  goToHoloSlide(idOrIndex = this.selectedHoloColumnId, slideIdx = 0) {
+    if (!this.hologramColumns) return -1;
+    const idx = this.hologramColumns.goToSlide(idOrIndex, slideIdx);
+    syncHoloEditorHUDInputs();
+    return idx;
+  },
+  addSlideToHoloColumn(idOrIndex = this.selectedHoloColumnId, slideSpec = {}) {
+    if (!this.hologramColumns) return -1;
+    const idx = this.hologramColumns.addSlideToColumn(idOrIndex, slideSpec);
+    syncHoloEditorHUDInputs();
+    return idx;
+  },
+  uploadHoloCarouselSlides(fileList, idOrIndex = 'holo_slide_carousel') {
+    if (!this.hologramColumns || !fileList || fileList.length === 0) return [];
+    const col = this.hologramColumns.getColumn(idOrIndex) || this.hologramColumns.getColumn(this.selectedHoloColumnId);
+    if (!col) return [];
+    const addedIndices = [];
+    for (let i = 0; i < fileList.length; i++) {
+      const file = fileList[i];
+      if (!file) continue;
+      const isVideo =
+        (file.type && file.type.startsWith('video/')) ||
+        /\.(mp4|webm|mov|m4v)$/i.test(file.name || '');
+      const blobUrl = typeof URL !== 'undefined' && URL.createObjectURL ? URL.createObjectURL(file) : '';
+      const slideIdx = col.addSlide({
+        id: `custom_slide_${Date.now()}_${i}`,
+        type: isVideo ? 'video' : 'static',
+        url: blobUrl,
+        title: (file.name || `SLIDE ${col.slides.length + 1}`).toUpperCase(),
+        subtitle: isVideo ? 'UPLOADED VIDEO STREAM' : 'UPLOADED HOLO IMAGE',
+        width: isVideo ? 1280 : 1080,
+        height: isVideo ? 720 : 1080,
+        aspectRatio: isVideo ? 16 / 9 : 1.0,
+        fps: isVideo ? 24 : null,
+      });
+      addedIndices.push(slideIdx);
+    }
+    if (addedIndices.length > 0) {
+      col.goToSlide(addedIndices[0]);
+      syncHoloEditorHUDInputs();
+      if (this.audio) {
+        this.audio.trigger('onUpdate', { target: col.id, source: 'holo-carousel-upload' });
+      }
+    }
+    return addedIndices;
   },
   setHologramColumnState(idOrIndex, targetState, options) {
     return this.hologramColumns ? this.hologramColumns.setColumnState(idOrIndex, targetState, options) : false;
@@ -7923,6 +11058,11 @@ const sandbox = {
     this.hologramColumns.setAllColumnsForceVisible(nextState);
 
     if (nextState) {
+      if (this.director && this.director.editMode) {
+        this.director.editMode = false;
+        this.director.rootGroup.visible = false;
+        syncDirectorHUDInputs();
+      }
       if (this.lamppostEditMode) {
         this.lamppostEditMode = false;
         if (this.lamppostLight) {
@@ -7947,7 +11087,7 @@ const sandbox = {
         this.transformControls.setSpace(this.holoGizmoMode === 'translate' ? 'world' : 'local');
         this.transformControls.attach(col.rootGroup);
       }
-    } else if (this.transformControls) {
+    } else if (this.transformControls && !this.lamppostEditMode && !(this.director && this.director.editMode)) {
       this.transformControls.detach();
       this.transformControls.enabled = false;
     }
@@ -7989,12 +11129,12 @@ const sandbox = {
     const col = this.hologramColumns.getColumn(this.selectedHoloColumnId);
     if (!col) return false;
     const t = col.getTransformState();
-    const targetZ = Math.max(1.5, t.z - 2.6);
-    const targetX = t.x < 0 ? Math.min(0.0, t.x + 0.85) : Math.max(0.0, t.x - 0.85);
-    const lookYaw = Math.atan2(t.x - targetX, t.z - targetZ);
+    const targetZ = Math.max(1.5, t.z - 2.35);
+    const targetX = t.x + 0.62;
+    const lookYaw = 0.0;
     this.teleportCharacterTo(targetX, this.environment ? this.environment.floorY : 0.0, targetZ, lookYaw);
-    cameraOrbit.yaw = lookYaw;
-    cameraOrbit.pitch = 0.05;
+    cameraOrbit.yaw = 0.0;
+    cameraOrbit.pitch = 0.04;
     cameraOrbit.pivotCurrent.set(targetX, (this.environment ? this.environment.floorY : 0.0) + CAM_PIVOT_HEIGHT, targetZ);
     cameraOrbit.pivotTarget.copy(cameraOrbit.pivotCurrent);
     updateCameraController(1 / 60);
@@ -8059,6 +11199,16 @@ const sandbox = {
     return this.holographicSign ? this.holographicSign.resetToHomeTransforms() : false;
   },
   freeRoamFlyMode: false,
+  wallCollisionEnabled: true,
+  cameraWallClampEnabled: true,
+  setWallCollisionEnabled(enabled = true) {
+    this.wallCollisionEnabled = Boolean(enabled);
+    return this.wallCollisionEnabled;
+  },
+  setCameraWallClampEnabled(enabled = true) {
+    this.cameraWallClampEnabled = Boolean(enabled);
+    return this.cameraWallClampEnabled;
+  },
   toggleFreeRoamFlyMode(forceState = undefined) {
     if (!this.ready) return false;
     const nextState = typeof forceState === 'boolean' ? forceState : !this.freeRoamFlyMode;
@@ -8120,6 +11270,85 @@ const sandbox = {
     renderer.render(scene, camera);
     return true;
   },
+  director: null,
+  toggleCameraPOVMode(forceState = undefined) {
+    return this.director ? this.director.toggleCameraPOVMode(forceState) : false;
+  },
+  getSpawnCoordinates() {
+    return this.director ? this.director.getSpawnTransform() : DEFAULT_PLAYER_SPAWN;
+  },
+  setSpawnCoordinates(coords, persist = true) {
+    return this.director ? this.director.setSpawnTransform(coords, persist) : null;
+  },
+  placeSpawnAtCameraGroundCrosshair() {
+    return this.director ? this.director.placeSpawnAtCameraGroundCrosshair() : null;
+  },
+  getStartupCameraPan() {
+    return this.director ? this.director.getCameraPan() : DEFAULT_STARTUP_PAN;
+  },
+  setStartupCameraPan(panConfig, persist = true) {
+    return this.director ? this.director.setCameraPan(panConfig, persist) : null;
+  },
+  captureCurrentCameraAsPanStart() {
+    return this.director ? this.director.captureCurrentViewAsPanStart() : null;
+  },
+  captureCurrentCameraAsPanMid() {
+    return this.director ? this.director.captureCurrentViewAsPanMid() : null;
+  },
+  captureCurrentCameraAsPanEnd() {
+    return this.director ? this.director.captureCurrentViewAsPanEnd() : null;
+  },
+  straightenCameraPanTrajectory(persist = true) {
+    return this.director ? this.director.straightenTrajectory(persist) : null;
+  },
+  previewPanStartPose() {
+    return this.director ? this.director.previewPanStartPose() : false;
+  },
+  previewPanMidPose() {
+    return this.director ? this.director.previewPanMidPose() : false;
+  },
+  previewPanEndPose() {
+    return this.director ? this.director.previewPanEndPose() : false;
+  },
+  playStartupCameraPan() {
+    return this.director ? this.director.playStartupPan() : false;
+  },
+  stopStartupCameraPan() {
+    return this.director ? this.director.stopStartupPan() : false;
+  },
+  isScrollLocked() {
+    return this.director ? this.director.isScrollLocked() : false;
+  },
+  getIntroSequenceState() {
+    return this.director ? this.director.getIntroSequenceState() : null;
+  },
+  startIntroTalkingSequence() {
+    return this.director ? this.director.startIntroTalkingSequence() : null;
+  },
+  advanceIntroDialogueBox() {
+    return this.director ? this.director.advanceDialogueBox() : null;
+  },
+  setIntroDialogueBoxCount(count, persist = true) {
+    return this.director ? this.director.setDialogueBoxCount(count, persist) : null;
+  },
+  setIntroDialogueBoxes(boxes, persist = true) {
+    return this.director ? this.director.setDialogueBoxes(boxes, persist) : null;
+  },
+  toggleDirectorGizmos(forceState = undefined) {
+    return this.director ? this.director.toggleEditMode(forceState) : false;
+  },
+  selectDirectorHandle(handleId) {
+    return this.director ? this.director.selectHandle(handleId) : null;
+  },
+  setDirectorGizmoMode(mode) {
+    return this.director ? this.director.setGizmoMode(mode) : false;
+  },
+  exportDirectorJSON() {
+    return this.director ? this.director.exportJSON() : '{}';
+  },
+  resetDirectorDefaults(persist = true) {
+    return this.director ? this.director.resetDefaults(persist) : null;
+  },
   wallMounts: [],
   wallMountsByName: {},
   wallMountRaycastTargets: [],
@@ -8162,6 +11391,128 @@ const sandbox = {
   keysPressed,
   cameraOrbit,
   mountFocusCameraState,
+  popupFocusCameraState,
+  focusMathPodPopup(podOrCalloutId, { immediate = false } = {}) {
+    if (!this.ready || !this.mathPodPopups) return null;
+    const callout = this.mathPodPopups.getCallout(podOrCalloutId);
+    if (!callout) return null;
+
+    if (this.isPopupFocused && this.focusedMathPodPopupId === callout.id) {
+      this.exitMathPodPopupFocus({ immediate });
+      return null;
+    }
+
+    if (this.mode === 'mount-focus') {
+      this.exitMountFocusMode({ immediate: true });
+    }
+
+    for (const k of Object.keys(keysPressed)) {
+      keysPressed[k] = false;
+    }
+    jumpRequested = false;
+    cameraOrbit.isDragging = false;
+
+    for (const c of this.mathPodPopups.callouts) {
+      c.isCameraFocused = c === callout;
+    }
+    callout.open();
+
+    if (this.mathPods) {
+      this.mathPods.update(1 / 60, holoShaderUniforms.uHoloTime.value);
+    }
+
+    const calloutCenter = callout.rootGroup.position.clone();
+    calloutCenter.y += callout.billboardGroup ? callout.billboardGroup.position.y : 0.0;
+
+    // Approach from the corridor side so the camera never clips into left/right brick walls
+    const signZ = camera.position.z >= calloutCenter.z ? 1.0 : -1.0;
+    const clampedCamX = Math.max(-1.05, Math.min(1.05, calloutCenter.x * 0.65));
+    const dx = clampedCamX - calloutCenter.x;
+    const dzMag = Math.sqrt(Math.max(0.25, POPUP_FOCUS_CAM_DISTANCE * POPUP_FOCUS_CAM_DISTANCE - dx * dx));
+    const dz = signZ * dzMag;
+
+    popupFocusCameraState.viewOffset.set(dx, 0.0, dz);
+    const destCamPos = calloutCenter.clone().add(popupFocusCameraState.viewOffset);
+
+    // Offset lookAt ~0.18m to camera-left so the focused pop-up centers in the open 3D viewport to the right of #sandbox-hud
+    const horizDist = Math.hypot(dx, dz) || 1.0;
+    const fwdX = -dx / horizDist;
+    const fwdZ = -dz / horizDist;
+    const camRightX = -fwdZ;
+    const camRightZ = fwdX;
+    const hudClearanceOffset = 0.18;
+    const destLookAt = calloutCenter.clone();
+    destLookAt.x -= camRightX * hudClearanceOffset;
+    destLookAt.z -= camRightZ * hudClearanceOffset;
+
+    this.isPopupFocused = true;
+    this.focusedMathPodPopupId = callout.id;
+    popupFocusCameraState.active = true;
+    popupFocusCameraState.returningToOrbit = false;
+    popupFocusCameraState.calloutId = callout.id;
+    popupFocusCameraState.fromPos.copy(camera.position);
+    popupFocusCameraState.fromLookAt.copy(mountFocusCameraState.currentLookAt);
+    popupFocusCameraState.toPos.copy(destCamPos);
+    popupFocusCameraState.toLookAt.copy(destLookAt);
+    popupFocusCameraState.transitionProgress = immediate ? 1.0 : 0.0;
+
+    if (this.audio) {
+      this.audio.trigger('onActivate', { target: callout.id, source: 'mathpod-popup-focus' });
+    }
+
+    updateCameraController(immediate ? 1.0 : 1 / 60);
+    if (this.mathPods) {
+      this.mathPods.update(1 / 60, holoShaderUniforms.uHoloTime.value);
+    }
+    updateTelemetryHUD();
+    renderer.render(scene, camera);
+    return callout;
+  },
+  exitMathPodPopupFocus({ immediate = false } = {}) {
+    if (!this.ready) return false;
+    if (!this.isPopupFocused && !popupFocusCameraState.active) return false;
+
+    if (this.mathPodPopups) {
+      for (const c of this.mathPodPopups.callouts) {
+        c.isCameraFocused = false;
+      }
+    }
+
+    const prevId = this.focusedMathPodPopupId;
+    this.isPopupFocused = false;
+    this.focusedMathPodPopupId = null;
+    popupFocusCameraState.active = false;
+    popupFocusCameraState.calloutId = null;
+
+    const orbitState = computeThirdPersonCameraPose();
+    if (immediate) {
+      popupFocusCameraState.returningToOrbit = false;
+      popupFocusCameraState.transitionProgress = 1.0;
+      camera.position.copy(orbitState.cameraPos);
+      camera.lookAt(orbitState.pivotPos);
+      camera.updateMatrixWorld(true);
+      mountFocusCameraState.currentLookAt.copy(orbitState.pivotPos);
+    } else {
+      popupFocusCameraState.returningToOrbit = true;
+      popupFocusCameraState.fromPos.copy(camera.position);
+      popupFocusCameraState.fromLookAt.copy(mountFocusCameraState.currentLookAt);
+      popupFocusCameraState.toPos.copy(orbitState.cameraPos);
+      popupFocusCameraState.toLookAt.copy(orbitState.pivotPos);
+      popupFocusCameraState.transitionProgress = 0.0;
+    }
+
+    if (this.audio && prevId) {
+      this.audio.trigger('onHover', { target: prevId, source: 'mathpod-popup-unfocus' });
+    }
+
+    updateCameraController(immediate ? 1.0 : 1 / 60);
+    if (this.mathPods) {
+      this.mathPods.update(1 / 60, holoShaderUniforms.uHoloTime.value);
+    }
+    updateTelemetryHUD();
+    renderer.render(scene, camera);
+    return true;
+  },
   setAudioMuted(muted) {
     return this.audio ? this.audio.setMuted(muted) : false;
   },
@@ -8244,17 +11595,37 @@ const sandbox = {
     this.waterColor.setScale(val);
     updateTelemetryHUD();
   },
-  openWaterColorInspector() {
-    // Spec 025 §5.1: Water Color shader is strictly skybox-only; interior inspector & camera hijack are disabled
-    this.isWaterColorFocused = false;
-    return false;
+  resolveActiveSkateRoomCharId() {
+    const variant = String(this.currentVariantKey || this.activeVariantKey || '');
+    if (variant.startsWith('platodoom_') || this.activeCharacterId === 'tunic') {
+      return 'platodoom';
+    }
+    if (variant === 'luis_holo') {
+      return 'luis_holo';
+    }
+    const activeChar = this.getActiveCharacter ? this.getActiveCharacter() : null;
+    if (activeChar && activeChar.isHoloShaderActive && this.activeCharacterId === 'hoodie' && !variant) {
+      return 'luis_holo';
+    }
+    return 'luis';
   },
-  closeWaterColorInspector() {
-    this.isWaterColorFocused = false;
-    return false;
+  resolveSkateRoomPortalUrl(opts = {}) {
+    if (opts && typeof opts.targetUrl === 'string' && opts.targetUrl.trim()) {
+      return opts.targetUrl.trim();
+    }
+    const charId = (opts && opts.charId) || this.resolveActiveSkateRoomCharId();
+    return `./skate3_cleanroom/?char=${encodeURIComponent(charId)}`;
   },
-  syncWaterColorInspectorDOM() {
-    // Skybox-only mode (Spec 025 §5.1)
+  teleportToSkateRoom(opts = {}) {
+    const resolvedUrl = this.resolveSkateRoomPortalUrl(opts);
+    const mergedOpts = { ...opts, targetUrl: resolvedUrl };
+    if (this.waterColor && typeof this.waterColor.teleportToSkateRoom === 'function') {
+      return this.waterColor.teleportToSkateRoom(mergedOpts);
+    }
+    if (typeof window !== 'undefined' && window.location && mergedOpts.navigate !== false) {
+      window.location.assign(resolvedUrl);
+    }
+    return true;
   },
   focusWallMount(identifier, { immediate = false } = {}) {
     if (!this.ready) return null;
@@ -8430,7 +11801,7 @@ const sandbox = {
         keysPressed[k] = false;
       }
       jumpRequested = false;
-      cameraOrbit.yaw = env.spawnPlayerYaw;
+      cameraOrbit.yaw = 0.0;
       cameraOrbit.pitch = CAM_DEFAULT_PITCH;
       cameraOrbit.desiredDistance = CAM_DEFAULT_DISTANCE;
       cameraOrbit.isDragging = false;
@@ -8545,9 +11916,12 @@ const sandbox = {
     idleChar.updateCompanionLevitation(holoShaderUniforms.uHoloTime.value);
     idleChar.root.updateMatrixWorld(true);
 
-    cameraOrbit.yaw = env.spawnPlayerYaw;
+    cameraOrbit.yaw = 0.0;
     cameraOrbit.pitch = CAM_DEFAULT_PITCH;
     cameraOrbit.desiredDistance = CAM_DEFAULT_DISTANCE;
+    if (destProgress <= 0.001 && this.director && !this.director.editMode && this.director.cameraPanState.mode === 'orbit') {
+      this.director.cameraPanState.mode = 'settled';
+    }
 
     if (this.runningEffects) {
       this.runningEffects.quiesceImmediately();
@@ -8625,15 +11999,23 @@ const sandbox = {
       this.activeCharacterId === 'tunic' &&
       String(this.currentVariantKey).startsWith('luis_')
     ) {
-      this.currentVariantKey = nextChar.isHoloShaderActive
-        ? 'platodoom_holo'
-        : 'platodoom_color';
+      this.currentVariantKey =
+        nextChar.rigProfile === 'SKATE3_RX2_RIG'
+          ? 'platodoom_skate3'
+          : nextChar.isHoloShaderActive
+          ? 'platodoom_holo'
+          : 'platodoom_color';
       this.activeVariantKey = this.currentVariantKey;
     } else if (
       this.activeCharacterId === 'hoodie' &&
       String(this.currentVariantKey).startsWith('platodoom_')
     ) {
-      this.currentVariantKey = nextChar.isHoloShaderActive ? 'luis_holo' : 'luis_color';
+      this.currentVariantKey =
+        nextChar.rigProfile === 'SKATE3_RX2_RIG'
+          ? 'luis_skate3'
+          : nextChar.isHoloShaderActive
+          ? 'luis_holo'
+          : 'luis_color';
       this.activeVariantKey = this.currentVariantKey;
     }
     const variantSelectEl = document.getElementById('glb-variant-select');
@@ -8725,10 +12107,11 @@ const sandbox = {
     const activeClip = currentChar.currentClipName || 'IDLE_DEFAULT';
 
     if (!controller) {
-      const gltf = await loadGLB(this.variantLoader, spec.url);
+      const assetUrl = spec.url || spec.path;
+      const gltf = await loadGLB(this.variantLoader, assetUrl);
       if (gltf.animations && gltf.animations.length > 0) {
         raiseFatalError(
-          `Character variant '${spec.url}' contains ${gltf.animations.length} prohibited embedded legacy animation clips.`
+          `Character variant '${assetUrl}' contains ${gltf.animations.length} prohibited embedded legacy animation clips.`
         );
       }
       controller = new CharacterController({
@@ -8741,7 +12124,7 @@ const sandbox = {
         floorY: this.environment.floorY,
         baseColor: spec.baseColor,
       });
-      controller.root.animations = this.sharedClips;
+      controller.root.animations = controller.adaptedClips || this.sharedClips;
       this.variantCache[variantKey] = controller;
     }
 
@@ -8992,8 +12375,12 @@ function updateCharacterFootsteps(activeChar, frameStepDist, wasGrounded) {
 // ============================================================================
 function updateScrollWalkLocomotion(dt) {
   const activeChar = sandbox.getActiveCharacter();
+  const idleChar = sandbox.getIdleCharacter();
   const env = sandbox.environment;
-  const pathLength = SCROLL_TERMINAL_Z - env.spawnPlayerPos.z;
+  const spawnPos = sandbox.director ? sandbox.director.spawnState : (env ? env.spawnPlayerPos : { x: 0.0, z: 3.0 });
+  const spawnYaw = sandbox.director ? sandbox.director.spawnState.yawRad : (env ? env.spawnPlayerYaw : 0.0);
+  const approachLen = spawnPos.z < 3.0 ? Math.hypot(spawnPos.x, 3.0 - spawnPos.z) : 0.0;
+  const pathLength = Math.max(1.0, (SCROLL_TERMINAL_Z - Math.max(3.0, spawnPos.z)) + approachLen);
 
   const progressDiff = sandbox.targetScrollProgress - sandbox.scrollProgress;
   const distError = progressDiff * pathLength;
@@ -9047,15 +12434,35 @@ function updateScrollWalkLocomotion(dt) {
   }
 
   const pose = evaluateScrollCorridorPath(sandbox.scrollProgress);
-  activeChar.position.set(pose.x, env.floorY, pose.z);
+  const posXZ = { x: pose.x, z: pose.z };
+  const rawVelX = dt > 1e-6 && Math.abs(sandbox.scrollVelocity) > 1e-4 ? (pose.x - prevX) / dt : 0.0;
+  const rawVelZ = dt > 1e-6 && Math.abs(sandbox.scrollVelocity) > 1e-4 ? (pose.z - prevZ) / dt : 0.0;
+  const velXZ = { x: rawVelX, z: rawVelZ };
+
+  if (env && env.wallSegments) {
+    if (idleChar && sandbox.scrollProgress > 0.002 && !sandbox.soloCharacterMode) {
+      const idleXZ = { x: idleChar.position.x, z: idleChar.position.z };
+      resolveCharacterSeparation(posXZ, velXZ, idleXZ, CHAR_SEPARATION_DIST);
+    }
+    resolveCircleAgainstWalls(posXZ, velXZ, CHAR_COLLISION_RADIUS, env.wallSegments);
+  }
+
+  const yStart = sandbox.director ? sandbox.director.spawnState.y : env.floorY;
+  const surf = env
+    ? sampleSurfaceHeightAndNormal(posXZ.x, posXZ.z, env.floorTriangles, activeChar.position.y)
+    : { onFloor: false, height: 0.0 };
+  const targetFloorY = surf.onFloor ? surf.height : env.floorY;
+  const uY = Math.min(1.0, sandbox.scrollProgress / 0.05);
+  const charY = yStart + (targetFloorY - yStart) * uY;
+  activeChar.position.set(posXZ.x, charY, posXZ.z);
   activeChar.isGrounded = true;
 
-  const frameStepDist = Math.hypot(pose.x - prevX, pose.z - prevZ);
+  const frameStepDist = Math.hypot(posXZ.x - prevX, posXZ.z - prevZ);
   if (dt > 1e-6 && Math.abs(sandbox.scrollVelocity) > 1e-4) {
     activeChar.velocity.set(
-      (pose.x - prevX) / dt,
+      (posXZ.x - prevX) / dt,
       0.0,
-      (pose.z - prevZ) / dt
+      (posXZ.z - prevZ) / dt
     );
   } else {
     activeChar.velocity.set(0.0, 0.0, 0.0);
@@ -9063,11 +12470,11 @@ function updateScrollWalkLocomotion(dt) {
 
   let targetYaw = activeChar.yaw;
   if (sandbox.scrollVelocity > 0.03) {
-    targetYaw = pose.forwardYaw;
+    targetYaw = frameStepDist > 0.002 ? Math.atan2(posXZ.x - prevX, posXZ.z - prevZ) : pose.forwardYaw;
   } else if (sandbox.scrollVelocity < -0.03) {
-    targetYaw = Math.atan2(-pose.dx_dz, -1.0);
+    targetYaw = frameStepDist > 0.002 ? Math.atan2(posXZ.x - prevX, posXZ.z - prevZ) : pose.backwardYaw;
   } else if (sandbox.scrollProgress <= 0.001) {
-    targetYaw = env.spawnPlayerYaw;
+    targetYaw = spawnYaw;
   } else if (sandbox.scrollProgress >= 0.999) {
     targetYaw = 0.0;
   }
@@ -9119,9 +12526,11 @@ function updateScrollWalkLocomotion(dt) {
   activeChar._lastFrameStepDist = frameStepDist;
   activeChar._wasGroundedBeforeStep = true;
 
-  cameraOrbit.yaw = env.spawnPlayerYaw;
-  cameraOrbit.pitch = CAM_DEFAULT_PITCH;
-  cameraOrbit.desiredDistance = CAM_DEFAULT_DISTANCE;
+  if (!(sandbox.director && sandbox.director.editMode)) {
+    cameraOrbit.yaw = 0.0;
+    cameraOrbit.pitch = CAM_DEFAULT_PITCH;
+    cameraOrbit.desiredDistance = CAM_DEFAULT_DISTANCE;
+  }
 
   if (sandbox.targetScrollProgress >= 0.999 && sandbox.scrollProgress >= 0.9995) {
     const endPose = evaluateScrollCorridorPath(1.0);
@@ -9378,7 +12787,11 @@ function computeThirdPersonCameraPose() {
   const dirZ = -Math.cos(cameraOrbit.yaw) * cosPitch;
 
   let clampedDist = cameraOrbit.desiredDistance;
-  const bypassWallClamp = Boolean(sandbox.freeRoamFlyMode);
+  const bypassWallClamp = Boolean(
+    sandbox.freeRoamFlyMode ||
+      !sandbox.cameraWallClampEnabled ||
+      (sandbox.director && sandbox.director.cameraPOVMode)
+  );
 
   if (!bypassWallClamp) {
     const horizLen = Math.hypot(dirX, dirZ);
@@ -9431,7 +12844,10 @@ function computeThirdPersonCameraPose() {
 
   cameraOrbit.effectiveDistance = clampedDist;
 
-  const minCamY = sandbox.freeRoamFlyMode ? -50.0 : activeChar.position.y + 0.20;
+  const minCamY =
+    sandbox.freeRoamFlyMode || (sandbox.director && (sandbox.director.cameraPOVMode || sandbox.director.editMode))
+      ? -50.0
+      : activeChar.position.y - 0.50;
   tempDesiredCamPos.set(
     cameraOrbit.pivotCurrent.x + dirX * clampedDist,
     Math.max(minCamY, cameraOrbit.pivotCurrent.y + dirY * clampedDist),
@@ -9448,7 +12864,90 @@ function updateCameraController(dt = 1 / 60) {
   const activeChar = sandbox.getActiveCharacter();
   const orbitState = computeThirdPersonCameraPose();
 
-  if (sandbox.mode === 'mount-focus' && sandbox.focusedMount) {
+  if (popupFocusCameraState.active && sandbox.isPopupFocused && sandbox.mathPodPopups) {
+    const callout = sandbox.mathPodPopups.getCallout(sandbox.focusedMathPodPopupId);
+    if (!callout || (!callout.isVisible && callout.state === 'DORMANT')) {
+      sandbox.isPopupFocused = false;
+      sandbox.focusedMathPodPopupId = null;
+      popupFocusCameraState.active = false;
+      popupFocusCameraState.returningToOrbit = true;
+      popupFocusCameraState.fromPos.copy(camera.position);
+      popupFocusCameraState.fromLookAt.copy(mountFocusCameraState.currentLookAt);
+      popupFocusCameraState.toPos.copy(orbitState.cameraPos);
+      popupFocusCameraState.toLookAt.copy(orbitState.pivotPos);
+      popupFocusCameraState.transitionProgress = 0.0;
+    } else {
+      const calloutCenterX = callout.rootGroup.position.x;
+      const calloutCenterY =
+        callout.rootGroup.position.y + (callout.billboardGroup ? callout.billboardGroup.position.y : 0.0);
+      const calloutCenterZ = callout.rootGroup.position.z;
+      const dx = popupFocusCameraState.viewOffset.x;
+      const dz = popupFocusCameraState.viewOffset.z;
+      const horizDist = Math.hypot(dx, dz) || 1.0;
+      const fwdX = -dx / horizDist;
+      const fwdZ = -dz / horizDist;
+      const camRightX = -fwdZ;
+      const camRightZ = fwdX;
+      const hudClearanceOffset = 0.18;
+
+      popupFocusCameraState.toPos.set(
+        calloutCenterX + dx,
+        calloutCenterY + popupFocusCameraState.viewOffset.y,
+        calloutCenterZ + dz
+      );
+      popupFocusCameraState.toLookAt.set(
+        calloutCenterX - camRightX * hudClearanceOffset,
+        calloutCenterY,
+        calloutCenterZ - camRightZ * hudClearanceOffset
+      );
+
+      if (popupFocusCameraState.transitionProgress < 1.0) {
+        popupFocusCameraState.transitionProgress = Math.min(
+          1.0,
+          popupFocusCameraState.transitionProgress + dt / FOCUS_TRANSITION_DURATION
+        );
+      }
+      const t = popupFocusCameraState.transitionProgress;
+      const ease = 1.0 - Math.pow(1.0 - t, 3);
+
+      camera.position.lerpVectors(
+        popupFocusCameraState.fromPos,
+        popupFocusCameraState.toPos,
+        ease
+      );
+      mountFocusCameraState.currentLookAt.lerpVectors(
+        popupFocusCameraState.fromLookAt,
+        popupFocusCameraState.toLookAt,
+        ease
+      );
+      camera.lookAt(mountFocusCameraState.currentLookAt);
+    }
+  } else if (popupFocusCameraState.returningToOrbit) {
+    popupFocusCameraState.toPos.copy(orbitState.cameraPos);
+    popupFocusCameraState.toLookAt.copy(orbitState.pivotPos);
+    popupFocusCameraState.transitionProgress = Math.min(
+      1.0,
+      popupFocusCameraState.transitionProgress + dt / FOCUS_TRANSITION_DURATION
+    );
+    const t = popupFocusCameraState.transitionProgress;
+    const ease = 1.0 - Math.pow(1.0 - t, 3);
+
+    camera.position.lerpVectors(
+      popupFocusCameraState.fromPos,
+      popupFocusCameraState.toPos,
+      ease
+    );
+    mountFocusCameraState.currentLookAt.lerpVectors(
+      popupFocusCameraState.fromLookAt,
+      popupFocusCameraState.toLookAt,
+      ease
+    );
+    camera.lookAt(mountFocusCameraState.currentLookAt);
+
+    if (popupFocusCameraState.transitionProgress >= 1.0) {
+      popupFocusCameraState.returningToOrbit = false;
+    }
+  } else if (sandbox.mode === 'mount-focus' && sandbox.focusedMount) {
     const m = sandbox.focusedMount;
     mountFocusCameraState.toLookAt.copy(m.locatorPosition);
     mountFocusCameraState.toPos
@@ -9501,6 +13000,87 @@ function updateCameraController(dt = 1 / 60) {
     if (mountFocusCameraState.transitionProgress >= 1.0) {
       mountFocusCameraState.returningToOrbit = false;
     }
+  } else if (sandbox.director && sandbox.director.cameraPanState.mode === 'playing') {
+    if (sandbox.mode === 'scroll' && sandbox.scrollProgress > 0.002) {
+      sandbox.director.cameraPanState.mode = 'settled';
+      sandbox.director.cameraPanState.playing = false;
+      const u = Math.min(1.0, sandbox.scrollProgress / 0.08);
+      const ease = u * u * (3.0 - 2.0 * u);
+      camera.position.lerpVectors(sandbox.director.cameraPanState.endPos, orbitState.cameraPos, ease);
+      mountFocusCameraState.currentLookAt.lerpVectors(sandbox.director.cameraPanState.endLookAt, orbitState.pivotPos, ease);
+      camera.lookAt(mountFocusCameraState.currentLookAt);
+    } else {
+      sandbox.director.updateCameraPan(dt);
+    }
+  } else if (sandbox.director && sandbox.director.cameraPOVMode) {
+    sandbox.director.applyCameraPOVPose();
+  } else if (sandbox.director && sandbox.director.cameraPanState.mode === 'preview-start') {
+    if (cameraOrbit.isDragging) {
+      sandbox.director.cameraPanState.mode = 'orbit';
+      syncDirectorHUDInputs();
+      camera.position.copy(orbitState.cameraPos);
+      mountFocusCameraState.currentLookAt.copy(orbitState.pivotPos);
+      camera.lookAt(orbitState.pivotPos);
+    } else {
+      camera.position.copy(sandbox.director.cameraPanState.startPos);
+      mountFocusCameraState.currentLookAt.copy(sandbox.director.cameraPanState.startLookAt);
+      camera.lookAt(sandbox.director.cameraPanState.startLookAt);
+    }
+  } else if (sandbox.director && sandbox.director.cameraPanState.mode === 'preview-mid') {
+    if (cameraOrbit.isDragging) {
+      sandbox.director.cameraPanState.mode = 'orbit';
+      syncDirectorHUDInputs();
+      camera.position.copy(orbitState.cameraPos);
+      mountFocusCameraState.currentLookAt.copy(orbitState.pivotPos);
+      camera.lookAt(orbitState.pivotPos);
+    } else {
+      camera.position.copy(sandbox.director.cameraPanState.midPos);
+      const midLook = new THREE.Vector3().lerpVectors(
+        sandbox.director.cameraPanState.startLookAt,
+        sandbox.director.cameraPanState.endLookAt,
+        0.5
+      );
+      mountFocusCameraState.currentLookAt.copy(midLook);
+      camera.lookAt(midLook);
+    }
+  } else if (sandbox.director && sandbox.director.cameraPanState.mode === 'preview-end') {
+    if (cameraOrbit.isDragging) {
+      sandbox.director.cameraPanState.mode = 'orbit';
+      syncDirectorHUDInputs();
+      camera.position.copy(orbitState.cameraPos);
+      mountFocusCameraState.currentLookAt.copy(orbitState.pivotPos);
+      camera.lookAt(orbitState.pivotPos);
+    } else {
+      camera.position.copy(sandbox.director.cameraPanState.endPos);
+      mountFocusCameraState.currentLookAt.copy(sandbox.director.cameraPanState.endLookAt);
+      camera.lookAt(sandbox.director.cameraPanState.endLookAt);
+    }
+  } else if (
+    sandbox.director &&
+    sandbox.director.cameraPanState.mode === 'settled' &&
+    sandbox.mode === 'scroll' &&
+    sandbox.scrollProgress < 0.08
+  ) {
+    if (sandbox.director.editMode && cameraOrbit.isDragging) {
+      sandbox.director.cameraPanState.mode = 'orbit';
+      syncDirectorHUDInputs();
+      camera.position.copy(orbitState.cameraPos);
+      mountFocusCameraState.currentLookAt.copy(orbitState.pivotPos);
+      camera.lookAt(orbitState.pivotPos);
+    } else {
+      const pan = sandbox.director.cameraPanState;
+      if (sandbox.scrollProgress <= 0.0005) {
+        camera.position.copy(pan.endPos);
+        mountFocusCameraState.currentLookAt.copy(pan.endLookAt);
+        camera.lookAt(pan.endLookAt);
+      } else {
+        const u = Math.min(1.0, sandbox.scrollProgress / 0.08);
+        const ease = u * u * (3.0 - 2.0 * u);
+        camera.position.lerpVectors(pan.endPos, orbitState.cameraPos, ease);
+        mountFocusCameraState.currentLookAt.lerpVectors(pan.endLookAt, orbitState.pivotPos, ease);
+        camera.lookAt(mountFocusCameraState.currentLookAt);
+      }
+    }
   } else {
     camera.position.copy(orbitState.cameraPos);
     mountFocusCameraState.currentLookAt.copy(orbitState.pivotPos);
@@ -9508,6 +13088,14 @@ function updateCameraController(dt = 1 / 60) {
   }
 
   camera.updateMatrixWorld(true);
+
+  if (sandbox.isPopupFocused && sandbox.mathPodPopups && sandbox.focusedMathPodPopupId) {
+    const focusedCallout = sandbox.mathPodPopups.getCallout(sandbox.focusedMathPodPopupId);
+    if (focusedCallout && focusedCallout.billboardGroup) {
+      focusedCallout.billboardGroup.quaternion.copy(camera.quaternion);
+      focusedCallout.rootGroup.updateMatrixWorld(true);
+    }
+  }
 
   characterFollowLight.position.set(
     activeChar.position.x,
@@ -9643,7 +13231,13 @@ function updateTelemetryHUD() {
   }
   const elTelWaterColor = document.getElementById('tel-watercolor');
   if (elTelWaterColor && sandbox.waterColor) {
-    elTelWaterColor.textContent = `SKYBOX (DIV:${sandbox.waterColor.division} SCALE:${sandbox.waterColor.scale})`;
+    if (sandbox.waterColor.isTeleporting) {
+      elTelWaterColor.textContent = 'TELEPORTING TO SKATE ROOM...';
+    } else if (typeof sandbox.waterColor.isNearPortal === 'function' && sandbox.waterColor.isNearPortal()) {
+      elTelWaterColor.textContent = `GALLERY [WALK THROUGH TO ENTER SKATE ROOM]`;
+    } else {
+      elTelWaterColor.textContent = `GALLERY (DIV:${sandbox.waterColor.division} SCALE:${sandbox.waterColor.scale})`;
+    }
   }
   const elTelRunning = document.getElementById('tel-running');
   if (elTelRunning && sandbox.runningEffects) {
@@ -9660,6 +13254,15 @@ function updateTelemetryHUD() {
   if (elTelCables && sandbox.overheadCables) {
     elTelCables.textContent = `${sandbox.overheadCables.count} / 20 Active (4 Varieties, minY: ${sandbox.overheadCables.minClearanceY.toFixed(2)}m, maxY: ${sandbox.overheadCables.maxAnchorY.toFixed(2)}m)`;
   }
+  const elTelPipes = document.getElementById('tel-pipes');
+  if (elTelPipes && sandbox.alleyPipes) {
+    const pt = sandbox.alleyPipes.getTelemetry();
+    const steamTag =
+      typeof pt.activeSteamEmitterCount === 'number'
+        ? ` | Steam: ${pt.activeSteamEmitterCount} Venting`
+        : '';
+    elTelPipes.textContent = `${pt.totalCount} / 15 Active (${pt.variationCount} Vars: ${pt.leftWallCount}L + ${pt.rightWallCount}R + ${pt.crossWallCount} Cross${steamTag})`;
+  }
   const elTelHoloCols = document.getElementById('tel-holo-columns');
   const elHoloStatusLabel = document.getElementById('holo-column-status-label');
   if ((elTelHoloCols || elHoloStatusLabel) && sandbox.hologramColumns) {
@@ -9672,6 +13275,27 @@ function updateTelemetryHUD() {
     }
     if (elHoloStatusLabel) {
       elHoloStatusLabel.textContent = `Active: ${activeCount}/${t.totalCount}`;
+    }
+  }
+  const elTelSpawn = document.getElementById('tel-spawn');
+  const elTelPan = document.getElementById('tel-pan');
+  if (sandbox.director) {
+    const sp = sandbox.director.spawnState;
+    const cp = sandbox.director.cameraPanState;
+    if (elTelSpawn) {
+      elTelSpawn.textContent = `${sp.x.toFixed(2)}, ${sp.z.toFixed(2)} (${sp.yawDeg}°)`;
+    }
+    if (elTelPan) {
+      elTelPan.textContent =
+        cp.mode === 'playing'
+          ? `Playing (${Math.round(cp.progress * 100)}%)`
+          : cp.mode === 'preview-start'
+          ? 'Preview Start'
+          : cp.mode === 'preview-end'
+          ? 'Preview End'
+          : cp.mode === 'orbit'
+          ? 'Orbit Cam'
+          : `Settled (${cp.durationSec.toFixed(1)}s)`;
     }
   }
 }
@@ -9692,11 +13316,15 @@ function syncHoloEditorHUDInputs() {
   }
   const elTintSelect = document.getElementById('holo-column-tint-select');
   if (elTintSelect) {
-    const tint = col.params.colorAndLuminance.primaryTintHex;
-    for (const [presetKey, presetVal] of Object.entries(HOLO_SPECTRAL_TINT_PRESETS)) {
-      if (presetVal.primaryHex.toLowerCase() === tint.toLowerCase()) {
-        elTintSelect.value = presetKey;
-        break;
+    if (col.params.colorAndLuminance.colorRemapWeight === 0) {
+      elTintSelect.value = 'none';
+    } else {
+      const tint = col.params.colorAndLuminance.primaryTintHex;
+      for (const [presetKey, presetVal] of Object.entries(HOLO_SPECTRAL_TINT_PRESETS)) {
+        if (presetVal.primaryHex.toLowerCase() === tint.toLowerCase()) {
+          elTintSelect.value = presetKey;
+          break;
+        }
       }
     }
   }
@@ -9704,6 +13332,23 @@ function syncHoloEditorHUDInputs() {
   const elDims = document.getElementById('holo-edit-dims-label');
   if (elDims) {
     elDims.textContent = `${t.planeWidthMeters.toFixed(3)}m × ${t.planeHeightMeters.toFixed(3)}m (${t.scaleX.toFixed(2)}x)`;
+  }
+
+  const elCarouselDeckPanel = document.getElementById('holo-carousel-deck-panel');
+  const elCarouselSlideLabel = document.getElementById('holo-carousel-slide-label');
+  if (elCarouselDeckPanel) {
+    elCarouselDeckPanel.style.opacity = col.isCarousel ? '1' : '0.68';
+  }
+  if (elCarouselSlideLabel) {
+    if (col.isCarousel && col.slides && col.slides.length > 0) {
+      const curIdx = col.slideTransitionState === 'settling-commit' ? col.nextSlideIndex : col.activeSlideIndex;
+      const curSlide = col.slides[curIdx] || col.slides[0];
+      const slideTitle = curSlide.label || curSlide.title || curSlide.id || `Slide ${curIdx + 1}`;
+      const slideTypeBadge = (curSlide.type || curSlide.mediaType || 'image').toUpperCase();
+      elCarouselSlideLabel.textContent = `Slide ${curIdx + 1} / ${col.slides.length} — ${slideTitle} [${slideTypeBadge}]`;
+    } else {
+      elCarouselSlideLabel.textContent = `Single Asset (${(col.assetSpec?.mediaType || 'image').toUpperCase()}) — Click "+ Upload Media" to Add Slides`;
+    }
   }
 
   const elToggleBtn = document.getElementById('holo-edit-toggle-btn');
@@ -9777,15 +13422,20 @@ function stepSimulation(dt) {
   updateAlleyAlarmLightFixtures(holoShaderUniforms.uHoloTime.value);
   updateEntranceLamppostLight(holoShaderUniforms.uHoloTime.value);
 
-  if (sandbox.mode === 'scroll') {
+  if (sandbox.director && sandbox.director.cameraPOVMode) {
+    sandbox.director.updateCameraPOV(clampedDt);
+  } else if (sandbox.mode === 'scroll') {
     updateScrollWalkLocomotion(clampedDt);
   } else {
     updateFreeRoamCharacterLocomotion(clampedDt);
   }
 
-  // Dynamically open up fog visibility when in 3D Fly Free-Roam
+  // Dynamically open up fog visibility when in 3D Fly Free-Roam or Director Camera POV Mode
   if (scene.fog) {
-    const targetFogDensity = sandbox.freeRoamFlyMode ? 0.0055 : DEPTH_FOG_DENSITY;
+    const targetFogDensity =
+      sandbox.freeRoamFlyMode || (sandbox.director && sandbox.director.cameraPOVMode)
+        ? 0.0055
+        : DEPTH_FOG_DENSITY;
     scene.fog.density += (targetFogDensity - scene.fog.density) * Math.min(1.0, 4.0 * clampedDt);
   }
 
@@ -9823,7 +13473,7 @@ function stepSimulation(dt) {
     }
   }
   if (sandbox.waterColor) {
-    sandbox.waterColor.update(clampedDt, holoShaderUniforms.uHoloTime.value);
+    sandbox.waterColor.update(clampedDt, holoShaderUniforms.uHoloTime.value, activeChar);
   }
   if (sandbox.runningEffects) {
     sandbox.runningEffects.update(clampedDt, holoShaderUniforms.uHoloTime.value, activeChar, sandbox.mode);
@@ -9836,6 +13486,9 @@ function stepSimulation(dt) {
   }
   if (sandbox.hologramColumns) {
     sandbox.hologramColumns.update(clampedDt, holoShaderUniforms.uHoloTime.value, activeChar, camera);
+  }
+  if (sandbox.mp3Player) {
+    sandbox.mp3Player.update(performance.now());
   }
   updateTelemetryHUD();
   renderer.render(scene, camera);
@@ -9851,8 +13504,25 @@ function bindInputListeners() {
     'scroll',
     () => {
       if (suppressScrollEventSync || !sandbox.ready) return;
+      if (sandbox.director && sandbox.director.cameraPOVMode) return;
       if (sandbox.mode === 'scroll') {
+        if (sandbox.director && sandbox.director.isScrollLocked()) {
+          sandbox.targetScrollProgress = 0.0;
+          sandbox.scrollProgress = 0.0;
+          sandbox.scrollVelocity = 0.0;
+          syncWindowScrollToFraction(0.0);
+          return;
+        }
         sandbox.targetScrollProgress = getWindowScrollFraction();
+        if (
+          sandbox.director &&
+          sandbox.targetScrollProgress > 0.002 &&
+          sandbox.director.introSequenceState.phase !== 'scrolling-alley'
+        ) {
+          sandbox.director.introSequenceState.phase = 'scrolling-alley';
+          syncIntroDialogueOverlayUI();
+          syncDirectorHUDInputs();
+        }
       }
     },
     { passive: true }
@@ -9868,6 +13538,53 @@ function bindInputListeners() {
       sandbox.audio.unlock();
     }
 
+    if (e.code === 'KeyK') {
+      e.preventDefault();
+      sandbox.toggleDirectorGizmos();
+      return;
+    }
+
+    if (e.code === 'KeyC' && !(sandbox.freeRoamFlyMode && (keysPressed.KeyW || keysPressed.KeyS || keysPressed.KeyA || keysPressed.KeyD))) {
+      e.preventDefault();
+      sandbox.toggleCameraPOVMode();
+      return;
+    }
+
+    // When in First-Person Camera POV Mode, '[' captures Pan Start, ']' captures Pan End, and WASD/Space/E/Q/Z fly the camera
+    if (sandbox.director && sandbox.director.cameraPOVMode) {
+      if (e.code === 'Escape') {
+        e.preventDefault();
+        sandbox.toggleCameraPOVMode(false);
+        return;
+      }
+      if (e.code === 'BracketLeft') {
+        e.preventDefault();
+        sandbox.director.captureCurrentViewAsPanStart();
+        return;
+      }
+      if (e.code === 'BracketRight') {
+        e.preventDefault();
+        sandbox.director.captureCurrentViewAsPanEnd();
+        return;
+      }
+      if (e.code in keysPressed) {
+        if (
+          e.code === 'Space' ||
+          e.code === 'ArrowUp' ||
+          e.code === 'ArrowDown' ||
+          e.code === 'ArrowLeft' ||
+          e.code === 'ArrowRight' ||
+          e.code === 'KeyQ' ||
+          e.code === 'KeyE' ||
+          e.code === 'KeyZ'
+        ) {
+          e.preventDefault();
+        }
+        keysPressed[e.code] = true;
+        return;
+      }
+    }
+
     if (e.code === 'KeyG') {
       e.preventDefault();
       sandbox.toggleHoloEditMode();
@@ -9878,6 +13595,45 @@ function bindInputListeners() {
       e.preventDefault();
       sandbox.toggleLamppostEditMode();
       return;
+    }
+
+    if (e.code === 'KeyU') {
+      if (sandbox.mp3Player) {
+        e.preventDefault();
+        sandbox.mp3Player.toggleVisible();
+        return;
+      }
+    }
+
+    if (e.code === 'KeyX') {
+      if (sandbox.sceneCutter) {
+        e.preventDefault();
+        sandbox.sceneCutter.toggleActive();
+        return;
+      }
+    }
+
+    if (sandbox.sceneCutter && sandbox.sceneCutter.active) {
+      if (e.code === 'Tab') {
+        e.preventDefault();
+        sandbox.sceneCutter.flipCutSide();
+        return;
+      }
+      if (e.code === 'Enter' || e.code === 'NumpadEnter') {
+        e.preventDefault();
+        sandbox.sceneCutter.executeCut();
+        return;
+      }
+      if (e.code === 'Escape') {
+        e.preventDefault();
+        const tel = sandbox.sceneCutter.getTelemetry();
+        if (tel && tel.p1) {
+          sandbox.sceneCutter.clearLine();
+        } else {
+          sandbox.sceneCutter.toggleActive(false);
+        }
+        return;
+      }
     }
 
     // Rotate selected / hovered hologram via ',' / '<' (Left) and '.' / '>' (Right)
@@ -10000,6 +13756,11 @@ function bindInputListeners() {
     }
 
     if (e.code === 'Escape') {
+      if (sandbox.isPopupFocused) {
+        e.preventDefault();
+        sandbox.exitMathPodPopupFocus();
+        return;
+      }
       if (sandbox.mode === 'mount-focus') {
         e.preventDefault();
         sandbox.exitMountFocusMode();
@@ -10092,10 +13853,28 @@ function bindInputListeners() {
         e.code === 'ArrowLeft' ||
         e.code === 'ArrowRight';
 
-      // Pressing any movement key exits Mount Focus Mode or hands off Scroll-Walk Mode to Free-Roam Mode (§5.2 & §5.3)
+      // Pressing Space or Enter while Intro Dialogue Boxes are active advances to the next dialogue box
+      if (
+        sandbox.mode === 'scroll' &&
+        sandbox.director &&
+        sandbox.director.introSequenceState.phase === 'dialogue-active' &&
+        (e.code === 'Space' || e.code === 'Enter')
+      ) {
+        e.preventDefault();
+        sandbox.director.advanceDialogueBox();
+        return;
+      }
+
+      // Pressing any movement key exits Popup Focus Mode, Mount Focus Mode, or hands off Scroll-Walk Mode to Free-Roam Mode (§5.2 & §5.3)
+      if (sandbox.isPopupFocused && isMoveKey) {
+        sandbox.exitMathPodPopupFocus();
+      }
       if (sandbox.mode === 'mount-focus' && isMoveKey) {
         sandbox.exitMountFocusMode();
       } else if (sandbox.mode === 'scroll' && isMoveKey) {
+        if (sandbox.director && sandbox.director.isScrollLocked()) {
+          return;
+        }
         enterFreeRoamMode();
       }
 
@@ -10126,6 +13905,7 @@ function bindInputListeners() {
   });
 
   let podPointerDownState = null;
+  let popupPointerDownState = null;
   const canvas = renderer.domElement;
   canvas.addEventListener('pointerdown', (e) => {
     if (sandbox.radialMenu && sandbox.radialMenu.isOpen()) {
@@ -10145,6 +13925,16 @@ function bindInputListeners() {
       }
       pointerRaycaster.setFromCamera(pointerNDC, camera);
 
+      // Click-to-select Director 3D Handles (Spawn Marker, Camera Start/End, LookAt Start/End)
+      if (sandbox.director && sandbox.director.editMode && sandbox.director.rootGroup.visible) {
+        const dirHits = pointerRaycaster.intersectObjects(sandbox.director.raycastTargets, false);
+        if (dirHits.length > 0 && dirHits[0].object.userData.handleId) {
+          const hitHandleId = dirHits[0].object.userData.handleId;
+          sandbox.director.selectHandle(hitHandleId);
+          return;
+        }
+      }
+
       // Click-and-drag the Lamppost Cone Landing Target directly in the 3D scene
       if (sandbox.lamppostLight && sandbox.lamppostLight.targetMarkerGroup && sandbox.lamppostLight.targetMarkerGroup.visible) {
         const lampHits = pointerRaycaster.intersectObjects(sandbox.lamppostLight.raycastTargets, false);
@@ -10154,14 +13944,59 @@ function bindInputListeners() {
         }
       }
 
-      // Click-and-drag ANY of the 17 media columns directly in the 3D scene
-      if (sandbox.hologramColumns) {
-        const holoHits = pointerRaycaster.intersectObjects(sandbox.hologramColumns.raycastTargets, false);
-        if (holoHits.length > 0 && holoHits[0].object.userData.holoColumnId) {
-          const hitId = holoHits[0].object.userData.holoColumnId;
-          sandbox.selectHologramColumnForEdit(hitId);
-          // Start direct coplanar drag unless the 3D gizmo is currently in 'rotate' or 'scale' mode
-          const isGizmoRotateOrScale = sandbox.holoEditMode && (sandbox.holoGizmoMode === 'rotate' || sandbox.holoGizmoMode === 'scale');
+      // Stage 2 Click: Click an active MathPod Holographic Pop-Up -> Camera Focuses on Pop-Up
+      if (sandbox.mathPodPopups) {
+        const popupHits = sandbox.mathPodPopups.raycastCallouts(pointerRaycaster);
+        if (popupHits.length > 0 && popupHits[0].object.userData.calloutId) {
+          popupPointerDownState = {
+            calloutId: popupHits[0].object.userData.calloutId,
+            clientX: e.clientX,
+            clientY: e.clientY,
+          };
+          return;
+        }
+      }
+
+      const holoHits = sandbox.hologramColumns
+        ? pointerRaycaster.intersectObjects(sandbox.hologramColumns.raycastTargets, false)
+        : [];
+      const podHits = sandbox.mathPods
+        ? pointerRaycaster.intersectObjects(sandbox.mathPods.raycastTargets, false)
+        : [];
+
+      const hasPodHit = Boolean(podHits.length > 0 && podHits[0].object.userData.podId);
+      const hasHoloHit = Boolean(holoHits.length > 0 && holoHits[0].object.userData.holoColumnId);
+      const podIsCloser =
+        hasPodHit &&
+        (!sandbox.holoEditMode || !hasHoloHit || podHits[0].distance <= holoHits[0].distance);
+
+      // Stage 1 Click: Click a MathPod -> Reveal/Toggle its Holographic Pop-Up (or drag pod)
+      if (podIsCloser) {
+        const podId = podHits[0].object.userData.podId;
+        const pod = sandbox.mathPods.beginDrag(podId, pointerRaycaster.ray, camera);
+        sandbox.draggedMathPod = pod;
+        podPointerDownState = { podId, clientX: e.clientX, clientY: e.clientY };
+        if (sandbox.audio) {
+          sandbox.audio.trigger('onUpdate', { target: pod.id, source: 'math-pod-grab' });
+        }
+        return;
+      }
+
+      // Click-and-swipe Carousel Hologram Columns (or 3D placement drag when Holo Edit Mode is ON)
+      if (hasHoloHit) {
+        const hitId = holoHits[0].object.userData.holoColumnId;
+        const hitCol = sandbox.hologramColumns.getColumn(hitId);
+        sandbox.selectHologramColumnForEdit(hitId);
+        if (!sandbox.holoEditMode && hitCol && hitCol.isCarousel) {
+          sandbox.hologramColumns.beginSlideSwipe(hitId, e.clientX, e.clientY, holoHits[0].uv || null);
+          if (sandbox.audio) {
+            sandbox.audio.trigger('onUpdate', { target: hitId, source: 'holo-carousel-swipe-start' });
+          }
+          return;
+        }
+        if (sandbox.holoEditMode) {
+          // Start direct coplanar 3D placement drag when Holo Edit Mode is ON unless gizmo is in 'rotate' or 'scale'
+          const isGizmoRotateOrScale = sandbox.holoGizmoMode === 'rotate' || sandbox.holoGizmoMode === 'scale';
           if (!isGizmoRotateOrScale && (!sandbox.transformControls || sandbox.transformControls.axis === null)) {
             sandbox.hologramColumns.beginDrag(hitId, pointerRaycaster.ray, camera);
           }
@@ -10170,23 +14005,18 @@ function bindInputListeners() {
           }
           return;
         }
-      }
-
-      if (sandbox.mathPods) {
-        const podHits = pointerRaycaster.intersectObjects(sandbox.mathPods.raycastTargets, false);
-        if (podHits.length > 0 && podHits[0].object.userData.podId) {
-          const podId = podHits[0].object.userData.podId;
-          const pod = sandbox.mathPods.beginDrag(podId, pointerRaycaster.ray, camera);
-          sandbox.draggedMathPod = pod;
-          podPointerDownState = { podId, clientX: e.clientX, clientY: e.clientY };
-          if (sandbox.audio) {
-            sandbox.audio.trigger('onUpdate', { target: pod.id, source: 'math-pod-grab' });
-          }
-          return;
+        if (sandbox.audio) {
+          sandbox.audio.trigger('onUpdate', { target: hitId, source: 'holo-column-select' });
         }
+        return;
       }
     }
-    if (sandbox.mode !== 'freeroam') return;
+    if (
+      sandbox.mode !== 'freeroam' &&
+      !(sandbox.director && (sandbox.director.editMode || sandbox.director.cameraPOVMode))
+    ) {
+      return;
+    }
     if (e.button === 0 || e.button === 2) {
       cameraOrbit.isDragging = true;
       cameraOrbit.downClientX = e.clientX;
@@ -10218,6 +14048,12 @@ function bindInputListeners() {
       return;
     }
 
+    if (sandbox.ready && sandbox.hologramColumns && sandbox.hologramColumns.activeSwipeColumnId) {
+      sandbox.hologramColumns.updateSlideSwipe(e.clientX, e.clientY, Math.max(200, rect.width * 0.28));
+      syncHoloEditorHUDInputs();
+      return;
+    }
+
     if (sandbox.ready && sandbox.hologramColumns && sandbox.hologramColumns.activeDragColumnId) {
       pointerRaycaster.setFromCamera(pointerNDC, camera);
       sandbox.hologramColumns.updateDrag(pointerRaycaster.ray);
@@ -10238,6 +14074,13 @@ function bindInputListeners() {
       if (sandbox.hologramColumns) {
         const holoHits = pointerRaycaster.intersectObjects(sandbox.hologramColumns.raycastTargets, false);
         hoveredHoloColumn = holoHits.length > 0;
+        const hoveredId = hoveredHoloColumn ? holoHits[0].object.userData.holoColumnId : null;
+        for (let i = 0; i < sandbox.hologramColumns.columns.length; i++) {
+          const c = sandbox.hologramColumns.columns[i];
+          if (c.isCarousel) {
+            c.setHoverUv(c.id === hoveredId ? holoHits[0].uv : null);
+          }
+        }
       }
 
       if (sandbox.audio) {
@@ -10253,6 +14096,16 @@ function bindInputListeners() {
         }
       }
 
+      if (sandbox.mathPodPopups) {
+        const popupHits = sandbox.mathPodPopups.raycastCallouts(pointerRaycaster);
+        sandbox.hoveredMathPodPopupId =
+          popupHits.length > 0 && popupHits[0].object.userData.calloutId
+            ? popupHits[0].object.userData.calloutId
+            : null;
+      } else {
+        sandbox.hoveredMathPodPopupId = null;
+      }
+
       if (sandbox.mathPods) {
         const podHits = pointerRaycaster.intersectObjects(sandbox.mathPods.raycastTargets, false);
         if (podHits.length > 0 && podHits[0].object.userData.podId) {
@@ -10264,11 +14117,22 @@ function bindInputListeners() {
 
       document.body.classList.toggle(
         'mount-pointer-hover',
-        Boolean(sandbox.hoveredMount || sandbox.hoveredMathPod || hoveredHoloColumn)
+        Boolean(
+          sandbox.hoveredMount ||
+            sandbox.hoveredMathPod ||
+            sandbox.hoveredMathPodPopupId ||
+            hoveredHoloColumn
+        )
       );
     }
 
-    if (!cameraOrbit.isDragging || sandbox.mode !== 'freeroam') return;
+    if (
+      !cameraOrbit.isDragging ||
+      (sandbox.mode !== 'freeroam' &&
+        !(sandbox.director && (sandbox.director.editMode || sandbox.director.cameraPOVMode)))
+    ) {
+      return;
+    }
 
     const travelFromDown = Math.hypot(
       e.clientX - cameraOrbit.downClientX,
@@ -10282,6 +14146,16 @@ function bindInputListeners() {
     const dy = e.clientY - cameraOrbit.lastPointerY;
     cameraOrbit.lastPointerX = e.clientX;
     cameraOrbit.lastPointerY = e.clientY;
+
+    if (sandbox.director && sandbox.director.cameraPOVMode) {
+      sandbox.director.povState.yaw -= dx * 0.0055;
+      sandbox.director.povState.pitch = Math.max(
+        -1.45,
+        Math.min(1.45, sandbox.director.povState.pitch + dy * 0.0050)
+      );
+      syncDirectorHUDInputs();
+      return;
+    }
 
     cameraOrbit.yaw -= dx * 0.0065;
     cameraOrbit.pitch = Math.max(
@@ -10299,11 +14173,29 @@ function bindInputListeners() {
       syncLamppostEditorHUDInputs();
       return;
     }
+    if (sandbox.hologramColumns && sandbox.hologramColumns.activeSwipeColumnId) {
+      const swipedCol = sandbox.hologramColumns.endSlideSwipe(e.clientX, e.clientY);
+      syncHoloEditorHUDInputs();
+      if (sandbox.audio && swipedCol) {
+        sandbox.audio.trigger('onUpdate', { target: swipedCol.id, source: 'holo-carousel-slide-commit' });
+      }
+      return;
+    }
     if (sandbox.hologramColumns && sandbox.hologramColumns.activeDragColumnId) {
       const releasedCol = sandbox.hologramColumns.endDrag();
       syncHoloEditorHUDInputs();
       if (sandbox.audio && releasedCol) {
         sandbox.audio.trigger('onHover', { target: releasedCol.id, source: 'holo-column-release' });
+      }
+      return;
+    }
+    if (popupPointerDownState && popupPointerDownState.calloutId) {
+      const dx = e.clientX - popupPointerDownState.clientX;
+      const dy = e.clientY - popupPointerDownState.clientY;
+      const clickedCalloutId = popupPointerDownState.calloutId;
+      popupPointerDownState = null;
+      if (Math.hypot(dx, dy) <= CLICK_MAX_DRAG_PIXELS) {
+        sandbox.focusMathPodPopup(clickedCalloutId);
       }
       return;
     }
@@ -10313,8 +14205,15 @@ function bindInputListeners() {
       if (podPointerDownState && podPointerDownState.podId) {
         const dx = e.clientX - podPointerDownState.clientX;
         const dy = e.clientY - podPointerDownState.clientY;
-        if (Math.hypot(dx, dy) < 4 && sandbox.mathPodPopups) {
-          sandbox.mathPodPopups.togglePinForPod(podPointerDownState.podId);
+        if (Math.hypot(dx, dy) <= CLICK_MAX_DRAG_PIXELS && sandbox.mathPodPopups) {
+          const isNowOpen = sandbox.mathPodPopups.togglePinForPod(podPointerDownState.podId);
+          if (!isNowOpen && sandbox.focusedMathPodPopupId === podPointerDownState.podId) {
+            sandbox.exitMathPodPopupFocus();
+          }
+          if (sandbox.mathPods) {
+            sandbox.mathPods.update(1 / 60, holoShaderUniforms.uHoloTime.value);
+          }
+          renderer.render(scene, camera);
         }
         podPointerDownState = null;
       }
@@ -10327,6 +14226,16 @@ function bindInputListeners() {
     const wasDragging = cameraOrbit.isDragging;
     const dragDistance = cameraOrbit.maxDragTravel;
     cameraOrbit.isDragging = false;
+
+    if (
+      sandbox.isPopupFocused &&
+      e.button === 0 &&
+      dragDistance <= CLICK_MAX_DRAG_PIXELS &&
+      e.target === canvas
+    ) {
+      sandbox.exitMathPodPopupFocus();
+      return;
+    }
 
     // Distinguish clean click on 3D wall mount from camera orbit drag (§4.2 & §6.1)
     if (
@@ -10390,8 +14299,29 @@ function bindInputListeners() {
         }
       }
 
+      // In First-Person Camera POV Mode, mouse wheel dollies the camera forward/backward along its look ray
+      if (sandbox.director && sandbox.director.cameraPOVMode) {
+        e.preventDefault();
+        const lookDir = camera.getWorldDirection(new THREE.Vector3()).normalize();
+        const dollyStep = -e.deltaY * 0.004;
+        sandbox.director.povState.position.addScaledVector(lookDir, dollyStep);
+        syncDirectorHUDInputs();
+        return;
+      }
+
+      if (sandbox.isPopupFocused) {
+        sandbox.exitMathPodPopupFocus();
+      }
+
       if (sandbox.mode === 'scroll') {
         e.preventDefault();
+        if (sandbox.director && sandbox.director.isScrollLocked()) {
+          sandbox.targetScrollProgress = 0.0;
+          sandbox.scrollProgress = 0.0;
+          sandbox.scrollVelocity = 0.0;
+          syncWindowScrollToFraction(0.0);
+          return;
+        }
         const maxScroll = getMaxWindowScroll();
         if (maxScroll > 1) {
           window.scrollBy({ top: e.deltaY, left: 0, behavior: 'instant' });
@@ -10401,6 +14331,15 @@ function bindInputListeners() {
             0.0,
             Math.min(1.0, sandbox.targetScrollProgress + e.deltaY * 0.0004)
           );
+        }
+        if (
+          sandbox.director &&
+          sandbox.targetScrollProgress > 0.002 &&
+          sandbox.director.introSequenceState.phase !== 'scrolling-alley'
+        ) {
+          sandbox.director.introSequenceState.phase = 'scrolling-alley';
+          syncIntroDialogueOverlayUI();
+          syncDirectorHUDInputs();
         }
       } else {
         e.preventDefault();
@@ -10468,6 +14407,15 @@ function bindInputListeners() {
       if (sandbox.audio) {
         sandbox.audio.unlock();
         sandbox.audio.setMasterGain(Number(audioGainSlider.value));
+      }
+    });
+  }
+
+  const hudToggleMp3Btn = document.getElementById('hud-toggle-mp3-btn');
+  if (hudToggleMp3Btn) {
+    hudToggleMp3Btn.addEventListener('click', () => {
+      if (sandbox.mp3Player) {
+        sandbox.mp3Player.toggleVisible();
       }
     });
   }
@@ -10558,6 +14506,13 @@ function bindInputListeners() {
   if (flyFreeRoamBtn) {
     flyFreeRoamBtn.addEventListener('click', () => {
       sandbox.toggleFreeRoamFlyMode();
+    });
+  }
+
+  const enterSkateRoomHudBtn = document.getElementById('hud-enter-skateroom-btn');
+  if (enterSkateRoomHudBtn) {
+    enterSkateRoomHudBtn.addEventListener('click', () => {
+      sandbox.teleportToSkateRoom({ force: true });
     });
   }
 
@@ -10669,6 +14624,34 @@ function bindInputListeners() {
     });
   }
 
+  const elHoloCarouselPrevBtn = document.getElementById('holo-carousel-prev-btn');
+  if (elHoloCarouselPrevBtn) {
+    elHoloCarouselPrevBtn.addEventListener('click', () => {
+      sandbox.prevHoloSlide(sandbox.selectedHoloColumnId);
+    });
+  }
+
+  const elHoloCarouselNextBtn = document.getElementById('holo-carousel-next-btn');
+  if (elHoloCarouselNextBtn) {
+    elHoloCarouselNextBtn.addEventListener('click', () => {
+      sandbox.nextHoloSlide(sandbox.selectedHoloColumnId);
+    });
+  }
+
+  const elHoloCarouselUploadBtn = document.getElementById('holo-carousel-upload-btn');
+  const elHoloCarouselFileInput = document.getElementById('holo-carousel-file-input');
+  if (elHoloCarouselUploadBtn && elHoloCarouselFileInput) {
+    elHoloCarouselUploadBtn.addEventListener('click', () => {
+      elHoloCarouselFileInput.click();
+    });
+    elHoloCarouselFileInput.addEventListener('change', (e) => {
+      if (e.target.files && e.target.files.length > 0) {
+        sandbox.uploadHoloCarouselSlides(e.target.files, sandbox.selectedHoloColumnId);
+        e.target.value = '';
+      }
+    });
+  }
+
   if (elHoloStateSelect) {
     elHoloStateSelect.addEventListener('change', (e) => {
       const selectedState = e.target.value;
@@ -10685,10 +14668,14 @@ function bindInputListeners() {
       const preset = HOLO_SPECTRAL_TINT_PRESETS[tintKey];
       if (preset && sandbox.hologramColumns) {
         const colId = elHoloColSelect ? elHoloColSelect.value : sandbox.selectedHoloColumnId;
+        const col = sandbox.hologramColumns.getColumn(colId);
+        const defaultRemap = col && col.isCarousel ? 0.32 : 0.72;
+        const nextRemapWeight = typeof preset.colorRemapWeight === 'number' ? preset.colorRemapWeight : defaultRemap;
         sandbox.hologramColumns.setParams(colId, {
           colorAndLuminance: {
             primaryTintHex: preset.primaryHex,
             secondaryTintHex: preset.secondaryHex,
+            colorRemapWeight: nextRemapWeight,
           }
         });
       }
@@ -10945,6 +14932,8 @@ function bindInputListeners() {
       }
     });
   }
+
+  bindDirectorHUDListeners();
 }
 
 // ============================================================================
@@ -11007,6 +14996,9 @@ function initSprayPaintLoadingScreen() {
         if (overlayEl && !sprayLoader.keepVisibleForTest) {
           overlayEl.classList.add('hidden');
         }
+        if (sandbox.director && sandbox.mode === 'scroll' && sandbox.scrollProgress <= 0.01) {
+          sandbox.director.playStartupPan();
+        }
       }, holdDelay);
     },
   });
@@ -11023,6 +15015,9 @@ function initSprayPaintLoadingScreen() {
     updateSprayDOMLabels(sprayLoader);
     if (overlayEl) {
       overlayEl.classList.add('hidden');
+    }
+    if (sandbox.director && sandbox.mode === 'scroll' && sandbox.scrollProgress <= 0.01) {
+      sandbox.director.playStartupPan();
     }
   };
 
@@ -11041,12 +15036,107 @@ function initSprayPaintLoadingScreen() {
   return sprayLoader;
 }
 
+function buildVillainyNeonSignSubsystem(villainySignGLTF, floorY = 0.0) {
+  villainySignRootGroup.clear();
+  if (!villainySignGLTF || !villainySignGLTF.scene) {
+    raiseFatalError("Missing 'villainy_inc_textured.glb' scene payload.");
+  }
+
+  // Entrance overhead placement spanning across the alley throat (Z = 5.15m, just ahead of SPAWN_PLAYER Z = 3.00m)
+  const signZ = 5.15;
+  const signRelY = 2.82;
+  const signScale = 1.32;
+  const xL = resolveAlleyWallProfileX('left', signZ);
+  const xR = resolveAlleyWallProfileX('right', signZ);
+  const signX = Number(((xL + xR) * 0.5).toFixed(3));
+  const signY = floorY + signRelY;
+
+  const assemblyGroup = new THREE.Group();
+  assemblyGroup.name = 'VILLAINY_INC_OVERHEAD_SIGN';
+  assemblyGroup.position.set(signX, signY, signZ);
+
+  const modelClone = villainySignGLTF.scene.clone(true);
+  modelClone.name = 'VillainyIncSignMeshRoot';
+  // Rotate 180 deg around Y so the front (+Z in glTF) faces -Z toward the alley entrance camera
+  modelClone.rotation.set(0.0, Math.PI, 0.0);
+  modelClone.scale.setScalar(signScale);
+
+  modelClone.traverse((child) => {
+    if (child.isMesh && child.material) {
+      child.castShadow = true;
+      child.receiveShadow = true;
+      const mats = Array.isArray(child.material) ? child.material : [child.material];
+      for (const m of mats) {
+        if (!m) continue;
+        m.emissiveIntensity = 3.10;
+        m.needsUpdate = true;
+      }
+    }
+  });
+  assemblyGroup.add(modelClone);
+
+  // Subtle local neon fill light so the sign's rusted iron scrollwork, peeling paint, and surrounding brick glow
+  const signNeonLight = new THREE.PointLight(0xff4224, 2.4, 6.5, 1.6);
+  signNeonLight.name = 'VillainySignNeonFillLight';
+  signNeonLight.position.set(0.0, 0.05, -0.48);
+  assemblyGroup.add(signNeonLight);
+
+  // Structural weathered steel tension cables & wall anchor plates suspending the sign across the alley
+  const hardwareMat = new THREE.MeshStandardMaterial({
+    name: 'VillainySignSuspensionSteelMat',
+    color: 0x3b3632,
+    roughness: 0.78,
+    metalness: 0.65,
+  });
+
+  const halfSignSpanX = 0.76 * signScale;
+  const topMountLocalY = 0.44 * signScale;
+  const sideMountLocalY = 0.16 * signScale;
+  const leftWallDeltaX = (xL + 0.04) - signX;
+  const rightWallDeltaX = (xR - 0.04) - signX;
+
+  const cablePairs = [
+    // Upper diagonal suspension cables to left & right brick walls
+    [new THREE.Vector3(-halfSignSpanX, topMountLocalY, 0.0), new THREE.Vector3(leftWallDeltaX, topMountLocalY + 0.52, 0.0)],
+    [new THREE.Vector3(halfSignSpanX, topMountLocalY, 0.0), new THREE.Vector3(rightWallDeltaX, topMountLocalY + 0.52, 0.0)],
+    // Lateral horizontal stabilizer struts to left & right brick walls
+    [new THREE.Vector3(-halfSignSpanX, sideMountLocalY, 0.0), new THREE.Vector3(leftWallDeltaX, sideMountLocalY + 0.05, 0.0)],
+    [new THREE.Vector3(halfSignSpanX, sideMountLocalY, 0.0), new THREE.Vector3(rightWallDeltaX, sideMountLocalY + 0.05, 0.0)],
+  ];
+
+  for (let i = 0; i < cablePairs.length; i++) {
+    const [pStart, pEnd] = cablePairs[i];
+    const curve = new THREE.LineCurve3(pStart, pEnd);
+    const rodGeom = new THREE.TubeGeometry(curve, 4, 0.014, 6, false);
+    const rodMesh = new THREE.Mesh(rodGeom, hardwareMat);
+    rodMesh.name = `VillainySignSupportCable_${i + 1}`;
+    assemblyGroup.add(rodMesh);
+
+    const plateGeom = new THREE.BoxGeometry(0.04, 0.14, 0.14);
+    const plateMesh = new THREE.Mesh(plateGeom, hardwareMat);
+    plateMesh.position.copy(pEnd);
+    plateMesh.name = `VillainySignWallAnchor_${i + 1}`;
+    assemblyGroup.add(plateMesh);
+  }
+
+  villainySignRootGroup.add(assemblyGroup);
+
+  return {
+    rootGroup: villainySignRootGroup,
+    assemblyGroup,
+    model: modelClone,
+    position: { x: signX, y: signY, z: signZ, relY: signRelY },
+    scale: signScale,
+    yawRad: Math.PI,
+  };
+}
+
 async function initSandbox() {
   const sprayLoader = initSprayPaintLoadingScreen();
   const loader = new GLTFLoader();
   sandbox.variantLoader = loader;
 
-  const totalAssets = 5 + RPM_ANIMATION_CATALOG.length;
+  const totalAssets = 7 + RPM_ANIMATION_CATALOG.length;
   let loadedAssets = 0;
   const handleAssetProgress = () => {
     loadedAssets++;
@@ -11062,6 +15152,8 @@ async function initSandbox() {
     tunicGLTF,
     alarmLightGLTF,
     hologramGLTF,
+    alleyPipesGLTF,
+    villainySignGLTF,
     ...rpmAnimGLTFs
   ] = await Promise.all([
     loadGLB(loader, ASSET_PATHS.alley, handleAssetProgress),
@@ -11069,6 +15161,8 @@ async function initSandbox() {
     loadGLB(loader, ASSET_PATHS.tunic, handleAssetProgress),
     loadGLB(loader, ASSET_PATHS.alarmLight, handleAssetProgress),
     loadGLB(loader, ASSET_PATHS.hologram, handleAssetProgress),
+    loadGLB(loader, ASSET_PATHS.alleyPipes, handleAssetProgress),
+    loadGLB(loader, ASSET_PATHS.villainySign, handleAssetProgress),
     ...RPM_ANIMATION_CATALOG.map((spec) => loadGLB(loader, spec.url, handleAssetProgress)),
   ]);
 
@@ -11214,15 +15308,29 @@ async function initSandbox() {
   window.mathPodPopups = sandbox.mathPodPopups;
   updateMathPodsCorridorLOD();
 
-  // Build and integrate "Water Color" Shader Strictly and Exclusively as the Skybox (Spec 025 §5)
+  // Build and integrate "Water Color" Gallery Rectangular Showcase (Strictly Gallery Visual, Zero Drawer UI)
   watercolorRootGroup.clear();
-  const waterColorSkyboxSystem = buildWaterColorSkyboxSystem({
+  const waterColorGallerySystem = buildWaterColorGallerySystem({
     rootGroup: watercolorRootGroup,
+    floorY,
     uTimeUniform: holoShaderUniforms.uHoloTime,
     applyStencilReject: applyCharacterOcclusionStencilReject,
+    portalTargetUrl: './skate3_cleanroom/',
+    resolvePortalTargetUrl: () => sandbox.resolveSkateRoomPortalUrl(),
+    shouldIgnorePortal: () =>
+      Boolean(
+        (sandbox.transformControls && sandbox.transformControls.dragging) ||
+        sandbox.activeHoloTransformDrag
+      ),
+    onTeleport: () => {
+      if (sandbox.audio && typeof sandbox.audio.trigger === 'function') {
+        sandbox.audio.trigger('onActivate', { source: 'shaderPortalTeleport', intensity: 1.0 });
+      }
+      updateTelemetryHUD();
+    },
   });
-  sandbox.waterColor = waterColorSkyboxSystem;
-  sandbox.skybox = waterColorSkyboxSystem;
+  sandbox.waterColor = waterColorGallerySystem;
+  sandbox.skybox = waterColorGallerySystem;
 
   // Build and integrate 17 2D Holographic Media Columns (anim/hologram_columns.md §1–§7)
   hologramColumnsRootGroup.clear();
@@ -11233,6 +15341,15 @@ async function initSandbox() {
     applyStencilReject: applyCharacterOcclusionStencilReject,
   });
   sandbox.hologramColumns = hologramColumnsSystem;
+
+  // Register Water Color Gallery into Hologram Columns editor so it can be tweaked via "G", HUD sliders, and 3D gizmo
+  if (sandbox.hologramColumns && typeof waterColorGallerySystem.createHoloColumnAdapter === 'function') {
+    const wcAdapter = waterColorGallerySystem.createHoloColumnAdapter(floorY);
+    sandbox.hologramColumns.registerCustomColumn(wcAdapter);
+  }
+
+  // Build and integrate 3D Spawn Coordinates & Startup Camera Pan Director System
+  sandbox.director = buildSpawnAndCameraDirectorSystem(floorY);
 
   // Initialize Three.js TransformControls for interactive in-scene resizing & positioning of the 17 Hologram Media Columns
   if (sandbox.transformControlsHelper) {
@@ -11257,7 +15374,10 @@ async function initSandbox() {
         sandbox.draggedMathPod = null;
       }
     } else {
-      if (sandbox.lamppostEditMode && sandbox.lamppostLight) {
+      if (sandbox.director && sandbox.director.isTransformControlsAttachedToDirector()) {
+        sandbox.director.saveToStorage();
+        syncDirectorHUDInputs();
+      } else if (sandbox.lamppostEditMode && sandbox.lamppostLight) {
         sandbox.lamppostLight.syncConeGeometry();
         sandbox.lamppostLight.saveToStorage();
         syncLamppostEditorHUDInputs();
@@ -11269,6 +15389,10 @@ async function initSandbox() {
   });
 
   transformControls.addEventListener('objectChange', () => {
+    if (sandbox.director && sandbox.director.isTransformControlsAttachedToDirector()) {
+      sandbox.director.onTransformControlsObjectChange();
+      return;
+    }
     if (sandbox.lamppostEditMode && sandbox.lamppostLight) {
       sandbox.lamppostLight.syncConeGeometry();
       syncLamppostEditorHUDInputs();
@@ -11294,6 +15418,7 @@ async function initSandbox() {
 
   syncHoloEditorHUDInputs();
   syncLamppostEditorHUDInputs();
+  syncDirectorHUDInputs();
 
   // Keep Holographic Stickers & Sign detached from the live 3D scene while preserving asset modules
   if (holographicStickersRootGroup.parent) {
@@ -11312,20 +15437,41 @@ async function initSandbox() {
   sandbox._visualAlleyMesh = visualAlleyMesh;
   sandbox.overheadCables = buildOverheadHangingCables(wallSegments, floorY);
 
+  // Build and integrate 15 Freeman Alley Metal Pipework Assemblies across 8 Sketchfab Variations + Intermittent Steam (Spec 034 & Spec 036)
+  sandbox.alleyPipes = buildAlleyMetalPipesSubsystem({
+    pipeGLTF: alleyPipesGLTF,
+    rootGroup: scene,
+    floorY,
+    uTimeUniform: sfxSharedUniforms.uTime,
+    applyStencilReject: applyCharacterOcclusionStencilReject,
+  });
+
+  // Build and integrate Overhead "VILLAINY INC." PBR Neon Sign across the alley entrance
+  sandbox.villainySign = buildVillainyNeonSignSubsystem(villainySignGLTF, floorY);
+
   // Build and integrate Running Mode Speed Effects & Cyber-Techno Binary Trail (Spec 023 §3)
   sandbox.runningEffects = buildRunningEffectsSystem(floorY);
 
   // Build and integrate Dynamic Light-Responsive Character & Floating Head Shadows (Spec 023 §5)
   sandbox.characterShadows = buildCharacterLightResponsiveShadows(floorY);
 
-  // Build Environmental Effects, Surface Optics, and Audio Subsystems (SFX.md §2, §3, §4)
+  // Build Environmental Effects, Surface Optics, and Audio Subsystems (SFX.md §2, §3, §4 + Spec 036 Pipe Steam Audio)
   sfxRootGroup.clear();
   const groundFog = buildLowAltitudeGroundFog(floorY);
   const spotlightCones = buildVolumetricSpotlightCones(sandbox.alarmLights);
   const ambientParticulates = buildSuspendedAmbientParticulates(floorY);
   const precipitation = buildPrecipitationEmitter(floorY);
   const floorReflections = buildPlanarFloorReflectionSubsystem(floorY);
-  const audioSubsystem = buildAudioSubsystem(null, sandbox.alarmLights);
+  const audioSubsystem = buildAudioSubsystem(null, sandbox.alarmLights, sandbox.alleyPipes);
+
+  // Build and integrate Interactive Straight-Line Scene Cutter & Half-Space Deletion Subsystem (Spec 036)
+  sandbox.sceneCutter = buildSceneCutterSubsystem({
+    scene,
+    camera,
+    renderer,
+    sandbox,
+    floorY,
+  });
 
   sandbox.sfx = {
     rootGroup: sfxRootGroup,
@@ -11349,6 +15495,7 @@ async function initSandbox() {
     ambientParticulates,
     precipitation,
     floorReflections,
+    pipeSteam: sandbox.alleyPipes ? sandbox.alleyPipes.steamSystem : null,
     audio: audioSubsystem,
   };
   sandbox.audio = audioSubsystem;
@@ -11367,6 +15514,15 @@ async function initSandbox() {
   const spawnPlayerEuler = new THREE.Euler().setFromQuaternion(spawnPlayerQuat, 'YXZ');
   const spawnNpcEuler = new THREE.Euler().setFromQuaternion(spawnNpcQuat, 'YXZ');
 
+  if (sandbox.director && sandbox.director.spawnState) {
+    spawnPlayerPos.set(
+      sandbox.director.spawnState.x,
+      floorY,
+      sandbox.director.spawnState.z
+    );
+    spawnPlayerEuler.y = sandbox.director.spawnState.yawRad;
+  }
+
   sandbox.environment = {
     root: envRootNode,
     visualMesh: visualAlleyMesh,
@@ -11382,6 +15538,9 @@ async function initSandbox() {
     spawnPlayerYaw: spawnPlayerEuler.y,
     spawnNpcYaw: spawnNpcEuler.y,
   };
+  if (sandbox.director) {
+    sandbox.director.syncHandleGeometries();
+  }
 
   // 2. Validate, Sanitize & Share Ready Player Me (RPM) Standalone Animation Library in Memory (animation_Redo.md §3–§6)
   if (rpmAnimGLTFs.length !== RPM_ANIMATION_CATALOG.length) {
@@ -11574,9 +15733,44 @@ async function initSandbox() {
     window.radialMenuController = radialController;
   }
 
+  // Initialize Interactive "DOOM TRACKS" (SYS-990-AMBER) MP3 HUD Deck (functional_specification_035.md)
+  const mp3Player = createDoomTracksMp3HUD({
+    audio: sandbox.audio,
+    assetSrc: 'assets/mp3.jpeg',
+    manifestUrl: 'assets/tracks/manifest.json',
+    initiallyVisible: true,
+  });
+  await mp3Player.initPromise;
+  sandbox.mp3Player = mp3Player;
+  if (typeof window !== 'undefined') {
+    window.mp3Player = mp3Player;
+  }
+
   bindInputListeners();
 
+  // Non-blocking discovery of Server Mac HTTPS Quick Tunnel (functional_specification_037.md)
+  sandbox.tunnelConfig = null;
+  if (typeof fetch === 'function') {
+    fetch(`./tunnel.json?t=${Date.now()}`, { cache: 'no-store' })
+      .then((res) => (res && res.ok ? res.json() : null))
+      .then((data) => {
+        if (data && typeof data === 'object') {
+          sandbox.tunnelConfig = data;
+        }
+      })
+      .catch(() => {});
+  }
+
   sandbox.ready = true;
+  if (sandbox.director) {
+    sandbox.director.introSequenceState.phase = 'pan-playing';
+    sandbox.director.introSequenceState.scrollLocked = true;
+    sandbox.director.introSequenceState.currentBoxIndex = 0;
+    sandbox.director.previewPanStartPose();
+    if (!sprayLoader) {
+      sandbox.director.playStartupPan();
+    }
+  }
   if (sprayLoader && sprayLoader.mode === 'deterministic') {
     sprayLoader.setProgress(1.0);
   }
@@ -11609,6 +15803,12 @@ export {
   CharacterController,
   sandbox,
   keysPressed,
+  ASSET_PATHS,
+  GLB_VARIANT_CATALOG,
+  RPM_REQUIRED_HUMANOID_BONES,
+  SKATE3_REQUIRED_MASTER_RIG_BONES,
+  RPM_TO_SKATE3_BONE_MAP,
+  adaptSharedClipsForSkate3Rig,
   LOOPING_CLIP_NAMES,
   ONCE_STATES,
   sampleSurfaceHeightAndNormal,
@@ -11639,12 +15839,14 @@ export {
   buildHologramColumnsSystem,
   HOLO_MEDIA_MANIFEST,
   HOLO_MEDIA_BY_ID,
+  HOLO_CAROUSEL_DEFAULT_SLIDES,
   HOLO_SPECTRAL_TINT_PRESETS,
   HOLO_LIFECYCLE_STATES,
   HOLO_GLITCH_MODES,
   HOLO_DEFAULT_RUNTIME_PARAMS,
   resolveHoloMediaSpec,
   computeHologramColumnGeometrySpec,
+  createProceduralSlideCardTexture,
   createHoloMediaTextureController,
   evaluateHologramPixelPreProcessing,
   evaluateSteadyStateHologramOptics,
@@ -11702,4 +15904,25 @@ export {
   SPRAY_DEFAULT_OPTIONS,
   buildChoreographedNozzleTrajectory,
   resolveLogoPixelLetterIndex,
+  ALLEY_METAL_PIPES_ASSET_URL,
+  PIPE_VARIATION_SPECS,
+  ALLEY_PIPE_PLACEMENT_SCHEDULE,
+  PIPE_STEAM_NOZZLE_SPECS,
+  PIPE_STEAM_INTERVAL_SCHEDULE,
+  resolvePipeNozzleWorldTransform,
+  evaluatePipeSteamEnvelope,
+  resolveAlleyWallProfileX,
+  buildAlleyMetalPipesSubsystem,
+  createDoomTracksMp3HUD,
+  DOOM_TRACKS_DEFAULT_CATALOG,
+  MP3_CONTROL_HIT_ZONES,
+  MP3_SCREEN_HIT_ZONES,
+  MP3_PALETTE,
+  MP3_CHASSIS_CROP,
+  MP3_SCREEN_ONLY_CROP,
+  MP3_NATIVE_WIDTH,
+  MP3_NATIVE_HEIGHT,
+  processMp3ChassisBitmap,
+  drawTechnoVectorText,
+  measureTechnoVectorText,
 };

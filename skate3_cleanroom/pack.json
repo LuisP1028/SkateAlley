@@ -1,0 +1,79 @@
+{
+  "version": 1,
+  "engine": {
+    "size": 50749272,
+    "parts": [
+      "parts/skate3rust_bg_0.part",
+      "parts/skate3rust_bg_1.part"
+    ],
+    "hash": "d60e23310332b26f"
+  },
+  "core": {
+    "size": 93912807,
+    "parts": [
+      "parts/core_head.part",
+      "parts/char_platodoom.part",
+      "parts/core_tail_0.part",
+      "parts/core_tail_1.part"
+    ],
+    "files": 534,
+    "hash": "c16ab1ef8cecb7b6"
+  },
+  "characters": {
+    "platodoom": {
+      "name": "PlatoDoom",
+      "pack": "core.pack",
+      "parts": [
+        "parts/core_head.part",
+        "parts/char_platodoom.part",
+        "parts/core_tail_0.part",
+        "parts/core_tail_1.part"
+      ],
+      "size": 93912807,
+      "hash": "c16ab1ef8cecb7b6"
+    },
+    "luis": {
+      "name": "Luis",
+      "pack": "core_luis.pack",
+      "parts": [
+        "parts/core_head.part",
+        "parts/char_luis.part",
+        "parts/core_tail_0.part",
+        "parts/core_tail_1.part"
+      ],
+      "size": 98650499,
+      "hash": "7fbdc36d25bbcfb7"
+    },
+    "luis_holo": {
+      "name": "Luis (Holo)",
+      "pack": "core_holo.pack",
+      "parts": [
+        "parts/core_head.part",
+        "parts/char_luis_holo.part",
+        "parts/core_tail_0.part",
+        "parts/core_tail_1.part"
+      ],
+      "size": 100272707,
+      "hash": "0efb37046e7845c5"
+    }
+  },
+  "maps": [
+    {
+      "name": "StartPark",
+      "size": 10208291,
+      "parts": [
+        "maps/StartPark.skate"
+      ],
+      "hash": "118786f479dd1e4f"
+    },
+    {
+      "name": "BlackBoxPark",
+      "size": 20478384,
+      "parts": [
+        "maps/BlackBoxPark.skate"
+      ],
+      "hash": "52eef3fa61459dc1"
+    }
+  ],
+  "default": "StartPark"
+}

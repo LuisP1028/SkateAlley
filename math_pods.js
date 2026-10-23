@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { createMathPodPopupManager } from './mathpod_popup.js';
+import { createMathPodPopupManager } from './mathpod_popup.js?v=058';
 
 // ============================================================================
 // Authoritative Neon Dark Amber Palette Constants (math_pods.md §1)
@@ -42,7 +42,7 @@ export const HOLO_POD_SPECS = [
     code: 'POD-01',
     name: '3D Graph Theory Hologram',
     concept: 'graph-theory',
-    defaultOffset: { x: -0.78, yRel: 1.48, z: 6.80 },
+    defaultOffset: { x: 1.04, yRel: 0.9149, z: 6.5979 },
     cycleDuration: 10.0,
     phaseOffset: 0.0,
   },
@@ -52,7 +52,7 @@ export const HOLO_POD_SPECS = [
     code: 'POD-02',
     name: 'Matrix Rank Solver Hologram',
     concept: 'matrix-rank',
-    defaultOffset: { x: 1.28, yRel: 1.9567, z: 11.8509 },
+    defaultOffset: { x: 1.2786, yRel: 1.9576, z: 11.8503 },
     cycleDuration: 10.0,
     phaseOffset: 1.4,
   },
@@ -62,7 +62,7 @@ export const HOLO_POD_SPECS = [
     code: 'POD-03',
     name: 'Gradient Descent Hologram',
     concept: 'gradient-descent',
-    defaultOffset: { x: -0.78, yRel: 1.46, z: 17.20 },
+    defaultOffset: { x: -0.7782, yRel: 1.4727, z: 17.2003 },
     cycleDuration: 10.0,
     phaseOffset: 2.8,
   },
@@ -72,7 +72,7 @@ export const HOLO_POD_SPECS = [
     code: 'POD-04',
     name: 'Neural Network Hologram',
     concept: 'neural-network',
-    defaultOffset: { x: 0.78, yRel: 1.54, z: 22.40 },
+    defaultOffset: { x: -0.1754, yRel: 1.4672, z: 22.397 },
     cycleDuration: 10.0,
     phaseOffset: 4.2,
   },
@@ -82,7 +82,7 @@ export const HOLO_POD_SPECS = [
     code: 'POD-05',
     name: 'Clustering Algorithm Hologram',
     concept: 'clustering',
-    defaultOffset: { x: -0.7502, yRel: 1.7176, z: 27.8776 },
+    defaultOffset: { x: 0.4896, yRel: 2.5361, z: 27.8826 },
     cycleDuration: 10.0,
     phaseOffset: 5.6,
   },
@@ -92,7 +92,7 @@ export const HOLO_POD_SPECS = [
     code: 'POD-07',
     name: 'Poker / Game Theory Hologram',
     concept: 'poker-game-theory',
-    defaultOffset: { x: 0.00, yRel: 1.56, z: 35.40 },
+    defaultOffset: { x: -0.3884, yRel: 1.7116, z: 34.6507 },
     cycleDuration: 10.0,
     phaseOffset: 8.4,
   },
@@ -4095,6 +4095,12 @@ export function buildMathHologramPods(options = {}) {
     updateCorridorVisibility(charZ = null, camZ = null) {
       this.rootGroup.visible = true;
       for (const pod of this.pods) {
+        if (pod.rootGroup.userData && pod.rootGroup.userData.culledBySceneCutter) {
+          pod.rootGroup.visible = false;
+          pod.visible = false;
+          pod.inCorridorZone = false;
+          continue;
+        }
         pod.rootGroup.visible = true;
         pod.visible = true;
         const podZ = pod.rootGroup.position.z;
@@ -4110,7 +4116,7 @@ export function buildMathHologramPods(options = {}) {
         }
       }
       this.visiblePodCount = this.pods.filter(p => p.rootGroup.visible).length;
-      this.activeCount = this.pods.length;
+      this.activeCount = this.visiblePodCount;
     },
 
     beginDrag(podId, worldRay, camera) {

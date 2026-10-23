@@ -1,0 +1,213 @@
+{
+  "assetId": "alley_metal_pipes",
+  "localGlbPath": "./assets/pipes/alley_metal_pipes.glb",
+  "fileSizeBytes": 2430248,
+  "sketchfabProvenance": {
+    "uid": "445077835b154ebf904fdac7f57323a2",
+    "name": "Modular Industrial Pipes",
+    "author": "FJSketchfab",
+    "viewerUrl": "https://sketchfab.com/3d-models/modular-industrial-pipes-445077835b154ebf904fdac7f57323a2",
+    "rustTextureSourceUid": "6229f6dbbd3c4b75bc92977f2838ca36",
+    "rustTextureSourceName": "rusty modular pipes",
+    "license": "CC Attribution (http://creativecommons.org/licenses/by/4.0/)",
+    "downloadedVia": "Sketchfab Data API v3 (/v3/models/445077835b154ebf904fdac7f57323a2/download & /v3/models/6229f6dbbd3c4b75bc92977f2838ca36/download)"
+  },
+  "meshStats": {
+    "kitPieceCount": 11,
+    "totalKitVertices": 3115,
+    "totalKitFaces": 3064,
+    "pieces": {
+      "Pipe_Bracket": {
+        "vertices": 380,
+        "faces": 420,
+        "dimensions_m": [
+          0.4144,
+          0.1698,
+          2.9796
+        ]
+      },
+      "Pipe_Joint_90": {
+        "vertices": 179,
+        "faces": 200,
+        "dimensions_m": [
+          0.4143,
+          0.1698,
+          0.416
+        ]
+      },
+      "Pipe_Junction_3Way": {
+        "vertices": 290,
+        "faces": 278,
+        "dimensions_m": [
+          0.9385,
+          0.1698,
+          0.5532
+        ]
+      },
+      "Pipe_Junction_4Way": {
+        "vertices": 374,
+        "faces": 360,
+        "dimensions_m": [
+          0.9385,
+          0.1698,
+          0.9319
+        ]
+      },
+      "Pipe_Straight_ExtraLong": {
+        "vertices": 146,
+        "faces": 140,
+        "dimensions_m": [
+          1.6783,
+          0.1698,
+          0.1785
+        ]
+      },
+      "Pipe_Straight_Long": {
+        "vertices": 146,
+        "faces": 140,
+        "dimensions_m": [
+          0.932,
+          0.1698,
+          0.1785
+        ]
+      },
+      "Pipe_Straight_Medium": {
+        "vertices": 146,
+        "faces": 140,
+        "dimensions_m": [
+          0.736,
+          0.1698,
+          0.1785
+        ]
+      },
+      "Pipe_Straight_Short": {
+        "vertices": 146,
+        "faces": 140,
+        "dimensions_m": [
+          0.5431,
+          0.1698,
+          0.1785
+        ]
+      },
+      "Pipe_Valve_Handle": {
+        "vertices": 561,
+        "faces": 480,
+        "dimensions_m": [
+          0.1689,
+          0.1683,
+          0.0426
+        ]
+      },
+      "Pipe_Valve_Junction": {
+        "vertices": 433,
+        "faces": 466,
+        "dimensions_m": [
+          0.3951,
+          0.1698,
+          0.3339
+        ]
+      },
+      "Solo_Thick_Pipe": {
+        "vertices": 314,
+        "faces": 300,
+        "dimensions_m": [
+          0.9909,
+          0.4686,
+          1.1891
+        ]
+      }
+    }
+  },
+  "variationsSupported": [
+    "PIPE_VAR_01",
+    "PIPE_VAR_02",
+    "PIPE_VAR_03",
+    "PIPE_VAR_04",
+    "PIPE_VAR_05",
+    "PIPE_VAR_06",
+    "PIPE_VAR_07",
+    "PIPE_VAR_08"
+  ],
+  "variationStats": {
+    "PIPE_VAR_01": {
+      "vertices": 2045,
+      "faces": 1958,
+      "triangles": 1958,
+      "dimensions_m": [
+        3.2111,
+        0.1528,
+        0.4283
+      ]
+    },
+    "PIPE_VAR_02": {
+      "vertices": 2020,
+      "faces": 1944,
+      "triangles": 1944,
+      "dimensions_m": [
+        0.7977,
+        0.3548,
+        3.1343
+      ]
+    },
+    "PIPE_VAR_03": {
+      "vertices": 1887,
+      "faces": 1660,
+      "triangles": 1660,
+      "dimensions_m": [
+        1.7349,
+        0.2974,
+        1.4563
+      ]
+    },
+    "PIPE_VAR_04": {
+      "vertices": 1662,
+      "faces": 1686,
+      "triangles": 1686,
+      "dimensions_m": [
+        0.6514,
+        0.2577,
+        2.8693
+      ]
+    },
+    "PIPE_VAR_05": {
+      "vertices": 3302,
+      "faces": 3128,
+      "triangles": 3128,
+      "dimensions_m": [
+        2.4335,
+        0.3258,
+        1.0172
+      ]
+    },
+    "PIPE_VAR_06": {
+      "vertices": 1600,
+      "faces": 1612,
+      "triangles": 1612,
+      "dimensions_m": [
+        3.6158,
+        0.2037,
+        0.5492
+      ]
+    },
+    "PIPE_VAR_07": {
+      "vertices": 2872,
+      "faces": 2572,
+      "triangles": 2572,
+      "dimensions_m": [
+        3.5156,
+        0.2207,
+        0.6057
+      ]
+    },
+    "PIPE_VAR_08": {
+      "vertices": 1904,
+      "faces": 1766,
+      "triangles": 1766,
+      "dimensions_m": [
+        3.2943,
+        0.3385,
+        0.9145
+      ]
+    }
+  }
+}

@@ -3,7 +3,153 @@ import * as THREE from 'three';
 // ============================================================================
 // 1. Authoritative 17-Asset Manifest & Lookup Tables (anim/hologram_columns.md §2.2)
 // ============================================================================
+export const HOLO_CAROUSEL_DEFAULT_SLIDES = Object.freeze([
+  Object.freeze({
+    id: 'slide_01_deck_cover',
+    label: '01 // HOLO SLIDE DECK (SWIPE ← →)',
+    title: '01 // HOLO SLIDE DECK (SWIPE ← →)',
+    kicker: 'INTERACTIVE MULTI-MEDIA COLUMN',
+    subtitle: 'DRAG HORIZONTALLY OR CLICK EDGES TO SWIPE IMAGES & VIDEOS',
+    mediaType: 'placeholder',
+    type: 'procedural',
+    repoPath: 'procedural://slide_01_deck_cover',
+    width: 1200,
+    height: 1500,
+    aspectRatio: 0.8,
+    defaultTintPreset: 'cyan',
+    bypassExteriorCutout: true,
+    hasDarkSubjectFloor: true,
+    darkSubjectFloorMinAlpha: 0.24,
+    isHighKeyStudioBackdrop: false,
+    studioBackdropMode: 'none',
+  }),
+  Object.freeze({
+    id: 'slide_02_doomlambo_vid',
+    label: '02 // DOOM LAMBO (VID 24FPS)',
+    title: '02 // DOOM LAMBO (VID 24FPS)',
+    kicker: 'VIDEO STREAM SLIDE // H.264',
+    subtitle: 'anim/DOOMLAMBO.mp4',
+    mediaType: 'video',
+    type: 'video',
+    repoPath: 'anim/DOOMLAMBO.mp4',
+    width: 860,
+    height: 540,
+    aspectRatio: 1.593,
+    fps: 24,
+    durationSec: 6.04,
+    frameCount: 145,
+    defaultTintPreset: 'cyan',
+    bypassExteriorCutout: true,
+    hasDarkSubjectFloor: false,
+    darkSubjectFloorMinAlpha: 0.16,
+    isHighKeyStudioBackdrop: false,
+    studioBackdropMode: 'none',
+  }),
+  Object.freeze({
+    id: 'slide_03_frenchfry_img',
+    label: '03 // FRENCH FRY TAG (IMG)',
+    title: '03 // FRENCH FRY TAG (IMG)',
+    kicker: 'STATIC HIGH-RES IMAGE SLIDE',
+    subtitle: 'anim/frenchfrytag.jpeg',
+    mediaType: 'image',
+    type: 'image',
+    repoPath: 'anim/frenchfrytag.jpeg',
+    width: 1888,
+    height: 2228,
+    aspectRatio: 0.847,
+    defaultTintPreset: 'magenta',
+    bypassExteriorCutout: true,
+    hasDarkSubjectFloor: false,
+    darkSubjectFloorMinAlpha: 0.14,
+    isHighKeyStudioBackdrop: false,
+    studioBackdropMode: 'none',
+  }),
+  Object.freeze({
+    id: 'slide_04_pinkpanther_vid',
+    label: '04 // PINK PANTHER (VID 24FPS)',
+    title: '04 // PINK PANTHER (VID 24FPS)',
+    kicker: 'VIDEO STREAM SLIDE // H.264',
+    subtitle: 'anim/PINKPANTHER.mp4',
+    mediaType: 'video',
+    type: 'video',
+    repoPath: 'anim/PINKPANTHER.mp4',
+    width: 624,
+    height: 480,
+    aspectRatio: 1.3,
+    fps: 24,
+    durationSec: 6.04,
+    frameCount: 145,
+    defaultTintPreset: 'magenta',
+    bypassExteriorCutout: true,
+    hasDarkSubjectFloor: false,
+    darkSubjectFloorMinAlpha: 0.16,
+    isHighKeyStudioBackdrop: false,
+    studioBackdropMode: 'none',
+  }),
+  Object.freeze({
+    id: 'slide_05_custom_slot',
+    label: '05 // CUSTOM MEDIA SLOT (READY)',
+    title: '05 // CUSTOM MEDIA SLOT (READY)',
+    kicker: 'DROP-IN IMAGE / VIDEO SLOT',
+    subtitle: 'USE HUD "UPLOAD SLIDES" TO DROP IN YOUR OWN IMAGES OR MP4 VIDEOS',
+    mediaType: 'placeholder',
+    type: 'procedural',
+    repoPath: 'procedural://slide_05_custom_slot',
+    width: 1200,
+    height: 1500,
+    aspectRatio: 0.8,
+    defaultTintPreset: 'amber',
+    bypassExteriorCutout: true,
+    hasDarkSubjectFloor: true,
+    darkSubjectFloorMinAlpha: 0.24,
+    isHighKeyStudioBackdrop: false,
+    studioBackdropMode: 'none',
+  }),
+]);
+
 export const HOLO_MEDIA_MANIFEST = Object.freeze([
+  {
+    "index": 1,
+    "id": "holo_slide_carousel",
+    "code": "HOLO-COL-SLIDE",
+    "mediaType": "carousel",
+    "isCarousel": true,
+    "slides": HOLO_CAROUSEL_DEFAULT_SLIDES,
+    "repoPath": "anim/frenchfrytag.jpeg",
+    "canonicalPath": "/Users/diesel/desktop/SkateAlley/anim/frenchfrytag.jpeg",
+    "framingMode": "full_frame_rectangular",
+    "bypassExteriorCutout": true,
+    "hasDarkSubjectFloor": true,
+    "darkSubjectFloorMinAlpha": 0.22,
+    "isHighKeyStudioBackdrop": false,
+    "studioBackdropMode": "none",
+    "defaultTintPreset": "cyan",
+    "corridorPlacement": {
+      "wallSide": "L",
+      "x": -0.68,
+      "yRel": 1.62,
+      "z": 4.35,
+      "pitchRad": 0,
+      "yawRad": 2.92,
+      "rollRad": 0,
+      "scale": 0.2,
+      "scaleX": 0.2,
+      "scaleY": 0.2,
+      "scaleZ": 1
+    },
+    "subjectSummary": "Interactive multi-slide Hologram Carousel Column supporting horizontal pointer/touch swipe gestures and chevron/keyboard navigation across mixed image, video, and placeholder slides.",
+    "width": 1280,
+    "height": 1600,
+    "aspectRatio": 0.8,
+    "exactAspectRatio": 0.8,
+    "planeWidthMeters": 0.258,
+    "planeHeightMeters": 0.3226,
+    "fileSizeBytes": 2456687,
+    "sha256": "6e08970ab2303fe8139863b2cf1b1825125d100c4d2e056acedcceb2b0e6c01b",
+    "meanLuminance": 0.50,
+    "darkPixelRatioBelow30": 0.05,
+    "brightPixelRatioAbove200": 0.12
+  },
   {
     "index": 3,
     "id": "frenchfry_tag",
@@ -19,16 +165,16 @@ export const HOLO_MEDIA_MANIFEST = Object.freeze([
     "studioBackdropMode": "none",
     "defaultTintPreset": "magenta",
     "corridorPlacement": {
-      "wallSide": "R",
-      "x": 1.7683,
-      "yRel": 3.8346,
-      "z": 24.3563,
+      "wallSide": "L",
+      "x": -2.2735,
+      "yRel": 4.787,
+      "z": 24.3562,
       "pitchRad": 0,
-      "yawRad": 1.5604,
+      "yawRad": 1.5172,
       "rollRad": 0,
-      "scale": 3.565,
-      "scaleX": 3.565,
-      "scaleY": 3.565,
+      "scale": 4.152,
+      "scaleX": 4.152,
+      "scaleY": 4.152,
       "scaleZ": 1
     },
     "subjectSummary": "Close-up array of pink monogrammed French fry cartons filled with golden fries, with each carton branded with the burgundy 'PLATO DOOM' throw-up and white 'PLATO' / 'O' interior lettering.",
@@ -36,8 +182,8 @@ export const HOLO_MEDIA_MANIFEST = Object.freeze([
     "height": 2228,
     "aspectRatio": 0.847,
     "exactAspectRatio": 0.8473967684021544,
-    "planeWidthMeters": 4.8723,
-    "planeHeightMeters": 5.7496,
+    "planeWidthMeters": 5.6745,
+    "planeHeightMeters": 6.6963,
     "fileSizeBytes": 2456687,
     "sha256": "6e08970ab2303fe8139863b2cf1b1825125d100c4d2e056acedcceb2b0e6c01b",
     "meanLuminance": 0.5411,
@@ -60,11 +206,11 @@ export const HOLO_MEDIA_MANIFEST = Object.freeze([
     "defaultTintPreset": "amber",
     "corridorPlacement": {
       "wallSide": "R",
-      "x": 1.18,
+      "x": 0.3991,
       "yRel": 1.56,
-      "z": 10.8,
+      "z": 11.1,
       "pitchRad": 0,
-      "yawRad": -0.38,
+      "yawRad": -0.5325,
       "rollRad": 0,
       "scale": 0.486,
       "scaleX": 0.486,
@@ -100,7 +246,7 @@ export const HOLO_MEDIA_MANIFEST = Object.freeze([
     "defaultTintPreset": "magenta",
     "corridorPlacement": {
       "wallSide": "L",
-      "x": -1.732,
+      "x": -2.1224,
       "yRel": 2.4071,
       "z": 18.0769,
       "pitchRad": 0.0535,
@@ -123,46 +269,6 @@ export const HOLO_MEDIA_MANIFEST = Object.freeze([
     "meanLuminance": 0.4242,
     "darkPixelRatioBelow30": 0.0524,
     "brightPixelRatioAbove200": 0.0501
-  },
-  {
-    "index": 7,
-    "id": "screen_tag",
-    "code": "HOLO-COL-07",
-    "mediaType": "image",
-    "repoPath": "anim/screentag.jpeg",
-    "canonicalPath": "/Users/diesel/desktop/SkateAlley/anim/screentag.jpeg",
-    "framingMode": "full_frame_rectangular",
-    "bypassExteriorCutout": true,
-    "hasDarkSubjectFloor": true,
-    "darkSubjectFloorMinAlpha": 0.28,
-    "isHighKeyStudioBackdrop": false,
-    "studioBackdropMode": "none",
-    "defaultTintPreset": "emerald",
-    "corridorPlacement": {
-      "wallSide": "R",
-      "x": 0.1829,
-      "yRel": 5.5,
-      "z": 36.1684,
-      "pitchRad": 0,
-      "yawRad": 2.5947,
-      "rollRad": 0,
-      "scale": 1.266,
-      "scaleX": 1.266,
-      "scaleY": 1.266,
-      "scaleZ": 1
-    },
-    "subjectSummary": "Close-up of a Eurorack modular synthesizer (Mutable Instruments Clouds) next to a custom Nintendo Game Boy panel displaying the burgundy 'PLATO DOOM' throw-up on its dark screen with patch cables draped across the controls.",
-    "width": 2094,
-    "height": 2016,
-    "aspectRatio": 1.039,
-    "exactAspectRatio": 1.0386904761904763,
-    "planeWidthMeters": 1.8936,
-    "planeHeightMeters": 1.823,
-    "fileSizeBytes": 2281959,
-    "sha256": "bd1f5eb8362bd10340641adcc9e4d93364147a038664a64b4473add0d75d0b53",
-    "meanLuminance": 0.2569,
-    "darkPixelRatioBelow30": 0.3522,
-    "brightPixelRatioAbove200": 0.0012
   },
   {
     "index": 8,
@@ -203,46 +309,6 @@ export const HOLO_MEDIA_MANIFEST = Object.freeze([
     "meanLuminance": 0.5692,
     "darkPixelRatioBelow30": 0.0354,
     "brightPixelRatioAbove200": 0.3644
-  },
-  {
-    "index": 9,
-    "id": "thigh_tag",
-    "code": "HOLO-COL-09",
-    "mediaType": "image",
-    "repoPath": "anim/ThighTag.jpeg",
-    "canonicalPath": "/Users/diesel/desktop/SkateAlley/anim/ThighTag.jpeg",
-    "framingMode": "full_frame_rectangular",
-    "bypassExteriorCutout": true,
-    "hasDarkSubjectFloor": false,
-    "darkSubjectFloorMinAlpha": 0.14,
-    "isHighKeyStudioBackdrop": false,
-    "studioBackdropMode": "none",
-    "defaultTintPreset": "amber",
-    "corridorPlacement": {
-      "wallSide": "L",
-      "x": -1.5962,
-      "yRel": 2.383,
-      "z": 32.6527,
-      "pitchRad": 0,
-      "yawRad": 1.5877,
-      "rollRad": 0,
-      "scale": 1.589,
-      "scaleX": 1.589,
-      "scaleY": 1.589,
-      "scaleZ": 1
-    },
-    "subjectSummary": "Western portrait of a dark-haired woman in a cream corset and thigh-high stockings holding dual revolvers, with the burgundy 'PLATO DOOM' throw-up across her left thigh.",
-    "width": 1888,
-    "height": 2256,
-    "aspectRatio": 0.837,
-    "exactAspectRatio": 0.8368794326241135,
-    "planeWidthMeters": 2.1447,
-    "planeHeightMeters": 2.5627,
-    "fileSizeBytes": 2463585,
-    "sha256": "924021b2d4465ad1faa6c9f108eb2b97dd09d35793251f132366d39d993a0576",
-    "meanLuminance": 0.4255,
-    "darkPixelRatioBelow30": 0.0012,
-    "brightPixelRatioAbove200": 0.1397
   },
   {
     "index": 10,
@@ -337,53 +403,6 @@ export const HOLO_MEDIA_MANIFEST = Object.freeze([
     "meanLuminance": 0.332,
     "darkPixelRatioBelow30": 0.1874,
     "brightPixelRatioAbove200": 0.0564
-  },
-  {
-    "index": 12,
-    "id": "doomnuns_vid",
-    "code": "HOLO-COL-12",
-    "mediaType": "video",
-    "repoPath": "anim/DOOMNUNS.mp4",
-    "canonicalPath": "/Users/diesel/desktop/SkateAlley/anim/DOOMNUNS.mp4",
-    "framingMode": "full_frame_rectangular",
-    "bypassExteriorCutout": true,
-    "hasDarkSubjectFloor": true,
-    "darkSubjectFloorMinAlpha": 0.28,
-    "isHighKeyStudioBackdrop": false,
-    "studioBackdropMode": "none",
-    "defaultTintPreset": "amber",
-    "corridorPlacement": {
-      "wallSide": "L",
-      "x": -1.7584,
-      "yRel": 3.8148,
-      "z": 9.6905,
-      "pitchRad": 0.0226,
-      "yawRad": 1.5777,
-      "rollRad": -0.048,
-      "scale": 2.854,
-      "scaleX": 2.854,
-      "scaleY": 2.854,
-      "scaleZ": 1
-    },
-    "subjectSummary": "Live-action footage of three nuns in cream habits and black veils\u2014each bearing the burgundy 'PLATO DOOM' throw-up across her chest\u2014smoking cigarettes and exhaling smoke in the woods.",
-    "width": 640,
-    "height": 464,
-    "aspectRatio": 1.379,
-    "exactAspectRatio": 1.3793103448275863,
-    "planeWidthMeters": 5.6686,
-    "planeHeightMeters": 4.1098,
-    "codec": "h264",
-    "pixFmt": "yuv420p",
-    "fps": 24,
-    "frameRateFraction": "24/1",
-    "durationSec": 6.04,
-    "exactDurationSec": 6.041667,
-    "frameCount": 145,
-    "fileSizeBytes": 2207518,
-    "sha256": "83c917ae769af096af55fe472d7e94a4ea6a74dc3ff2c641ea505b680589809c",
-    "meanLuminance": 0.4245,
-    "darkPixelRatioBelow30": 0.182,
-    "brightPixelRatioAbove200": 0.2292
   },
   {
     "index": 13,
@@ -546,9 +565,9 @@ export const HOLO_MEDIA_MANIFEST = Object.freeze([
     "defaultTintPreset": "magenta",
     "corridorPlacement": {
       "wallSide": "R",
-      "x": 1.4235,
-      "yRel": 2.2235,
-      "z": 37.4361,
+      "x": 1.4504,
+      "yRel": 1.9448,
+      "z": 37.4467,
       "pitchRad": 0,
       "yawRad": -1.5639,
       "rollRad": 0,
@@ -593,11 +612,11 @@ export const HOLO_MEDIA_MANIFEST = Object.freeze([
     "defaultTintPreset": "cyan",
     "corridorPlacement": {
       "wallSide": "R",
-      "x": 1.7079,
+      "x": 1.5818,
       "yRel": 6.5791,
-      "z": 41.0569,
+      "z": 38.3629,
       "pitchRad": 0,
-      "yawRad": -1.5915,
+      "yawRad": -1.5834,
       "rollRad": 0,
       "scale": 3.308,
       "scaleX": 3.308,
@@ -623,6 +642,50 @@ export const HOLO_MEDIA_MANIFEST = Object.freeze([
     "meanLuminance": 0.3693,
     "darkPixelRatioBelow30": 0.2274,
     "brightPixelRatioAbove200": 0.0909
+  },
+  {
+    "index": 19,
+    "id": "e_acc_logo",
+    "code": "HOLO-COL-19",
+    "mediaType": "image",
+    "repoPath": "e-acc.png",
+    "canonicalPath": "/Users/diesel/Desktop/SkateAlley/e-acc.png",
+    "framingMode": "full_frame_rectangular",
+    "bypassExteriorCutout": true,
+    "hasDarkSubjectFloor": true,
+    "darkSubjectFloorMinAlpha": 0.96,
+    "isHighKeyStudioBackdrop": false,
+    "studioBackdropMode": "none",
+    "defaultTintPreset": "none",
+    "colorRemapWeight": 0.0,
+    "emissiveIntensity": 1.0,
+    "baseOpacityMultiplier": 1.0,
+    "blendMode": "normal",
+    "corridorPlacement": {
+      "wallSide": "L",
+      "x": -1.18,
+      "yRel": 2.15,
+      "z": 8.80,
+      "pitchRad": 0,
+      "yawRad": 0.55,
+      "rollRad": 0,
+      "scale": 1.35,
+      "scaleX": 1.35,
+      "scaleY": 1.35,
+      "scaleZ": 1
+    },
+    "subjectSummary": "Monochrome e/acc exponential curve emblem (white frame and hyperbolic curve on solid black square background) rendered with native untinted colors.",
+    "width": 300,
+    "height": 312,
+    "aspectRatio": 0.9615,
+    "exactAspectRatio": 0.9615384615384616,
+    "planeWidthMeters": 2.0936,
+    "planeHeightMeters": 2.1773,
+    "fileSizeBytes": 1633,
+    "sha256": "fff7130d30924feea208f0cef2742278e3a117796b586bdf6fa327e808b6e356",
+    "meanLuminance": 0.1236,
+    "darkPixelRatioBelow30": 0.864,
+    "brightPixelRatioAbove200": 0.1154
   }
 ].map(a => Object.freeze({
   ...a,
@@ -637,6 +700,13 @@ export const HOLO_MEDIA_BY_ID = Object.freeze((() => {
     map[asset.repoPath] = asset;
     map[String(asset.index)] = asset;
     map[asset.index] = asset;
+    if (Array.isArray(asset.slides)) {
+      for (const slide of asset.slides) {
+        if (slide && slide.id) {
+          map[slide.id] = slide;
+        }
+      }
+    }
   }
   return map;
 })());
@@ -645,9 +715,70 @@ export function resolveHoloMediaSpec(identifier) {
   if (identifier == null) {
     throw new Error('[hologram_columns] Cannot resolve null or undefined hologram media spec identifier.');
   }
+  if (typeof identifier === 'object') {
+    if (identifier.id && HOLO_MEDIA_BY_ID[identifier.id] && !identifier.isCustomSlide) {
+      return HOLO_MEDIA_BY_ID[identifier.id];
+    }
+    if (identifier.mediaType || identifier.type || identifier.repoPath || identifier.url) {
+      const w = identifier.width || 1200;
+      const h = identifier.height || 1500;
+      const rawType = identifier.mediaType || identifier.type || 'image';
+      const normMediaType =
+        rawType === 'video'
+          ? 'video'
+          : rawType === 'placeholder' || rawType === 'procedural'
+          ? 'placeholder'
+          : 'image';
+      const label = identifier.label || identifier.title || identifier.id || 'HOLO SLIDE';
+      const repoPath = identifier.repoPath || identifier.url || 'procedural://custom_slide';
+      return {
+        id: identifier.id || `slide_${Date.now()}`,
+        code: identifier.code || 'HOLO-SLIDE',
+        index: identifier.index || 1,
+        label,
+        title: label,
+        kicker: identifier.kicker || 'INTERACTIVE HOLOGRAM SLIDE',
+        subtitle: identifier.subtitle || repoPath || '',
+        mediaType: normMediaType,
+        type: normMediaType,
+        repoPath,
+        url: repoPath,
+        width: w,
+        height: h,
+        aspectRatio: identifier.aspectRatio || Number((w / h).toFixed(4)),
+        defaultTintPreset: identifier.defaultTintPreset || 'cyan',
+        colorRemapWeight: identifier.colorRemapWeight,
+        emissiveIntensity: identifier.emissiveIntensity,
+        baseOpacityMultiplier: identifier.baseOpacityMultiplier,
+        bypassExteriorCutout: identifier.bypassExteriorCutout !== false,
+        hasDarkSubjectFloor: Boolean(identifier.hasDarkSubjectFloor),
+        darkSubjectFloorMinAlpha: identifier.darkSubjectFloorMinAlpha ?? 0.22,
+        isHighKeyStudioBackdrop: Boolean(identifier.isHighKeyStudioBackdrop),
+        studioBackdropMode: identifier.studioBackdropMode || 'none',
+        fps: identifier.fps || 24,
+        durationSec: identifier.durationSec || 6.04,
+        frameCount: identifier.frameCount || 145,
+        corridorPlacement: identifier.corridorPlacement || {
+          wallSide: 'L',
+          x: -1.05,
+          yRel: 1.76,
+          z: 6.40,
+          pitchRad: 0,
+          yawRad: 0.42,
+          rollRad: 0,
+          scale: 1.35,
+          scaleX: 1.35,
+          scaleY: 1.35,
+          scaleZ: 1,
+        },
+        slides: identifier.slides || null,
+        isCarousel: Boolean(identifier.isCarousel || (Array.isArray(identifier.slides) && identifier.slides.length > 1)),
+      };
+    }
+  }
   const spec = HOLO_MEDIA_BY_ID[identifier];
   if (!spec) {
-    throw new Error(`[hologram_columns] Unknown hologram media spec identifier: "${identifier}". Must match one of 17 canonical assets.`);
+    throw new Error(`[hologram_columns] Unknown hologram media spec identifier: "${identifier}". Must match one of canonical assets.`);
   }
   return spec;
 }
@@ -656,6 +787,15 @@ export function resolveHoloMediaSpec(identifier) {
 // 2. Spectral Color Mapping Presets & Enums (§3, §5, §6)
 // ============================================================================
 export const HOLO_SPECTRAL_TINT_PRESETS = Object.freeze({
+  none: Object.freeze({
+    primaryHex: '#ffffff',
+    secondaryHex: '#000000',
+    highlightHex: '#ffffff',
+    primaryInt: 0xffffff,
+    secondaryInt: 0x000000,
+    highlightInt: 0xffffff,
+    colorRemapWeight: 0.0,
+  }),
   cyan: Object.freeze({
     primaryHex: '#00d5ff',
     secondaryHex: '#083344',
@@ -847,6 +987,165 @@ function createDeterministicPlaceholderTexture(assetSpec) {
   return texture;
 }
 
+function resolveMediaUrl(repoPath) {
+  if (!repoPath) return '';
+  if (
+    repoPath.startsWith('blob:') ||
+    repoPath.startsWith('data:') ||
+    repoPath.startsWith('http://') ||
+    repoPath.startsWith('https://') ||
+    repoPath.startsWith('/') ||
+    repoPath.startsWith('./')
+  ) {
+    return repoPath;
+  }
+  return './' + repoPath;
+}
+
+export function createProceduralSlideCardTexture(slideSpec, slideIndex = 0, totalSlides = 5) {
+  if (typeof document === 'undefined') {
+    return createDeterministicPlaceholderTexture(slideSpec);
+  }
+  const canvas = document.createElement('canvas');
+  canvas.width = 960;
+  canvas.height = 1200;
+  const ctx = canvas.getContext('2d');
+  const tint = HOLO_SPECTRAL_TINT_PRESETS[slideSpec.defaultTintPreset] || HOLO_SPECTRAL_TINT_PRESETS.cyan;
+
+  // Luminous holographic gradient backdrop so AdditiveBlending projects a vivid, high-contrast panel
+  const grad = ctx.createRadialGradient(
+    canvas.width * 0.5,
+    canvas.height * 0.46,
+    60,
+    canvas.width * 0.5,
+    canvas.height * 0.5,
+    canvas.height * 0.65
+  );
+  grad.addColorStop(0, 'rgba(0, 195, 255, 0.52)');
+  grad.addColorStop(0.55, 'rgba(8, 85, 125, 0.36)');
+  grad.addColorStop(1, 'rgba(4, 24, 42, 0.24)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Subtle holographic coordinate grid
+  ctx.strokeStyle = 'rgba(165, 243, 252, 0.28)';
+  ctx.lineWidth = 2.0;
+  for (let x = 60; x < canvas.width; x += 60) {
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, canvas.height);
+    ctx.stroke();
+  }
+  for (let y = 60; y < canvas.height; y += 60) {
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(canvas.width, y);
+    ctx.stroke();
+  }
+
+  // Outer tactical frame
+  ctx.strokeStyle = tint.primaryHex;
+  ctx.lineWidth = 6;
+  ctx.strokeRect(44, 44, canvas.width - 88, canvas.height - 88);
+
+  // Inner corner brackets
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 8;
+  const bLen = 58;
+  // Top-left
+  ctx.beginPath();
+  ctx.moveTo(68, 68 + bLen);
+  ctx.lineTo(68, 68);
+  ctx.lineTo(68 + bLen, 68);
+  ctx.stroke();
+  // Top-right
+  ctx.beginPath();
+  ctx.moveTo(canvas.width - 68 - bLen, 68);
+  ctx.lineTo(canvas.width - 68, 68);
+  ctx.lineTo(canvas.width - 68, 68 + bLen);
+  ctx.stroke();
+  // Bottom-left
+  ctx.beginPath();
+  ctx.moveTo(68, canvas.height - 68 - bLen);
+  ctx.lineTo(68, canvas.height - 68);
+  ctx.lineTo(68 + bLen, canvas.height - 68);
+  ctx.stroke();
+  // Bottom-right
+  ctx.beginPath();
+  ctx.moveTo(canvas.width - 68 - bLen, canvas.height - 68);
+  ctx.lineTo(canvas.width - 68, canvas.height - 68);
+  ctx.lineTo(canvas.width - 68, canvas.height - 68 - bLen);
+  ctx.stroke();
+
+  // Header badge
+  ctx.fillStyle = tint.primaryHex;
+  ctx.font = 'bold 30px ui-monospace, SFMono-Regular, Menlo, monospace';
+  ctx.textAlign = 'center';
+  const badgeText = slideSpec.kicker || `HOLO-COLUMN CAROUSEL // SLIDE 0${slideIndex + 1} OF 0${totalSlides}`;
+  ctx.fillText(badgeText, canvas.width * 0.5, 165);
+
+  // Center holographic reticle emblem
+  const cx = canvas.width * 0.5;
+  const cy = canvas.height * 0.45;
+  ctx.strokeStyle = tint.primaryHex;
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.arc(cx, cy, 155, 0, Math.PI * 2);
+  ctx.stroke();
+
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.arc(cx, cy, 108, 0, Math.PI * 2);
+  ctx.stroke();
+
+  // Swipe arrows inside emblem
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 68px ui-monospace, SFMono-Regular, Menlo, monospace';
+  ctx.fillText(`◄  0${slideIndex + 1}  ►`, cx, cy + 24);
+
+  // Main slide title
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 42px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+  const title = slideSpec.label || `SLIDE 0${slideIndex + 1} // INTERACTIVE DECK`;
+  ctx.fillText(title, cx, cy + 250);
+
+  // Subtitle / instructions wrapped
+  ctx.fillStyle = tint.highlightHex || '#a5f3fc';
+  ctx.font = 'bold 25px ui-monospace, SFMono-Regular, Menlo, monospace';
+  const sub = slideSpec.subtitle || 'DRAG HORIZONTALLY TO SWIPE ACROSS IMAGES & VIDEOS';
+  const words = sub.split(' ');
+  let line = '';
+  let yCursor = cy + 315;
+  for (let i = 0; i < words.length; i++) {
+    const testLine = line + words[i] + ' ';
+    if (ctx.measureText(testLine).width > 740 && i > 0) {
+      ctx.fillText(line.trim(), cx, yCursor);
+      line = words[i] + ' ';
+      yCursor += 38;
+    } else {
+      line = testLine;
+    }
+  }
+  if (line.trim()) {
+    ctx.fillText(line.trim(), cx, yCursor);
+  }
+
+  // Bottom status bar
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+  ctx.font = 'bold 24px ui-monospace, SFMono-Regular, Menlo, monospace';
+  ctx.fillText('SWIPE LEFT / RIGHT  •  CLICK EDGES  •  UPLOAD CUSTOM MEDIA IN HUD', cx, canvas.height - 125);
+
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.minFilter = THREE.LinearFilter;
+  tex.magFilter = THREE.LinearFilter;
+  tex.wrapS = THREE.ClampToEdgeWrapping;
+  tex.wrapT = THREE.ClampToEdgeWrapping;
+  tex.needsUpdate = true;
+  return tex;
+}
+
 export class HoloVideoStreamController {
   constructor(assetSpec, options = {}) {
     this.assetSpec = assetSpec;
@@ -867,13 +1166,24 @@ export class HoloVideoStreamController {
 
     if (typeof document !== 'undefined') {
       const v = document.createElement('video');
-      v.src = './' + assetSpec.repoPath;
+      v.src = resolveMediaUrl(assetSpec.repoPath);
       v.loop = this.loop;
       v.muted = true;
       v.playsInline = true;
       v.preload = 'auto';
       v.crossOrigin = 'anonymous';
       v.playbackRate = this.playbackRate;
+      v.addEventListener('loadedmetadata', () => {
+        if (v.duration && Number.isFinite(v.duration) && v.duration > 0) {
+          this.durationSec = v.duration;
+          this.totalFrames = Math.max(1, Math.round(this.durationSec * this.fps));
+        }
+        if (v.videoWidth > 0 && v.videoHeight > 0 && !Object.isFrozen(this.assetSpec)) {
+          this.assetSpec.width = v.videoWidth;
+          this.assetSpec.height = v.videoHeight;
+          this.assetSpec.aspectRatio = Number((v.videoWidth / v.videoHeight).toFixed(4));
+        }
+      });
       v.addEventListener('error', (e) => {
         console.warn(`[hologram_columns] Video load error for ${assetSpec.id}:`, e);
       });
@@ -1005,10 +1315,31 @@ export function createHoloMediaTextureController(assetSpec, options = {}) {
   if (spec.mediaType === 'video') {
     return new HoloVideoStreamController(spec, options);
   }
+  if (spec.mediaType === 'placeholder' || String(spec.repoPath || '').startsWith('procedural://')) {
+    const texture = createProceduralSlideCardTexture(
+      spec,
+      options.slideIndex ?? 0,
+      options.totalSlides ?? 5
+    );
+    return {
+      assetSpec: spec,
+      type: 'placeholder',
+      texture,
+      dispose() {
+        if (texture) texture.dispose();
+      },
+    };
+  }
   let texture;
   if (typeof document !== 'undefined') {
     const loader = new THREE.TextureLoader();
-    texture = loader.load('./' + spec.repoPath);
+    texture = loader.load(resolveMediaUrl(spec.repoPath), (loadedTex) => {
+      if (loadedTex.image && loadedTex.image.width > 0 && loadedTex.image.height > 0 && !Object.isFrozen(spec)) {
+        spec.width = loadedTex.image.width;
+        spec.height = loadedTex.image.height;
+        spec.aspectRatio = Number((loadedTex.image.width / loadedTex.image.height).toFixed(4));
+      }
+    });
     texture.colorSpace = THREE.SRGBColorSpace;
     texture.minFilter = THREE.LinearFilter;
     texture.magFilter = THREE.LinearFilter;
@@ -1469,8 +1800,16 @@ void main() {
 
 const HOLO_COLUMN_FRAGMENT_SHADER = `
 uniform sampler2D uMap;
+uniform sampler2D uNextMap;
 uniform float uTime;
 uniform float uAspectRatio;
+uniform float uNextAspectRatio;
+uniform float uViewportAspect;
+uniform float uSlideOffset;
+uniform int uSlideCount;
+uniform int uActiveSlideIndex;
+uniform int uNextSlideIndex;
+uniform int uHoverChevronSide;
 uniform float uIsVideo;
 uniform float uBypassExteriorCutout;
 uniform float uHasDarkSubjectFloor;
@@ -1519,34 +1858,58 @@ float pseudoRandom(vec2 co) {
   return fract(sin(dot(co, vec2(12.9898, 78.233))) * 43758.5453);
 }
 
+vec2 containSlideUv(vec2 inUv, float slideAspect, float frameAspect, out float inBoundsMask) {
+  if (uSlideCount <= 1 || abs(slideAspect - frameAspect) < 0.025) {
+    inBoundsMask = 1.0;
+    return clamp(inUv, 0.0, 1.0);
+  }
+  vec2 centered = inUv - 0.5;
+  float ratio = slideAspect / max(frameAspect, 0.001);
+  if (ratio > 1.0) {
+    centered.y *= ratio;
+  } else {
+    centered.x /= max(ratio, 0.001);
+  }
+  vec2 outUv = centered + 0.5;
+  float bx = smoothstep(0.0, 0.012, outUv.x) * smoothstep(0.0, 0.012, 1.0 - outUv.x);
+  float by = smoothstep(0.0, 0.012, outUv.y) * smoothstep(0.0, 0.012, 1.0 - outUv.y);
+  inBoundsMask = bx * by;
+  return clamp(outUv, 0.0, 1.0);
+}
+
 void main() {
-  vec2 uv = vUv;
+  vec2 baseUv = vUv;
   float backFaceMult = 1.0;
   if (!gl_FrontFacing) {
     if (uBackFaceMode == 1) {
       discard;
     } else if (uBackFaceMode == 2) {
-      uv.x = 1.0 - uv.x;
+      baseUv.x = 1.0 - baseUv.x;
       backFaceMult = 0.85;
     } else {
-      backFaceMult = 0.42;
+      baseUv.x = 1.0 - baseUv.x;
+      backFaceMult = (uSlideCount > 1) ? 0.92 : 0.42;
     }
   }
 
+  vec2 uv = baseUv;
+  float swipeMotionAmt = abs(uSlideOffset);
+  float effGlitch = clamp(uGlitchIntensity + swipeMotionAmt * (1.0 - swipeMotionAmt) * 0.85, 0.0, 1.0);
+
   // Glitch: Horizontal Slice Tearing
-  if (uGlitchIntensity > 0.001) {
+  if (effGlitch > 0.001) {
     float sliceBand = floor(uv.y * uSliceCount);
     float sliceTime = floor(uTime * 24.0);
     float sliceHash = sin(sliceBand * 73.1 + sliceTime * 31.7);
     if (abs(sliceHash) > 0.45) {
       float shiftDir = sign(sliceHash);
-      uv.x += shiftDir * uGlitchIntensity * uSliceDisplacementMax * abs(sliceHash);
+      uv.x += shiftDir * effGlitch * uSliceDisplacementMax * abs(sliceHash);
     }
     // Block jitter
-    if (uGlitchIntensity > 0.35 && uBlockJitterAmount > 0.001) {
+    if (effGlitch > 0.35 && uBlockJitterAmount > 0.001) {
       vec2 blockCoord = floor(uv * 12.0);
       float bHash = pseudoRandom(blockCoord + floor(uTime * 18.0));
-      if (bHash < 0.22 * uGlitchIntensity) {
+      if (bHash < 0.22 * effGlitch) {
         uv += (vec2(bHash, fract(bHash * 10.0)) - 0.5) * uBlockJitterAmount;
       }
     }
@@ -1567,23 +1930,74 @@ void main() {
   // Edge Vignetting (§2.5) on post-distortion UV
   float vEdge = 1.0;
   if (uEdgeVignetteSoftness > 0.001) {
-    float vx = smoothstep(0.0, uEdgeVignetteSoftness, uv.x) * smoothstep(0.0, uEdgeVignetteSoftness, 1.0 - uv.x);
-    float vy = smoothstep(0.0, uEdgeVignetteSoftness, uv.y) * smoothstep(0.0, uEdgeVignetteSoftness, 1.0 - uv.y);
+    float vx = smoothstep(0.0, uEdgeVignetteSoftness, baseUv.x) * smoothstep(0.0, uEdgeVignetteSoftness, 1.0 - baseUv.x);
+    float vy = smoothstep(0.0, uEdgeVignetteSoftness, baseUv.y) * smoothstep(0.0, uEdgeVignetteSoftness, 1.0 - baseUv.y);
     vEdge = clamp(vx * vy, 0.0, 1.0);
   }
 
   // Chromatic Aberration Channel Splitting (§4.2)
   vec2 chromaDelta = vec2(0.0);
-  if (uGlitchIntensity > 0.001 || uChromaSplitDist > 0.001) {
+  if (effGlitch > 0.001 || uChromaSplitDist > 0.001) {
     float rEdge = smoothstep(0.25, 0.50, max(abs(uv.x - 0.5), abs(uv.y - 0.5))) * 0.0025;
-    float cDist = rEdge + uGlitchIntensity * uChromaSplitDist;
+    float cDist = rEdge + effGlitch * uChromaSplitDist + swipeMotionAmt * 0.008;
     chromaDelta = cDist * vec2(cos(uChromaSplitAngle), sin(uChromaSplitAngle));
   }
 
-  vec4 colR = texture2D(uMap, uv + chromaDelta);
-  vec4 colG = texture2D(uMap, uv);
-  vec4 colB = texture2D(uMap, uv - chromaDelta);
-  vec3 srcRgb = vec3(colR.r, colG.g, colB.b);
+  // Dual-Texture Horizontal Carousel Slide Sampling
+  vec3 srcRgb = vec3(0.0);
+  float slideBoundsMask = 1.0;
+  float seamGlow = 0.0;
+
+  if (abs(uSlideOffset) > 0.0005 && uSlideCount > 1) {
+    if (uSlideOffset < 0.0) {
+      // Swiping left -> advancing toward uNextMap entering from right
+      float seamX = 1.0 + uSlideOffset;
+      seamGlow = exp(-pow((uv.x - seamX) / 0.012, 2.0));
+      if (uv.x < seamX) {
+        vec2 curSlideUv = vec2(uv.x - uSlideOffset, uv.y);
+        vec2 mappedUv = containSlideUv(curSlideUv, uAspectRatio, uViewportAspect, slideBoundsMask);
+        vec4 colR = texture2D(uMap, mappedUv + chromaDelta);
+        vec4 colG = texture2D(uMap, mappedUv);
+        vec4 colB = texture2D(uMap, mappedUv - chromaDelta);
+        srcRgb = vec3(colR.r, colG.g, colB.b);
+      } else {
+        vec2 nextSlideUv = vec2(uv.x - seamX, uv.y);
+        vec2 mappedUv = containSlideUv(nextSlideUv, uNextAspectRatio, uViewportAspect, slideBoundsMask);
+        vec4 colR = texture2D(uNextMap, mappedUv + chromaDelta);
+        vec4 colG = texture2D(uNextMap, mappedUv);
+        vec4 colB = texture2D(uNextMap, mappedUv - chromaDelta);
+        srcRgb = vec3(colR.r, colG.g, colB.b);
+      }
+    } else {
+      // Swiping right -> returning toward uNextMap entering from left
+      float seamX = uSlideOffset;
+      seamGlow = exp(-pow((uv.x - seamX) / 0.012, 2.0));
+      if (uv.x >= seamX) {
+        vec2 curSlideUv = vec2(uv.x - uSlideOffset, uv.y);
+        vec2 mappedUv = containSlideUv(curSlideUv, uAspectRatio, uViewportAspect, slideBoundsMask);
+        vec4 colR = texture2D(uMap, mappedUv + chromaDelta);
+        vec4 colG = texture2D(uMap, mappedUv);
+        vec4 colB = texture2D(uMap, mappedUv - chromaDelta);
+        srcRgb = vec3(colR.r, colG.g, colB.b);
+      } else {
+        vec2 nextSlideUv = vec2(uv.x + (1.0 - seamX), uv.y);
+        vec2 mappedUv = containSlideUv(nextSlideUv, uNextAspectRatio, uViewportAspect, slideBoundsMask);
+        vec4 colR = texture2D(uNextMap, mappedUv + chromaDelta);
+        vec4 colG = texture2D(uNextMap, mappedUv);
+        vec4 colB = texture2D(uNextMap, mappedUv - chromaDelta);
+        srcRgb = vec3(colR.r, colG.g, colB.b);
+      }
+    }
+  } else {
+    vec2 mappedUv = containSlideUv(uv, uAspectRatio, uViewportAspect, slideBoundsMask);
+    vec4 colR = texture2D(uMap, mappedUv + chromaDelta);
+    vec4 colG = texture2D(uMap, mappedUv);
+    vec4 colB = texture2D(uMap, mappedUv - chromaDelta);
+    srcRgb = vec3(colR.r, colG.g, colB.b);
+  }
+
+  // Faint holographic grid backing in letterbox/pillarbox margins of contained slides
+  srcRgb = mix(uSecondaryTint * 0.35, srcRgb, slideBoundsMask);
 
   float srcLum = 0.2126 * srcRgb.r + 0.7152 * srcRgb.g + 0.0722 * srcRgb.b;
   float chroma = max(srcRgb.r, max(srcRgb.g, srcRgb.b)) - min(srcRgb.r, min(srcRgb.g, srcRgb.b));
@@ -1596,7 +2010,6 @@ void main() {
 
   if (uIsHighKeyStudioBackdrop > 0.5) {
     if (uStudioBackdropMode == 1) {
-      // Default Full-Frame Tonal Separation
       bool isWall = (srcLum >= 0.72 && srcLum <= 0.885 && chroma < 0.045 && redDom < 0.06);
       bool isSnake = (srcLum >= 0.88);
       if (isWall) {
@@ -1607,7 +2020,6 @@ void main() {
         effLum = 0.86 + t * 0.12;
       }
     } else if (uStudioBackdropMode == 2) {
-      // Optional White-Scale-Preserved Backdrop Keying
       vec2 elPos = (uv - vec2(0.50, 0.52)) / vec2(0.31, 0.43);
       bool outside = (dot(elPos, elPos) > 1.0);
       bool achromatic = (chroma < 0.042 && redDom < 0.05);
@@ -1621,7 +2033,7 @@ void main() {
 
   // Luminance to Opacity Mapping & Dark-Subject Floor
   float alphaLum = smoothstep(uBlackLevelThreshold, 0.92, effLum);
-  float targetAlpha = alphaLum + tagWeight * 0.25;
+  float targetAlpha = (alphaLum + tagWeight * 0.25) * mix(0.28, 1.0, slideBoundsMask);
 
   if (uHasDarkSubjectFloor > 0.5) {
     if (targetAlpha < uDarkSubjectFloorAlpha) {
@@ -1671,14 +2083,70 @@ void main() {
   vec3 emissiveRgb = mappedRgb * uEmissiveIntensity + uPrimaryTint * smoothstep(0.58, 0.95, effLum) * 0.38 * uEmissiveIntensity;
   vec3 finalRgb = emissiveRgb * scanlineMod * gridMod * rollBand * microFlicker + holoHi * fresnelGlow;
 
+  // Add glowing vertical laser seam during horizontal slide transition
+  if (seamGlow > 0.001) {
+    finalRgb += mix(uPrimaryTint, vec3(1.0), 0.65) * seamGlow * 1.65;
+    targetAlpha = max(targetAlpha, seamGlow * 0.95);
+  }
+
+  // Diegetic Carousel Pagination Pips & Left/Right Swipe Chevrons (for multi-slide columns)
+  if (uSlideCount > 1 && uIsGhostPlane < 0.5) {
+    // 1. Bottom Pagination Pips (up to 12 slides)
+    float pipSpacing = min(0.068, 0.62 / float(uSlideCount));
+    float totalSpan = pipSpacing * float(uSlideCount - 1);
+    float pipY = 0.042;
+    for (int k = 0; k < 12; k++) {
+      if (k >= uSlideCount) break;
+      float pipX = 0.5 - 0.5 * totalSpan + float(k) * pipSpacing;
+      bool isCurrent = (k == uActiveSlideIndex);
+      float halfW = isCurrent ? 0.019 : 0.0075;
+      float halfH = isCurrent ? 0.0055 : 0.0042;
+      vec2 dPip = abs(baseUv - vec2(pipX, pipY)) - vec2(halfW, halfH);
+      float distPip = length(max(dPip, 0.0)) + min(max(dPip.x, dPip.y), 0.0);
+      float pipMask = 1.0 - smoothstep(0.0, 0.0035, distPip);
+      if (pipMask > 0.01) {
+        vec3 pipCol = isCurrent ? mix(uPrimaryTint, vec3(1.0), 0.72) : uPrimaryTint * 0.55;
+        finalRgb = mix(finalRgb, pipCol * 1.85, pipMask);
+        targetAlpha = max(targetAlpha, pipMask * (isCurrent ? 0.98 : 0.65));
+      }
+    }
+
+    // 2. Left (<) & Right (>) Swipe Chevrons near vertical midpoint
+    float chevY = abs(baseUv.y - 0.5);
+    if (chevY < 0.055) {
+      // Left chevron '<' centered at x = 0.045
+      float lx = baseUv.x - 0.032;
+      if (lx >= 0.0 && lx <= 0.028) {
+        float armDistL = abs(chevY - lx * 1.55);
+        float lMask = 1.0 - smoothstep(0.0025, 0.0065, armDistL);
+        if (lMask > 0.01) {
+          float lBoost = (uHoverChevronSide == -1 || uSlideOffset > 0.02) ? 2.1 : 1.15;
+          finalRgb = mix(finalRgb, mix(uPrimaryTint, vec3(1.0), 0.55) * lBoost, lMask * 0.85);
+          targetAlpha = max(targetAlpha, lMask * 0.88);
+        }
+      }
+      // Right chevron '>' centered at x = 0.955
+      float rx = 0.968 - baseUv.x;
+      if (rx >= 0.0 && rx <= 0.028) {
+        float armDistR = abs(chevY - rx * 1.55);
+        float rMask = 1.0 - smoothstep(0.0025, 0.0065, armDistR);
+        if (rMask > 0.01) {
+          float rBoost = (uHoverChevronSide == 1 || uSlideOffset < -0.02) ? 2.1 : 1.15;
+          finalRgb = mix(finalRgb, mix(uPrimaryTint, vec3(1.0), 0.55) * rBoost, rMask * 0.85);
+          targetAlpha = max(targetAlpha, rMask * 0.88);
+        }
+      }
+    }
+  }
+
   // Glitch Static & White Noise Injection
-  if (uGlitchIntensity > 0.001 && uStaticNoiseIntensity > 0.001) {
+  if (effGlitch > 0.001 && uStaticNoiseIntensity > 0.001) {
     float noise = pseudoRandom(uv + fract(uTime * 17.0));
-    finalRgb = mix(finalRgb, vec3(noise), uGlitchIntensity * uStaticNoiseIntensity * 0.45);
+    finalRgb = mix(finalRgb, vec3(noise), effGlitch * uStaticNoiseIntensity * 0.45);
   }
 
   // Glitch Posterization / Bit-depth reduction
-  if (uGlitchIntensity > 0.30 && uPosterizeLevels < 63.0) {
+  if (effGlitch > 0.30 && uPosterizeLevels < 63.0) {
     finalRgb = floor(finalRgb * uPosterizeLevels + 0.5) / uPosterizeLevels;
   }
 
@@ -1701,11 +2169,21 @@ export function createHologramColumnShaderMaterial(assetSpec, texture, params = 
   const spec = resolveHoloMediaSpec(assetSpec.id || assetSpec);
   const p = deepCloneParams(params);
   const tint = HOLO_SPECTRAL_TINT_PRESETS[spec.defaultTintPreset] || HOLO_SPECTRAL_TINT_PRESETS.cyan;
+  const fallbackTex = texture || createDeterministicPlaceholderTexture(spec);
+  const slideCount = Array.isArray(spec.slides) && spec.slides.length > 0 ? spec.slides.length : 1;
 
   const uniforms = {
-    uMap: { value: texture || createDeterministicPlaceholderTexture(spec) },
+    uMap: { value: fallbackTex },
+    uNextMap: { value: fallbackTex },
     uTime: uTimeUniform || { value: 0.0 },
     uAspectRatio: { value: spec.aspectRatio },
+    uNextAspectRatio: { value: spec.aspectRatio },
+    uViewportAspect: { value: spec.aspectRatio },
+    uSlideOffset: { value: 0.0 },
+    uSlideCount: { value: slideCount },
+    uActiveSlideIndex: { value: 0 },
+    uNextSlideIndex: { value: 0 },
+    uHoverChevronSide: { value: 0 },
     uIsVideo: { value: spec.mediaType === 'video' ? 1.0 : 0.0 },
     uBypassExteriorCutout: { value: spec.bypassExteriorCutout ? 1.0 : 0.0 },
     uHasDarkSubjectFloor: { value: spec.hasDarkSubjectFloor ? 1.0 : 0.0 },
@@ -1746,6 +2224,7 @@ export function createHologramColumnShaderMaterial(assetSpec, texture, params = 
     uDropoutFactor: { value: 1.0 },
   };
 
+  const useNormalBlend = spec.blendMode === 'normal' || (!isGhostPlane && p.colorAndLuminance.colorRemapWeight === 0.0);
   const mat = new THREE.ShaderMaterial({
     uniforms,
     vertexShader: HOLO_COLUMN_VERTEX_SHADER,
@@ -1753,7 +2232,7 @@ export function createHologramColumnShaderMaterial(assetSpec, texture, params = 
     transparent: true,
     depthWrite: false,
     side: p.spatialAndEdge.backFaceVisibility === 'culled' ? THREE.FrontSide : THREE.DoubleSide,
-    blending: THREE.AdditiveBlending,
+    blending: useNormalBlend ? THREE.NormalBlending : THREE.AdditiveBlending,
   });
 
   if (typeof applyStencilReject === 'function') {
@@ -1769,6 +2248,7 @@ export function createHologramColumnShaderMaterial(assetSpec, texture, params = 
 export class HologramColumnInstance {
   constructor(assetSpec, options = {}) {
     this.assetSpec = resolveHoloMediaSpec(assetSpec.id || assetSpec);
+    this.spec = this.assetSpec;
     this.options = options;
     this.floorY = options.floorY ?? 0.0;
     this.uTimeUniform = options.uTimeUniform || { value: 0.0 };
@@ -1785,12 +2265,26 @@ export class HologramColumnInstance {
       const t = HOLO_SPECTRAL_TINT_PRESETS[this.assetSpec.defaultTintPreset];
       this.params.colorAndLuminance.primaryTintHex = t.primaryHex;
       this.params.colorAndLuminance.secondaryTintHex = t.secondaryHex;
+      if (typeof t.colorRemapWeight === 'number') {
+        this.params.colorAndLuminance.colorRemapWeight = t.colorRemapWeight;
+      }
+    }
+    if (typeof this.assetSpec.colorRemapWeight === 'number') {
+      this.params.colorAndLuminance.colorRemapWeight = this.assetSpec.colorRemapWeight;
+    }
+    if (typeof this.assetSpec.emissiveIntensity === 'number') {
+      this.params.colorAndLuminance.emissiveIntensity = this.assetSpec.emissiveIntensity;
+    }
+    if (typeof this.assetSpec.baseOpacityMultiplier === 'number') {
+      this.params.colorAndLuminance.baseOpacityMultiplier = this.assetSpec.baseOpacityMultiplier;
     }
     if (this.assetSpec.hasDarkSubjectFloor) {
       this.params.colorAndLuminance.darkSubjectFloorMinAlpha = this.assetSpec.darkSubjectFloorMinAlpha;
     }
-    if (this.assetSpec.isHighKeyStudioBackdrop) {
-      this.params.colorAndLuminance.studioBackdropMode = this.assetSpec.studioBackdropMode || 'full_frame_tonal_separation';
+    if (this.assetSpec.isCarousel) {
+      this.params.colorAndLuminance.colorRemapWeight = 0.32;
+      this.params.colorAndLuminance.emissiveIntensity = 1.72;
+      this.params.colorAndLuminance.baseOpacityMultiplier = 0.98;
     }
 
     this.lifecycleState = options.initialState || 'active';
@@ -1845,13 +2339,36 @@ export class HologramColumnInstance {
     // Geometry
     this.geoSpec = computeHologramColumnGeometrySpec(this.assetSpec);
 
-    // Media Texture Controller
-    this.textureController = createHoloMediaTextureController(this.assetSpec, {
-      playing: this.params.playback.playing,
-      loop: this.params.playback.loop,
-      playbackRate: this.params.playback.playbackRate,
-    });
-    this.videoController = this.mediaType === 'video' ? this.textureController : null;
+    // Multi-Slide Carousel Deck Initialization
+    this.slides = Array.isArray(this.assetSpec.slides) && this.assetSpec.slides.length > 0
+      ? this.assetSpec.slides.map((s) => resolveHoloMediaSpec(s))
+      : [this.assetSpec];
+    this.isCarousel = Boolean(this.assetSpec.isCarousel || this.slides.length > 1);
+    this.activeSlideIndex = 0;
+    this.nextSlideIndex = 0;
+    this.slideOffset = 0.0;
+    this.slideTargetOffset = 0.0;
+    this.slideTransitionState = 'idle'; // 'idle' | 'dragging' | 'settling-commit' | 'settling-cancel'
+    this.swipeGesture = {
+      active: false,
+      startClientX: 0,
+      startClientY: 0,
+      lastClientX: 0,
+      lastClientY: 0,
+      lastTimestampMs: 0,
+      velocityX: 0,
+      maxTravelPx: 0,
+      startUvX: 0.5,
+      startUvY: 0.5,
+    };
+    this.slideControllers = new Map();
+
+    // Media Texture Controller for Initial Active Slide (Slide 0)
+    const initialSlideSpec = this.slides[0] || this.assetSpec;
+    this.textureController = this.getOrCreateSlideController(0);
+    this.videoController = this.textureController.type === 'video' || initialSlideSpec.mediaType === 'video'
+      ? this.textureController
+      : null;
 
     // Shader Materials
     this.primaryMaterial = createHologramColumnShaderMaterial(
@@ -1870,6 +2387,8 @@ export class HologramColumnInstance {
       this.applyStencilReject,
       true
     );
+    this.material = this.primaryMaterial;
+    this.syncCarouselUniforms();
 
     // Meshes
     this.primaryMesh = new THREE.Mesh(this.geoSpec.primaryGeometry, this.primaryMaterial);
@@ -1927,6 +2446,315 @@ export class HologramColumnInstance {
     }
   }
 
+  getOrCreateSlideController(slideIndex) {
+    const count = this.slides.length;
+    if (count === 0) return null;
+    const normIdx = ((slideIndex % count) + count) % count;
+    if (this.slideControllers.has(normIdx)) {
+      return this.slideControllers.get(normIdx);
+    }
+    const slideSpec = this.slides[normIdx];
+    const isCurrentlyActive = normIdx === this.activeSlideIndex || normIdx === this.nextSlideIndex;
+    const ctrl = createHoloMediaTextureController(slideSpec, {
+      playing: isCurrentlyActive && this.params.playback.playing,
+      loop: this.params.playback.loop,
+      playbackRate: this.params.playback.playbackRate,
+      slideIndex: normIdx,
+      totalSlides: count,
+    });
+    this.slideControllers.set(normIdx, ctrl);
+    return ctrl;
+  }
+
+  enforceTwoSlotVideoWindow() {
+    for (const [idx, ctrl] of this.slideControllers.entries()) {
+      if (!ctrl || typeof ctrl.pause !== 'function') continue;
+      const isSlotActive =
+        idx === this.activeSlideIndex ||
+        (this.slideTransitionState !== 'idle' && idx === this.nextSlideIndex);
+      if (isSlotActive && this.lifecycleState !== 'inactive' && this.params.playback.playing) {
+        if (!ctrl.playing) ctrl.play();
+      } else {
+        if (ctrl.playing) ctrl.pause();
+      }
+    }
+  }
+
+  syncCarouselUniforms() {
+    const count = Math.max(1, this.slides.length);
+    this.activeSlideIndex = ((this.activeSlideIndex % count) + count) % count;
+    this.nextSlideIndex = ((this.nextSlideIndex % count) + count) % count;
+
+    const curSlide = this.slides[this.activeSlideIndex] || this.assetSpec;
+    const nextSlide = this.slides[this.nextSlideIndex] || curSlide;
+    const curCtrl = this.getOrCreateSlideController(this.activeSlideIndex);
+    const nextCtrl = this.getOrCreateSlideController(this.nextSlideIndex);
+
+    this.textureController = curCtrl;
+    this.videoController = curSlide.mediaType === 'video' ? curCtrl : null;
+
+    if (curCtrl && curCtrl.texture) {
+      this.syncMaterialsUniform('uMap', curCtrl.texture);
+    }
+    if (nextCtrl && nextCtrl.texture) {
+      this.syncMaterialsUniform('uNextMap', nextCtrl.texture);
+    }
+    this.syncMaterialsUniform('uAspectRatio', curSlide.aspectRatio || this.assetSpec.aspectRatio || 1.0);
+    this.syncMaterialsUniform('uNextAspectRatio', nextSlide.aspectRatio || curSlide.aspectRatio || 1.0);
+    this.syncMaterialsUniform('uViewportAspect', this.geoSpec.aspectRatio || this.assetSpec.aspectRatio || 1.0);
+    this.syncMaterialsUniform('uSlideCount', count);
+    this.syncMaterialsUniform('uActiveSlideIndex', this.activeSlideIndex);
+    this.syncMaterialsUniform('uNextSlideIndex', this.nextSlideIndex);
+    this.syncMaterialsUniform('uSlideOffset', this.slideOffset);
+    this.syncMaterialsUniform('uIsVideo', curSlide.mediaType === 'video' ? 1.0 : 0.0);
+
+    if (curSlide.defaultTintPreset && HOLO_SPECTRAL_TINT_PRESETS[curSlide.defaultTintPreset]) {
+      const tint = HOLO_SPECTRAL_TINT_PRESETS[curSlide.defaultTintPreset];
+      const nextColorParams = {
+        primaryTintHex: tint.primaryHex,
+        secondaryTintHex: tint.secondaryHex,
+      };
+      if (typeof curSlide.colorRemapWeight === 'number') {
+        nextColorParams.colorRemapWeight = curSlide.colorRemapWeight;
+      } else if (typeof tint.colorRemapWeight === 'number') {
+        nextColorParams.colorRemapWeight = tint.colorRemapWeight;
+      }
+      this.setParams({
+        colorAndLuminance: nextColorParams,
+      });
+    }
+    this.enforceTwoSlotVideoWindow();
+  }
+
+  prepareNeighborForOffset(offsetVal) {
+    const count = this.slides.length;
+    if (count <= 1) return;
+    const targetNext =
+      offsetVal < 0.0
+        ? (this.activeSlideIndex + 1) % count
+        : (this.activeSlideIndex - 1 + count) % count;
+    if (targetNext !== this.nextSlideIndex) {
+      this.nextSlideIndex = targetNext;
+      const nextSlide = this.slides[this.nextSlideIndex];
+      const nextCtrl = this.getOrCreateSlideController(this.nextSlideIndex);
+      if (nextCtrl && nextCtrl.texture) {
+        this.syncMaterialsUniform('uNextMap', nextCtrl.texture);
+      }
+      if (nextSlide) {
+        this.syncMaterialsUniform('uNextAspectRatio', nextSlide.aspectRatio || 1.0);
+      }
+      this.syncMaterialsUniform('uNextSlideIndex', this.nextSlideIndex);
+      this.enforceTwoSlotVideoWindow();
+    }
+  }
+
+  setHoverUv(hitUv = null) {
+    if (!hitUv || this.slides.length <= 1) {
+      this.syncMaterialsUniform('uHoverChevronSide', 0);
+      return 0;
+    }
+    let side = 0;
+    if (hitUv.x < 0.22) side = -1;
+    else if (hitUv.x > 0.78) side = 1;
+    this.syncMaterialsUniform('uHoverChevronSide', side);
+    return side;
+  }
+
+  beginSwipe(clientX, clientY, hitUv = null) {
+    if (this.slides.length <= 1) return false;
+    // If mid-settle, snap immediately before starting new drag
+    if (this.slideTransitionState === 'settling-commit') {
+      this.activeSlideIndex = this.nextSlideIndex;
+      this.slideOffset = 0.0;
+      this.slideTargetOffset = 0.0;
+      this.slideTransitionState = 'idle';
+      this.syncCarouselUniforms();
+    } else if (this.slideTransitionState === 'settling-cancel') {
+      this.slideOffset = 0.0;
+      this.slideTargetOffset = 0.0;
+      this.slideTransitionState = 'idle';
+      this.syncCarouselUniforms();
+    }
+
+    this.slideTransitionState = 'dragging';
+    this.swipeGesture.active = true;
+    this.swipeGesture.startClientX = clientX;
+    this.swipeGesture.startClientY = clientY;
+    this.swipeGesture.lastClientX = clientX;
+    this.swipeGesture.lastClientY = clientY;
+    this.swipeGesture.lastTimestampMs = typeof performance !== 'undefined' ? performance.now() : Date.now();
+    this.swipeGesture.velocityX = 0.0;
+    this.swipeGesture.maxTravelPx = 0.0;
+    this.swipeGesture.startUvX = hitUv ? hitUv.x : 0.5;
+    this.swipeGesture.startUvY = hitUv ? hitUv.y : 0.5;
+    this.triggerGlitchBurst({ intensity: 0.35, durationSec: 0.12 });
+    return true;
+  }
+
+  updateSwipe(clientX, clientY, viewportWidthPx = 1280) {
+    if (!this.swipeGesture.active || this.slides.length <= 1) return 0.0;
+    const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
+    const dtMs = Math.max(1.0, now - this.swipeGesture.lastTimestampMs);
+    const stepDx = clientX - this.swipeGesture.lastClientX;
+    this.swipeGesture.velocityX = stepDx / dtMs; // px/ms
+    this.swipeGesture.lastClientX = clientX;
+    this.swipeGesture.lastClientY = clientY;
+    this.swipeGesture.lastTimestampMs = now;
+
+    const totalDx = clientX - this.swipeGesture.startClientX;
+    const totalDy = clientY - this.swipeGesture.startClientY;
+    const travel = Math.hypot(totalDx, totalDy);
+    if (travel > this.swipeGesture.maxTravelPx) {
+      this.swipeGesture.maxTravelPx = travel;
+    }
+
+    const swipeSpanPx = Math.max(180.0, Math.min(420.0, viewportWidthPx * 0.28));
+    const normOffset = Math.max(-0.98, Math.min(0.98, totalDx / swipeSpanPx));
+    this.slideOffset = normOffset;
+    if (Math.abs(normOffset) > 0.002) {
+      this.prepareNeighborForOffset(normOffset);
+    }
+    this.syncMaterialsUniform('uSlideOffset', this.slideOffset);
+    return this.slideOffset;
+  }
+
+  endSwipe(clientX, clientY) {
+    if (!this.swipeGesture.active || this.slides.length <= 1) return false;
+    this.swipeGesture.active = false;
+    const totalDx = clientX - this.swipeGesture.startClientX;
+    const travel = this.swipeGesture.maxTravelPx;
+    const vx = this.swipeGesture.velocityX;
+
+    // Clean click / tap on the hologram column:
+    // Left 30% steps to prevSlide(), Right 70% steps to nextSlide()
+    if (travel < 10.0) {
+      if (this.swipeGesture.startUvX < 0.30) {
+        return this.prevSlide();
+      }
+      return this.nextSlide();
+    }
+
+    const shouldCommit = Math.abs(this.slideOffset) >= 0.16 || Math.abs(vx) >= 0.38;
+    if (shouldCommit && Math.abs(totalDx) > 6.0) {
+      const dir = totalDx < 0 ? -1.0 : 1.0; // -1.0 = swipe left (next slide), +1.0 = swipe right (prev slide)
+      this.prepareNeighborForOffset(dir);
+      this.slideTargetOffset = dir;
+      this.slideTransitionState = 'settling-commit';
+      this.triggerGlitchBurst({ intensity: 0.72, durationSec: 0.22 });
+      return true;
+    } else {
+      this.slideTargetOffset = 0.0;
+      this.slideTransitionState = 'settling-cancel';
+      return false;
+    }
+  }
+
+  nextSlide() {
+    const count = this.slides.length;
+    if (count <= 1) return this.activeSlideIndex;
+    if (this.slideTransitionState === 'settling-commit') {
+      this.activeSlideIndex = this.nextSlideIndex;
+    }
+    this.nextSlideIndex = (this.activeSlideIndex + 1) % count;
+    this.slideOffset = -0.04;
+    this.prepareNeighborForOffset(-1.0);
+    this.slideTargetOffset = -1.0;
+    this.slideTransitionState = 'settling-commit';
+    this.triggerGlitchBurst({ intensity: 0.72, durationSec: 0.22 });
+    return this.nextSlideIndex;
+  }
+
+  prevSlide() {
+    const count = this.slides.length;
+    if (count <= 1) return this.activeSlideIndex;
+    if (this.slideTransitionState === 'settling-commit') {
+      this.activeSlideIndex = this.nextSlideIndex;
+    }
+    this.nextSlideIndex = (this.activeSlideIndex - 1 + count) % count;
+    this.slideOffset = 0.04;
+    this.prepareNeighborForOffset(1.0);
+    this.slideTargetOffset = 1.0;
+    this.slideTransitionState = 'settling-commit';
+    this.triggerGlitchBurst({ intensity: 0.72, durationSec: 0.22 });
+    return this.nextSlideIndex;
+  }
+
+  goToSlide(targetIdx, options = {}) {
+    const count = this.slides.length;
+    if (count <= 1) return 0;
+    const normTarget = ((Math.round(targetIdx) % count) + count) % count;
+    if (normTarget === this.activeSlideIndex && this.slideTransitionState === 'idle') {
+      return this.activeSlideIndex;
+    }
+    if (options.immediate) {
+      this.activeSlideIndex = normTarget;
+      this.nextSlideIndex = normTarget;
+      this.slideOffset = 0.0;
+      this.slideTargetOffset = 0.0;
+      this.slideTransitionState = 'idle';
+      this.syncCarouselUniforms();
+      return this.activeSlideIndex;
+    }
+    const dir = normTarget > this.activeSlideIndex ? -1.0 : 1.0;
+    this.nextSlideIndex = normTarget;
+    const nextSlide = this.slides[this.nextSlideIndex];
+    const nextCtrl = this.getOrCreateSlideController(this.nextSlideIndex);
+    if (nextCtrl && nextCtrl.texture) {
+      this.syncMaterialsUniform('uNextMap', nextCtrl.texture);
+    }
+    if (nextSlide) {
+      this.syncMaterialsUniform('uNextAspectRatio', nextSlide.aspectRatio || 1.0);
+    }
+    this.syncMaterialsUniform('uNextSlideIndex', this.nextSlideIndex);
+    this.slideOffset = dir * 0.04;
+    this.slideTargetOffset = dir;
+    this.slideTransitionState = 'settling-commit';
+    this.enforceTwoSlotVideoWindow();
+    this.triggerGlitchBurst({ intensity: 0.72, durationSec: 0.22 });
+    return this.nextSlideIndex;
+  }
+
+  addSlide(slideSpec, makeActive = true) {
+    const resolved = resolveHoloMediaSpec({
+      ...slideSpec,
+      isCustomSlide: true,
+    });
+    this.slides.push(resolved);
+    this.isCarousel = this.slides.length > 1;
+    const addedIndex = this.slides.length - 1;
+    this.getOrCreateSlideController(addedIndex);
+    if (makeActive) {
+      this.goToSlide(addedIndex);
+    } else {
+      this.syncCarouselUniforms();
+    }
+    return addedIndex;
+  }
+
+  setSlides(newSlides = []) {
+    if (!Array.isArray(newSlides) || newSlides.length === 0) return false;
+    for (const ctrl of this.slideControllers.values()) {
+      if (ctrl && typeof ctrl.dispose === 'function') ctrl.dispose();
+    }
+    this.slideControllers.clear();
+    this.slides = newSlides.map((s, idx) =>
+      resolveHoloMediaSpec({
+        ...s,
+        index: idx + 1,
+        isCustomSlide: true,
+      })
+    );
+    this.isCarousel = this.slides.length > 1;
+    this.activeSlideIndex = 0;
+    this.nextSlideIndex = 0;
+    this.slideOffset = 0.0;
+    this.slideTargetOffset = 0.0;
+    this.slideTransitionState = 'idle';
+    this.syncCarouselUniforms();
+    this.triggerGlitchBurst({ intensity: 0.85, durationSec: 0.28 });
+    return true;
+  }
+
   setParams(partialParams = {}) {
     if (!partialParams) return;
     if (partialParams.colorAndLuminance) {
@@ -1945,6 +2773,12 @@ export class HologramColumnInstance {
       }
       if (cl.colorRemapWeight !== undefined) {
         this.syncMaterialsUniform('uColorRemapWeight', cl.colorRemapWeight);
+        const useNormalBlend = this.assetSpec.blendMode === 'normal' || cl.colorRemapWeight === 0.0;
+        const targetBlending = useNormalBlend ? THREE.NormalBlending : THREE.AdditiveBlending;
+        if (this.primaryMaterial.blending !== targetBlending) {
+          this.primaryMaterial.blending = targetBlending;
+          this.primaryMaterial.needsUpdate = true;
+        }
       }
       if (cl.baseOpacityMultiplier !== undefined) {
         this.syncMaterialsUniform('uBaseOpacity', cl.baseOpacityMultiplier);
@@ -2063,11 +2897,18 @@ export class HologramColumnInstance {
       this.lifecycleProgress = 1.0;
       const defaultTint = this.assetSpec.defaultTintPreset || 'cyan';
       if (HOLO_SPECTRAL_TINT_PRESETS[defaultTint]) {
+        const preset = HOLO_SPECTRAL_TINT_PRESETS[defaultTint];
+        const nextColorParams = {
+          primaryTintHex: preset.primaryHex,
+          secondaryTintHex: preset.secondaryHex,
+        };
+        if (typeof this.assetSpec.colorRemapWeight === 'number') {
+          nextColorParams.colorRemapWeight = this.assetSpec.colorRemapWeight;
+        } else if (typeof preset.colorRemapWeight === 'number') {
+          nextColorParams.colorRemapWeight = preset.colorRemapWeight;
+        }
         this.setParams({
-          colorAndLuminance: {
-            primaryTintHex: HOLO_SPECTRAL_TINT_PRESETS[defaultTint].primaryHex,
-            secondaryTintHex: HOLO_SPECTRAL_TINT_PRESETS[defaultTint].secondaryHex,
-          }
+          colorAndLuminance: nextColorParams,
         });
       }
     }
@@ -2191,6 +3032,26 @@ export class HologramColumnInstance {
       }
     }
 
+    // Spring-settle horizontal carousel slide offset during commit or cancel
+    if (this.slideTransitionState === 'settling-commit' || this.slideTransitionState === 'settling-cancel') {
+      const springRate = this.slideTransitionState === 'settling-commit' ? 14.5 : 16.0;
+      const alpha = Math.min(1.0, springRate * dt);
+      this.slideOffset += (this.slideTargetOffset - this.slideOffset) * alpha;
+      if (Math.abs(this.slideTargetOffset - this.slideOffset) < 0.008) {
+        if (this.slideTransitionState === 'settling-commit') {
+          this.activeSlideIndex = this.nextSlideIndex;
+        } else {
+          this.nextSlideIndex = this.activeSlideIndex;
+        }
+        this.slideOffset = 0.0;
+        this.slideTargetOffset = 0.0;
+        this.slideTransitionState = 'idle';
+        this.syncCarouselUniforms();
+      } else {
+        this.syncMaterialsUniform('uSlideOffset', this.slideOffset);
+      }
+    }
+
     if (this.lifecycleState === 'materializing' || this.lifecycleState === 'swapping' || this.lifecycleState === 'dematerializing') {
       this.stateElapsedSec += dt;
       this.lifecycleProgress = Math.min(1.0, this.stateElapsedSec / this.targetStateDuration);
@@ -2211,6 +3072,7 @@ export class HologramColumnInstance {
             this.videoController.pause();
             this.params.playback.playing = false;
           }
+          this.enforceTwoSlotVideoWindow();
         }
       }
     }
@@ -2223,11 +3085,17 @@ export class HologramColumnInstance {
       this.manualBurstState.active ? this.manualBurstState : null
     );
 
-    if (this.videoController) {
+    if (this.videoController && typeof this.videoController.stepVideoClock === 'function') {
       const clockState = this.videoController.stepVideoClock(dt, glitch.frameStutterState);
       this.params.playback.playing = this.videoController.playing;
       this.params.playback.currentTimeSec = clockState.currentTimeSec;
       this.params.playback.frameStutterActive = clockState.stutterActive;
+    }
+    if (this.slideTransitionState !== 'idle' && this.nextSlideIndex !== this.activeSlideIndex) {
+      const nextCtrl = this.slideControllers.get(this.nextSlideIndex);
+      if (nextCtrl && typeof nextCtrl.stepVideoClock === 'function') {
+        nextCtrl.stepVideoClock(dt, null);
+      }
     }
 
     const envelope = evaluateLifecycleStateEnvelope(this.lifecycleState, this.lifecycleProgress, this.params);
@@ -2347,11 +3215,20 @@ export class HologramColumnInstance {
   }
 
   getStateSummary() {
+    const activeSlide = this.slides[this.activeSlideIndex] || this.assetSpec;
     return {
       id: this.id,
       code: this.code,
       index: this.index,
       mediaType: this.mediaType,
+      isCarousel: this.isCarousel,
+      slideCount: this.slides.length,
+      activeSlideIndex: this.activeSlideIndex,
+      nextSlideIndex: this.nextSlideIndex,
+      slideOffset: Number(this.slideOffset.toFixed(4)),
+      slideTransitionState: this.slideTransitionState,
+      activeSlideLabel: activeSlide.label || activeSlide.id,
+      activeSlideMediaType: activeSlide.mediaType,
       lifecycleState: this.lifecycleState,
       lifecycleProgress: this.lifecycleProgress,
       isVisible: this.rootGroup.visible,
@@ -2364,6 +3241,12 @@ export class HologramColumnInstance {
   }
 
   dispose() {
+    for (const ctrl of this.slideControllers.values()) {
+      if (ctrl && typeof ctrl.dispose === 'function') {
+        ctrl.dispose();
+      }
+    }
+    this.slideControllers.clear();
     if (this.textureController) {
       this.textureController.dispose();
       this.textureController = null;
@@ -2430,8 +3313,9 @@ export function buildHologramColumnsSystem(options = {}) {
 
   let forceAllVisible = options.forceAllVisible ?? true;
   let editModeActive = false;
-  let selectedColumnId = columns[0] ? columns[0].id : 'frenchfry_tag';
+  let selectedColumnId = columns[0] ? columns[0].id : 'holo_slide_carousel';
   let activeDragColumnId = null;
+  let activeSwipeColumnId = null;
   const dragPlane = new THREE.Plane();
   const dragGrabOffset = new THREE.Vector3();
   const tempPlaneNormal = new THREE.Vector3();
@@ -2489,9 +3373,11 @@ export function buildHologramColumnsSystem(options = {}) {
     columns,
     columnsById,
     raycastTargets,
+    count: columns.length,
     totalCount: columns.length,
     staticCount: columns.filter((c) => c.mediaType === 'image').length,
     videoCount: columns.filter((c) => c.mediaType === 'video').length,
+    carouselCount: columns.filter((c) => c.isCarousel).length,
 
     getColumn(idOrIndex) {
       if (idOrIndex === undefined || idOrIndex === null) {
@@ -2516,6 +3402,71 @@ export function buildHologramColumnsSystem(options = {}) {
 
     get activeDragColumnId() {
       return activeDragColumnId;
+    },
+
+    get activeSwipeColumnId() {
+      return activeSwipeColumnId;
+    },
+
+    beginSlideSwipe(idOrIndex, clientX, clientY, hitUv = null) {
+      const col = this.getColumn(idOrIndex);
+      if (!col || !col.isCarousel) return null;
+      selectedColumnId = col.id;
+      activeSwipeColumnId = col.id;
+      col.beginSwipe(clientX, clientY, hitUv);
+      return col;
+    },
+
+    updateSlideSwipe(clientX, clientY, viewportWidthPx = 1280) {
+      if (!activeSwipeColumnId) return null;
+      const col = this.getColumn(activeSwipeColumnId);
+      if (!col) return null;
+      col.updateSwipe(clientX, clientY, viewportWidthPx);
+      return col;
+    },
+
+    endSlideSwipe(clientX, clientY) {
+      if (!activeSwipeColumnId) return null;
+      const col = this.getColumn(activeSwipeColumnId);
+      activeSwipeColumnId = null;
+      if (!col) return null;
+      col.endSwipe(clientX, clientY);
+      return col;
+    },
+
+    nextSlide(idOrIndex) {
+      const col = this.getColumn(idOrIndex);
+      if (!col) return null;
+      col.nextSlide();
+      return col;
+    },
+
+    prevSlide(idOrIndex) {
+      const col = this.getColumn(idOrIndex);
+      if (!col) return null;
+      col.prevSlide();
+      return col;
+    },
+
+    goToSlide(idOrIndex, slideIndex, opts = {}) {
+      const col = this.getColumn(idOrIndex);
+      if (!col) return null;
+      col.goToSlide(slideIndex, opts);
+      return col;
+    },
+
+    addSlideToColumn(idOrIndex, slideSpec, makeActive = true) {
+      const col = this.getColumn(idOrIndex);
+      if (!col) return null;
+      col.addSlide(slideSpec, makeActive);
+      return col;
+    },
+
+    setColumnSlides(idOrIndex, slidesArray) {
+      const col = this.getColumn(idOrIndex);
+      if (!col) return null;
+      col.setSlides(slidesArray);
+      return col;
     },
 
     beginDrag(idOrIndex, worldRay, camera) {
@@ -2636,12 +3587,17 @@ export function buildHologramColumnsSystem(options = {}) {
       else if (targetState === 'agitated') col.setAgitatedState(true, opts);
       else if (targetState === 'active') col.setAgitatedState(false, opts);
       else if (targetState === 'swapping') {
-        const nextId = opts.targetAssetId || (col.index % 17 + 1);
-        col.swapMediaSource(nextId, opts);
+        if (col.isCarousel) {
+          col.nextSlide();
+        } else {
+          const nextId = opts.targetAssetId || (col.index % 17 + 1);
+          col.swapMediaSource(nextId, opts);
+        }
       } else if (targetState === 'inactive') {
         col.lifecycleState = 'inactive';
         col.rootGroup.visible = false;
         if (col.videoController) col.videoController.pause();
+        col.enforceTwoSlotVideoWindow();
       }
       return true;
     },
@@ -2682,6 +3638,41 @@ export function buildHologramColumnsSystem(options = {}) {
       return selectedColumnId;
     },
 
+    registerCustomColumn(customCol) {
+      if (!customCol || !customCol.id) return null;
+      if (!columnsById[customCol.id]) {
+        columns.push(customCol);
+      }
+      columnsById[customCol.id] = customCol;
+      if (customCol.code) columnsById[customCol.code] = customCol;
+      if (customCol.primaryMesh) {
+        customCol.primaryMesh.userData.holoColumnId = customCol.id;
+        if (!raycastTargets.includes(customCol.primaryMesh)) {
+          raycastTargets.push(customCol.primaryMesh);
+        }
+      }
+      if (Array.isArray(customCol.raycastTargets)) {
+        for (const t of customCol.raycastTargets) {
+          t.userData.holoColumnId = customCol.id;
+          if (!raycastTargets.includes(t)) {
+            raycastTargets.push(t);
+          }
+        }
+      }
+      if (typeof window !== 'undefined' && window.localStorage) {
+        try {
+          const raw = window.localStorage.getItem(storageKey);
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            if (parsed && parsed[customCol.id]) {
+              customCol.setTransformState(parsed[customCol.id]);
+            }
+          }
+        } catch (_) {}
+      }
+      return customCol;
+    },
+
     update(dt, timeSec, activeChar = null, camera = null) {
       let centerZ = 0.0;
       if (camera && camera.position) {
@@ -2692,15 +3683,26 @@ export function buildHologramColumnsSystem(options = {}) {
       const windowDistance = options.activeVisibleWindowMeters ?? Infinity;
 
       for (const col of columns) {
-        col.update(dt, timeSec, activeChar, camera);
+        if (col.rootGroup && col.rootGroup.userData && col.rootGroup.userData.culledBySceneCutter) {
+          col.rootGroup.visible = false;
+          if (col.primaryMesh) col.primaryMesh.visible = false;
+          if (col.ghostMesh) col.ghostMesh.visible = false;
+          if (col.auraMesh) col.auraMesh.visible = false;
+          if (col.selectionFrame) col.selectionFrame.visible = false;
+          continue;
+        }
+        if (col.rootGroup) col.rootGroup.visible = true;
+        if (typeof col.update === 'function') {
+          col.update(dt, timeSec, activeChar, camera);
+        }
 
         const isActiveLifecycle = col.lifecycleState !== 'inactive';
-        const distZ = Math.abs(col.rootGroup.position.z - centerZ);
+        const distZ = col.rootGroup ? Math.abs(col.rootGroup.position.z - centerZ) : 0;
         const shouldRenderMeshes =
           isActiveLifecycle && (forceAllVisible || editModeActive || distZ <= windowDistance || col.id === selectedColumnId);
 
-        col.primaryMesh.visible = shouldRenderMeshes;
-        col.ghostMesh.visible = shouldRenderMeshes;
+        if (col.primaryMesh) col.primaryMesh.visible = shouldRenderMeshes;
+        if (col.ghostMesh) col.ghostMesh.visible = shouldRenderMeshes;
         if (col.auraMesh) {
           col.auraMesh.visible = shouldRenderMeshes;
         }
@@ -2726,6 +3728,7 @@ export function buildHologramColumnsSystem(options = {}) {
         totalCount: columns.length,
         staticCount: columns.filter((c) => c.mediaType === 'image').length,
         videoCount: columns.filter((c) => c.mediaType === 'video').length,
+        carouselCount: columns.filter((c) => c.isCarousel).length,
         columns: summaries,
         columnsById: summariesById,
         activeStateCounts: counts,

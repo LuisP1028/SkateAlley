@@ -80,7 +80,7 @@ export const WATERCOLOR_DEFAULT_PARAMS = {
 export const WATERCOLOR_GALLERY_SPEC = {
   id: 'watercolor-gallery-01',
   title: 'Water Color',
-  anchorPosition: { x: 0.0, yRel: 1.72, z: 3.85 },
+  anchorPosition: { x: 0.0, yRel: 1.72, z: 42.20 },
   canvasRotationEuler: { x: 0.0, y: -0.28, z: 0.0 }, // -16.04 deg yaw so canvas is viewed at a slight perspective angle
   focusCameraOffset: { x: -0.42, y: 0.04, z: -2.65 }, // perspective camera vantage looking toward anchorPosition
   focusLookAtOffset: { x: 0.08, y: 0.0, z: 0.0 },
@@ -89,15 +89,6 @@ export const WATERCOLOR_GALLERY_SPEC = {
   wireframeFrameColorHex: 0xe2e8f0,
   activeBorderColorHex: 0xffffff,
 };
-
-/**
- * Pure helper returning percentage [0, 100] for slider fill bar and badge positioning.
- */
-export function computeSliderFillPercent(value, min = 1, max = 12) {
-  const num = Number(value);
-  const clamped = Math.max(min, Math.min(max, Number.isFinite(num) ? num : min));
-  return ((clamped - min) / (max - min)) * 100.0;
-}
 
 function smoothstep(edge0, edge1, x) {
   const t = Math.max(0.0, Math.min(1.0, (x - edge0) / (edge1 - edge0)));
@@ -425,6 +416,10 @@ export function createWaterColorShaderMaterial(options = {}) {
     lights: false,
   });
 
+  if (typeof options.applyStencilReject === 'function') {
+    options.applyStencilReject(material);
+  }
+
   return material;
 }
 
@@ -436,13 +431,27 @@ export function buildWaterColorGallerySystem(options = {}) {
   const rootGroup = options.rootGroup || new THREE.Group();
   rootGroup.name = 'WaterColorGalleryRootGroup';
   rootGroup.renderOrder = 14;
+  rootGroup.position.set(0, 0, 0);
 
   const floorY = typeof options.floorY === 'number' ? options.floorY : 0.0;
   const uTimeUniform = options.uTimeUniform || { value: 0.0 };
+  const applyStencilReject = typeof options.applyStencilReject === 'function' ? options.applyStencilReject : null;
+  const portalTargetUrl = typeof options.portalTargetUrl === 'string' && options.portalTargetUrl.trim()
+    ? options.portalTargetUrl.trim()
+    : './skate3_cleanroom/';
+  const resolvePortalTargetUrl = typeof options.resolvePortalTargetUrl === 'function' ? options.resolvePortalTargetUrl : null;
+  const onTeleport = typeof options.onTeleport === 'function' ? options.onTeleport : null;
+  const shouldIgnorePortal = typeof options.shouldIgnorePortal === 'function' ? options.shouldIgnorePortal : null;
 
   let divisionVal = WATERCOLOR_DEFAULT_PARAMS.division;
   let scaleVal = WATERCOLOR_DEFAULT_PARAMS.scale;
   let isFocused = false;
+  let isTeleporting = false;
+  let teleportCount = 0;
+  let lastMetricZ = null;
+  let lastPortalDistanceMeters = Infinity;
+  let isPlayerNearPortal = false;
+  const _tempLocalPos = new THREE.Vector3();
 
   // 1. Primary Perspective Canvas Stage Group
   const canvasStageGroup = new THREE.Group();
@@ -466,14 +475,18 @@ export function buildWaterColorGallerySystem(options = {}) {
     1,
     1
   );
+  canvasGeo.computeBoundingBox();
+  canvasGeo.computeBoundingSphere();
   const canvasMat = createWaterColorShaderMaterial({
     division: divisionVal,
     scale: scaleVal,
     uTimeUniform,
+    applyStencilReject,
   });
   const canvasMesh = new THREE.Mesh(canvasGeo, canvasMat);
   canvasMesh.name = 'WaterColorCanvasMesh';
   canvasMesh.userData.isWaterColorCanvas = true;
+  canvasMesh.userData.holoColumnId = 'watercolor_gallery';
   canvasMesh.userData.artworkId = WATERCOLOR_GALLERY_SPEC.id;
   canvasMesh.userData.title = WATERCOLOR_GALLERY_SPEC.title;
   canvasStageGroup.add(canvasMesh);
@@ -493,6 +506,9 @@ export function buildWaterColorGallerySystem(options = {}) {
     fog: false,
     toneMapped: false,
   });
+  if (applyStencilReject) {
+    applyStencilReject(frameMat);
+  }
   const frameLines = new THREE.LineSegments(frameGeo, frameMat);
   frameLines.name = 'WaterColorCanvasFrameLines';
   canvasStageGroup.add(frameLines);
@@ -502,6 +518,9 @@ export function buildWaterColorGallerySystem(options = {}) {
   wireframeEnvGroup.name = 'WaterColorWireframeEnvGroup';
   wireframeEnvGroup.visible = Boolean(options.initialFocused);
   rootGroup.add(wireframeEnvGroup);
+
+  const anchorX = WATERCOLOR_GALLERY_SPEC.anchorPosition.x;
+  const anchorZ = WATERCOLOR_GALLERY_SPEC.anchorPosition.z;
 
   // Pitch-black gallery enclosure
   const backdropGeo = new THREE.BoxGeometry(14.0, 8.5, 16.0);
@@ -514,7 +533,7 @@ export function buildWaterColorGallerySystem(options = {}) {
   });
   const blackBackdropMesh = new THREE.Mesh(backdropGeo, backdropMat);
   blackBackdropMesh.name = 'WaterColorBlackBackdropMesh';
-  blackBackdropMesh.position.set(0.0, floorY + 2.5, 3.85);
+  blackBackdropMesh.position.set(anchorX, floorY + 2.5, anchorZ);
   blackBackdropMesh.visible = false;
   wireframeEnvGroup.add(blackBackdropMesh);
 
@@ -546,27 +565,27 @@ export function buildWaterColorGallerySystem(options = {}) {
   // Back Wall Wireframe
   const archWallBack = createWireframePlane(10.0, 6.0, 10, 6);
   archWallBack.name = 'ArchWall_Back';
-  archWallBack.position.set(0.0, floorY + 3.0, 6.5);
+  archWallBack.position.set(anchorX, floorY + 3.0, anchorZ + 2.65);
   wireframeEnvGroup.add(archWallBack);
 
   // Left Wall Wireframe
   const archWallLeft = createWireframePlane(12.0, 6.0, 12, 6);
   archWallLeft.name = 'ArchWall_Left';
-  archWallLeft.position.set(-4.5, floorY + 3.0, 2.0);
+  archWallLeft.position.set(anchorX - 4.5, floorY + 3.0, anchorZ - 1.85);
   archWallLeft.rotation.y = Math.PI / 2;
   wireframeEnvGroup.add(archWallLeft);
 
   // Right Wall Wireframe
   const archWallRight = createWireframePlane(12.0, 6.0, 12, 6);
   archWallRight.name = 'ArchWall_Right';
-  archWallRight.position.set(4.5, floorY + 3.0, 2.0);
+  archWallRight.position.set(anchorX + 4.5, floorY + 3.0, anchorZ - 1.85);
   archWallRight.rotation.y = -Math.PI / 2;
   wireframeEnvGroup.add(archWallRight);
 
   // Floor Grid Wireframe
   const archFloorGrid = createWireframePlane(10.0, 12.0, 10, 12);
   archFloorGrid.name = 'ArchFloor_Grid';
-  archFloorGrid.position.set(0.0, floorY + 0.01, 2.0);
+  archFloorGrid.position.set(anchorX, floorY + 0.01, anchorZ - 1.85);
   archFloorGrid.rotation.x = Math.PI / 2;
   wireframeEnvGroup.add(archFloorGrid);
 
@@ -580,10 +599,10 @@ export function buildWaterColorGallerySystem(options = {}) {
   });
 
   const neighborSpecs = [
-    { name: 'NeighborFrame_01', pos: [-2.35, floorY + 1.72, 4.2], rotY: 0.12, w: 1.4, h: 2.2 },
-    { name: 'NeighborFrame_02', pos: [2.25, floorY + 1.72, 4.2], rotY: -0.15, w: 1.4, h: 2.2 },
-    { name: 'NeighborFrame_03', pos: [-1.45, floorY + 1.72, 1.8], rotY: 0.25, w: 1.2, h: 1.8 },
-    { name: 'NeighborFrame_04', pos: [1.65, floorY + 1.72, 1.8], rotY: -0.22, w: 1.2, h: 1.8 },
+    { name: 'NeighborFrame_01', pos: [anchorX - 2.35, floorY + 1.72, anchorZ + 0.35], rotY: 0.12, w: 1.4, h: 2.2 },
+    { name: 'NeighborFrame_02', pos: [anchorX + 2.25, floorY + 1.72, anchorZ + 0.35], rotY: -0.15, w: 1.4, h: 2.2 },
+    { name: 'NeighborFrame_03', pos: [anchorX - 1.45, floorY + 1.72, anchorZ - 2.05], rotY: 0.25, w: 1.2, h: 1.8 },
+    { name: 'NeighborFrame_04', pos: [anchorX + 1.65, floorY + 1.72, anchorZ - 2.05], rotY: -0.22, w: 1.2, h: 1.8 },
   ];
 
   neighborSpecs.forEach((spec) => {
@@ -612,6 +631,18 @@ export function buildWaterColorGallerySystem(options = {}) {
     },
     get isFocused() {
       return isFocused;
+    },
+    get isTeleporting() {
+      return isTeleporting;
+    },
+    get teleportCount() {
+      return teleportCount;
+    },
+    get portalTargetUrl() {
+      return portalTargetUrl;
+    },
+    get lastPortalDistanceMeters() {
+      return lastPortalDistanceMeters;
     },
 
     setDivision(val) {
@@ -643,11 +674,135 @@ export function buildWaterColorGallerySystem(options = {}) {
       return isFocused;
     },
 
-    update(dt, timeSec) {
+    isNearPortal(activeChar = null) {
+      if (!activeChar || !activeChar.position) {
+        return isPlayerNearPortal;
+      }
+      canvasStageGroup.updateMatrixWorld(true);
+      _tempLocalPos.set(
+        activeChar.position.x,
+        activeChar.position.y + 1.15,
+        activeChar.position.z
+      );
+      canvasStageGroup.worldToLocal(_tempLocalPos);
+      const sx = Math.abs(canvasStageGroup.scale.x) || 1.0;
+      const sy = Math.abs(canvasStageGroup.scale.y) || 1.0;
+      const sz = Math.abs(canvasStageGroup.scale.z) || 1.0;
+      const metricX = _tempLocalPos.x * sx;
+      const metricY = _tempLocalPos.y * sy;
+      const metricZ = _tempLocalPos.z * sz;
+      const halfW = (WATERCOLOR_DEFAULT_PARAMS.canvasWidth * 0.5) * sx;
+      const halfH = (WATERCOLOR_DEFAULT_PARAMS.canvasHeight * 0.5) * sy;
+      return (
+        Math.abs(metricX) <= halfW + 1.65 &&
+        Math.abs(metricY) <= halfH + 1.50 &&
+        Math.abs(metricZ) <= 4.50
+      );
+    },
+
+    teleportToSkateRoom(opts = {}) {
+      if (isTeleporting && !opts.force) {
+        return false;
+      }
+      isTeleporting = true;
+      teleportCount += 1;
+
+      // Chromatic portal surge on shader uniforms
+      if (canvasMat && canvasMat.uniforms) {
+        if (canvasMat.uniforms.uScale) canvasMat.uniforms.uScale.value = 18.0;
+        if (canvasMat.uniforms.uDivision) canvasMat.uniforms.uDivision.value = 12.0;
+      }
+      if (frameLines && frameLines.material) {
+        frameLines.material.color.setHex(0x3ec6ff);
+        frameLines.material.opacity = 1.0;
+      }
+
+      const dynamicDefaultUrl = resolvePortalTargetUrl ? resolvePortalTargetUrl() : portalTargetUrl;
+      const targetUrl = typeof opts.targetUrl === 'string' && opts.targetUrl.trim()
+        ? opts.targetUrl.trim()
+        : dynamicDefaultUrl;
+
+      if (onTeleport) {
+        onTeleport({ targetUrl, system });
+      }
+
+      if (typeof window !== 'undefined' && window.location && opts.navigate !== false) {
+        window.location.assign(targetUrl);
+      }
+      return true;
+    },
+
+    checkWalkThrough(activeChar) {
+      if (!activeChar || !activeChar.position || !rootGroup.visible || !canvasStageGroup.visible) {
+        lastMetricZ = null;
+        isPlayerNearPortal = false;
+        return false;
+      }
+      if (shouldIgnorePortal && shouldIgnorePortal()) {
+        lastMetricZ = null;
+        return false;
+      }
+      if (isTeleporting) {
+        return true;
+      }
+
+      canvasStageGroup.updateMatrixWorld(true);
+      _tempLocalPos.set(
+        activeChar.position.x,
+        activeChar.position.y + 1.15,
+        activeChar.position.z
+      );
+      canvasStageGroup.worldToLocal(_tempLocalPos);
+
+      const sx = Math.abs(canvasStageGroup.scale.x) || 1.0;
+      const sy = Math.abs(canvasStageGroup.scale.y) || 1.0;
+      const sz = Math.abs(canvasStageGroup.scale.z) || 1.0;
+
+      const metricX = _tempLocalPos.x * sx;
+      const metricY = _tempLocalPos.y * sy;
+      const metricZ = _tempLocalPos.z * sz;
+
+      const halfW = (WATERCOLOR_DEFAULT_PARAMS.canvasWidth * 0.5) * sx;
+      const halfH = (WATERCOLOR_DEFAULT_PARAMS.canvasHeight * 0.5) * sy;
+
+      lastPortalDistanceMeters = Math.hypot(
+        Math.max(0.0, Math.abs(metricX) - halfW),
+        Math.max(0.0, Math.abs(metricY) - halfH),
+        metricZ
+      );
+
+      isPlayerNearPortal =
+        Math.abs(metricX) <= halfW + 1.65 &&
+        Math.abs(metricY) <= halfH + 1.50 &&
+        Math.abs(metricZ) <= 4.50;
+
+      const insideApertureXY =
+        Math.abs(metricX) <= halfW + 0.35 &&
+        Math.abs(metricY) <= halfH + 0.65;
+
+      const crossedPlane =
+        lastMetricZ !== null &&
+        lastMetricZ * metricZ <= 0.0 &&
+        Math.abs(metricZ - lastMetricZ) <= 2.50;
+
+      const penetratedPlane = Math.abs(metricZ) <= 0.42;
+
+      lastMetricZ = metricZ;
+
+      if (insideApertureXY && (penetratedPlane || crossedPlane)) {
+        return this.teleportToSkateRoom();
+      }
+      return false;
+    },
+
+    update(dt, timeSec, activeChar = null) {
       if (typeof timeSec === 'number' && Number.isFinite(timeSec)) {
         uTimeUniform.value = timeSec;
       } else if (typeof dt === 'number' && Number.isFinite(dt)) {
         uTimeUniform.value += dt;
+      }
+      if (activeChar) {
+        this.checkWalkThrough(activeChar);
       }
     },
 
@@ -683,8 +838,189 @@ export function buildWaterColorGallerySystem(options = {}) {
         scale: scaleVal,
         timeSec: uTimeUniform.value,
         isFocused,
+        isTeleporting,
+        teleportCount,
+        portalTargetUrl,
+        isPlayerNearPortal,
+        lastPortalDistanceMeters,
         canvasRotationY: canvasStageGroup.rotation.y,
       };
+    },
+
+    getTransformState() {
+      const p = canvasStageGroup.position;
+      const r = canvasStageGroup.rotation;
+      const s = canvasStageGroup.scale;
+      return {
+        id: 'watercolor_gallery',
+        code: 'WATERCOLOR_GALLERY',
+        index: 18,
+        wallSide: p.x < 0 ? 'L' : 'R',
+        x: Number(p.x.toFixed(4)),
+        y: Number(p.y.toFixed(4)),
+        yRel: Number((p.y - floorY).toFixed(4)),
+        z: Number(p.z.toFixed(4)),
+        pitchRad: Number(r.x.toFixed(4)),
+        yawRad: Number(r.y.toFixed(4)),
+        rollRad: Number(r.z.toFixed(4)),
+        scale: Number(s.x.toFixed(4)),
+        scaleX: Number(s.x.toFixed(4)),
+        scaleY: Number(s.y.toFixed(4)),
+        scaleZ: Number(s.z.toFixed(4)),
+        planeWidthMeters: Number((WATERCOLOR_DEFAULT_PARAMS.canvasWidth * s.x).toFixed(4)),
+        planeHeightMeters: Number((WATERCOLOR_DEFAULT_PARAMS.canvasHeight * s.y).toFixed(4)),
+        basePlaneWidthMeters: WATERCOLOR_DEFAULT_PARAMS.canvasWidth,
+        basePlaneHeightMeters: WATERCOLOR_DEFAULT_PARAMS.canvasHeight,
+        aspectRatio: WATERCOLOR_DEFAULT_PARAMS.aspectRatio,
+      };
+    },
+
+    setTransformState(partial = {}) {
+      if (!partial || typeof partial !== 'object') return this.getTransformState();
+      if (typeof partial.x === 'number' && Number.isFinite(partial.x)) {
+        canvasStageGroup.position.x = partial.x;
+      }
+      if (typeof partial.yRel === 'number' && Number.isFinite(partial.yRel)) {
+        canvasStageGroup.position.y = floorY + partial.yRel;
+      } else if (typeof partial.y === 'number' && Number.isFinite(partial.y)) {
+        canvasStageGroup.position.y = partial.y;
+      }
+      if (typeof partial.z === 'number' && Number.isFinite(partial.z)) {
+        canvasStageGroup.position.z = partial.z;
+      }
+      if (typeof partial.pitchRad === 'number' && Number.isFinite(partial.pitchRad)) {
+        canvasStageGroup.rotation.x = partial.pitchRad;
+      }
+      if (typeof partial.yawRad === 'number' && Number.isFinite(partial.yawRad)) {
+        canvasStageGroup.rotation.y = partial.yawRad;
+      }
+      if (typeof partial.rollRad === 'number' && Number.isFinite(partial.rollRad)) {
+        canvasStageGroup.rotation.z = partial.rollRad;
+      }
+      if (typeof partial.scale === 'number' && Number.isFinite(partial.scale)) {
+        const sc = Math.max(0.1, Math.min(10.0, partial.scale));
+        canvasStageGroup.scale.set(sc, sc, 1.0);
+      } else {
+        if (typeof partial.scaleX === 'number' && Number.isFinite(partial.scaleX)) {
+          canvasStageGroup.scale.x = Math.max(0.1, Math.min(10.0, partial.scaleX));
+        }
+        if (typeof partial.scaleY === 'number' && Number.isFinite(partial.scaleY)) {
+          canvasStageGroup.scale.y = Math.max(0.1, Math.min(10.0, partial.scaleY));
+        }
+        if (typeof partial.scaleZ === 'number' && Number.isFinite(partial.scaleZ)) {
+          canvasStageGroup.scale.z = Math.max(0.1, Math.min(10.0, partial.scaleZ));
+        }
+      }
+      canvasStageGroup.updateMatrixWorld(true);
+      return this.getTransformState();
+    },
+
+    resetTransformToDefault() {
+      canvasStageGroup.position.set(
+        WATERCOLOR_GALLERY_SPEC.anchorPosition.x,
+        floorY + WATERCOLOR_GALLERY_SPEC.anchorPosition.yRel,
+        WATERCOLOR_GALLERY_SPEC.anchorPosition.z
+      );
+      canvasStageGroup.rotation.set(
+        WATERCOLOR_GALLERY_SPEC.canvasRotationEuler.x,
+        WATERCOLOR_GALLERY_SPEC.canvasRotationEuler.y,
+        WATERCOLOR_GALLERY_SPEC.canvasRotationEuler.z
+      );
+      canvasStageGroup.scale.set(1.0, 1.0, 1.0);
+      canvasStageGroup.updateMatrixWorld(true);
+      return this.getTransformState();
+    },
+
+    createHoloColumnAdapter(floorYVal = floorY) {
+      let lifecycleState = 'active';
+      const colAdapter = {
+        id: 'watercolor_gallery',
+        code: 'WATERCOLOR_GALLERY',
+        index: 18,
+        mediaType: 'shader',
+        isCarousel: false,
+        get lifecycleState() {
+          return lifecycleState;
+        },
+        set lifecycleState(val) {
+          lifecycleState = val;
+        },
+        rootGroup: canvasStageGroup,
+        primaryMesh: canvasMesh,
+        selectionFrame: frameLines,
+        raycastTargets: [canvasMesh],
+        assetSpec: {
+          id: 'watercolor_gallery',
+          code: 'WATERCOLOR_GALLERY',
+          index: 18,
+          repoPath: './watercolor_shader.js',
+          mediaType: 'shader',
+          label: 'Water Color Shader Canvas',
+          aspectRatio: WATERCOLOR_DEFAULT_PARAMS.aspectRatio,
+        },
+        geoSpec: {
+          planeWidth: WATERCOLOR_DEFAULT_PARAMS.canvasWidth,
+          planeHeight: WATERCOLOR_DEFAULT_PARAMS.canvasHeight,
+        },
+        params: {
+          colorAndLuminance: {
+            primaryTintHex: '#fb12a4',
+            secondaryTintHex: '#003cff',
+          },
+        },
+        getTransformState() {
+          return system.getTransformState();
+        },
+        setTransformState(partial) {
+          return system.setTransformState(partial);
+        },
+        resetTransformToDefault() {
+          return system.resetTransformToDefault();
+        },
+        getStateSummary() {
+          return {
+            id: 'watercolor_gallery',
+            code: 'WATERCOLOR_GALLERY',
+            index: 18,
+            mediaType: 'shader',
+            lifecycleState,
+            isCarousel: false,
+            transform: system.getTransformState(),
+          };
+        },
+        setSelectionHighlight(selected) {
+          if (frameLines && frameLines.material) {
+            frameLines.material.color.setHex(selected ? 0x38bdf8 : WATERCOLOR_GALLERY_SPEC.activeBorderColorHex);
+            frameLines.material.opacity = selected ? 1.0 : 0.88;
+          }
+        },
+        triggerGlitchBurst() {},
+        setParams() {},
+        getParams() {
+          return colAdapter.params;
+        },
+        materialize() {
+          lifecycleState = 'active';
+        },
+        dematerialize() {
+          lifecycleState = 'inactive';
+        },
+        setAgitatedState() {},
+        swapMediaSource() {},
+        play() {},
+        pause() {},
+        togglePlay() {},
+        setLoop() {},
+        setPlaybackRate() {},
+        scrubToTime() {},
+        scrubToFrame() {},
+        resetFrameZero() {},
+        update(dt, timeSec) {
+          system.update(dt, timeSec);
+        },
+        dispose() {},
+      };
+      return colAdapter;
     },
   };
 

@@ -8,8 +8,8 @@
   <script type="importmap">
     {
       "imports": {
-        "three": "./node_modules/three/build/three.module.js",
-        "three/addons/": "./node_modules/three/examples/jsm/"
+        "three": "./vendor/three/build/three.module.js",
+        "three/addons/": "./vendor/three/examples/jsm/"
       }
     }
   </script>
@@ -842,128 +842,6 @@
       cursor: pointer;
     }
 
-    /* Right-Hand "Water Color" Configuration Drawer (shader.md §5.2) */
-    .watercolor-drawer {
-      position: fixed;
-      top: 0;
-      right: 0;
-      bottom: 0;
-      width: 320px;
-      z-index: 30;
-      background-color: #000000;
-      border-left: 1px solid #ffffff;
-      color: #ffffff;
-      display: flex;
-      flex-direction: column;
-      pointer-events: auto;
-      transition: transform 0.22s ease, opacity 0.22s ease;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    }
-    .watercolor-drawer:not(.open) {
-      transform: translateX(100%);
-      opacity: 0;
-      pointer-events: none;
-    }
-    .watercolor-drawer-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 18px 20px;
-      border-bottom: 1px solid #ffffff;
-    }
-    .watercolor-drawer-title {
-      margin: 0;
-      font-size: 16px;
-      font-weight: 700;
-      color: #ffffff;
-      letter-spacing: 0.04em;
-    }
-    .watercolor-close-btn {
-      background: #000000;
-      color: #ffffff;
-      border: 1px solid #ffffff;
-      width: 28px;
-      height: 28px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 13px;
-      font-weight: 700;
-      cursor: pointer;
-      line-height: 1;
-      padding: 0;
-    }
-    .watercolor-close-btn:hover {
-      background: #ffffff;
-      color: #000000;
-    }
-    .watercolor-drawer-body {
-      padding: 24px 20px;
-      display: flex;
-      flex-direction: column;
-      gap: 28px;
-    }
-    .watercolor-param-group {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-    .watercolor-param-label {
-      font-size: 12px;
-      font-weight: 700;
-      letter-spacing: 0.08em;
-      color: #ffffff;
-      text-transform: uppercase;
-    }
-    .watercolor-slider-container {
-      position: relative;
-      padding-bottom: 24px;
-    }
-    .watercolor-slider-track {
-      position: relative;
-      width: 100%;
-      height: 8px;
-      background: #141414;
-      border: 1px solid #ffffff;
-      overflow: hidden;
-    }
-    .watercolor-slider-fill {
-      height: 100%;
-      background: #ffffff;
-      pointer-events: none;
-    }
-    .watercolor-range-input {
-      position: absolute;
-      top: -4px;
-      left: 0;
-      width: 100%;
-      height: 16px;
-      opacity: 0;
-      cursor: pointer;
-      margin: 0;
-      z-index: 2;
-    }
-    .watercolor-badge-rail {
-      position: relative;
-      width: 100%;
-      height: 20px;
-      margin-top: 6px;
-    }
-    .watercolor-value-badge {
-      position: absolute;
-      top: 0;
-      transform: translateX(-50%);
-      background: #000000;
-      color: #ffffff;
-      border: 1px solid #ffffff;
-      padding: 2px 8px;
-      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-      font-size: 11px;
-      font-weight: 700;
-      line-height: 1.2;
-      white-space: nowrap;
-    }
-
     /* Cyber-Tactical 2D HUD Radial Menu Overlay (anim/radial_menu.md §5) */
     #cyber-radial-menu-overlay {
       position: fixed;
@@ -1196,6 +1074,267 @@
     aria-label="Cyber-Tactical Radial Command Menu"
   ></div>
 
+  <!-- Startup Talking Sequence & n-Dialogue-Box Gate Overlay -->
+  <div
+    id="intro-dialogue-overlay"
+    style="display: none; position: fixed; left: 0; right: 0; bottom: 26px; z-index: 84; pointer-events: none; justify-content: center; align-items: flex-end; padding: 0 18px;"
+    aria-live="polite"
+    aria-label="Intro Dialogue Sequence"
+  >
+    <!-- Tap-to-Advance Dialogue Box Card (1 .. n) -->
+    <div
+      id="intro-dialogue-card"
+      role="button"
+      tabindex="0"
+      title="Tap / Click or Press Space to Advance Dialogue"
+      style="display: none; pointer-events: auto; cursor: pointer; width: min(560px, 90vw); background: rgba(7, 12, 24, 0.90); border: 1.5px solid rgba(0, 213, 255, 0.68); box-shadow: 0 12px 36px rgba(0, 0, 0, 0.78), 0 0 22px rgba(0, 213, 255, 0.22); border-radius: 12px; padding: 14px 18px; flex-direction: column; gap: 10px; backdrop-filter: blur(10px); transition: border-color 0.18s ease, box-shadow 0.18s ease; user-select: none;"
+    >
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; border-bottom: 1px solid rgba(56, 189, 248, 0.24); padding-bottom: 7px;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span
+            id="intro-dialogue-counter"
+            style="background: rgba(0, 213, 255, 0.18); border: 1px solid rgba(0, 213, 255, 0.55); color: #38bdf8; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 999px; letter-spacing: 0.06em;"
+          >
+            DIALOGUE 1 / 3
+          </span>
+          <span
+            id="intro-dialogue-title"
+            style="color: #f8fafc; font-size: 12px; font-weight: 700; letter-spacing: 0.05em;"
+          >
+            01 // WELCOME
+          </span>
+        </div>
+        <span
+          id="intro-dialogue-clip-badge"
+          style="color: #fbbf24; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 10px; font-weight: 600; letter-spacing: 0.03em;"
+        >
+          🎙 TALK_CONVERSATION_06 (1/4)
+        </span>
+      </div>
+
+      <p
+        id="intro-dialogue-text"
+        style="margin: 0; color: #e2e8f0; font-size: 13.5px; line-height: 1.52; font-weight: 400; letter-spacing: 0.01em;"
+      >
+        Welcome to Freeman Alley. I build interactive 3D spatial systems, real-time shaders, and full-stack engineering architectures.
+      </p>
+
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 4px;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <div id="intro-dialogue-pips" style="display: flex; align-items: center; gap: 5px;"></div>
+          <span style="font-size: 10px; color: #94a3b8; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;">
+            🔒 Scroll Locked Until Read
+          </span>
+        </div>
+        <button
+          id="intro-dialogue-next-btn"
+          class="hud-btn"
+          type="button"
+          style="background: rgba(0, 213, 255, 0.24); border-color: #00d5ff; color: #e0f2fe; font-size: 11px; font-weight: 700; padding: 5px 12px; border-radius: 999px;"
+        >
+          Tap to Continue (1/3) &rarr;
+        </button>
+      </div>
+    </div>
+
+    <!-- Scroll Unlocked Indicator Pill (shown after all n dialogue boxes are read while character continues talking) -->
+    <div
+      id="intro-scroll-unlocked-pill"
+      style="display: none; pointer-events: none; align-items: center; gap: 10px; background: rgba(7, 16, 28, 0.88); border: 1px solid rgba(74, 222, 128, 0.65); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.7), 0 0 16px rgba(74, 222, 128, 0.25); color: #bbf7d0; padding: 8px 18px; border-radius: 999px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px; font-weight: 700; letter-spacing: 0.05em; backdrop-filter: blur(8px);"
+    >
+      <span style="color: #4ade80;">&#10003; ALL DIALOGUE READ</span>
+      <span style="color: #f8fafc;">&bull;</span>
+      <span style="color: #38bdf8;">SCROLL DOWN TO WALK INTO ALLEY &darr;</span>
+    </div>
+  </div>
+
+  <!-- First-Person Camera POV Viewfinder Overlay (Director Mode) -->
+  <div
+    id="director-pov-overlay"
+    style="display: none; position: fixed; inset: 0; pointer-events: none; z-index: 88; flex-direction: column; justify-content: space-between; align-items: center; padding: 14px;"
+    aria-label="First-Person Camera POV Viewfinder"
+  >
+    <!-- Top Viewfinder Control Bar -->
+    <div style="pointer-events: auto; background: rgba(7, 12, 24, 0.90); border: 1px solid rgba(0, 213, 255, 0.65); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.75), 0 0 18px rgba(0, 213, 255, 0.25); border-radius: 10px; padding: 8px 14px; display: flex; flex-direction: column; gap: 6px; align-items: center; backdrop-filter: blur(8px); max-width: 92vw;">
+      <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap; justify-content: center;">
+        <span style="font-size: 11px; font-weight: 800; color: #00d5ff; letter-spacing: 0.08em;">🎥 FIRST-PERSON CAMERA POV MODE</span>
+        <span id="director-pov-coords-readout" style="font-size: 11px; color: #fbbf24; font-family: monospace;">CAM POV: (0.00, 2.40, -1.50) | Yaw 0&deg; Pitch -10&deg;</span>
+      </div>
+      <div style="font-size: 10px; color: #cbd5e1; text-align: center;">
+        <strong style="color: #38bdf8;">WASD / Arrows:</strong> Fly Camera &bull;
+        <strong style="color: #38bdf8;">Mouse Drag:</strong> Look Around &bull;
+        <strong style="color: #38bdf8;">Space / E:</strong> Up &bull;
+        <strong style="color: #38bdf8;">Q / Z / Ctrl:</strong> Down &bull;
+        <strong style="color: #38bdf8;">Wheel:</strong> Dolly &bull;
+        <strong style="color: #38bdf8;">Shift:</strong> Fast &bull;
+        <strong style="color: #38bdf8;">Alt:</strong> Slow
+      </div>
+      <div style="display: flex; gap: 6px; flex-wrap: wrap; justify-content: center;">
+        <button id="director-pov-set-start-btn" class="hud-btn" type="button" style="background: rgba(245, 158, 11, 0.25); border-color: #f59e0b; color: #fde68a; font-size: 10.5px; padding: 4px 9px;" title="Save current POV as Startup Pan Start (Hotkey: [)">
+          Set Pan Start ([)
+        </button>
+        <button id="director-pov-set-mid-btn" class="hud-btn" type="button" style="background: rgba(168, 85, 247, 0.25); border-color: #a855f7; color: #e9d5ff; font-size: 10.5px; padding: 4px 9px;" title="Bend trajectory curve through current POV position">
+          Set Trajectory Mid (Arc)
+        </button>
+        <button id="director-pov-set-end-btn" class="hud-btn" type="button" style="background: rgba(0, 213, 255, 0.25); border-color: #00d5ff; color: #bae6fd; font-size: 10.5px; padding: 4px 9px;" title="Save current POV as Startup Pan End / Torso Close-Up (Hotkey: ])">
+          Set Pan End / Torso (])
+        </button>
+        <button id="director-pov-set-spawn-btn" class="hud-btn secondary" type="button" style="font-size: 10.5px; padding: 4px 9px;" title="Place Player Spawn Marker on floor at center crosshair">
+          Place Spawn at Crosshair
+        </button>
+        <button id="director-pov-play-pan-btn" class="hud-btn" type="button" style="font-size: 10.5px; padding: 4px 9px;" title="Exit POV and play the configured Startup Camera Pan">
+          &#9654; Play Startup Pan
+        </button>
+        <button id="director-pov-exit-btn" class="hud-btn secondary" type="button" style="font-size: 10.5px; padding: 4px 9px;" title="Exit First-Person Camera POV Mode (Key C or Esc)">
+          &#10005; Exit POV (C)
+        </button>
+      </div>
+    </div>
+
+    <!-- Center Optical Reticle Crosshair -->
+    <div style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 28px; height: 28px; border: 1.5px solid rgba(0, 213, 255, 0.65); border-radius: 50%; pointer-events: none; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 8px rgba(0, 213, 255, 0.35);">
+      <div style="width: 4px; height: 4px; background: #fbbf24; border-radius: 50%;"></div>
+    </div>
+
+    <div></div>
+  </div>
+
+  <!-- Interactive Straight-Line Scene Cutter Viewport Overlay (Spec 036) -->
+  <div
+    id="scene-cutter-overlay"
+    style="display: none; position: fixed; inset: 0; z-index: 18; pointer-events: none;"
+    aria-label="Interactive Straight-Line Scene Cutter Overlay"
+  >
+    <!-- Interactive SVG Canvas for Straight Cut-Line Drawing & Half-Space Shading -->
+    <svg
+      id="scene-cutter-svg"
+      style="position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; pointer-events: auto; cursor: crosshair; user-select: none; touch-action: none;"
+    >
+      <defs>
+        <linearGradient id="cutter-line-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="#00d5ff" />
+          <stop offset="50%" stop-color="#ff2e4c" />
+          <stop offset="100%" stop-color="#fbbf24" />
+        </linearGradient>
+      </defs>
+      <!-- Shaded Half-Space Polygon Designating the Side to Delete -->
+      <polygon
+        id="cutter-svg-delete-shade"
+        points="0,0 0,0 0,0"
+        fill="rgba(239, 68, 68, 0.22)"
+        stroke="none"
+        style="display: none; pointer-events: none;"
+      />
+      <!-- Full-Viewport Infinite Extension Guide Line -->
+      <line
+        id="cutter-svg-infinite-guide"
+        x1="0" y1="0" x2="0" y2="0"
+        stroke="rgba(248, 113, 113, 0.55)"
+        stroke-width="1.5"
+        stroke-dasharray="7,6"
+        style="display: none; pointer-events: none;"
+      />
+      <!-- Main Drawn Straight Cut Line Segment P1 -> P2 -->
+      <line
+        id="cutter-svg-main-glow"
+        x1="0" y1="0" x2="0" y2="0"
+        stroke="rgba(239, 68, 68, 0.65)"
+        stroke-width="8"
+        stroke-linecap="round"
+        style="display: none; pointer-events: none;"
+      />
+      <line
+        id="cutter-svg-main-line"
+        x1="0" y1="0" x2="0" y2="0"
+        stroke="#ff2e4c"
+        stroke-width="3"
+        stroke-linecap="round"
+        style="display: none; pointer-events: none;"
+      />
+      <!-- Perpendicular Deletion Direction Arrow at Midpoint -->
+      <line
+        id="cutter-svg-normal-arrow"
+        x1="0" y1="0" x2="0" y2="0"
+        stroke="#fbbf24"
+        stroke-width="2.5"
+        stroke-linecap="round"
+        style="display: none; pointer-events: none;"
+      />
+      <polygon
+        id="cutter-svg-normal-head"
+        points="0,0 0,0 0,0"
+        fill="#fbbf24"
+        style="display: none; pointer-events: none;"
+      />
+      <!-- Midpoint Badge Indicating DELETE THIS SIDE + World Z Intercept -->
+      <g id="cutter-svg-badge-group" style="display: none; pointer-events: none;">
+        <rect
+          id="cutter-svg-badge-bg"
+          x="-190" y="-14" width="380" height="28" rx="6"
+          fill="rgba(15, 6, 10, 0.90)"
+          stroke="#ef4444"
+          stroke-width="1.5"
+        />
+        <text
+          id="cutter-svg-badge-text"
+          x="0" y="4"
+          fill="#fecaca"
+          font-family="ui-monospace, SFMono-Regular, Menlo, monospace"
+          font-size="11"
+          font-weight="800"
+          text-anchor="middle"
+        >DELETE THIS SIDE</text>
+      </g>
+      <!-- Draggable Endpoint Handles P1 and P2 -->
+      <circle
+        id="cutter-svg-handle-p1"
+        cx="0" cy="0" r="9"
+        fill="#00d5ff"
+        stroke="#0f172a"
+        stroke-width="2.5"
+        style="display: none; cursor: grab;"
+      />
+      <circle
+        id="cutter-svg-handle-p2"
+        cx="0" cy="0" r="9"
+        fill="#fbbf24"
+        stroke="#0f172a"
+        stroke-width="2.5"
+        style="display: none; cursor: grab;"
+      />
+    </svg>
+
+    <!-- Floating Top-Center Scene Cutter Action Toolbar -->
+    <div
+      style="position: fixed; top: 14px; left: calc(50% + 160px); transform: translateX(-50%); z-index: 89; pointer-events: auto; background: rgba(15, 10, 18, 0.92); border: 1.5px solid rgba(239, 68, 68, 0.78); box-shadow: 0 10px 32px rgba(0, 0, 0, 0.8), 0 0 22px rgba(239, 68, 68, 0.28); border-radius: 10px; padding: 8px 14px; display: flex; flex-direction: column; gap: 6px; align-items: center; backdrop-filter: blur(10px); max-width: calc(100vw - 410px);"
+    >
+      <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: center;">
+        <span style="font-size: 11.5px; font-weight: 800; color: #f87171; letter-spacing: 0.08em;">&#9986; STRAIGHT-LINE SCENE CUTTER MODE</span>
+        <span id="cutter-floating-status" style="font-size: 11px; color: #fde68a; font-family: monospace;">Click &amp; drag (or click 2 points) to draw a straight cut line</span>
+      </div>
+      <div style="display: flex; gap: 6px; flex-wrap: wrap; justify-content: center;">
+        <button id="cutter-float-flip-btn" class="hud-btn" type="button" style="background: rgba(245, 158, 11, 0.25); border-color: #f59e0b; color: #fde68a; font-size: 10.5px; padding: 4px 10px;" title="Swap which side of the line gets deleted (Hotkey: Tab)">
+          &#8644; Flip Delete Side (Tab)
+        </button>
+        <button id="cutter-float-execute-btn" class="hud-btn" type="button" style="background: rgba(239, 68, 68, 0.35); border-color: #ef4444; color: #fecaca; font-size: 10.5px; font-weight: 800; padding: 4px 12px;" title="Delete all scene geometry and props on the shaded side of the line (Hotkey: Enter)">
+          &#128293; Execute Cut / Delete Chunk (Enter)
+        </button>
+        <button id="cutter-float-clear-line-btn" class="hud-btn secondary" type="button" style="font-size: 10.5px; padding: 4px 9px;" title="Clear current drawn line without cutting">
+          Clear Line
+        </button>
+        <button id="cutter-float-undo-btn" class="hud-btn secondary" type="button" style="font-size: 10.5px; padding: 4px 9px;" title="Undo last scene cut">
+          &#8617; Undo Cut
+        </button>
+        <button id="cutter-float-restore-btn" class="hud-btn secondary" type="button" style="font-size: 10.5px; padding: 4px 9px;" title="Restore 100% of original uncut scene">
+          &#128260; Restore Full Scene
+        </button>
+        <button id="cutter-float-exit-btn" class="hud-btn secondary" type="button" style="font-size: 10.5px; padding: 4px 9px;" title="Exit Cut Mode (Hotkey: X or Esc)">
+          &#10005; Exit Cut Mode (X)
+        </button>
+      </div>
+    </div>
+  </div>
+
   <aside id="sandbox-hud" aria-label="Sandbox Controls">
     <div class="hud-header">
       <span class="hud-title">Freeman Alley Scrolly-Walk</span>
@@ -1232,6 +1371,257 @@
         <button id="replay-spray-intro-btn" class="hud-btn secondary" type="button" title="Replay PLATO DOOM Spray-Paint Intro (Key P)">
           Spray Intro (P)
         </button>
+      </div>
+      <div class="hud-row" style="margin-top: 6px; gap: 4px;">
+        <button id="hud-enter-skateroom-btn" class="hud-btn" style="flex: 1.4; background: linear-gradient(135deg, rgba(62, 198, 255, 0.28), rgba(251, 18, 164, 0.28)); border-color: #3ec6ff; color: #f0f9ff; font-weight: 800; font-size: 11px; padding: 5px 8px;" type="button" title="Teleport directly into SkateRoom (Skate 3 Rust/Bevy WebGPU Clean-Room Port) with active character">
+          🛹 Enter SkateRoom (Skate 3)
+        </button>
+        <a id="hud-portfolio-home-link" class="hud-btn secondary" href="https://platodoom.com" target="_blank" rel="noopener noreferrer" style="flex: 0.85; text-decoration: none; text-align: center; font-size: 10.5px; padding: 5px 6px; display: inline-flex; align-items: center; justify-content: center;" title="Open PlatoDoom Main Portfolio Hub">
+          ↗ Portfolio Hub
+        </a>
+      </div>
+    </div>
+
+    <!-- Interactive Straight-Line Scene Cutter Section (Spec 036) -->
+    <div class="hud-section" id="scene-cutter-hud-section" style="background: rgba(239, 68, 68, 0.10); border: 1px solid rgba(239, 68, 68, 0.45); border-radius: 8px; padding: 8px 10px; margin-bottom: 10px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+        <span class="hud-label" style="color: #f87171; margin-bottom: 0;">
+          <span>&#9986; Scene Cutter (Straight-Line Cut)</span>
+        </span>
+        <span id="cutter-hud-badge" style="font-size: 9.5px; font-family: monospace; color: #fca5a5; background: rgba(127, 29, 29, 0.55); border: 1px solid rgba(248, 113, 113, 0.45); border-radius: 4px; padding: 1px 6px;">STANDBY</span>
+      </div>
+      <div class="hud-row" style="margin-bottom: 5px; gap: 4px;">
+        <button id="cutter-toggle-mode-btn" class="hud-btn" type="button" style="flex: 1.3; background: rgba(239, 68, 68, 0.24); border-color: #ef4444; color: #fecaca; font-size: 11px; font-weight: 700; padding: 5px 8px;" title="Enter Cut Mode to draw a straight line across the viewport designating where to cut the scene (Hotkey: X)">
+          &#9986; Draw Cut Line: OFF (X)
+        </button>
+        <button id="cutter-flip-side-btn" class="hud-btn secondary" type="button" style="flex: 0.9; font-size: 10.5px; padding: 5px 6px;" title="Flip which side of the drawn line is deleted (Hotkey: Tab)">
+          &#8644; Flip Side (Tab)
+        </button>
+      </div>
+      <div class="hud-row" style="margin-bottom: 5px; gap: 4px;">
+        <select id="cutter-plane-mode-select" class="hud-select" aria-label="Cutting Plane Projection Mode" style="flex: 1.3; font-size: 10.5px;">
+          <option value="VIEW_PLANE">Mode: View-Plane Slice (Through Line)</option>
+          <option value="VERTICAL_PLUMB_PLANE">Mode: Vertical Plumb Wall Slice (XZ)</option>
+        </select>
+        <button id="cutter-preview-toggle-btn" class="hud-btn secondary" type="button" style="flex: 0.9; font-size: 10px; padding: 4px 6px;" title="Toggle real-time 60 FPS GPU clipping preview before committing cut">
+          Preview Clip: ON
+        </button>
+      </div>
+      <div class="hud-row" style="margin-bottom: 5px; gap: 4px;">
+        <button id="cutter-execute-btn" class="hud-btn" type="button" style="flex: 1.25; background: rgba(220, 38, 38, 0.35); border-color: #f87171; color: #fff1f2; font-size: 10.5px; font-weight: 800; padding: 5px 6px;" title="Commit the cut and delete all geometry &amp; props in the shaded half-space (Hotkey: Enter)">
+          &#128293; Execute Cut
+        </button>
+        <button id="cutter-undo-btn" class="hud-btn secondary" type="button" style="flex: 0.75; font-size: 10px; padding: 5px 4px;" title="Undo last applied cut">
+          &#8617; Undo
+        </button>
+        <button id="cutter-restore-all-btn" class="hud-btn secondary" type="button" style="flex: 0.85; font-size: 10px; padding: 5px 4px;" title="Restore 100% of uncut scene">
+          Restore All
+        </button>
+        <button id="cutter-copy-json-btn" class="hud-btn secondary" type="button" style="flex: 0.75; font-size: 10px; padding: 5px 4px;" title="Copy exact 3D Cut Plane JSON telemetry to clipboard">
+          Copy JSON
+        </button>
+      </div>
+      <div id="cutter-telemetry-readout" style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 9.5px; color: #fde68a; background: rgba(15, 23, 42, 0.78); border: 1px solid rgba(248, 113, 113, 0.3); border-radius: 5px; padding: 4px 6px; line-height: 1.35;">
+        Line: None &bull; Click &ldquo;Draw Cut Line (X)&rdquo; then drag across screen
+      </div>
+    </div>
+
+    <!-- Spawn Coordinates & Startup Camera Director Section (Spec 034) -->
+    <div class="hud-section" id="director-hud-section" style="background: rgba(0, 213, 255, 0.08); border: 1px solid rgba(0, 213, 255, 0.38); border-radius: 8px; padding: 8px 10px; margin-bottom: 10px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+        <span class="hud-label" style="color: #38bdf8; margin-bottom: 0;">
+          <span>Spawn &amp; Camera Director (3D)</span>
+        </span>
+        <button id="director-toggle-gizmos-btn" class="hud-btn secondary" type="button" style="font-size: 10px; padding: 2px 7px;" title="Toggle 3D Viewport Handles &amp; Trajectory (Key K)">
+          3D Handles: OFF (K)
+        </button>
+      </div>
+
+      <!-- First-Person Camera POV Navigation Toggle & Speed -->
+      <div style="background: rgba(0, 213, 255, 0.12); border: 1px solid rgba(0, 213, 255, 0.42); border-radius: 6px; padding: 5px 7px; margin-bottom: 6px;">
+        <div class="hud-row" style="margin-bottom: 4px;">
+          <button id="director-toggle-pov-btn" class="hud-btn secondary" type="button" style="width: 100%; font-size: 11px; font-weight: 700; padding: 5px 8px;" title="Fly &amp; look directly through the POV of the Three.js camera while character stays at Spawn (Key C)">
+            🎥 Camera POV Mode: OFF (C)
+          </button>
+        </div>
+        <div style="display: grid; grid-template-columns: 62px 1fr 44px; gap: 4px; align-items: center;">
+          <label for="director-pov-speed-slider" style="font-size: 10px; color: #bae6fd;">POV Speed:</label>
+          <input id="director-pov-speed-slider" class="hud-slider" type="range" min="0.5" max="25.0" step="0.5" value="6.0" />
+          <input id="director-pov-speed-input" type="number" step="0.5" min="0.5" max="30.0" value="6.0" style="width: 44px; background: rgba(15,23,42,0.85); color: #e2e8f0; border: 1px solid rgba(56,189,248,0.3); border-radius: 3px; font-size: 10px; padding: 2px 3px; text-align: right;" />
+        </div>
+      </div>
+
+      <!-- Handle Selection & Gizmo Mode Row -->
+      <div class="hud-row" style="margin-bottom: 6px; gap: 4px;">
+        <select id="director-handle-select" class="hud-select" aria-label="Select Director Handle to Edit in 3D" style="flex: 1.4; font-size: 11px;">
+          <option value="spawn">1. Player Spawn Marker</option>
+          <option value="cam_start">2. Camera Pan Start (Pos)</option>
+          <option value="look_start">3. Camera Pan Start (Target)</option>
+          <option value="cam_mid">4. Trajectory Arc Midpoint</option>
+          <option value="cam_end">5. Camera Pan End / Torso (Pos)</option>
+          <option value="look_end">6. Camera Pan End / Torso (Target)</option>
+        </select>
+        <button id="director-gizmo-move-btn" class="hud-btn" type="button" style="padding: 3px 8px; font-size: 11px;">Move</button>
+        <button id="director-gizmo-rotate-btn" class="hud-btn secondary" type="button" style="padding: 3px 8px; font-size: 11px;">Rotate</button>
+      </div>
+
+      <!-- Player Spawn Settings -->
+      <div style="border-top: 1px solid rgba(56, 189, 248, 0.22); padding-top: 6px; margin-bottom: 6px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+          <span style="font-size: 10.5px; font-weight: 700; color: #38bdf8; letter-spacing: 0.04em;">PLAYER SPAWN COORDINATES</span>
+          <span id="director-spawn-summary" style="font-size: 10px; color: #fbbf24; font-family: monospace;">(0.00, 0.00, 3.00) 0&deg;</span>
+        </div>
+        <div style="display: grid; grid-template-columns: 56px 1fr 48px; gap: 4px; align-items: center; margin-bottom: 3px;">
+          <label for="director-spawn-x-slider" style="font-size: 10.5px; color: #94a3b8;">Spawn X:</label>
+          <input id="director-spawn-x-slider" class="hud-slider" type="range" min="-30.0" max="30.0" step="0.05" value="0.00" />
+          <input id="director-spawn-x-input" type="number" step="0.05" value="0.00" style="width: 48px; background: rgba(15,23,42,0.85); color: #e2e8f0; border: 1px solid rgba(56,189,248,0.3); border-radius: 3px; font-size: 10.5px; padding: 2px 3px; text-align: right;" />
+        </div>
+        <div style="display: grid; grid-template-columns: 56px 1fr 48px; gap: 4px; align-items: center; margin-bottom: 3px;">
+          <label for="director-spawn-y-slider" style="font-size: 10.5px; color: #94a3b8;">Spawn Y:</label>
+          <input id="director-spawn-y-slider" class="hud-slider" type="range" min="-5.0" max="15.0" step="0.05" value="0.00" />
+          <input id="director-spawn-y-input" type="number" step="0.05" value="0.00" style="width: 48px; background: rgba(15,23,42,0.85); color: #e2e8f0; border: 1px solid rgba(56,189,248,0.3); border-radius: 3px; font-size: 10.5px; padding: 2px 3px; text-align: right;" />
+        </div>
+        <div style="display: grid; grid-template-columns: 56px 1fr 48px; gap: 4px; align-items: center; margin-bottom: 3px;">
+          <label for="director-spawn-z-slider" style="font-size: 10.5px; color: #94a3b8;">Spawn Z:</label>
+          <input id="director-spawn-z-slider" class="hud-slider" type="range" min="-30.0" max="75.0" step="0.05" value="3.00" />
+          <input id="director-spawn-z-input" type="number" step="0.05" value="3.00" style="width: 48px; background: rgba(15,23,42,0.85); color: #e2e8f0; border: 1px solid rgba(56,189,248,0.3); border-radius: 3px; font-size: 10.5px; padding: 2px 3px; text-align: right;" />
+        </div>
+        <div style="display: grid; grid-template-columns: 56px 1fr 48px; gap: 4px; align-items: center; margin-bottom: 5px;">
+          <label for="director-spawn-yaw-slider" style="font-size: 10.5px; color: #94a3b8;">Yaw (&deg;):</label>
+          <input id="director-spawn-yaw-slider" class="hud-slider" type="range" min="-180" max="180" step="1" value="0" />
+          <input id="director-spawn-yaw-input" type="number" step="1" value="0" style="width: 48px; background: rgba(15,23,42,0.85); color: #e2e8f0; border: 1px solid rgba(56,189,248,0.3); border-radius: 3px; font-size: 10.5px; padding: 2px 3px; text-align: right;" />
+        </div>
+        <div class="hud-row" style="gap: 4px;">
+          <button id="director-spawn-snap-btn" class="hud-btn secondary" type="button" style="flex: 1; font-size: 10px; padding: 3px 4px;" title="Teleport active character to spawn marker">Snap to Spawn</button>
+          <button id="director-spawn-use-player-btn" class="hud-btn secondary" type="button" style="flex: 1; font-size: 10px; padding: 3px 4px;" title="Set spawn marker to player's current position">Use Player Pos</button>
+          <button id="director-spawn-crosshair-btn" class="hud-btn secondary" type="button" style="flex: 1; font-size: 10px; padding: 3px 4px;" title="Place spawn marker on floor at camera crosshair">At Crosshair</button>
+        </div>
+      </div>
+
+      <!-- Startup Camera Pan Controls -->
+      <div style="border-top: 1px solid rgba(56, 189, 248, 0.22); padding-top: 6px; margin-bottom: 6px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+          <span style="font-size: 10.5px; font-weight: 700; color: #f59e0b; letter-spacing: 0.04em;">STARTUP CAMERA PAN TRAJECTORY</span>
+          <span id="director-pan-status" style="font-size: 10px; color: #fde68a; font-family: monospace;">2.60s Pan</span>
+        </div>
+
+        <!-- Pan Start Controls -->
+        <div style="background: rgba(245, 158, 11, 0.09); border: 1px solid rgba(245, 158, 11, 0.28); border-radius: 5px; padding: 5px 6px; margin-bottom: 4px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px;">
+            <span style="font-size: 10px; color: #fbbf24; font-weight: 700;">1. PAN START (WIDE OPENING)</span>
+            <div style="display: flex; gap: 4px;">
+              <button id="director-cam-capture-start-btn" class="hud-btn secondary" type="button" style="font-size: 9.5px; padding: 1px 5px;" title="Capture current camera POV as Pan Start (Hotkey: [)">Capture POV</button>
+              <button id="director-cam-preview-start-btn" class="hud-btn secondary" type="button" style="font-size: 9.5px; padding: 1px 5px;" title="Jump camera to Pan Start frame">Preview</button>
+            </div>
+          </div>
+          <div style="display: grid; grid-template-columns: 54px minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr); gap: 4px; align-items: center; margin-bottom: 3px;">
+            <span style="font-size: 9.5px; color: #94a3b8;">Pos X,Y,Z:</span>
+            <input id="director-cam-start-x" type="number" step="0.1" value="0.00" style="width: 100%; min-width: 0; box-sizing: border-box; background: rgba(15,23,42,0.85); color: #e2e8f0; border: 1px solid rgba(245,158,11,0.3); border-radius: 3px; font-size: 10px; padding: 2px 3px; text-align: right;" />
+            <input id="director-cam-start-y" type="number" step="0.1" value="2.40" style="width: 100%; min-width: 0; box-sizing: border-box; background: rgba(15,23,42,0.85); color: #e2e8f0; border: 1px solid rgba(245,158,11,0.3); border-radius: 3px; font-size: 10px; padding: 2px 3px; text-align: right;" />
+            <input id="director-cam-start-z" type="number" step="0.1" value="-1.50" style="width: 100%; min-width: 0; box-sizing: border-box; background: rgba(15,23,42,0.85); color: #e2e8f0; border: 1px solid rgba(245,158,11,0.3); border-radius: 3px; font-size: 10px; padding: 2px 3px; text-align: right;" />
+          </div>
+          <div style="display: grid; grid-template-columns: 54px minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr); gap: 4px; align-items: center;">
+            <span style="font-size: 9.5px; color: #94a3b8;">Look X,Y,Z:</span>
+            <input id="director-look-start-x" type="number" step="0.1" value="0.00" style="width: 100%; min-width: 0; box-sizing: border-box; background: rgba(15,23,42,0.85); color: #e2e8f0; border: 1px solid rgba(245,158,11,0.3); border-radius: 3px; font-size: 10px; padding: 2px 3px; text-align: right;" />
+            <input id="director-look-start-y" type="number" step="0.1" value="1.40" style="width: 100%; min-width: 0; box-sizing: border-box; background: rgba(15,23,42,0.85); color: #e2e8f0; border: 1px solid rgba(245,158,11,0.3); border-radius: 3px; font-size: 10px; padding: 2px 3px; text-align: right;" />
+            <input id="director-look-start-z" type="number" step="0.1" value="3.00" style="width: 100%; min-width: 0; box-sizing: border-box; background: rgba(15,23,42,0.85); color: #e2e8f0; border: 1px solid rgba(245,158,11,0.3); border-radius: 3px; font-size: 10px; padding: 2px 3px; text-align: right;" />
+          </div>
+        </div>
+
+        <!-- Trajectory Arc Midpoint Controls -->
+        <div style="background: rgba(168, 85, 247, 0.09); border: 1px solid rgba(168, 85, 247, 0.30); border-radius: 5px; padding: 5px 6px; margin-bottom: 4px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px;">
+            <span style="font-size: 10px; color: #d8b4fe; font-weight: 700;">2. TRAJECTORY ARC (MIDPOINT)</span>
+            <div style="display: flex; gap: 3px;">
+              <button id="director-cam-capture-mid-btn" class="hud-btn secondary" type="button" style="font-size: 9.5px; padding: 1px 5px;" title="Bend trajectory through current camera POV">Capture POV</button>
+              <button id="director-cam-preview-mid-btn" class="hud-btn secondary" type="button" style="font-size: 9.5px; padding: 1px 5px;" title="Jump camera to Trajectory Midpoint">Preview</button>
+              <button id="director-cam-auto-mid-btn" class="hud-btn secondary" type="button" style="font-size: 9.5px; padding: 1px 5px;" title="Reset midpoint to smooth straight arc between Start and End">Straighten</button>
+            </div>
+          </div>
+          <div style="display: grid; grid-template-columns: 54px minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr); gap: 4px; align-items: center;">
+            <span style="font-size: 9.5px; color: #94a3b8;">Mid X,Y,Z:</span>
+            <input id="director-cam-mid-x" type="number" step="0.1" value="0.18" style="width: 100%; min-width: 0; box-sizing: border-box; background: rgba(15,23,42,0.85); color: #e2e8f0; border: 1px solid rgba(168,85,247,0.35); border-radius: 3px; font-size: 10px; padding: 2px 3px; text-align: right;" />
+            <input id="director-cam-mid-y" type="number" step="0.1" value="2.15" style="width: 100%; min-width: 0; box-sizing: border-box; background: rgba(15,23,42,0.85); color: #e2e8f0; border: 1px solid rgba(168,85,247,0.35); border-radius: 3px; font-size: 10px; padding: 2px 3px; text-align: right;" />
+            <input id="director-cam-mid-z" type="number" step="0.1" value="0.03" style="width: 100%; min-width: 0; box-sizing: border-box; background: rgba(15,23,42,0.85); color: #e2e8f0; border: 1px solid rgba(168,85,247,0.35); border-radius: 3px; font-size: 10px; padding: 2px 3px; text-align: right;" />
+          </div>
+        </div>
+
+        <!-- Pan End Controls -->
+        <div style="background: rgba(0, 213, 255, 0.09); border: 1px solid rgba(0, 213, 255, 0.28); border-radius: 5px; padding: 5px 6px; margin-bottom: 5px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px;">
+            <span style="font-size: 10px; color: #38bdf8; font-weight: 700;">3. PAN END (TORSO CLOSE-UP)</span>
+            <div style="display: flex; gap: 4px;">
+              <button id="director-cam-capture-end-btn" class="hud-btn secondary" type="button" style="font-size: 9.5px; padding: 1px 5px;" title="Capture current camera POV as Pan End (Hotkey: ])">Capture POV</button>
+              <button id="director-cam-preview-end-btn" class="hud-btn secondary" type="button" style="font-size: 9.5px; padding: 1px 5px;" title="Jump camera to Pan End torso framing">Preview</button>
+            </div>
+          </div>
+          <div style="display: grid; grid-template-columns: 54px minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr); gap: 4px; align-items: center; margin-bottom: 3px;">
+            <span style="font-size: 9.5px; color: #94a3b8;">Pos X,Y,Z:</span>
+            <input id="director-cam-end-x" type="number" step="0.1" value="0.36" style="width: 100%; min-width: 0; box-sizing: border-box; background: rgba(15,23,42,0.85); color: #e2e8f0; border: 1px solid rgba(56,189,248,0.3); border-radius: 3px; font-size: 10px; padding: 2px 3px; text-align: right;" />
+            <input id="director-cam-end-y" type="number" step="0.1" value="1.50" style="width: 100%; min-width: 0; box-sizing: border-box; background: rgba(15,23,42,0.85); color: #e2e8f0; border: 1px solid rgba(56,189,248,0.3); border-radius: 3px; font-size: 10px; padding: 2px 3px; text-align: right;" />
+            <input id="director-cam-end-z" type="number" step="0.1" value="1.55" style="width: 100%; min-width: 0; box-sizing: border-box; background: rgba(15,23,42,0.85); color: #e2e8f0; border: 1px solid rgba(56,189,248,0.3); border-radius: 3px; font-size: 10px; padding: 2px 3px; text-align: right;" />
+          </div>
+          <div style="display: grid; grid-template-columns: 54px minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr); gap: 4px; align-items: center;">
+            <span style="font-size: 9.5px; color: #94a3b8;">Look X,Y,Z:</span>
+            <input id="director-look-end-x" type="number" step="0.1" value="0.00" style="width: 100%; min-width: 0; box-sizing: border-box; background: rgba(15,23,42,0.85); color: #e2e8f0; border: 1px solid rgba(56,189,248,0.3); border-radius: 3px; font-size: 10px; padding: 2px 3px; text-align: right;" />
+            <input id="director-look-end-y" type="number" step="0.1" value="1.45" style="width: 100%; min-width: 0; box-sizing: border-box; background: rgba(15,23,42,0.85); color: #e2e8f0; border: 1px solid rgba(56,189,248,0.3); border-radius: 3px; font-size: 10px; padding: 2px 3px; text-align: right;" />
+            <input id="director-look-end-z" type="number" step="0.1" value="3.00" style="width: 100%; min-width: 0; box-sizing: border-box; background: rgba(15,23,42,0.85); color: #e2e8f0; border: 1px solid rgba(56,189,248,0.3); border-radius: 3px; font-size: 10px; padding: 2px 3px; text-align: right;" />
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 56px 1fr 48px; gap: 4px; align-items: center; margin-bottom: 5px;">
+          <label for="director-pan-duration-slider" style="font-size: 10px; color: #94a3b8;">Duration:</label>
+          <input id="director-pan-duration-slider" class="hud-slider" type="range" min="0.5" max="8.0" step="0.1" value="2.6" />
+          <input id="director-pan-duration-input" type="number" step="0.1" min="0.2" max="15.0" value="2.6" style="width: 48px; background: rgba(15,23,42,0.85); color: #e2e8f0; border: 1px solid rgba(251,191,36,0.3); border-radius: 3px; font-size: 10px; padding: 2px 3px; text-align: right;" />
+        </div>
+
+        <div class="hud-row" style="gap: 4px; margin-bottom: 5px;">
+          <button id="director-pan-play-btn" class="hud-btn" type="button" style="flex: 1.2; font-size: 11px; padding: 4px 6px;">Play Startup Pan</button>
+          <button id="director-pan-reset-cam-btn" class="hud-btn secondary" type="button" style="flex: 0.9; font-size: 10.5px; padding: 4px 5px;" title="Reset camera to normal orbit">Orbit Cam</button>
+        </div>
+      </div>
+
+      <!-- Intro 4-Clip Talking Loop & n-Dialogue-Box Gate Controls -->
+      <div style="border-top: 1px solid rgba(56, 189, 248, 0.22); padding-top: 6px; margin-bottom: 6px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+          <span style="font-size: 10.5px; font-weight: 700; color: #38bdf8; letter-spacing: 0.04em;">TALKING LOOP &amp; DIALOGUE GATE (n BOXES)</span>
+          <span id="director-intro-phase-badge" style="font-size: 10px; color: #38bdf8; font-family: monospace; font-weight: 700;">🔒 Box 1/3</span>
+        </div>
+        <div style="font-size: 9.5px; color: #94a3b8; margin-bottom: 5px; line-height: 1.35;">
+          Loop: <span style="color: #fde68a; font-family: monospace;">CONVO_06 &rarr; CONVO_05 &rarr; CONVO_04 &rarr; EMPHASIS</span>
+        </div>
+        <div style="display: grid; grid-template-columns: 74px 48px 1fr; gap: 4px; align-items: center; margin-bottom: 4px;">
+          <label for="director-dialogue-count-input" style="font-size: 10px; color: #cbd5e1;">Box Count (n):</label>
+          <input id="director-dialogue-count-input" type="number" min="1" max="12" step="1" value="3" style="width: 100%; box-sizing: border-box; background: rgba(15,23,42,0.85); color: #38bdf8; border: 1px solid rgba(56,189,248,0.4); border-radius: 3px; font-size: 10.5px; font-weight: 700; padding: 2px 4px; text-align: center;" />
+          <select id="director-dialogue-box-select" class="hud-select" aria-label="Select Dialogue Box to Edit" style="font-size: 10px; padding: 2px 4px;">
+            <option value="0">Box 1 / 3</option>
+            <option value="1">Box 2 / 3</option>
+            <option value="2">Box 3 / 3</option>
+          </select>
+        </div>
+        <div style="margin-bottom: 5px;">
+          <input
+            id="director-dialogue-box-text-input"
+            type="text"
+            value="Welcome to Freeman Alley. I build interactive 3D spatial systems, real-time shaders, and full-stack engineering architectures."
+            placeholder="Dialogue description text for selected box..."
+            style="width: 100%; box-sizing: border-box; background: rgba(15,23,42,0.85); color: #e2e8f0; border: 1px solid rgba(56,189,248,0.3); border-radius: 4px; font-size: 10px; padding: 4px 6px;"
+          />
+        </div>
+        <div class="hud-row" style="gap: 4px;">
+          <button id="director-dialogue-start-btn" class="hud-btn secondary" type="button" style="flex: 1; font-size: 10px; padding: 3px 5px;" title="Lock camera at Pan End, loop the 4 talking animations, and show Box 1/n">
+            Test Talk + Boxes
+          </button>
+          <button id="director-dialogue-advance-btn" class="hud-btn" type="button" style="flex: 1.25; font-size: 10px; padding: 3px 5px;" title="Simulate tapping/skipping the current dialogue box">
+            Tap / Skip Box (1/3) &rarr;
+          </button>
+        </div>
+      </div>
+
+      <!-- Action Buttons Row -->
+      <div class="hud-row" style="gap: 4px;">
+        <button id="director-reset-defaults-btn" class="hud-btn secondary" type="button" style="flex: 1; font-size: 10px; padding: 3px 5px;">Reset Defaults</button>
+        <button id="director-copy-json-btn" class="hud-btn" type="button" style="flex: 1.3; font-size: 10px; padding: 3px 5px;" title="Copy Spawn Coordinates and Camera Pan JSON to clipboard">Copy Director JSON</button>
       </div>
     </div>
 
@@ -1296,8 +1686,10 @@
           <option value="luis_holo">LUIS_HOLOSYS_RIGGED.glb (Iridescent Holo)</option>
           <option value="luis_clay">LUIS_RIGGED_CLAY.glb (Clay + Holo)</option>
           <option value="luis_color">LUIS_RIGGED.glb (Full Color + Holo)</option>
+          <option value="luis_skate3">LUIS_SKATE3_RIGGED.glb (Skate 3 35-Joint)</option>
           <option value="platodoom_holo">PLATODOOM_HOLOSYS_RIGGED.glb (Iridescent Holo)</option>
           <option value="platodoom_color">PLATODOOM_RIGGED.glb (Full Color + Holo)</option>
+          <option value="platodoom_skate3">PLATODOOM_SKATE3_RIGGED.glb (Skate 3 35-Joint)</option>
         </select>
         <button id="solo-character-btn" class="hud-btn secondary" type="button" title="Isolate Active Character GLB Alone">
           Solo: ON
@@ -1360,6 +1752,11 @@
           aria-label="Master Audio Gain"
         />
       </div>
+      <div class="hud-row" style="margin-bottom: 5px;">
+        <button id="hud-toggle-mp3-btn" class="hud-btn secondary" type="button" style="flex: 1; border-color: rgba(255, 165, 29, 0.45); color: #ffa51d;" title="Toggle Interactive DOOM TRACKS SYS-990-AMBER MP3 Deck (Key U)">
+          DOOM TRACKS MP3: ON (U)
+        </button>
+      </div>
       <div class="hud-row">
         <span style="font-size: 10.5px; color: #94a3b8;">Floor Blur:</span>
         <input
@@ -1383,21 +1780,34 @@
       </span>
       <div class="hud-row" style="margin-bottom: 5px;">
         <select id="holo-column-select" class="hud-select" aria-label="Select Hologram Column Asset">
+          <option value="holo_slide_carousel">1: holo_slide_carousel (CAROUSEL, 5 Slides)</option>
           <option value="frenchfry_tag">3: frenchfry_tag (IMG, 0.847:1)</option>
           <option value="gun_tag">4: gun_tag (IMG, 1.031:1)</option>
           <option value="movie_tag">5: movie_tag (IMG, 0.907:1)</option>
-          <option value="screen_tag">7: screen_tag (IMG, 1.039:1)</option>
           <option value="soulja_tag">8: soulja_tag (IMG, 1.030:1)</option>
-          <option value="thigh_tag">9: thigh_tag (IMG, 0.837:1)</option>
           <option value="daffy_vid">10: daffy_vid (VID 24fps, 1.000:1)</option>
           <option value="doomlambo_vid">11: doomlambo_vid (VID 24fps, 1.593:1)</option>
-          <option value="doomnuns_vid">12: doomnuns_vid (VID 24fps, 1.379:1)</option>
           <option value="doomsnake_vid">13: doomsnake_vid (VID 24fps, 0.838:1)</option>
           <option value="eyedoom_vid">14: eyedoom_vid (VID 24fps, 1.000:1)</option>
           <option value="nokia_vid">15: nokia_vid (VID 24fps, 1.029:1)</option>
           <option value="pinkpanther_vid">16: pinkpanther_vid (VID 24fps, 1.300:1)</option>
           <option value="tiger_vid">17: tiger_vid (VID 24fps, 1.061:1)</option>
+          <option value="watercolor_gallery">18: watercolor_gallery (SHADER CANVAS, 0.528:1)</option>
+          <option value="e_acc_logo">19: e_acc_logo (IMG, 0.962:1, No Tint)</option>
         </select>
+      </div>
+      <!-- Interactive Carousel Slide Deck Controls (Swipe in 3D or Step / Upload Here) -->
+      <div id="holo-carousel-deck-panel" style="background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.35); border-radius: 6px; padding: 6px 8px; margin-bottom: 6px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+          <span style="font-size: 10px; color: #38bdf8; font-weight: 700; letter-spacing: 0.05em;">HOLO SLIDE CAROUSEL (DRAG/SWIPE IN 3D)</span>
+          <button id="holo-carousel-upload-btn" class="hud-btn secondary" type="button" style="font-size: 10px; padding: 2px 6px;" title="Upload Custom Images or Videos into Selected Hologram Carousel">+ Upload Media</button>
+          <input id="holo-carousel-file-input" type="file" accept="image/*,video/*" multiple style="display: none;" />
+        </div>
+        <div class="hud-row" style="gap: 4px; align-items: center;">
+          <button id="holo-carousel-prev-btn" class="hud-btn secondary" type="button" style="padding: 3px 8px; font-size: 11px; font-weight: 700;" title="Previous Slide">&lsaquo; Prev</button>
+          <span id="holo-carousel-slide-label" style="flex: 1; text-align: center; font-size: 10px; color: #fde68a; font-family: monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Slide 1 / 5 &mdash; 01 // HOLO SLIDE DECK</span>
+          <button id="holo-carousel-next-btn" class="hud-btn secondary" type="button" style="padding: 3px 8px; font-size: 11px; font-weight: 700;" title="Next Slide">Next &rsaquo;</button>
+        </div>
       </div>
       <div class="hud-row" style="margin-bottom: 6px;">
         <select id="holo-column-state-select" class="hud-select" aria-label="Hologram Column Lifecycle State" style="flex: 1; margin-right: 4px;">
@@ -1409,6 +1819,7 @@
           <option value="inactive">State: Inactive</option>
         </select>
         <select id="holo-column-tint-select" class="hud-select" aria-label="Spectral Tint Preset" style="flex: 1;">
+          <option value="none">Tint: None (Original)</option>
           <option value="cyan">Tint: Cyan</option>
           <option value="amber">Tint: Amber</option>
           <option value="emerald">Tint: Emerald</option>
@@ -1493,17 +1904,25 @@
         <div>SFX: <span id="tel-sfx" class="val">Active</span></div>
         <div>Audio: <span id="tel-audio" class="val">2D+3D+UI</span></div>
         <div>Pods: <span id="tel-pods" class="val">6 / 6 Active</span></div>
-        <div>Water Color: <span id="tel-watercolor" class="val">SKYBOX (DIV:6 SCALE:6)</span></div>
+        <div>Water Color: <span id="tel-watercolor" class="val">GALLERY (DIV:6 SCALE:6)</span></div>
         <div>Running: <span id="tel-running" class="val">Idle</span></div>
         <div>Shadows: <span id="tel-shadows" class="val">Active</span></div>
         <div>Cables: <span id="tel-cables" class="val">20 / 20 Active</span></div>
-        <div>Columns: <span id="tel-holo-columns" class="val">14 / 14 Active</span></div>
+        <div>Pipes: <span id="tel-pipes" class="val">15 / 15 Active (8 Vars: 5L + 5R + 5 Cross)</span></div>
+        <div>Columns: <span id="tel-holo-columns" class="val">12 / 12 Active</span></div>
         <div>Radial: <span id="tel-radial" class="val">IDLE</span></div>
         <div>Spray: <span id="tel-spray-loader" class="val">READY</span></div>
+        <div>Spawn: <span id="tel-spawn" class="val">0.00, 3.00 (0&deg;)</span></div>
+        <div>Pan: <span id="tel-pan" class="val">Settled (2.6s)</span></div>
+        <div style="grid-column: 1 / -1;">Scene Cut: <span id="tel-cutter" class="val">UNCUT (42,314 / 42,314 Tris)</span></div>
+        <div style="grid-column: 1 / -1;">MP3 Deck: <span id="tel-mp3" class="val">STOPPED &bull; DOOM ALLOY // INTRO</span></div>
       </div>
     </div>
 
     <div class="controls-hint">
+      <kbd>X</kbd> Scene Cutter &bull;
+      <kbd>U</kbd> DOOM TRACKS MP3 &bull;
+      <kbd>K</kbd> Director Handles &bull;
       <kbd>+</kbd>/<kbd>-</kbd> Resize &bull;
       <kbd>&lt;</kbd>/<kbd>&gt;</kbd> Rotate &bull;
       <kbd>G</kbd> Gizmo (Move/Rotate/Scale) &bull;
@@ -1524,6 +1943,6 @@
 
   <div id="fatal-error-banner" role="alert"></div>
 
-  <script type="module" src="./sandbox.js?v=044"></script>
+  <script type="module" src="./sandbox.js?v=079"></script>
 </body>
 </html>

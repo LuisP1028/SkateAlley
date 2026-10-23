@@ -792,36 +792,33 @@ export function createScreenMountHolographicMaterial(
           baseTex.rgb = mix(baseTex.rgb, burntSample.rgb * vec3(0.70, 0.32, 0.04), 0.25);
         }
 
-        // Horizontal holographic scanlines
-        float scanline = 0.88 + 0.12 * sin(uv.y * 280.0 - uTime * 9.0);
+        // Discard exterior margin outside the rounded-rectangle card bezel (Spec 036 §3.1, §5.1)
+        if (baseTex.a < 0.01) discard;
 
-        // Sweeping vertical scanbeam bar
+        // Horizontal holographic scanlines
+        float scanline = 0.90 + 0.10 * sin(uv.y * 280.0 - uTime * 9.0);
+
+        // Sweeping vertical scanbeam bar (masked strictly inside the rounded card)
         float scanbeamDist = abs(uv.y - uScanbeamY);
-        float scanbeam = exp(-pow(scanbeamDist * 32.0, 2.0)) * 0.45;
+        float scanbeam = exp(-pow(scanbeamDist * 32.0, 2.0)) * 0.32;
         vec3 scanbeamColor = vec3(0.99, 0.90, 0.54);
 
-        // Ignited top & bottom primary emissive neon light bars
-        float topBar = smoothstep(0.965, 0.985, uv.y);
-        float botBar = smoothstep(0.035, 0.015, uv.y);
-        float lightBars = clamp(topBar + botBar, 0.0, 1.0);
-        vec3 lightBarCol = mix(vec3(0.98, 0.75, 0.14), vec3(1.0, 0.98, 0.92), lightBars * 0.8);
-
         // Fresnel edge brightening
-        float fresnel = pow(1.0 - clamp(abs(dot(vViewDir, vViewNormal)), 0.0, 1.0), 2.2) * 0.42;
+        float fresnel = pow(1.0 - clamp(abs(dot(vViewDir, vViewNormal)), 0.0, 1.0), 2.2) * 0.28;
         vec3 fresnelCol = vec3(0.96, 0.62, 0.04);
 
-        vec3 finalRgb = baseTex.rgb * scanline + scanbeam * scanbeamColor + lightBars * lightBarCol * 0.85 + fresnel * fresnelCol;
-        finalRgb *= uFlickerGain * (1.0 + uIsHighlighted * 0.25);
+        vec3 finalRgb = baseTex.rgb * scanline + scanbeam * scanbeamColor + fresnel * fresnelCol;
+        finalRgb *= uFlickerGain * (1.0 + uIsHighlighted * 0.22);
 
-        // Transparent Holographic Projection (Spec 025 §4.2):
-        // - Open-air inter-module tether gap (baseTex.a < 0.05) stays unobstructed (alpha ~ 0.0)
-        // - Interior smoked-glass backing (baseTex.a <= 0.45) renders transparently in [0.18, 0.45]
-        // - High-contrast text, reticles & neon light bars (baseTex.a > 0.45) render crisply in [0.78, 0.96]
-        float glassAlpha = clamp(uOpacity + fresnel * 0.14 + scanbeam * 0.22, 0.18, 0.45);
-        float glyphWeight = smoothstep(0.32, 0.68, max(baseTex.a, lightBars));
-        float glyphAlpha = clamp(max(baseTex.a, lightBars) * 0.94 + scanbeam * 0.22, 0.78, 0.96);
-        float openGapMask = smoothstep(0.01, 0.08, max(baseTex.a, lightBars * 0.5));
-        float finalAlpha = mix(glassAlpha, glyphAlpha, glyphWeight) * openGapMask;
+        // Unified Holographic Showcase Card Alpha (Spec 036 §3.1, §5.1):
+        // - Exterior outside rounded bezel is discarded above (baseTex.a < 0.01)
+        // - Smoked-amber card substrate (baseTex.a ~ 0.44) renders as translucent holographic glass
+        // - Borders, ignited light bars, pills, typography, metric boxes & CTAs (baseTex.a > 0.65) render crisply
+        float glassAlpha = clamp(uOpacity * 1.18 + fresnel * 0.12 + scanbeam * 0.16, 0.34, 0.54);
+        float glyphWeight = smoothstep(0.48, 0.72, baseTex.a);
+        float glyphAlpha = clamp(baseTex.a * 0.98 + scanbeam * 0.14, 0.84, 0.98);
+        float cardMask = smoothstep(0.01, 0.08, baseTex.a);
+        float finalAlpha = mix(glassAlpha, glyphAlpha, glyphWeight) * cardMask;
 
         gl_FragColor = vec4(finalRgb, finalAlpha);
       }
@@ -1561,27 +1558,28 @@ export const OVERHEAD_CABLE_SCHEDULE = Object.freeze([
 ]);
 
 export function resolveAlleyWallAnchorX(wallSide, z, y = 3.3, visualAlleyMesh = null) {
-  if (wallSide === 'L') {
-    // Left Wall (-X) profile: [-2.55m, -1.42m]
-    let baseXL = -1.60;
-    if (z <= 16.0) {
-      baseXL = -1.60 + (z / 16.0) * 0.02; // -1.60 -> -1.58
-    } else if (z <= 32.0) {
-      baseXL = -1.58 + ((z - 16.0) / 16.0) * 0.02; // -1.58 -> -1.56
+  const clampedZ = Math.max(0.0, Math.min(58.0, Number(z) || 0));
+  if (wallSide === 'L' || wallSide === 'left') {
+    // Left Wall (-X, screen-right when facing +Z) profile calibrated to VISUAL_ALLEY_MESH
+    let baseXL = -1.72;
+    if (clampedZ <= 26.2) {
+      baseXL = -1.72 - (clampedZ / 26.2) * 0.94; // -1.72 -> -2.66
+    } else if (clampedZ <= 44.0) {
+      baseXL = -1.92 + ((clampedZ - 26.2) / 17.8) * 0.28; // -1.92 -> -1.64
     } else {
-      baseXL = -1.56 + Math.min(1.0, (z - 32.0) / 24.0) * 0.01; // -1.56 -> -1.55
+      baseXL = -1.68 - Math.min(1.0, (clampedZ - 44.0) / 8.0) * 0.16;
     }
-    return Math.max(-2.55, Math.min(-1.42, baseXL));
+    return Math.max(-2.68, Math.min(-1.42, baseXL));
   } else {
-    // Right Wall (+X) profile: [+1.48m, +2.25m] for Z <= 43.8m, [+3.20m, +3.68m] for Z > 43.8m
-    if (z <= 43.8) {
-      const u = Math.max(0.0, Math.min(1.0, z / 43.8));
-      const baseXR = 1.96 - u * 0.31; // 1.96 -> 1.65
-      return Math.max(1.48, Math.min(2.25, baseXR));
+    // Right Wall (+X, screen-left when facing +Z) profile calibrated to VISUAL_ALLEY_MESH
+    if (clampedZ <= 34.0) {
+      const baseXR = 2.24 - (clampedZ / 34.0) * 0.72; // 2.24 -> 1.52
+      return Math.max(1.48, Math.min(2.26, baseXR));
+    } else if (clampedZ <= 43.8) {
+      const baseXR = 1.52 + ((clampedZ - 34.0) / 9.8) * 0.35; // 1.52 -> 1.87
+      return Math.max(1.48, Math.min(2.26, baseXR));
     } else {
-      // Step-out back corridor
-      const u = Math.max(0.0, Math.min(1.0, (z - 43.8) / 14.0));
-      const baseXR = 3.25 + u * 0.12;
+      const baseXR = 3.45 - Math.min(1.0, (clampedZ - 43.8) / 12.0) * 0.15;
       return Math.max(3.20, Math.min(3.68, baseXR));
     }
   }
@@ -1685,6 +1683,7 @@ export function buildOverheadHangingCablesSubsystem({
   const geometriesToMerge = [];
 
   for (let i = 0; i < schedule.length; i++) {
+    const geomStartIdx = geometriesToMerge.length;
     const item = schedule[i];
     const xL = resolveAlleyWallAnchorX('L', item.zL, item.yL, visualAlleyMesh);
     const xR = resolveAlleyWallAnchorX('R', item.zR, item.yR, visualAlleyMesh);
@@ -2085,6 +2084,9 @@ export function buildOverheadHangingCablesSubsystem({
 
     cables.push(record);
     cablesById[item.id] = record;
+    for (let gIdx = geomStartIdx; gIdx < geometriesToMerge.length; gIdx++) {
+      geometriesToMerge[gIdx].userData = { cableIndex: i };
+    }
   }
 
   // Merge geometries into single consolidated BufferGeometry
@@ -2102,6 +2104,7 @@ export function buildOverheadHangingCablesSubsystem({
   const mergedCablePhase = new Float32Array(totalVerts);
   const mergedBaseColor = new Float32Array(totalVerts * 3);
   const mergedRimBoost = new Float32Array(totalVerts);
+  const vertCableIndices = new Uint8Array(totalVerts);
   const mergedIndices = new Uint32Array(totalIndices);
 
   let vertOffset = 0;
@@ -2109,6 +2112,8 @@ export function buildOverheadHangingCablesSubsystem({
 
   for (let g of geometriesToMerge) {
     const count = g.attributes.position.count;
+    const cIdx = g.userData && typeof g.userData.cableIndex === 'number' ? g.userData.cableIndex : 0;
+    vertCableIndices.fill(cIdx, vertOffset, vertOffset + count);
     mergedPositions.set(g.attributes.position.array, vertOffset * 3);
     if (g.attributes.normal) {
       mergedNormals.set(g.attributes.normal.array, vertOffset * 3);
@@ -2223,6 +2228,8 @@ export function buildOverheadHangingCablesSubsystem({
   batchMesh.frustumCulled = false;
   batchMesh.renderOrder = 4;
   batchMesh.raycast = () => {};
+  mergedGeom.userData.vertCableIndices = vertCableIndices;
+  batchMesh.userData.cables = cables;
   rootGroup.add(batchMesh);
 
   // Compute subsystem metrics & counts

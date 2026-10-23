@@ -303,7 +303,7 @@ export function normalizeHostDescriptor(desc) {
 
   const triggerPolicy = Array.isArray(desc.triggerPolicy)
     ? desc.triggerPolicy
-    : ['hover', 'click', 'drag', 'proximity', 'manual'];
+    : ['click', 'manual'];
 
   let autoRevealRadius = HOLO_CALLOUT_DEFAULT_CONFIG.proximityRadiusMeters;
   if (typeof desc.autoRevealRadius === 'number') {
@@ -323,7 +323,7 @@ export function normalizeHostDescriptor(desc) {
     clearanceRadius,
     palette,
     triggerPolicy,
-    autoRevealEnabled: desc.autoRevealEnabled !== false,
+    autoRevealEnabled: Boolean(desc.autoRevealEnabled),
     autoRevealRadius,
     autoRevealHysteresis: desc.autoRevealHysteresis || HOLO_CALLOUT_DEFAULT_CONFIG.proximityHysteresisMeters,
     payloadProvider: payloadProvider || (staticPayload ? () => staticPayload : null),
@@ -566,9 +566,13 @@ export function createHologramCalloutTypographyController(options = {}) {
     textCalls.length = 0;
     ctx.clearRect(0, 0, width, height);
 
-    // Subtle background tint for high legibility
-    ctx.fillStyle = 'rgba(10, 5, 2, 0.72)';
+    // See-through holographic canvas: ultra-low translucent amber wash (95% transparent)
+    ctx.fillStyle = 'rgba(245, 158, 11, 0.04)';
     ctx.fillRect(0, 0, width, height);
+
+    ctx.save();
+    ctx.shadowColor = 'rgba(245, 158, 11, 0.65)';
+    ctx.shadowBlur = 7;
 
     // Margins and Layout Bounds (Four-Region Layout)
     const marginX = 36;
@@ -643,8 +647,10 @@ export function createHologramCalloutTypographyController(options = {}) {
       const rx = marginX + col * (rowWidth + 28);
       const ry = startY + r * (rowHeight + 12);
 
-      // Card bounding box
-      ctx.strokeStyle = row.highlight ? palette.highPulseGoldStr : 'rgba(245, 158, 11, 0.4)';
+      // See-through holographic sub-card fill + glowing frame
+      ctx.fillStyle = row.highlight ? 'rgba(251, 191, 36, 0.14)' : 'rgba(245, 158, 11, 0.08)';
+      ctx.fillRect(rx, ry, rowWidth, rowHeight);
+      ctx.strokeStyle = row.highlight ? palette.highPulseGoldStr : 'rgba(245, 158, 11, 0.48)';
       ctx.strokeRect(rx, ry, rowWidth, rowHeight);
 
       // Metric Label
@@ -658,13 +664,17 @@ export function createHologramCalloutTypographyController(options = {}) {
       ctx.fillText(String(row.value || ''), rx + 14, ry + 54);
     }
 
-    // Tags Row
+    // Tags Row + Click-to-Focus Hint
     if (tags.length > 0) {
       ctx.fillStyle = palette.textMuted || palette.midWireLowStr;
       ctx.font = '13px monospace';
       const tagStr = tags.map((t) => `[ ${t} ]`).join('  ');
       ctx.fillText(tagStr, marginX, height - 22);
     }
+    ctx.fillStyle = palette.highPulseGoldStr;
+    ctx.font = 'bold 12px monospace';
+    ctx.fillText('[ CLICK POP-UP TO FOCUS CAMERA ]', width - marginX - 245, height - 22);
+    ctx.restore();
 
     lastRenderedLayout = {
       overflowDetected: wrapped.overflow,
@@ -758,21 +768,26 @@ void main() {
   float ndv = abs(dot(normalize(vNormal), viewDir));
   float fresnel = pow(1.0 - ndv, uFresnelExponent) * (1.0 + 1.2 * gEff);
 
-  // Spatial scanlines with interference speed boost
+  // Spatial scanlines & holographic interference grid with speed boost
   float effScanSpeed = uScanSpeed * (1.0 + 2.0 * gEff);
   float scan = 0.5 + 0.5 * sin(vLocalPos.y * uScanFrequency - uTime * effScanSpeed + uPhaseJitter);
+  float fineGrid = step(0.92, fract(vUv.y * 42.0 - uTime * 0.45)) * 0.35 +
+                   step(0.96, fract(vUv.x * 32.0)) * 0.18;
 
   // Harmonic hum & transition flicker
   float hum = 0.92 + 0.08 * sin(uTime * 19.5 + vLocalPos.y * 11.0);
   float flicker = 1.0 - 0.35 * uTransitionFlicker * step(0.5, sin(uTime * 68.0 + vUv.y * 40.0));
 
-  // Core background blend
-  vec3 col = mix(uCoreDeepColor, uCoreShadowColor, vUv.y);
-  col += uBorderColor * (edgeSilhouette * 0.70 + fresnel * 0.40);
-  col += uHighPulseColor * (cEff * 0.85 + scan * 0.12 + gEff * 0.35);
+  // See-through holographic projection tint
+  vec3 col = mix(uCoreDeepColor, uCoreShadowColor, vUv.y) * 0.65;
+  col += uBorderColor * (edgeSilhouette * 0.85 + fresnel * 0.55 + fineGrid * 0.45);
+  col += uHighPulseColor * (cEff * 0.85 + scan * 0.22 + fineGrid * 0.25 + gEff * 0.40);
 
-  float alpha = (uBaseOpacity * vignette + 0.92 * edgeSilhouette) * uOpacity * uMaterializeAlpha * hum * flicker;
-  gl_FragColor = vec4(col, clamp(alpha, 0.0, 0.92));
+  float scanMod = 0.65 + 0.35 * scan + fineGrid * 0.30;
+  float interiorAlpha = uBaseOpacity * vignette * scanMod;
+  float rimAlpha = 0.54 * edgeSilhouette + 0.28 * fresnel;
+  float alpha = (interiorAlpha + rimAlpha) * uOpacity * uMaterializeAlpha * hum * flicker;
+  gl_FragColor = vec4(col, clamp(alpha, 0.0, 0.66));
 }
 `;
 
@@ -942,7 +957,7 @@ export function createHologramCalloutMaterialSuite(options = {}) {
         uWalkGlitch: { value: 0.0 },
         uClimaxFlash: { value: 0.0 },
         uClimaxBoost: { value: 0.0 },
-        uBaseOpacity: { value: 0.78 },
+        uBaseOpacity: { value: 0.22 },
         uCoreDeepColor: { value: palette.coreDeepColor.clone() },
         uCoreShadowColor: { value: palette.coreShadowColor.clone() },
         uBorderColor: { value: palette.midWireHighColor.clone() },
@@ -1621,15 +1636,19 @@ export class MathPodPopupCallout {
     this.typographyMesh.raycast = () => {};
     this.unfoldGroup.add(this.typographyMesh);
 
-    // Interactive Hit Box (for optional explicit pin clicking)
+    // Interactive Hit Box (for explicit popup clicking & camera focus)
     this.hitBoxMesh = new THREE.Mesh(
       new THREE.PlaneGeometry(fw, fh),
-      new THREE.MeshBasicMaterial({ visible: false })
+      new THREE.MeshBasicMaterial({
+        transparent: true,
+        opacity: 0.0,
+        depthWrite: false,
+        side: THREE.DoubleSide,
+      })
     );
     this.hitBoxMesh.name = `HoloCallout_HitBox_${this.id}`;
     this.hitBoxMesh.position.z = axial.typographyQuadZ + 0.001;
-    this.hitBoxMesh.userData = { calloutId: this.id, isCalloutHitProxy: true };
-    this.hitBoxMesh.raycast = () => {};
+    this.hitBoxMesh.userData = { calloutId: this.id, podId: this.id, isCalloutHitProxy: true };
     this.unfoldGroup.add(this.hitBoxMesh);
 
     // Dynamic State
@@ -1640,6 +1659,7 @@ export class MathPodPopupCallout {
     this.isDragging = false;
     this.isWithinProximity = false;
     this.forceOpen = false;
+    this.isCameraFocused = false;
 
     this.interferencePulse = 0.0;
     this.phaseJitter = 0.0;
@@ -1697,32 +1717,38 @@ export class MathPodPopupCallout {
 
   open() {
     this.forceOpen = true;
+    this.isPinned = true;
   }
 
   close() {
     this.forceOpen = false;
     this.isPinned = false;
+    this.isCameraFocused = false;
   }
 
   toggle() {
     if (this.state === HOLO_CALLOUT_LIFECYCLE_STATES.DORMANT || this.state === HOLO_CALLOUT_LIFECYCLE_STATES.DEMATERIALIZING) {
       this.open();
+      return true;
     } else {
       this.close();
+      return false;
     }
   }
 
   pin() {
     this.isPinned = true;
+    this.forceOpen = true;
   }
 
   unpin() {
     this.isPinned = false;
+    this.forceOpen = false;
+    this.isCameraFocused = false;
   }
 
   togglePin() {
-    this.isPinned = !this.isPinned;
-    return this.isPinned;
+    return this.toggle();
   }
 
   syncWithHostPod(pod) {
@@ -1778,8 +1804,13 @@ export class MathPodPopupCallout {
     // Resolve Host Position & Distance
     this.resolveHostWorldPosition(_tmpHostPos);
 
-    // Proximity Trigger Evaluation
-    if (this.descriptor.autoRevealEnabled && context && (context.camera || context.characterPosition || context.character)) {
+    // Proximity Trigger Evaluation (only if autoRevealEnabled and allowed by triggerPolicy)
+    const policy = Array.isArray(this.descriptor.triggerPolicy) ? this.descriptor.triggerPolicy : ['click'];
+    const allowProximity = Boolean(this.descriptor.autoRevealEnabled && policy.includes('proximity'));
+    const allowHover = policy.includes('hover');
+    const allowDrag = policy.includes('drag');
+
+    if (allowProximity && context && (context.camera || context.characterPosition || context.character)) {
       let minTargetDist = Infinity;
       if (context.camera) {
         const camPos = context.camera.position || _tmpCamPos;
@@ -1797,6 +1828,8 @@ export class MathPodPopupCallout {
       } else {
         this.isWithinProximity = minTargetDist <= enterR;
       }
+    } else {
+      this.isWithinProximity = false;
     }
 
     if (context && context.hoveredMathPod !== undefined) {
@@ -1804,11 +1837,16 @@ export class MathPodPopupCallout {
       this.isHovered = hoveredId === this.id;
     }
 
-    // Arbitration check
+    // Arbitration check: strictly honor triggerPolicy (click/pin only for MathPods)
     const locked = Boolean(context && context.interactionLocked);
     const shouldBeActive =
       !locked &&
-      (this.forceOpen || this.isPinned || this.isHovered || this.isDragging || this.isWithinProximity);
+      (this.forceOpen ||
+        this.isPinned ||
+        this.isCameraFocused ||
+        (allowHover && this.isHovered) ||
+        (allowDrag && this.isDragging) ||
+        (allowProximity && this.isWithinProximity));
 
     // Lifecycle Evaluation
     const fsm = evaluateCalloutLifecycleState(
@@ -1851,10 +1889,11 @@ export class MathPodPopupCallout {
       frameHeight: this.descriptor.frameHeight,
       camera: cam,
       parentWorldQuaternion: parentWorldQuat,
-      minWorldScale: this.descriptor.minWorldScale,
+      minWorldScale: this.isCameraFocused ? 0.92 : this.descriptor.minWorldScale,
       maxWorldScale: this.descriptor.maxWorldScale,
       distanceScaleRefMeters: this.descriptor.referenceDistance,
       timeSec,
+      hoverBobAmplitude: this.isCameraFocused ? 0.0 : HOLO_CALLOUT_DEFAULT_CONFIG.hoverBobAmplitude,
       isActive: this.state === HOLO_CALLOUT_LIFECYCLE_STATES.ACTIVE,
     });
 
@@ -1867,9 +1906,11 @@ export class MathPodPopupCallout {
     this.billboardGroup.quaternion.copy(pose.localQuaternion);
 
     // Apply distance scale & lifecycle unfold scale
-    const finalScaleX = pose.worldScale * fsm.scaleX;
-    const finalScaleY = pose.worldScale * fsm.scaleY;
-    this.unfoldGroup.scale.set(finalScaleX, finalScaleY, pose.worldScale);
+    const effectiveWorldScale = this.isCameraFocused ? 0.95 : pose.worldScale;
+    const finalScaleX = effectiveWorldScale * fsm.scaleX;
+    const finalScaleY = effectiveWorldScale * fsm.scaleY;
+    this.unfoldGroup.scale.set(finalScaleX, finalScaleY, effectiveWorldScale);
+    this.rootGroup.updateMatrixWorld(true);
 
     // Update Material Uniforms
     this.materialSuite.updateUniforms({
@@ -1963,6 +2004,8 @@ export class MathPodPopupManager {
         offset: { x: 0.0, y: 0.88, z: 0.0 },
         clearanceRadius: HOLO_CALLOUT_DEFAULT_CONFIG.defaultClearanceRadius,
         palette: 'neon_dark_amber',
+        triggerPolicy: ['click'],
+        autoRevealEnabled: false,
         autoRevealRadius: HOLO_CALLOUT_DEFAULT_CONFIG.proximityRadiusMeters,
         payloadProvider: () => formatMathPodCalloutPayload(pod, profile),
       };
@@ -2069,16 +2112,21 @@ export class MathPodPopupManager {
     }
   }
 
-  raycastCallouts(raycaster) {
-    if (!raycaster) return [];
-    const intersects = [];
+  getRaycastTargets() {
+    const targets = [];
     for (const callout of this.callouts) {
       if (callout.isVisible && callout.hitBoxMesh) {
-        THREE.Mesh.prototype.raycast.call(callout.hitBoxMesh, raycaster, intersects);
+        targets.push(callout.hitBoxMesh);
       }
     }
-    intersects.sort((a, b) => a.distance - b.distance);
-    return intersects;
+    return targets;
+  }
+
+  raycastCallouts(raycaster) {
+    if (!raycaster) return [];
+    const targets = this.getRaycastTargets();
+    if (targets.length === 0) return [];
+    return raycaster.intersectObjects(targets, false);
   }
 
   update(dt = 1 / 60, timeSec = 0.0, context = null) {
