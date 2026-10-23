@@ -160,7 +160,7 @@ import {
   processMp3ChassisBitmap,
   drawTechnoVectorText,
   measureTechnoVectorText,
-} from './doom_tracks_mp3_hud.js?v=070';
+} from './doom_tracks_mp3_hud.js?v=073';
 
 // ============================================================================
 // Constants & Deterministic Configuration (functional_specification_013 & 014)
@@ -11378,6 +11378,38 @@ const sandbox = {
   glbVariantCatalog: GLB_VARIANT_CATALOG,
   currentVariantKey: 'luis_holo',
   soloCharacterMode: true,
+  sidebarCollapsed: false,
+  toggleSidebar(forceCollapsed) {
+    const nextState = typeof forceCollapsed === 'boolean' ? forceCollapsed : !this.sidebarCollapsed;
+    this.sidebarCollapsed = nextState;
+    const hudEl = typeof document !== 'undefined' ? document.getElementById('sandbox-hud') : null;
+    const btnEl = typeof document !== 'undefined' ? document.getElementById('sidebar-collapse-btn') : null;
+    const iconEl = typeof document !== 'undefined' ? document.getElementById('sidebar-collapse-icon') : null;
+    const labelEl = typeof document !== 'undefined' ? document.getElementById('sidebar-collapse-label') : null;
+    if (hudEl) {
+      hudEl.classList.toggle('collapsed', nextState);
+    }
+    if (typeof document !== 'undefined' && document.body) {
+      document.body.classList.toggle('sidebar-collapsed', nextState);
+    }
+    if (btnEl) {
+      btnEl.setAttribute('aria-expanded', String(!nextState));
+      btnEl.setAttribute(
+        'title',
+        nextState ? 'Expand Sidebar Controls (Key B)' : 'Collapse Sidebar Controls (Key B)'
+      );
+    }
+    if (iconEl) {
+      iconEl.textContent = nextState ? '▶' : '◀';
+    }
+    if (labelEl) {
+      labelEl.textContent = nextState ? 'Expand' : 'Collapse';
+    }
+    if (this.audio) {
+      this.audio.trigger('onUpdate', { action: 'toggle-sidebar', collapsed: nextState });
+    }
+    return this.sidebarCollapsed;
+  },
   variantLoader: null,
   variantCache: {},
   scene,
@@ -11440,7 +11472,7 @@ const sandbox = {
     const fwdZ = -dz / horizDist;
     const camRightX = -fwdZ;
     const camRightZ = fwdX;
-    const hudClearanceOffset = 0.18;
+    const hudClearanceOffset = this.sidebarCollapsed ? 0.0 : 0.18;
     const destLookAt = calloutCenter.clone();
     destLookAt.x -= camRightX * hudClearanceOffset;
     destLookAt.z -= camRightZ * hudClearanceOffset;
@@ -12888,7 +12920,7 @@ function updateCameraController(dt = 1 / 60) {
       const fwdZ = -dz / horizDist;
       const camRightX = -fwdZ;
       const camRightZ = fwdX;
-      const hudClearanceOffset = 0.18;
+      const hudClearanceOffset = sandbox.sidebarCollapsed ? 0.0 : 0.18;
 
       popupFocusCameraState.toPos.set(
         calloutCenterX + dx,
@@ -13499,7 +13531,41 @@ function stepSimulation(dt) {
 // ============================================================================
 let lastHovered3DRegion = null;
 
+function bindSidebarCollapseControls() {
+  if (sandbox._sidebarControlsBound) return;
+  sandbox._sidebarControlsBound = true;
+
+  const sidebarCollapseBtn = document.getElementById('sidebar-collapse-btn');
+  if (sidebarCollapseBtn) {
+    sidebarCollapseBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      sandbox.toggleSidebar();
+    });
+  }
+
+  const hudHeaderTitle = document.getElementById('hud-header-title');
+  if (hudHeaderTitle) {
+    hudHeaderTitle.addEventListener('click', () => {
+      if (sandbox.sidebarCollapsed) {
+        sandbox.toggleSidebar(false);
+      }
+    });
+  }
+
+  window.addEventListener('keydown', (e) => {
+    const activeTag = document.activeElement ? document.activeElement.tagName : '';
+    if (activeTag === 'INPUT' || activeTag === 'SELECT' || activeTag === 'TEXTAREA') {
+      return;
+    }
+    if (e.code === 'KeyB' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      e.preventDefault();
+      sandbox.toggleSidebar();
+    }
+  });
+}
+
 function bindInputListeners() {
+  bindSidebarCollapseControls();
   window.addEventListener(
     'scroll',
     () => {
@@ -15132,6 +15198,7 @@ function buildVillainyNeonSignSubsystem(villainySignGLTF, floorY = 0.0) {
 }
 
 async function initSandbox() {
+  bindSidebarCollapseControls();
   const sprayLoader = initSprayPaintLoadingScreen();
   const loader = new GLTFLoader();
   sandbox.variantLoader = loader;
@@ -15733,10 +15800,11 @@ async function initSandbox() {
     window.radialMenuController = radialController;
   }
 
-  // Initialize Interactive "DOOM TRACKS" (SYS-990-AMBER) MP3 HUD Deck (functional_specification_035.md)
+  // Initialize Interactive 3D "DOOM TRACKS" (SYS-990-AMBER) MP3 HUD Deck (functional_specification_035.md & 038.md)
   const mp3Player = createDoomTracksMp3HUD({
     audio: sandbox.audio,
     assetSrc: 'assets/mp3.jpeg',
+    glbSrc: 'assets/audiodevice_decimated.glb',
     manifestUrl: 'assets/tracks/manifest.json',
     initiallyVisible: true,
   });

@@ -76,20 +76,77 @@
       pointer-events: auto;
       font-size: 12px;
       line-height: 1.4;
+      transition:
+        width 0.24s cubic-bezier(0.16, 1, 0.3, 1),
+        max-height 0.24s cubic-bezier(0.16, 1, 0.3, 1),
+        padding 0.2s ease,
+        background 0.2s ease,
+        border-color 0.2s ease;
+    }
+    #sandbox-hud.collapsed {
+      width: auto;
+      max-width: 356px;
+      max-height: 46px;
+      padding: 8px 12px;
+      overflow: hidden;
+      background: rgba(14, 17, 23, 0.92);
+      border-color: rgba(56, 189, 248, 0.38);
     }
     .hud-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
+      gap: 8px;
       margin-bottom: 8px;
       padding-bottom: 6px;
       border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    #sandbox-hud.collapsed .hud-header {
+      margin-bottom: 0;
+      padding-bottom: 0;
+      border-bottom-color: transparent;
+    }
+    .hud-header-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    button.hud-collapse-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: rgba(56, 189, 248, 0.15);
+      color: #e0f2fe;
+      border: 1px solid rgba(56, 189, 248, 0.42);
+      border-radius: 6px;
+      padding: 3px 8px;
+      font-size: 10.5px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+    }
+    button.hud-collapse-btn:hover {
+      background: rgba(56, 189, 248, 0.3);
+      border-color: #38bdf8;
+      color: #ffffff;
+    }
+    #sandbox-hud-body {
+      transition: opacity 0.18s ease;
+    }
+    #sandbox-hud.collapsed #sandbox-hud-body {
+      display: none;
+      opacity: 0;
     }
     .hud-title {
       font-weight: 700;
       font-size: 13px;
       letter-spacing: 0.02em;
       color: #ffffff;
+      white-space: nowrap;
+    }
+    #sandbox-hud.collapsed .hud-title {
+      cursor: pointer;
     }
     .hud-badge {
       background: rgba(34, 197, 94, 0.2);
@@ -99,6 +156,7 @@
       border-radius: 999px;
       font-size: 10px;
       font-weight: 600;
+      white-space: nowrap;
     }
     .hud-badge.error {
       background: rgba(239, 68, 68, 0.25);
@@ -347,6 +405,11 @@
       justify-content: center;
       pointer-events: none;
       perspective: 1200px;
+      transition: left 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    body.sidebar-collapsed #holo-projection-stage {
+      left: 24px;
     }
 
     @media (max-width: 1024px) {
@@ -1337,10 +1400,24 @@
 
   <aside id="sandbox-hud" aria-label="Sandbox Controls">
     <div class="hud-header">
-      <span class="hud-title">Freeman Alley Scrolly-Walk</span>
-      <span id="hud-status-badge" class="hud-badge">Loading...</span>
+      <span id="hud-header-title" class="hud-title" title="Click to Toggle Sidebar (Key B)">Freeman Alley Scrolly-Walk</span>
+      <div class="hud-header-actions">
+        <span id="hud-status-badge" class="hud-badge">Loading...</span>
+        <button
+          id="sidebar-collapse-btn"
+          class="hud-collapse-btn"
+          type="button"
+          aria-expanded="true"
+          aria-controls="sandbox-hud-body"
+          title="Collapse Sidebar Controls (Key B)"
+        >
+          <span id="sidebar-collapse-icon" aria-hidden="true">&#9664;</span>
+          <span id="sidebar-collapse-label">Collapse</span>
+        </button>
+      </div>
     </div>
 
+    <div id="sandbox-hud-body">
     <div class="hud-section">
       <span class="hud-label">
         <span>Locomotion Mode</span>
@@ -1920,6 +1997,7 @@
     </div>
 
     <div class="controls-hint">
+      <kbd>B</kbd> Sidebar &bull;
       <kbd>X</kbd> Scene Cutter &bull;
       <kbd>U</kbd> DOOM TRACKS MP3 &bull;
       <kbd>K</kbd> Director Handles &bull;
@@ -1939,10 +2017,11 @@
       <kbd>H</kbd> Holo &bull;
       <kbd>M</kbd> Mute
     </div>
+    </div>
   </aside>
 
   <div id="fatal-error-banner" role="alert"></div>
 
-  <script type="module" src="./sandbox.js?v=079"></script>
+  <script type="module" src="./sandbox.js?v=082"></script>
 </body>
 </html>
