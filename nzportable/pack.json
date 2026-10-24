@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "cacheName": "nzportable-pack-v1",
+  "engine": {
+    "js": "./ftewebgl.js",
+    "jsSize": 165608,
+    "jsSha256": "7ae5352b39e21c5dc83dd2c27d0f49f842ce89462402400775ccb055a2d9da46",
+    "wasm": "./ftewebgl.wasm",
+    "size": 5178106,
+    "hash": "523141c46f2898fe",
+    "sha256": "523141c46f2898fe1f4bb175eca6035ff8aed981e8f770993f98d15d7a2199e2"
+  },
+  "files": {
+    "default.fmf": {
+      "path": "default.fmf",
+      "url": "./default.fmf",
+      "size": 96,
+      "hash": "d3e89c92ff2b43b8",
+      "sha256": "d3e89c92ff2b43b83e4a461a79b7986e3fd7ca3126ec1842588a688c539b3979"
+    },
+    "nzp/progs.pk3": {
+      "path": "nzp/progs.pk3",
+      "url": "./nzp/progs.pk3",
+      "size": 491379,
+      "hash": "47bc82fa1335f574",
+      "sha256": "47bc82fa1335f5748ac08372c2daf24c57f29e56f046ad0fa125eec90c9bf832"
+    },
+    "nzp/game.pk3": {
+      "path": "nzp/game.pk3",
+      "url": "./nzp/game.pk3",
+      "size": 94276834,
+      "hash": "847a6fb7c95b26ea",
+      "sha256": "847a6fb7c95b26eab0fdbfa31223a225608a5f9f7af4f88af1e04a1c0a14637d",
+      "parts": [
+        "./parts/game.pk3.part00",
+        "./parts/game.pk3.part01",
+        "./parts/game.pk3.part02"
+      ],
+      "partSizes": [
+        31457280,
+        31457280,
+        31362274
+      ],
+      "partSha256": [
+        "ebe0d7be4f9d8e8a9e37550145ed7b95695f834fe0b727d5b17b0ba7471cc1bf",
+        "e8358e64daaee2b3985b90f034a27138adcb7f84310bb2058143e2173df765c8",
+        "3375f8725e139fbed7ab3848451fc6f312979b1f8268304ea47894de6dc450d0"
+      ]
+    }
+  }
+}

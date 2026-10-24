@@ -203,6 +203,13 @@ def parse_two_starters_from_text(raw_text):
     return None
 
 mimetypes.init()
+EXTRA_MIME_TYPES = {
+    ".wasm": "application/wasm",
+    ".pk3": "application/octet-stream",
+    ".fmf": "application/octet-stream",
+    ".part": "application/octet-stream",
+    **{f".part{i:02d}": "application/octet-stream" for i in range(100)},
+}
 CUSTOM_MIME_TYPES = {
     ".wasm": "application/wasm",
     ".js": "application/javascript; charset=utf-8",
@@ -212,6 +219,8 @@ CUSTOM_MIME_TYPES = {
     ".skate": "application/octet-stream",
     ".pack": "application/octet-stream",
     ".part": "application/octet-stream",
+    ".pk3": "application/octet-stream",
+    ".fmf": "application/octet-stream",
     ".abin": "application/octet-stream",
     ".stategraph": "application/octet-stream",
     ".mp4": "video/mp4",
@@ -225,6 +234,7 @@ CUSTOM_MIME_TYPES = {
     ".md": "text/markdown; charset=utf-8",
     ".py": "text/plain; charset=utf-8",
 }
+CUSTOM_MIME_TYPES.update(EXTRA_MIME_TYPES)
 for ext, mime in CUSTOM_MIME_TYPES.items():
     mimetypes.add_type(mime, ext)
 
@@ -257,6 +267,10 @@ class SkateAlleyRequestHandler(SimpleHTTPRequestHandler):
         ext_lower = ext.lower()
         if ext_lower in CUSTOM_MIME_TYPES:
             return CUSTOM_MIME_TYPES[ext_lower]
+        if ext_lower in EXTRA_MIME_TYPES:
+            return EXTRA_MIME_TYPES[ext_lower]
+        if re.match(r"^\.part\d+$", ext_lower):
+            return "application/octet-stream"
         return super().guess_type(path)
 
     def _send_json(self, status_code, data):
@@ -424,6 +438,19 @@ class SkateAlleyRequestHandler(SimpleHTTPRequestHandler):
         })
 
     def _serve_health(self, head_only=False):
+        nzp_required = (
+            os.path.join(os.getcwd(), "nzportable", "index.html"),
+            os.path.join(os.getcwd(), "nzportable", "ftewebgl.wasm"),
+            os.path.join(os.getcwd(), "nzportable", "nzp", "progs.pk3"),
+        )
+        nzportable_ready = all(os.path.isfile(p) for p in nzp_required)
+        components = [
+            "freeman_alley_3d_portfolio",
+            "skate3_cleanroom_skateroom",
+            "doom_head_llm_proxy",
+        ]
+        if nzportable_ready:
+            components.append("nzportable_webapp")
         payload = json.dumps({
             "ok": True,
             "status": "ok",
@@ -432,11 +459,9 @@ class SkateAlleyRequestHandler(SimpleHTTPRequestHandler):
             "hf_token_configured": bool(resolve_hf_token()),
             "doom_chat_model": DEFAULT_DOOM_CHAT_MODEL,
             "doom_starters_model": DEFAULT_DOOM_STARTERS_MODEL,
-            "components": [
-                "freeman_alley_3d_portfolio",
-                "skate3_cleanroom_skateroom",
-                "doom_head_llm_proxy",
-            ],
+            "nzportable_webapp": nzportable_ready,
+            "services": list(components),
+            "components": components,
         }).encode("utf-8")
         self.send_response(200)
         self.send_header("Content-Type", "application/json; charset=utf-8")
@@ -446,28 +471,18 @@ class SkateAlleyRequestHandler(SimpleHTTPRequestHandler):
         if not head_only:
             self.wfile.write(payload)
 
-    def do_HEAD(self):
-        clean_path = self.path.split("?", 1)[0]
-        if clean_path in ("/api/health", "/health"):
-            return self._serve_health(head_only=True)
-        super().do_HEAD()
-
-    def do_GET(self):
-        clean_path = self.path.split("?", 1)[0]
-        if clean_path in ("/api/health", "/health"):
-            return self._serve_health(head_only=False)
-
+    def _try_serve_range(self, head_only=False):
         range_header = self.headers.get("Range")
         if not range_header:
-            return super().do_GET()
+            return False
 
         path = self.translate_path(self.path)
         if not os.path.isfile(path):
-            return super().do_GET()
+            return False
 
         m = re.match(r"bytes=(\d+)-(\d*)", range_header)
         if not m:
-            return super().do_GET()
+            return False
 
         file_size = os.path.getsize(path)
         start = int(m.group(1))
@@ -477,24 +492,44 @@ class SkateAlleyRequestHandler(SimpleHTTPRequestHandler):
             self.send_header("Content-Range", f"bytes */{file_size}")
             self.send_header("Content-Length", "0")
             self.end_headers()
-            return
+            return True
 
         end = min(end, file_size - 1)
         length = end - start + 1
         ctype = self.guess_type(path)
 
         try:
-            with open(path, "rb") as f:
-                f.seek(start)
-                data = f.read(length)
+            data = b""
+            if not head_only:
+                with open(path, "rb") as f:
+                    f.seek(start)
+                    data = f.read(length)
             self.send_response(206)
             self.send_header("Content-Type", ctype)
             self.send_header("Content-Range", f"bytes {start}-{end}/{file_size}")
-            self.send_header("Content-Length", str(len(data)))
+            self.send_header("Content-Length", str(length if head_only else len(data)))
             self.end_headers()
-            self.wfile.write(data)
+            if not head_only:
+                self.wfile.write(data)
         except (BrokenPipeError, ConnectionResetError):
             pass
+        return True
+
+    def do_HEAD(self):
+        clean_path = self.path.split("?", 1)[0]
+        if clean_path in ("/api/health", "/health"):
+            return self._serve_health(head_only=True)
+        if self._try_serve_range(head_only=True):
+            return
+        super().do_HEAD()
+
+    def do_GET(self):
+        clean_path = self.path.split("?", 1)[0]
+        if clean_path in ("/api/health", "/health"):
+            return self._serve_health(head_only=False)
+        if self._try_serve_range(head_only=False):
+            return
+        return super().do_GET()
 
 
 def main():
