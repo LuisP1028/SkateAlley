@@ -1,0 +1,113 @@
+{
+  "repository_targets": {
+    "meta_repository": {
+      "url": "https://github.com/nzp-team/nzportable",
+      "branch": "main",
+      "artifacts": [
+        "README.md",
+        "generate-nightly.sh"
+      ]
+    },
+    "webgl_host_repository": {
+      "url": "https://github.com/nzp-team/nzp-team.github.io",
+      "branch": "main",
+      "artifacts": [
+        "index.html",
+        "default.fmf",
+        "ftewebgl.js",
+        "ftewebgl.wasm",
+        "nzp/progs.pk3",
+        "nzp/game.pk3"
+      ]
+    }
+  },
+  "verified_artifacts": {
+    "default.fmf": {
+      "size_bytes": 96,
+      "sha256": "d3e89c92ff2b43b83e4a461a79b7986e3fd7ca3126ec1842588a688c539b3979",
+      "content_type": "text/plain; charset=utf-8",
+      "git_tracking": "Directly tracked in Git (< 45 MB)",
+      "vfs_mount": "default.fmf"
+    },
+    "ftewebgl.js": {
+      "size_bytes": 165608,
+      "sha256": "7ae5352b39e21c5dc83dd2c27d0f49f842ce89462402400775ccb055a2d9da46",
+      "content_type": "text/plain; charset=utf-8",
+      "git_tracking": "Directly tracked in Git (< 45 MB)",
+      "role": "Emscripten FTEQW WebGL engine wrapper & runtime glue"
+    },
+    "ftewebgl.wasm": {
+      "size_bytes": 5178106,
+      "sha256": "523141c46f2898fe1f4bb175eca6035ff8aed981e8f770993f98d15d7a2199e2",
+      "content_type": "application/octet-stream",
+      "git_tracking": "Directly tracked in Git (< 45 MB)",
+      "role": "Compiled WebAssembly engine binary"
+    },
+    "nzp/progs.pk3": {
+      "size_bytes": 491379,
+      "sha256": "47bc82fa1335f5748ac08372c2daf24c57f29e56f046ad0fa125eec90c9bf832",
+      "content_type": "application/octet-stream",
+      "git_tracking": "Directly tracked in Git (< 45 MB)",
+      "vfs_mount": "nzp/progs.pk3",
+      "role": "Compiled QuakeC bytecode & game logic"
+    },
+    "nzp/game.pk3": {
+      "size_bytes": 94276834,
+      "sha256": "847a6fb7c95b26eab0fdbfa31223a225608a5f9f7af4f88af1e04a1c0a14637d",
+      "content_type": "application/octet-stream",
+      "git_tracking": "EXCLUDED from Git via .gitignore (94.28 MB > GitHub limit); served locally & split into 3 parts for static host tracking",
+      "vfs_mount": "nzp/game.pk3",
+      "role": "Game assets: maps (ndu.bsp), models, sounds, textures",
+      "split_chunk_plan": [
+        {
+          "part": "parts/game.pk3.part00",
+          "size_bytes": 31457280,
+          "max_part_size": 36700160
+        },
+        {
+          "part": "parts/game.pk3.part01",
+          "size_bytes": 31457280,
+          "max_part_size": 36700160
+        },
+        {
+          "part": "parts/game.pk3.part02",
+          "size_bytes": 31362274,
+          "max_part_size": 36700160
+        }
+      ]
+    }
+  },
+  "runtime_contracts": {
+    "emscripten_module_files": {
+      "type": "Object mapping virtual filesystem paths to ArrayBuffer instances",
+      "keys": [
+        "default.fmf",
+        "nzp/progs.pk3",
+        "nzp/game.pk3"
+      ],
+      "mounting_behavior": "When populated with ArrayBuffer instances before ftewebgl.js runs, FTEQW invokes _emscriptenfte_buf_createfromarraybuf(ab) synchronously, zero XHR downloads"
+    },
+    "canvas_calibration": {
+      "element_id": "canvas",
+      "style": "border: 0px none; width: 100%; height: 100%; padding: 0; margin: 0; display: block;"
+    },
+    "post_run_verification": {
+      "hook": "Module.postRun",
+      "indicator": "Module[\"sched\"] !== undefined"
+    },
+    "telemetry_contract": {
+      "window_global": "window.__NZP_STATUS__",
+      "fields": [
+        "initialized",
+        "engineReady",
+        "gamePk3Bytes",
+        "progsPk3Bytes",
+        "fmfBytes",
+        "wasmLoaded",
+        "cacheHit",
+        "fps",
+        "errors"
+      ]
+    }
+  }
+}
