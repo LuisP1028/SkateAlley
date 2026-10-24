@@ -75,6 +75,7 @@ window.addEventListener = function (type, listener, options) {
 
 // 3. Web Audio Auto-Unlock Proxy (captures all AudioContext instances created by FTEQW OpenAL)
 const audioContexts = [];
+window.__NZP_AUDIO_CONTEXTS__ = audioContexts;
 let userGestureUnlocked = false;
 
 for (const ctxName of ['AudioContext', 'webkitAudioContext']) {
@@ -132,19 +133,23 @@ function setStatus(text, isError = false) {
   }
 }
 
-function updateProgress(loadedBytes, totalBytes, label = '') {
+function updateProgress(loadedBytes, totalBytes, label = '', fileLoadedBytes = null, fileTotalBytes = null) {
   const safeTotal = totalBytes > 0 ? totalBytes : 94768309;
   const pct = Math.min(100, Math.max(0, (loadedBytes / safeTotal) * 100));
   if (progressEl) {
     progressEl.style.width = `${pct.toFixed(1)}%`;
   }
-  const loadedMB = (loadedBytes / (1024 * 1024)).toFixed(1);
-  const totalMB = (safeTotal / (1024 * 1024)).toFixed(1);
+  const loadedMB = (loadedBytes / 1e6).toFixed(1);
+  const totalMB = (safeTotal / 1e6).toFixed(1);
   if (mbCounterEl) {
     mbCounterEl.textContent = `${loadedMB} / ${totalMB} MB`;
   }
   if (label) {
-    setStatus(`${label} (${loadedMB} / ${totalMB} MB)...`);
+    const statusLoadedMB =
+      fileLoadedBytes !== null ? (fileLoadedBytes / 1e6).toFixed(1) : loadedMB;
+    const statusTotalMB =
+      fileTotalBytes !== null && fileTotalBytes > 0 ? (fileTotalBytes / 1e6).toFixed(1) : totalMB;
+    setStatus(`${label} (${statusLoadedMB} / ${statusTotalMB} MB)...`);
   }
 }
 
@@ -228,14 +233,16 @@ async function openPackCache(cacheName) {
   return null;
 }
 
-async function fetchWithTunnelFailover(relativeUrl) {
+async function fetchWithTunnelFailover(relativeUrl, skipLocal = false) {
   let lastError = null;
-  try {
-    const localRes = await fetch(relativeUrl);
-    if (localRes.ok) return localRes;
-    lastError = new Error(`${relativeUrl}: HTTP ${localRes.status}`);
-  } catch (err) {
-    lastError = err;
+  if (!skipLocal) {
+    try {
+      const localRes = await fetch(relativeUrl);
+      if (localRes.ok) return localRes;
+      lastError = new Error(`${relativeUrl}: HTTP ${localRes.status}`);
+    } catch (err) {
+      lastError = err;
+    }
   }
 
   if (!/^https?:\/\//i.test(relativeUrl)) {
@@ -373,21 +380,32 @@ async function resolveAssetArrayBuffer(cache, fileSpec, onFileProgress, forcePar
   const hasParts = Array.isArray(fileSpec.parts) && fileSpec.parts.length > 0;
 
   if (!forceParts) {
-    try {
-      const res = await fetch(fileSpec.url);
-      if (res.ok) {
-        buffer = await readStreamIntoBuffer(res, fileSpec.size, onFileProgress);
-      } else if (!hasParts) {
-        const fallbackRes = await fetchWithTunnelFailover(fileSpec.url);
-        buffer = await readStreamIntoBuffer(fallbackRes, fileSpec.size, onFileProgress);
+    if (!hasParts) {
+      const res = await fetchWithTunnelFailover(fileSpec.url);
+      buffer = await readStreamIntoBuffer(res, fileSpec.size, onFileProgress);
+    } else {
+      try {
+        const res = await fetch(fileSpec.url);
+        if (res.ok) {
+          buffer = await readStreamIntoBuffer(res, fileSpec.size, onFileProgress);
+        }
+      } catch {
+        // Proceed to multi-part fallback
       }
-    } catch (err) {
-      if (!hasParts) throw err;
     }
   }
 
   if (!buffer && hasParts) {
-    buffer = await fetchMultipartBuffer(fileSpec.parts, fileSpec.size, onFileProgress);
+    try {
+      buffer = await fetchMultipartBuffer(fileSpec.parts, fileSpec.size, onFileProgress);
+    } catch (partErr) {
+      try {
+        const fallbackRes = await fetchWithTunnelFailover(fileSpec.url, true);
+        buffer = await readStreamIntoBuffer(fallbackRes, fileSpec.size, onFileProgress);
+      } catch {
+        throw partErr;
+      }
+    }
   }
 
   if (!buffer || buffer.byteLength !== fileSpec.size) {
@@ -536,7 +554,13 @@ async function startLaunch() {
       cache,
       gameSpec,
       (loadedInFile) => {
-        updateProgress(baseLoadedBytes + loadedInFile, totalAssetBytes, 'Downloading game.pk3');
+        updateProgress(
+          baseLoadedBytes + loadedInFile,
+          totalAssetBytes,
+          'Downloading game.pk3',
+          loadedInFile,
+          gameSpec.size
+        );
       },
       forceParts
     );
