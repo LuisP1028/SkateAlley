@@ -1,0 +1,13 @@
+functional_specification_042.md
+wayfinder/20261024T185706-137-m9j7/tickets/ticket-001.md
+wayfinder/20261024T185706-137-m9j7/tickets/ticket-002.md
+wayfinder/20261024T185706-137-m9j7/tickets/ticket-003.md
+wayfinder/20261024T185706-137-m9j7/tickets/ticket-004.md
+wayfinder/20261024T185706-137-m9j7/map.md
+wayfinder/20261024T185706-137-m9j7/master_component_to_edit_matrix.md
+assets/20261024T185706-137-m9j7/plan-default.fmf
+assets/20261024T185706-137-m9j7/plan-ftewebgl.js
+assets/20261024T185706-137-m9j7/plan-nzportable-README.md
+assets/20261024T185706-137-m9j7/plan-nzportable-generate-nightly.sh
+assets/20261024T185706-137-m9j7/plan-progs.pk3
+assets/20261024T185706-137-m9j7/plan-upstream-index.html
