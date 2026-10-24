@@ -1,0 +1,115 @@
+{
+  "https://huggingface.co/spaces/th3w33knd/reVCDOS/resolve/main/vcbr/vc-sky-en-v6.wasm": {
+    "status": 200,
+    "reason": "OK",
+    "headers": {
+      "content-type": "application/wasm",
+      "accept-ranges": "bytes",
+      "content-disposition": "inline; filename*=UTF-8''vc-sky-en-v6.wasm; filename=\"vc-sky-en-v6.wasm\";",
+      "etag": "\"e6815c1894d2326b4d1edcfef652124a2bec2db9424d5061abcccbe167428a2d\"",
+      "content-security-policy": "default-src 'none'; media-src 'self'; sandbox allow-same-origin",
+      "access-control-allow-headers": "Content-Range, Content-Type, Content-Disposition, ETag",
+      "access-control-expose-headers": "*",
+      "content-length": "7625877",
+      "vary": "origin, access-control-request-method, access-control-request-headers",
+      "access-control-allow-origin": "*",
+      "x-request-id": "01M5QQ0G3H54CMNGJJS9MATHYK",
+      "x-hf-cdn-pop": "aws-us-west-2",
+      "date": "Sat, 24 Oct 2026 19:43:09 GMT",
+      "connection": "close"
+    }
+  },
+  "https://huggingface.co/spaces/th3w33knd/reVCDOS/resolve/main/vcbr/vc-sky-en-v6.data": {
+    "status": 200,
+    "reason": "OK",
+    "headers": {
+      "content-type": "application/octet-stream",
+      "accept-ranges": "bytes",
+      "content-disposition": "inline; filename*=UTF-8''vc-sky-en-v6.data; filename=\"vc-sky-en-v6.data\";",
+      "etag": "\"22bdea4771fc6d92d97a2c503abc3a5e5da9f752438e6b25cb8b44d3162cb56c\"",
+      "content-security-policy": "default-src 'none'; media-src 'self'; sandbox allow-same-origin",
+      "access-control-allow-headers": "Content-Range, Content-Type, Content-Disposition, ETag",
+      "access-control-expose-headers": "*",
+      "content-length": "135355111",
+      "vary": "origin, access-control-request-method, access-control-request-headers",
+      "access-control-allow-origin": "*",
+      "x-request-id": "01M5QQ0GE3VWA9NNHFX88KE5A4",
+      "x-hf-cdn-pop": "aws-us-west-2",
+      "date": "Sat, 24 Oct 2026 19:43:10 GMT",
+      "connection": "close"
+    }
+  },
+  "https://huggingface.co/spaces/th3w33knd/reVCDOS/resolve/main/vcsky.zip": {
+    "status": 200,
+    "reason": "OK",
+    "headers": {
+      "content-type": "application/zip",
+      "accept-ranges": "bytes",
+      "content-disposition": "inline; filename*=UTF-8''vcsky.zip; filename=\"vcsky.zip\";",
+      "etag": "\"2adc4bdbc8189b5a66730493d53513d9093b75754b021d31d8b7043e845f48a1\"",
+      "content-security-policy": "default-src 'none'; media-src 'self'; sandbox allow-same-origin",
+      "access-control-allow-headers": "Content-Range, Content-Type, Content-Disposition, ETag",
+      "access-control-expose-headers": "*",
+      "content-length": "618960890",
+      "vary": "origin, access-control-request-method, access-control-request-headers",
+      "access-control-allow-origin": "*",
+      "x-request-id": "01M5QQ0GRH1P9E553ER0VF5YH0",
+      "x-hf-cdn-pop": "aws-us-west-2",
+      "date": "Sat, 24 Oct 2026 19:43:10 GMT",
+      "connection": "close"
+    }
+  },
+  "https://cdn.dos.zone/vcsky/": {
+    "status": 403,
+    "reason": "Forbidden",
+    "headers": {
+      "Server": "nginx",
+      "Date": "Sat, 24 Oct 2026 19:43:12 GMT",
+      "Content-Type": "application/xml",
+      "Content-Length": "263",
+      "Connection": "close",
+      "Via": "1.1 Caddy",
+      "X-Amz-Request-Id": "tx00000234e75895ad3bc1c-006add0a50-889308d-default",
+      "X-CDN-Edge-Id": "2024",
+      "X-CDN-Edge-Cache": "MISS",
+      "X-CDN-Request-Id": "f47b6206263f020c22d06be2e550538b"
+    }
+  },
+  "https://br.cdn.dos.zone/vcsky/": {
+    "status": 403,
+    "reason": "Forbidden",
+    "headers": {
+      "Server": "nginx",
+      "Date": "Sat, 24 Oct 2026 19:43:13 GMT",
+      "Content-Type": "application/xml",
+      "Content-Length": "258",
+      "Connection": "close",
+      "Via": "1.1 Caddy",
+      "X-Amz-Request-Id": "tx00000a128782a4b32eca2-006add0a51-893375f-default",
+      "X-CDN-Edge-Id": "2004",
+      "X-CDN-Edge-Cache": "MISS",
+      "X-CDN-Request-Id": "1f13b57c2fd1029086a0cc1ab3e902f9"
+    }
+  },
+  "https://folder.morgen.qzz.io/revcdos.bin": {
+    "status": 200,
+    "reason": "OK",
+    "headers": {
+      "Date": "Sat, 24 Oct 2026 19:43:14 GMT",
+      "Content-Type": "text/plain",
+      "Content-Length": "1084364719",
+      "Connection": "close",
+      "Server": "cloudflare",
+      "Last-Modified": "Sat, 27 Dec 2025 06:02:23 GMT",
+      "ETag": "\"694f766f-40a217af\"",
+      "Accept-Ranges": "bytes",
+      "Cache-Control": "max-age=14400",
+      "cf-cache-status": "BYPASS",
+      "Server-Timing": "cfEdge;dur=24,cfOrigin;dur=658",
+      "Report-To": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=MWhC8gI5FsvKMWnQ4atmUtmV%2F8K0ZJHVV9jvGH8j%2BcW1OHB9GlReiVlptLFNOIiJ00P2qdLKAM%2BeWz7bOf5v%2FCGTmNQTsBoO4AnXn2dU8Yq65Hv2F%2F6AEN5%2B%2Fhis7Y8ZPWESz80QKvA%2BasGs1UdlalRc1g%3D%3D\"}]}",
+      "Nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+      "CF-RAY": "a4fb781ead689657-SJC",
+      "alt-svc": "h3=\":443\"; ma=86400"
+    }
+  }
+}
