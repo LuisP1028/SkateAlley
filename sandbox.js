@@ -10709,6 +10709,53 @@ function updateDoomHoloChatTether() {
   panelDotEl.setAttribute('cy', py.toFixed(1));
 }
 
+function resolveDoomApiCandidateUrls(endpointPath) {
+  const cleanPath = String(endpointPath || '').replace(/^\/+/, '');
+  const candidates = [];
+  if (typeof window !== 'undefined' && window.location) {
+    const host = window.location.hostname || '';
+    const port = window.location.port || '';
+    const isLocal3000 = (host === 'localhost' || host === '127.0.0.1') && port === '3000';
+    if (isLocal3000) {
+      candidates.push(`./${cleanPath}`);
+    } else {
+      // When opened from github.io or another port on the same machine, try local server port 3000 first, then tunnel.json
+      candidates.push(`http://localhost:3000/${cleanPath}`);
+      if (sandbox && sandbox.tunnelConfig && typeof sandbox.tunnelConfig.url === 'string' && sandbox.tunnelConfig.url.trim()) {
+        const base = sandbox.tunnelConfig.url.trim().replace(/\/+$/, '');
+        candidates.push(`${base}/${cleanPath}`);
+      }
+      candidates.push(`./${cleanPath}`);
+    }
+  } else {
+    candidates.push(`./${cleanPath}`);
+  }
+  return candidates;
+}
+
+async function postDoomApiWithFallback(endpointPath, payloadObj) {
+  const urls = resolveDoomApiCandidateUrls(endpointPath);
+  let lastErr = null;
+  for (const url of urls) {
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payloadObj),
+      });
+      const data = await response.json();
+      if (!response.ok || !data || !data.ok) {
+        const errMsg = (data && data.error) || `HTTP ${response.status} from ${url}`;
+        throw new Error(errMsg);
+      }
+      return data;
+    } catch (err) {
+      lastErr = err;
+    }
+  }
+  throw lastErr || new Error(`Failed to reach ${endpointPath}`);
+}
+
 async function fetchDoomStartersFromHF() {
   if (doomChatState.startersLoading) return doomChatState.starters;
   doomChatState.startersLoading = true;
@@ -10717,20 +10764,14 @@ async function fetchDoomStartersFromHF() {
   updateTelemetryHUD();
 
   try {
-    const response = await fetch('./api/doom/starters', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: doomChatState.startersModelId,
-        topicPrompt: doomChatState.starterTopicPrompt,
-        temperature: 0.75,
-        max_tokens: 120,
-      }),
+    const data = await postDoomApiWithFallback('api/doom/starters', {
+      model: doomChatState.startersModelId,
+      topicPrompt: doomChatState.starterTopicPrompt,
+      temperature: 0.75,
+      max_tokens: 120,
     });
-    const data = await response.json();
-    if (!response.ok || !data || !data.ok || !Array.isArray(data.starters) || data.starters.length < 2) {
-      const errMsg = (data && data.error) || `HTTP ${response.status} from /api/doom/starters`;
-      throw new Error(errMsg);
+    if (!Array.isArray(data.starters) || data.starters.length < 2) {
+      throw new Error('Invalid starters array from /api/doom/starters');
     }
     doomChatState.starters = [
       String(data.starters[0]).trim(),
@@ -10785,21 +10826,15 @@ async function sendDoomChatMessageToHF(rawText) {
       .filter((m) => m.role === 'user' || m.role === 'assistant')
       .map((m) => ({ role: m.role, content: m.content }));
 
-    const response = await fetch('./api/doom/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: doomChatState.chatModelId,
-        personaPrompt: doomChatState.personaPrompt,
-        messages: apiMessages,
-        temperature: 0.7,
-        max_tokens: 320,
-      }),
+    const data = await postDoomApiWithFallback('api/doom/chat', {
+      model: doomChatState.chatModelId,
+      personaPrompt: doomChatState.personaPrompt,
+      messages: apiMessages,
+      temperature: 0.7,
+      max_tokens: 320,
     });
-    const data = await response.json();
-    if (!response.ok || !data || !data.ok || typeof data.reply !== 'string' || !data.reply.trim()) {
-      const errMsg = (data && data.error) || `HTTP ${response.status} from /api/doom/chat`;
-      throw new Error(errMsg);
+    if (typeof data.reply !== 'string' || !data.reply.trim()) {
+      throw new Error('Empty reply from /api/doom/chat');
     }
 
     const replyText = data.reply.trim();
