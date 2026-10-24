@@ -203,6 +203,7 @@ def parse_two_starters_from_text(raw_text):
     return None
 
 mimetypes.init()
+NZP_GAME_PK3_EXPECTED_SIZE = 94276834
 EXTRA_MIME_TYPES = {
     ".wasm": "application/wasm",
     ".pk3": "application/octet-stream",
@@ -237,6 +238,57 @@ CUSTOM_MIME_TYPES = {
 CUSTOM_MIME_TYPES.update(EXTRA_MIME_TYPES)
 for ext, mime in CUSTOM_MIME_TYPES.items():
     mimetypes.add_type(mime, ext)
+
+
+def ensure_nzportable_game_pk3(base_dir=None):
+    """Materialize nzportable/nzp/game.pk3 from tracked .part00..02 chunks if absent on disk."""
+    root = os.path.abspath(base_dir or os.getcwd())
+    target_path = os.path.join(root, "nzportable", "nzp", "game.pk3")
+    try:
+        if os.path.isfile(target_path) and os.path.getsize(target_path) == NZP_GAME_PK3_EXPECTED_SIZE:
+            return True
+    except OSError:
+        pass
+
+    parts = [
+        os.path.join(root, "nzportable", "parts", f"game.pk3.part{i:02d}")
+        for i in range(3)
+    ]
+    if not all(os.path.isfile(p) for p in parts):
+        return False
+
+    os.makedirs(os.path.dirname(target_path), exist_ok=True)
+    tmp_path = f"{target_path}.tmp.{os.getpid()}"
+    try:
+        total_written = 0
+        with open(tmp_path, "wb") as out_f:
+            for part_path in parts:
+                with open(part_path, "rb") as in_f:
+                    while True:
+                        chunk = in_f.read(4 * 1024 * 1024)
+                        if not chunk:
+                            break
+                        out_f.write(chunk)
+                        total_written += len(chunk)
+        if total_written != NZP_GAME_PK3_EXPECTED_SIZE:
+            try:
+                os.remove(tmp_path)
+            except OSError:
+                pass
+            return False
+        os.replace(tmp_path, target_path)
+        return True
+    except OSError:
+        try:
+            if os.path.exists(tmp_path):
+                os.remove(tmp_path)
+        except OSError:
+            pass
+        return False
+
+
+ensure_nzportable_game_pk3(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+ensure_nzportable_game_pk3(os.getcwd())
 
 
 class ThreadingHTTPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
@@ -540,6 +592,7 @@ def main():
     args = parser.parse_args()
 
     os.chdir(os.path.abspath(args.dir))
+    ensure_nzportable_game_pk3(os.getcwd())
     with ThreadingHTTPServer((args.host, args.port), SkateAlleyRequestHandler) as httpd:
         print(f"[skatealley-app-local] Serving {os.getcwd()} on http://{args.host}:{args.port}", flush=True)
         httpd.serve_forever()

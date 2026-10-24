@@ -179,18 +179,25 @@ for (const fsEvt of ['fullscreenchange', 'webkitfullscreenchange']) {
 
 // 6. Remote Tunnel Origin Resolution (for Static Host Failover)
 let resolvedTunnelBaseUrl = null;
+let tunnelLookupAttempted = false;
 
-async function resolveServerTunnelBaseUrl(params) {
+async function getServerTunnelBaseUrl() {
+  if (resolvedTunnelBaseUrl) {
+    return resolvedTunnelBaseUrl;
+  }
+  const params = new URLSearchParams(window.location.search);
   const explicit = params.get('server') || params.get('backend_url') || params.get('backend');
   if (explicit && /^https?:\/\//i.test(explicit.trim())) {
-    return explicit.trim().replace(/\/+$/, '');
+    resolvedTunnelBaseUrl = explicit.trim().replace(/\/+$/, '');
+    return resolvedTunnelBaseUrl;
   }
-  if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+  if (tunnelLookupAttempted) {
     return null;
   }
+  tunnelLookupAttempted = true;
   try {
     const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 2500);
+    const timer = setTimeout(() => ctrl.abort(), 2000);
     const res = await fetch(`../tunnel.json?t=${Date.now()}`, {
       cache: 'no-store',
       signal: ctrl.signal,
@@ -200,7 +207,8 @@ async function resolveServerTunnelBaseUrl(params) {
       const data = await res.json();
       const url = data && (data.url || data.public_https_url || data.backend_url);
       if (typeof url === 'string' && /^https?:\/\//i.test(url.trim())) {
-        return url.trim().replace(/\/+$/, '');
+        resolvedTunnelBaseUrl = url.trim().replace(/\/+$/, '');
+        return resolvedTunnelBaseUrl;
       }
     }
   } catch {
@@ -221,28 +229,37 @@ async function openPackCache(cacheName) {
 }
 
 async function fetchWithTunnelFailover(relativeUrl) {
-  const candidates = [relativeUrl];
-  if (resolvedTunnelBaseUrl && !/^https?:\/\//i.test(relativeUrl)) {
-    const cleanRel = relativeUrl.replace(/^\.\//, '');
-    candidates.push(`${resolvedTunnelBaseUrl}/nzportable/${cleanRel}`);
-  }
   let lastError = null;
-  for (const url of candidates) {
-    try {
-      const res = await fetch(url);
-      if (res.ok) return res;
-      lastError = new Error(`${url}: HTTP ${res.status}`);
-    } catch (err) {
-      lastError = err;
+  try {
+    const localRes = await fetch(relativeUrl);
+    if (localRes.ok) return localRes;
+    lastError = new Error(`${relativeUrl}: HTTP ${localRes.status}`);
+  } catch (err) {
+    lastError = err;
+  }
+
+  if (!/^https?:\/\//i.test(relativeUrl)) {
+    const tunnelOrigin = await getServerTunnelBaseUrl();
+    if (tunnelOrigin) {
+      const cleanRel = relativeUrl.replace(/^\.\//, '');
+      const remoteUrl = `${tunnelOrigin}/nzportable/${cleanRel}`;
+      try {
+        const remoteRes = await fetch(remoteUrl);
+        if (remoteRes.ok) return remoteRes;
+        lastError = new Error(`${remoteUrl}: HTTP ${remoteRes.status}`);
+      } catch (err) {
+        lastError = err;
+      }
     }
   }
+
   throw lastError || new Error(`Failed to fetch ${relativeUrl}`);
 }
 
-async function readStreamIntoBuffer(response, expectedSize, onChunkBytes) {
+async function readStreamIntoBuffer(response, expectedSize, onFileProgress) {
   if (!response.body || !response.body.getReader) {
     const ab = await response.arrayBuffer();
-    if (onChunkBytes) onChunkBytes(ab.byteLength);
+    if (onFileProgress) onFileProgress(ab.byteLength);
     if (expectedSize && ab.byteLength !== expectedSize) {
       throw new Error(`Size mismatch: expected ${expectedSize} bytes, got ${ab.byteLength}`);
     }
@@ -266,7 +283,7 @@ async function readStreamIntoBuffer(response, expectedSize, onChunkBytes) {
       chunks.push(value);
     }
     offset += value.byteLength;
-    if (onChunkBytes) onChunkBytes(value.byteLength);
+    if (onFileProgress) onFileProgress(offset);
   }
 
   if (expectedSize && offset !== expectedSize) {
@@ -286,9 +303,10 @@ async function readStreamIntoBuffer(response, expectedSize, onChunkBytes) {
   return merged.buffer;
 }
 
-async function fetchMultipartBuffer(parts, expectedTotalSize, onChunkBytes) {
+async function fetchMultipartBuffer(parts, expectedTotalSize, onFileProgress) {
   const out = new Uint8Array(expectedTotalSize);
   let offset = 0;
+  if (onFileProgress) onFileProgress(0);
 
   for (let i = 0; i < parts.length; i++) {
     const partUrl = parts[i];
@@ -301,7 +319,7 @@ async function fetchMultipartBuffer(parts, expectedTotalSize, onChunkBytes) {
       }
       out.set(partBytes, offset);
       offset += partBytes.byteLength;
-      if (onChunkBytes) onChunkBytes(partBytes.byteLength);
+      if (onFileProgress) onFileProgress(offset);
     } else {
       const reader = response.body.getReader();
       for (;;) {
@@ -312,7 +330,7 @@ async function fetchMultipartBuffer(parts, expectedTotalSize, onChunkBytes) {
         }
         out.set(value, offset);
         offset += value.byteLength;
-        if (onChunkBytes) onChunkBytes(value.byteLength);
+        if (onFileProgress) onFileProgress(offset);
       }
     }
   }
@@ -323,8 +341,17 @@ async function fetchMultipartBuffer(parts, expectedTotalSize, onChunkBytes) {
   return out.buffer;
 }
 
-async function resolveAssetArrayBuffer(cache, fileSpec, onChunkBytes, forceParts = false) {
-  const cacheKeys = [fileSpec.url, fileSpec.path];
+async function resolveAssetArrayBuffer(cache, fileSpec, onFileProgress, forceParts = false) {
+  if (!fileSpec || typeof fileSpec.size !== 'number' || fileSpec.size <= 0) {
+    throw new Error(`Invalid pack.json descriptor for ${fileSpec && fileSpec.path ? fileSpec.path : 'unknown asset'}`);
+  }
+
+  const cacheKeys = [
+    fileSpec.url,
+    fileSpec.path,
+    fileSpec.hash ? `./cache/${fileSpec.path}.${fileSpec.hash}` : null,
+  ].filter(Boolean);
+
   if (cache) {
     for (const key of cacheKeys) {
       try {
@@ -332,7 +359,7 @@ async function resolveAssetArrayBuffer(cache, fileSpec, onChunkBytes, forceParts
         if (hit) {
           const ab = await hit.arrayBuffer();
           if (ab.byteLength === fileSpec.size) {
-            if (onChunkBytes) onChunkBytes(ab.byteLength);
+            if (onFileProgress) onFileProgress(ab.byteLength);
             return { buffer: ab, fromCache: true };
           }
         }
@@ -349,10 +376,10 @@ async function resolveAssetArrayBuffer(cache, fileSpec, onChunkBytes, forceParts
     try {
       const res = await fetch(fileSpec.url);
       if (res.ok) {
-        buffer = await readStreamIntoBuffer(res, fileSpec.size, onChunkBytes);
+        buffer = await readStreamIntoBuffer(res, fileSpec.size, onFileProgress);
       } else if (!hasParts) {
         const fallbackRes = await fetchWithTunnelFailover(fileSpec.url);
-        buffer = await readStreamIntoBuffer(fallbackRes, fileSpec.size, onChunkBytes);
+        buffer = await readStreamIntoBuffer(fallbackRes, fileSpec.size, onFileProgress);
       }
     } catch (err) {
       if (!hasParts) throw err;
@@ -360,7 +387,7 @@ async function resolveAssetArrayBuffer(cache, fileSpec, onChunkBytes, forceParts
   }
 
   if (!buffer && hasParts) {
-    buffer = await fetchMultipartBuffer(fileSpec.parts, fileSpec.size, onChunkBytes);
+    buffer = await fetchMultipartBuffer(fileSpec.parts, fileSpec.size, onFileProgress);
   }
 
   if (!buffer || buffer.byteLength !== fileSpec.size) {
@@ -475,46 +502,46 @@ async function startLaunch() {
     const forceParts = params.get('useparts') === '1' || params.get('useparts') === 'true';
 
     setStatus('Loading pack manifest...');
-    resolvedTunnelBaseUrl = await resolveServerTunnelBaseUrl(params);
     const packRes = await fetchWithTunnelFailover('./pack.json');
     const pack = await packRes.json();
+    if (!pack || !pack.files) {
+      throw new Error('Invalid pack.json manifest: missing "files" map.');
+    }
 
     const cache = await openPackCache(pack.cacheName || CACHE_NAME);
 
     const fmfSpec = pack.files['default.fmf'];
     const progsSpec = pack.files['nzp/progs.pk3'];
     const gameSpec = pack.files['nzp/game.pk3'];
+    if (!fmfSpec || !progsSpec || !gameSpec) {
+      throw new Error('Invalid pack.json manifest: required NZ:P file descriptors are missing.');
+    }
 
     const totalAssetBytes = fmfSpec.size + progsSpec.size + gameSpec.size;
-    let downloadedBytes = 0;
 
     setStatus('Loading default.fmf & nzp/progs.pk3...');
-    const fmfResult = await resolveAssetArrayBuffer(cache, fmfSpec, (n) => {
-      downloadedBytes += n;
-      updateProgress(downloadedBytes, totalAssetBytes, 'Loading default.fmf');
+    const fmfResult = await resolveAssetArrayBuffer(cache, fmfSpec, (loadedInFile) => {
+      updateProgress(loadedInFile, totalAssetBytes, 'Loading default.fmf');
     });
     window.__NZP_STATUS__.fmfBytes = fmfResult.buffer.byteLength;
 
-    const progsResult = await resolveAssetArrayBuffer(cache, progsSpec, (n) => {
-      downloadedBytes += n;
-      updateProgress(downloadedBytes, totalAssetBytes, 'Loading nzp/progs.pk3');
+    const progsResult = await resolveAssetArrayBuffer(cache, progsSpec, (loadedInFile) => {
+      updateProgress(fmfSpec.size + loadedInFile, totalAssetBytes, 'Loading nzp/progs.pk3');
     });
     window.__NZP_STATUS__.progsPk3Bytes = progsResult.buffer.byteLength;
 
     setStatus('Downloading game.pk3...');
+    const baseLoadedBytes = fmfSpec.size + progsSpec.size;
     const gameResult = await resolveAssetArrayBuffer(
       cache,
       gameSpec,
-      (n) => {
-        downloadedBytes += n;
-        updateProgress(downloadedBytes, totalAssetBytes, 'Downloading game.pk3');
+      (loadedInFile) => {
+        updateProgress(baseLoadedBytes + loadedInFile, totalAssetBytes, 'Downloading game.pk3');
       },
       forceParts
     );
     window.__NZP_STATUS__.gamePk3Bytes = gameResult.buffer.byteLength;
-    window.__NZP_STATUS__.cacheHit = Boolean(
-      gameResult.fromCache && progsResult.fromCache && fmfResult.fromCache
-    );
+    window.__NZP_STATUS__.cacheHit = Boolean(gameResult.fromCache);
 
     updateProgress(totalAssetBytes, totalAssetBytes, 'Mounting virtual filesystem');
     setStatus('Initializing FTEQW WebAssembly engine...');
