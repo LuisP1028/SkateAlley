@@ -1,0 +1,36 @@
+.gitignore|CHANGED|Added git-ignore rules for revcdos/vcbr/vc-sky-en-v6.data, revcdos/vcbr/vc-sky-ru-v6.data, revcdos/vcsky/, and *.zip so >50MB binaries and unpacked streaming assets remain untracked while <=35MB parts are tracked
+index.html|CHANGED|Added #hud-enter-revcdos-btn launcher link in the Freeman Alley HUD to navigate directly to ./revcdos/
+revcdos/GamepadEmulator.js|CHANGED|Added mobile and virtual gamepad touch input emulator for the standalone reVCDOS web application
+revcdos/cover.jpg|CHANGED|Added self-hosted GTA Vice City cover artwork (105,208 bytes) replacing dead cdn.dos.zone cover/wasted URLs
+revcdos/game.js|CHANGED|Implemented standalone reVCDOS bootstrapper with window.__REVCDOS_STATUS__ telemetry, automatic haveOriginalGame full-game activation, local vcbr/ and lowercase vcsky/ routing, CacheStorage (revcdos-pack-v1), 4-part chunk fallback, preserveDrawingBuffer WebGL2 context wrapper, and non-blocking pagehide save sync
+revcdos/idbfs.js|CHANGED|Added Emscripten IDBFS persistence adapter for /vc-assets/local/userfiles save synchronization
+revcdos/index.html|CHANGED|Created standalone /revcdos/ HTML shell with relative cover.jpg and intro.mp4, #config-panel, DOS.Zone Team credits, and #revcdos-back-to-alley-btn return navigation with zero dead CDN references
+revcdos/index.js|CHANGED|Created sequential runtime module loader loading runtime.js, packages/en.js, loader.js, fs.js, syscalls.js, audio.js, graphics.js, events.js, fetch.js, asm_consts/en.js, main.js, and cheats.js
+revcdos/intro.mp4|CHANGED|Added self-hosted GTA Vice City intro video (8,019,046 bytes)
+revcdos/jsdos-cloud-sdk-local.js|CHANGED|Added local offline-compatible JS-DOS Cloud SDK shim
+revcdos/jsdos-cloud-sdk.js|CHANGED|Added JS-DOS Cloud SDK client script
+revcdos/modules/asm_consts/en.js|CHANGED|Added English EM_ASM constant table with 980182 returning 1 (bypassing demo gate) and idempotent IDBFS mount at 981290
+revcdos/modules/asm_consts/ru.js|CHANGED|Added Russian EM_ASM constant table with 980198 returning 1 (bypassing demo gate) and idempotent IDBFS mount at 981306
+revcdos/modules/audio.js|CHANGED|Added OpenAL and SDL2 Web Audio subsystem module for reVCDOS
+revcdos/modules/cheats.js|CHANGED|Added F3 cheat menu overlay module supporting 62 GTA Vice City cheats
+revcdos/modules/events.js|CHANGED|Added keyboard, mouse, pointer-lock, and gamepad event handling module
+revcdos/modules/fetch.js|CHANGED|Added Emscripten Fetch API (emscripten_start_fetch) XHR + IndexedDB module instrumented to update window.__REVCDOS_STATUS__ telemetry
+revcdos/modules/fs.js|CHANGED|Added Emscripten MEMFS + PATH + ERRNO virtual filesystem implementation
+revcdos/modules/graphics.js|CHANGED|Added EGL + WebGL2 rendering and GLSL shader compilation module
+revcdos/modules/loader.js|CHANGED|Added preloaded package unpacker populating /vc-assets/local/... from the 135,355,111-byte startup package with Promise and EEXIST handling
+revcdos/modules/main.js|CHANGED|Added WASM instantiation and execution entry point (createWasm and run)
+revcdos/modules/packages/en.js|CHANGED|Added English DATA_PACKAGE byte-offset manifest for the 1,943 preloaded files in vc-sky-en-v6.data
+revcdos/modules/packages/ru.js|CHANGED|Added Russian DATA_PACKAGE byte-offset manifest
+revcdos/modules/runtime.js|CHANGED|Added Emscripten runtime memory, UTF8, dynCall, and run-dependency primitives
+revcdos/modules/syscalls.js|CHANGED|Added POSIX syscall shim layer for the Emscripten runtime
+revcdos/pack.json|CHANGED|Created 4-part chunk manifest with byte sizes and SHA-256 digests for vc-sky-en-v6.wasm and vc-sky-en-v6.data.part00..03
+revcdos/parts/vc-sky-en-v6.data.part00|CHANGED|Created part 00 (33,838,778 bytes) of vc-sky-en-v6.data
+revcdos/parts/vc-sky-en-v6.data.part01|CHANGED|Created part 01 (33,838,778 bytes) of vc-sky-en-v6.data
+revcdos/parts/vc-sky-en-v6.data.part02|CHANGED|Created part 02 (33,838,778 bytes) of vc-sky-en-v6.data
+revcdos/parts/vc-sky-en-v6.data.part03|CHANGED|Created part 03 (33,838,777 bytes) of vc-sky-en-v6.data
+revcdos/vcbr/vc-sky-en-v6.wasm|CHANGED|Staged pre-decompressed 7,625,877-byte reVC Emscripten WebAssembly binary
+scripts/serve_skatealley.py|CHANGED|Added reVCDOS MIME types, ensure_revcdos_data chunk reassembly, case-insensitive /revcdos/vcsky/ path resolution, and revcdos_webapp readiness reporting in /api/health
+sandbox.js|READ_ONLY_CONTEXT|Consulted as architectural boundary reference only; zero modifications made to Freeman Alley Three.js scene graph
+skate3_cleanroom/index.html|READ_ONLY_CONTEXT|Consulted as standalone WebApp HUD and return-navigation precedent
+nzportable/index.html|READ_ONLY_CONTEXT|Consulted as standalone Emscripten WebGL2 WebApp precedent
+nzportable/pack.json|READ_ONLY_CONTEXT|Consulted as multi-part chunk manifest precedent

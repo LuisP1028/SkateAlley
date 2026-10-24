@@ -48,6 +48,10 @@ skate3_cleanroom/core_holo.pack
 skate3_cleanroom/skate3rust_bg.wasm
 skate3_cleanroom/LUIS_HOLO_RIGGED.glb
 nzportable/nzp/game.pk3
+revcdos/vcbr/vc-sky-en-v6.data
+revcdos/vcbr/vc-sky-ru-v6.data
+revcdos/vcsky/
+*.zip
 PLATODOOM_HEAD.glb
 PLATODOOM_RAW.glb
 LUIS_HEAD.glb

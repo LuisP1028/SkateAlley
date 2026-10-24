@@ -204,10 +204,29 @@ def parse_two_starters_from_text(raw_text):
 
 mimetypes.init()
 NZP_GAME_PK3_EXPECTED_SIZE = 94276834
+REVCDOS_DATA_EXPECTED_SIZE = 135355111
 EXTRA_MIME_TYPES = {
     ".wasm": "application/wasm",
     ".pk3": "application/octet-stream",
     ".fmf": "application/octet-stream",
+    ".data": "application/octet-stream",
+    ".img": "application/octet-stream",
+    ".dir": "application/octet-stream",
+    ".dff": "application/octet-stream",
+    ".txd": "application/octet-stream",
+    ".col": "application/octet-stream",
+    ".ifp": "application/octet-stream",
+    ".adf": "application/octet-stream",
+    ".raw": "application/octet-stream",
+    ".sdt": "application/octet-stream",
+    ".save": "application/octet-stream",
+    ".ini": "text/plain; charset=utf-8",
+    ".cfg": "text/plain; charset=utf-8",
+    ".dat": "text/plain; charset=utf-8",
+    ".ide": "text/plain; charset=utf-8",
+    ".ipl": "text/plain; charset=utf-8",
+    ".zon": "text/plain; charset=utf-8",
+    ".fxt": "text/plain; charset=utf-8",
     ".part": "application/octet-stream",
     **{f".part{i:02d}": "application/octet-stream" for i in range(100)},
 }
@@ -291,6 +310,57 @@ ensure_nzportable_game_pk3(os.path.dirname(os.path.dirname(os.path.abspath(__fil
 ensure_nzportable_game_pk3(os.getcwd())
 
 
+def ensure_revcdos_data(base_dir=None):
+    """Materialize revcdos/vcbr/vc-sky-en-v6.data from tracked .part00..03 chunks if absent on disk."""
+    root = os.path.abspath(base_dir or os.getcwd())
+    target_path = os.path.join(root, "revcdos", "vcbr", "vc-sky-en-v6.data")
+    try:
+        if os.path.isfile(target_path) and os.path.getsize(target_path) == REVCDOS_DATA_EXPECTED_SIZE:
+            return True
+    except OSError:
+        pass
+
+    parts = [
+        os.path.join(root, "revcdos", "parts", f"vc-sky-en-v6.data.part{i:02d}")
+        for i in range(4)
+    ]
+    if not all(os.path.isfile(p) for p in parts):
+        return False
+
+    os.makedirs(os.path.dirname(target_path), exist_ok=True)
+    tmp_path = f"{target_path}.tmp.{os.getpid()}"
+    try:
+        total_written = 0
+        with open(tmp_path, "wb") as out_f:
+            for part_path in parts:
+                with open(part_path, "rb") as in_f:
+                    while True:
+                        chunk = in_f.read(4 * 1024 * 1024)
+                        if not chunk:
+                            break
+                        out_f.write(chunk)
+                        total_written += len(chunk)
+        if total_written != REVCDOS_DATA_EXPECTED_SIZE:
+            try:
+                os.remove(tmp_path)
+            except OSError:
+                pass
+            return False
+        os.replace(tmp_path, target_path)
+        return True
+    except OSError:
+        try:
+            if os.path.exists(tmp_path):
+                os.remove(tmp_path)
+        except OSError:
+            pass
+        return False
+
+
+ensure_revcdos_data(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+ensure_revcdos_data(os.getcwd())
+
+
 class ThreadingHTTPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
     allow_reuse_address = True
     daemon_threads = True
@@ -298,6 +368,33 @@ class ThreadingHTTPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
 
 class SkateAlleyRequestHandler(SimpleHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
+
+    def translate_path(self, path):
+        resolved = super().translate_path(path)
+        if os.path.exists(resolved):
+            return resolved
+        clean_path = path.split("?", 1)[0].split("#", 1)[0]
+        if clean_path.lower().startswith("/revcdos/vcsky/"):
+            rel = os.path.relpath(resolved, os.getcwd())
+            parts = rel.split(os.sep)
+            cur = os.getcwd()
+            for part in parts:
+                candidate = os.path.join(cur, part)
+                if os.path.exists(candidate):
+                    cur = candidate
+                    continue
+                if not os.path.isdir(cur):
+                    return resolved
+                part_lower = part.lower()
+                matched = next(
+                    (entry for entry in os.listdir(cur) if entry.lower() == part_lower),
+                    None,
+                )
+                if matched is None:
+                    return resolved
+                cur = os.path.join(cur, matched)
+            return cur
+        return resolved
 
     def end_headers(self):
         self.send_header("Access-Control-Allow-Origin", "*")
@@ -496,6 +593,11 @@ class SkateAlleyRequestHandler(SimpleHTTPRequestHandler):
             os.path.join(os.getcwd(), "nzportable", "nzp", "progs.pk3"),
         )
         nzportable_ready = all(os.path.isfile(p) for p in nzp_required)
+        revcdos_ready = (
+            os.path.isfile(os.path.join(os.getcwd(), "revcdos", "index.html"))
+            and os.path.isfile(os.path.join(os.getcwd(), "revcdos", "vcbr", "vc-sky-en-v6.wasm"))
+            and os.path.isdir(os.path.join(os.getcwd(), "revcdos", "vcsky", "fetched"))
+        )
         components = [
             "freeman_alley_3d_portfolio",
             "skate3_cleanroom_skateroom",
@@ -503,6 +605,8 @@ class SkateAlleyRequestHandler(SimpleHTTPRequestHandler):
         ]
         if nzportable_ready:
             components.append("nzportable_webapp")
+        if revcdos_ready:
+            components.append("revcdos_webapp")
         payload = json.dumps({
             "ok": True,
             "status": "ok",
@@ -512,6 +616,7 @@ class SkateAlleyRequestHandler(SimpleHTTPRequestHandler):
             "doom_chat_model": DEFAULT_DOOM_CHAT_MODEL,
             "doom_starters_model": DEFAULT_DOOM_STARTERS_MODEL,
             "nzportable_webapp": nzportable_ready,
+            "revcdos_webapp": revcdos_ready,
             "services": list(components),
             "components": components,
         }).encode("utf-8")
@@ -593,6 +698,7 @@ def main():
 
     os.chdir(os.path.abspath(args.dir))
     ensure_nzportable_game_pk3(os.getcwd())
+    ensure_revcdos_data(os.getcwd())
     with ThreadingHTTPServer((args.host, args.port), SkateAlleyRequestHandler) as httpd:
         print(f"[skatealley-app-local] Serving {os.getcwd()} on http://{args.host}:{args.port}", flush=True)
         httpd.serve_forever()
