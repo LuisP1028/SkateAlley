@@ -12,6 +12,8 @@ revcdos/jsdos-cloud-sdk-local.js CHANGED ticket-003
 revcdos/cover.jpg CHANGED ticket-003
 revcdos/intro.mp4 CHANGED ticket-003
 revcdos/vcbr/vc-sky-en-v6.wasm CHANGED ticket-001
+revcdos/vcbr/vc-sky-en-v6.data CHANGED ticket-001
+revcdos/vcsky/sha256sums.txt CHANGED ticket-002
 revcdos/parts/vc-sky-en-v6.data.part00 CHANGED ticket-001
 revcdos/parts/vc-sky-en-v6.data.part01 CHANGED ticket-001
 revcdos/parts/vc-sky-en-v6.data.part02 CHANGED ticket-001
