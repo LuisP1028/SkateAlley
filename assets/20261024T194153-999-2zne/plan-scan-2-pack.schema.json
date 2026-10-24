@@ -1,0 +1,105 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ReVCDOSPackManifest",
+  "description": "Schema for revcdos/pack.json defining chunk verification and Emscripten runtime package resolution",
+  "type": "object",
+  "required": [
+    "version",
+    "cacheName",
+    "engine",
+    "files"
+  ],
+  "properties": {
+    "version": {
+      "type": "integer",
+      "const": 1
+    },
+    "cacheName": {
+      "type": "string",
+      "const": "revcdos-pack-v1"
+    },
+    "engine": {
+      "type": "object",
+      "required": [
+        "wasm",
+        "size",
+        "sha256"
+      ],
+      "properties": {
+        "wasm": {
+          "type": "string",
+          "const": "./vcbr/vc-sky-en-v6.wasm"
+        },
+        "size": {
+          "type": "integer",
+          "const": 7625877
+        },
+        "sha256": {
+          "type": "string",
+          "const": "db6aa7b9169a638e06b17f7bed5a6b3e473e00ae7bbb47354729fa94b971ebf2"
+        }
+      }
+    },
+    "files": {
+      "type": "object",
+      "required": [
+        "vcbr/vc-sky-en-v6.data"
+      ],
+      "properties": {
+        "vcbr/vc-sky-en-v6.data": {
+          "type": "object",
+          "required": [
+            "path",
+            "url",
+            "size",
+            "sha256",
+            "parts",
+            "partSizes"
+          ],
+          "properties": {
+            "path": {
+              "type": "string",
+              "const": "vcbr/vc-sky-en-v6.data"
+            },
+            "url": {
+              "type": "string",
+              "const": "./vcbr/vc-sky-en-v6.data"
+            },
+            "size": {
+              "type": "integer",
+              "const": 135355111
+            },
+            "sha256": {
+              "type": "string",
+              "const": "3da895fd1a0c8e8968d0937da45becc35efc697f13a26a0d0463bd6a22acfff6"
+            },
+            "parts": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "default": [
+                "./parts/vc-sky-en-v6.data.part00",
+                "./parts/vc-sky-en-v6.data.part01",
+                "./parts/vc-sky-en-v6.data.part02",
+                "./parts/vc-sky-en-v6.data.part03"
+              ]
+            },
+            "partSizes": {
+              "type": "array",
+              "items": {
+                "type": "integer"
+              },
+              "default": [
+                33838778,
+                33838778,
+                33838778,
+                33838777
+              ]
+            }
+          }
+        }
+      }
+    }
+  }
+}
