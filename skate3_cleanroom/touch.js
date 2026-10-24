@@ -1,15 +1,181 @@
-// On-screen gamepad for phones and tablets. Writes the pad to
+// On-screen gamepad for phones and tablets + unified Left Analog Stick
+// skateboard pushing controller. Writes the pad to
 // window.skateTouch = [buttons, lt, rt, lx, ly, rx, ry] (XInput bits, triggers
 // 0..1, axes -1..1, up positive), which the engine merges into controller 1
 // like a real gamepad (crates/skate-game/src/input/platform.rs). Shown on touch
 // screens, or with ?touch=1; the "Pad" button hides it.
 const params = new URLSearchParams(location.search);
+const state = [0, 0, 0, 0, 0, 0, 0];
+window.skateTouch = state;
+
+const PUSH_ACTIVATE_THRESHOLD = 0.35;
+const PUSH_RELEASE_THRESHOLD = 0.25;
+const TRICK_STICK_DEADZONE = 0.25;
+const TRIGGER_GUARD_THRESHOLD = 0.25;
+const PUSH_HOLD_MS = 600;
+const PUSH_RELEASE_MS = 350;
+const PUSH_CYCLE_PERIOD_MS = PUSH_HOLD_MS + PUSH_RELEASE_MS;
+
+let manualAButtonHeld = false;
+let touchDemoActive = false;
+let wasStickPushing = false;
+let stickPushBitOn = false;
+let cycleStartMs = 0;
+let strokeCount = 0;
+let faceAButtonEl = null;
+let leftStickBaseEl = null;
+
+function sampleHardwareGamepad() {
+  if (typeof navigator === 'undefined' || typeof navigator.getGamepads !== 'function') {
+    return null;
+  }
+  let pads;
+  try {
+    pads = navigator.getGamepads();
+  } catch {
+    return null;
+  }
+  if (!pads) return null;
+  for (let i = 0; i < pads.length; i++) {
+    const p = pads[i];
+    if (p && p.connected) {
+      return {
+        lx: Number(p.axes && p.axes[0]) || 0,
+        ly: -(Number(p.axes && p.axes[1]) || 0),
+        rx: Number(p.axes && p.axes[2]) || 0,
+        ry: -(Number(p.axes && p.axes[3]) || 0),
+        lt: Number(p.buttons && p.buttons[6] && p.buttons[6].value) || 0,
+        rt: Number(p.buttons && p.buttons[7] && p.buttons[7].value) || 0,
+        aHeld: Boolean(p.buttons && p.buttons[0] && p.buttons[0].pressed),
+        bOrYHeld: Boolean(
+          (p.buttons && p.buttons[1] && p.buttons[1].pressed) ||
+          (p.buttons && p.buttons[3] && p.buttons[3].pressed)
+        ),
+      };
+    }
+  }
+  return null;
+}
+
+function evaluateLeftStickPush(now = performance.now()) {
+  const gp = sampleHardwareGamepad();
+  const touchLx = Number(state[3]) || 0;
+  const touchLy = Number(state[4]) || 0;
+  const touchRx = Number(state[5]) || 0;
+  const touchRy = Number(state[6]) || 0;
+  const touchLt = Number(state[1]) || 0;
+  const touchRt = Number(state[2]) || 0;
+
+  const useGpLeft = gp && Math.hypot(gp.lx, gp.ly) > Math.hypot(touchLx, touchLy);
+  const effLx = useGpLeft ? gp.lx : touchLx;
+  const effLy = useGpLeft ? gp.ly : touchLy;
+
+  const useGpRight = gp && Math.hypot(gp.rx, gp.ry) > Math.hypot(touchRx, touchRy);
+  const effRx = useGpRight ? gp.rx : touchRx;
+  const effRy = useGpRight ? gp.ry : touchRy;
+
+  const effLt = gp ? Math.max(touchLt, gp.lt) : touchLt;
+  const effRt = gp ? Math.max(touchRt, gp.rt) : touchRt;
+  const gpManualA = Boolean(gp && gp.aHeld);
+  const gpBOrY = Boolean(gp && gp.bOrYHeld);
+
+  const forwardPushRequested = wasStickPushing
+    ? (effLy >= PUSH_RELEASE_THRESHOLD && effLy >= Math.abs(effLx) * 0.45)
+    : (effLy >= PUSH_ACTIVATE_THRESHOLD && effLy >= Math.abs(effLx) * 0.50);
+
+  const rightStickMag = Math.hypot(effRx, effRy);
+  const guardActive =
+    rightStickMag >= TRICK_STICK_DEADZONE ||
+    effLt >= TRIGGER_GUARD_THRESHOLD ||
+    effRt >= TRIGGER_GUARD_THRESHOLD ||
+    effLy < 0 ||
+    (state[0] & 0xa000) !== 0 ||
+    gpBOrY;
+
+  if (forwardPushRequested && !guardActive) {
+    if (!wasStickPushing) {
+      wasStickPushing = true;
+      cycleStartMs = now;
+      stickPushBitOn = true;
+      strokeCount++;
+    } else {
+      const elapsed = Math.max(0, now - cycleStartMs);
+      const prevBit = stickPushBitOn;
+      stickPushBitOn = (elapsed % PUSH_CYCLE_PERIOD_MS) < PUSH_HOLD_MS;
+      if (!prevBit && stickPushBitOn) {
+        strokeCount++;
+      }
+    }
+  } else {
+    wasStickPushing = false;
+    stickPushBitOn = false;
+  }
+
+  const shouldAssertA = manualAButtonHeld || touchDemoActive || gpManualA || stickPushBitOn;
+  if (shouldAssertA) {
+    state[0] |= 0x1000;
+  } else {
+    state[0] &= ~0x1000;
+  }
+
+  if (faceAButtonEl) {
+    faceAButtonEl.classList.toggle('on', shouldAssertA);
+  }
+  if (leftStickBaseEl) {
+    leftStickBaseEl.classList.toggle('pushing', wasStickPushing);
+  }
+
+  window.skateLeftAnalogPush.active = wasStickPushing;
+  window.skateLeftAnalogPush.stickPushRequested = forwardPushRequested;
+  window.skateLeftAnalogPush.guardActive = guardActive;
+  window.skateLeftAnalogPush.stickPushBitOn = stickPushBitOn;
+  window.skateLeftAnalogPush.lx = effLx;
+  window.skateLeftAnalogPush.ly = effLy;
+  window.skateLeftAnalogPush.strokeCount = strokeCount;
+  return shouldAssertA;
+}
+
+window.skateLeftAnalogPush = {
+  active: false,
+  stickPushRequested: false,
+  guardActive: false,
+  stickPushBitOn: false,
+  lx: 0,
+  ly: 0,
+  strokeCount: 0,
+  threshold: PUSH_ACTIVATE_THRESHOLD,
+  releaseThreshold: PUSH_RELEASE_THRESHOLD,
+  cycleHoldMs: PUSH_HOLD_MS,
+  cycleReleaseMs: PUSH_RELEASE_MS,
+  evaluate: evaluateLeftStickPush,
+};
+
+function resetLeftStickOnFocusLoss() {
+  state[3] = 0;
+  state[4] = 0;
+  wasStickPushing = false;
+  stickPushBitOn = false;
+  evaluateLeftStickPush(performance.now());
+}
+
+addEventListener('blur', resetLeftStickOnFocusLoss);
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) resetLeftStickOnFocusLoss();
+});
+
+const startPushLoop = () => {
+  const step = (now) => {
+    evaluateLeftStickPush(now);
+    requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+};
+startPushLoop();
+
 const wanted = params.get('touch') ?? (matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window ? '1' : '0');
 if (wanted === '1') install();
 
 function install() {
-  const state = [0, 0, 0, 0, 0, 0, 0];
-  window.skateTouch = state;
   document.body.classList.add('touch');
 
   const css = document.createElement('style');
@@ -19,7 +185,8 @@ function install() {
     #pad { position: fixed; inset: 0; z-index: 3; pointer-events: none; user-select: none; -webkit-user-select: none; }
     #pad.hidden > :not(#padtoggle) { display: none; }
     #pad .stick { position: absolute; bottom: 24px; width: 150px; height: 150px; border-radius: 50%;
-      background: #ffffff14; border: 2px solid #ffffff30; pointer-events: auto; touch-action: none; }
+      background: #ffffff14; border: 2px solid #ffffff30; pointer-events: auto; touch-action: none; transition: border-color .12s; }
+    #pad .stick.pushing { border-color: #3fb950cc; }
     #pad .knob { position: absolute; left: 50%; top: 50%; width: 64px; height: 64px; margin: -32px 0 0 -32px;
       border-radius: 50%; background: #ffffff40; }
     #pad .btn { position: absolute; width: 52px; height: 52px; border-radius: 50%; background: #0b0f14aa;
@@ -52,6 +219,7 @@ function install() {
   const stick = (style, ix, iy) => {
     const base = el('stick', '', style);
     sticks.push(base);
+    if (ix === 3 && iy === 4) leftStickBaseEl = base;
     const knob = document.createElement('div');
     knob.className = 'knob';
     base.append(knob);
@@ -63,6 +231,7 @@ function install() {
       knob.style.transform = `translate(${x}px, ${y}px)`;
       state[ix] = x / r;
       state[iy] = -y / r;
+      evaluateLeftStickPush(performance.now());
     };
     base.addEventListener('pointerdown', e => {
       id = e.pointerId; base.setPointerCapture(id);
@@ -89,7 +258,16 @@ function install() {
   };
   const button = (cls, text, bit, style) => {
     const d = el(cls, text, style);
-    hold(d, () => { state[0] |= bit; }, () => { state[0] &= ~bit; });
+    if (bit === 0x1000) {
+      faceAButtonEl = d;
+      hold(
+        d,
+        () => { manualAButtonHeld = true; evaluateLeftStickPush(performance.now()); },
+        () => { manualAButtonHeld = false; evaluateLeftStickPush(performance.now()); }
+      );
+    } else {
+      hold(d, () => { state[0] |= bit; }, () => { state[0] &= ~bit; });
+    }
     return d;
   };
   const trigger = (text, index, style) => hold(el('btn small', text, style), () => { state[index] = 1; }, () => { state[index] = 0; });
@@ -167,13 +345,19 @@ function install() {
   if (params.get('sessiondemo') === '1') {
     const at = (sec, fn) => setTimeout(fn, sec * 1000);
     at(20, setMarker.down); at(23, setMarker.up);
-    at(25, () => { state[4] = 1; }); at(35, () => { state[4] = 0; });
+    at(25, () => { state[4] = 1; evaluateLeftStickPush(performance.now()); });
+    at(35, () => { state[4] = 0; evaluateLeftStickPush(performance.now()); });
     at(38, goMarker.down); at(50, goMarker.up);
   }
 
   // Dev check: ?touchdemo=1 pushes (A, 0.6 s of every second) from 15 s, with no hands.
   if (params.get('touchdemo') === '1') setTimeout(() => setInterval(() => {
-    state[0] |= 0x1000; setTimeout(() => { state[0] &= ~0x1000; }, 600);
+    touchDemoActive = true;
+    evaluateLeftStickPush(performance.now());
+    setTimeout(() => {
+      touchDemoActive = false;
+      evaluateLeftStickPush(performance.now());
+    }, 600);
   }, 1000), 15000);
 
   // Safari keeps a page's zoom across visits; rewriting the viewport tag resets it.

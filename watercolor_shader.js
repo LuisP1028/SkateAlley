@@ -80,8 +80,10 @@ export const WATERCOLOR_DEFAULT_PARAMS = {
 export const WATERCOLOR_GALLERY_SPEC = {
   id: 'watercolor-gallery-01',
   title: 'Water Color',
-  anchorPosition: { x: 0.0, yRel: 1.72, z: 42.20 },
-  canvasRotationEuler: { x: 0.0, y: -0.28, z: 0.0 }, // -16.04 deg yaw so canvas is viewed at a slight perspective angle
+  anchorPosition: { x: 0.1341, yRel: 2.6648, z: 42.6182 },
+  canvasRotationEuler: { x: 0.0, y: -0.0182, z: 0.0 },
+  canvasScale: { x: 5.0, y: 5.0, z: 1.0 },
+  scale: 5.0,
   focusCameraOffset: { x: -0.42, y: 0.04, z: -2.65 }, // perspective camera vantage looking toward anchorPosition
   focusLookAtOffset: { x: 0.08, y: 0.0, z: 0.0 },
   blackBackdropColorHex: 0x000000,
@@ -463,8 +465,13 @@ export function buildWaterColorGallerySystem(options = {}) {
   );
   canvasStageGroup.rotation.set(
     WATERCOLOR_GALLERY_SPEC.canvasRotationEuler.x,
-    WATERCOLOR_GALLERY_SPEC.canvasRotationEuler.y, // -0.28 rad (-16.04°)
+    WATERCOLOR_GALLERY_SPEC.canvasRotationEuler.y,
     WATERCOLOR_GALLERY_SPEC.canvasRotationEuler.z
+  );
+  canvasStageGroup.scale.set(
+    WATERCOLOR_GALLERY_SPEC.canvasScale.x,
+    WATERCOLOR_GALLERY_SPEC.canvasScale.y,
+    WATERCOLOR_GALLERY_SPEC.canvasScale.z
   );
   rootGroup.add(canvasStageGroup);
 
@@ -926,7 +933,11 @@ export function buildWaterColorGallerySystem(options = {}) {
         WATERCOLOR_GALLERY_SPEC.canvasRotationEuler.y,
         WATERCOLOR_GALLERY_SPEC.canvasRotationEuler.z
       );
-      canvasStageGroup.scale.set(1.0, 1.0, 1.0);
+      canvasStageGroup.scale.set(
+        WATERCOLOR_GALLERY_SPEC.canvasScale.x,
+        WATERCOLOR_GALLERY_SPEC.canvasScale.y,
+        WATERCOLOR_GALLERY_SPEC.canvasScale.z
+      );
       canvasStageGroup.updateMatrixWorld(true);
       return this.getTransformState();
     },

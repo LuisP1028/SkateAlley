@@ -9,29 +9,17 @@
     "hash": "d60e23310332b26f"
   },
   "core": {
-    "size": 93912807,
+    "size": 98650499,
     "parts": [
       "parts/core_head.part",
-      "parts/char_platodoom.part",
+      "parts/char_luis.part",
       "parts/core_tail_0.part",
       "parts/core_tail_1.part"
     ],
     "files": 534,
-    "hash": "c16ab1ef8cecb7b6"
+    "hash": "7fbdc36d25bbcfb7"
   },
   "characters": {
-    "platodoom": {
-      "name": "PlatoDoom",
-      "pack": "core.pack",
-      "parts": [
-        "parts/core_head.part",
-        "parts/char_platodoom.part",
-        "parts/core_tail_0.part",
-        "parts/core_tail_1.part"
-      ],
-      "size": 93912807,
-      "hash": "c16ab1ef8cecb7b6"
-    },
     "luis": {
       "name": "Luis",
       "pack": "core_luis.pack",

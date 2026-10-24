@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>Freeman Alley — Scroll-Driven Walk &amp; Interactive Free-Roam</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect width='16' height='16' rx='3' fill='%232563eb'/></svg>" />
   <script type="importmap">
@@ -54,6 +54,7 @@
       width: 100vw;
       height: 100vh;
       cursor: grab;
+      touch-action: none;
     }
     canvas:active {
       cursor: grabbing;
@@ -991,6 +992,633 @@
       background: rgba(168, 36, 40, 0.48);
       color: #ffffff;
     }
+
+    /* ======================================================================
+       Mobile Single-Thumbpad & Touch Action Controls (Spec 040 §3–§5)
+       ====================================================================== */
+    #mobile-touch-controls {
+      position: fixed;
+      inset: 0;
+      z-index: 23;
+      pointer-events: none;
+      display: none;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    body.mobile-touch-enabled #mobile-touch-controls {
+      display: block;
+    }
+    #mobile-left-thumbpad {
+      position: absolute;
+      left: calc(14px + env(safe-area-inset-left, 0px));
+      bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(15, 23, 42, 0.44) 0%, rgba(7, 12, 24, 0.74) 100%);
+      border: 2px solid rgba(56, 189, 248, 0.48);
+      box-shadow:
+        0 8px 24px rgba(0, 0, 0, 0.58),
+        inset 0 0 18px rgba(0, 213, 255, 0.14);
+      pointer-events: auto;
+      touch-action: none;
+      cursor: pointer;
+      transition: border-color 0.14s ease, box-shadow 0.14s ease;
+    }
+    #mobile-left-thumbpad.walking {
+      border-color: rgba(0, 213, 255, 0.94);
+      box-shadow:
+        0 8px 26px rgba(0, 0, 0, 0.65),
+        0 0 18px rgba(0, 213, 255, 0.40),
+        inset 0 0 22px rgba(0, 213, 255, 0.24);
+    }
+    #mobile-left-thumbpad.sprinting {
+      border-color: rgba(74, 222, 128, 0.96);
+      box-shadow:
+        0 8px 28px rgba(0, 0, 0, 0.72),
+        0 0 24px rgba(74, 222, 128, 0.54),
+        inset 0 0 24px rgba(251, 191, 36, 0.28);
+    }
+    .mobile-thumbpad-sprint-ring {
+      position: absolute;
+      inset: 11%;
+      border-radius: 50%;
+      border: 1px dashed rgba(251, 191, 36, 0.34);
+      pointer-events: none;
+    }
+    .mobile-thumbpad-crosshair {
+      position: absolute;
+      inset: 24%;
+      border-radius: 50%;
+      border: 1px solid rgba(148, 163, 184, 0.18);
+      pointer-events: none;
+    }
+    #mobile-left-thumbpad-label {
+      position: absolute;
+      top: 7px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 8.5px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      color: rgba(186, 230, 253, 0.85);
+      pointer-events: none;
+      white-space: nowrap;
+      text-transform: uppercase;
+    }
+    #mobile-left-thumbpad.sprinting #mobile-left-thumbpad-label {
+      color: #4ade80;
+    }
+    #mobile-left-thumbpad-knob {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 48px;
+      height: 48px;
+      margin: -24px 0 0 -24px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, rgba(186, 230, 253, 0.88), rgba(14, 165, 233, 0.62));
+      border: 1.5px solid rgba(224, 242, 254, 0.92);
+      box-shadow:
+        0 4px 12px rgba(0, 0, 0, 0.52),
+        0 0 12px rgba(56, 189, 248, 0.45);
+      pointer-events: none;
+      will-change: transform;
+    }
+    #mobile-left-thumbpad.sprinting #mobile-left-thumbpad-knob {
+      background: radial-gradient(circle at 35% 35%, rgba(187, 247, 208, 0.92), rgba(34, 197, 94, 0.72));
+      border-color: #dcfce7;
+      box-shadow:
+        0 4px 14px rgba(0, 0, 0, 0.56),
+        0 0 16px rgba(74, 222, 128, 0.65);
+    }
+    #mobile-touch-actions {
+      position: absolute;
+      left: calc(140px + env(safe-area-inset-left, 0px));
+      bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+      width: 56px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      pointer-events: auto;
+      touch-action: none;
+    }
+    .mobile-action-btn {
+      width: 56px;
+      height: 32px;
+      border-radius: 8px;
+      background: rgba(14, 19, 30, 0.86);
+      border: 1px solid rgba(56, 189, 248, 0.45);
+      color: #e0f2fe;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 9.5px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      touch-action: none;
+      padding: 0;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.48);
+      transition: background 0.14s ease, border-color 0.14s ease, color 0.14s ease;
+    }
+    .mobile-action-btn:active,
+    .mobile-action-btn.active {
+      background: rgba(0, 213, 255, 0.28);
+      border-color: #00d5ff;
+      color: #ffffff;
+    }
+    .mobile-action-btn.highlight-mount {
+      background: rgba(217, 119, 6, 0.34);
+      border-color: #fbbf24;
+      color: #fef3c7;
+      box-shadow: 0 0 14px rgba(245, 158, 11, 0.42);
+    }
+
+    @media (max-width: 900px) {
+      #sandbox-hud {
+        top: 10px;
+        left: 10px;
+        width: min(340px, calc(100vw - 20px));
+        max-height: calc(100vh - 164px);
+      }
+      #sandbox-hud.collapsed {
+        width: auto;
+        max-width: calc(100vw - 20px);
+        max-height: 38px;
+        padding: 6px 10px;
+      }
+      #intro-dialogue-overlay {
+        top: 54px !important;
+        bottom: auto !important;
+        left: 10px !important;
+        right: 10px !important;
+        align-items: flex-start !important;
+        padding: 0 !important;
+      }
+      #intro-dialogue-card {
+        width: 100% !important;
+        max-width: 520px !important;
+        max-height: calc(100vh - 204px) !important;
+        overflow-y: auto !important;
+        padding: 12px 14px !important;
+      }
+      #holo-projection-stage,
+      body.sidebar-collapsed #holo-projection-stage {
+        top: 54px !important;
+        bottom: 148px !important;
+        left: 10px !important;
+        right: 10px !important;
+        align-items: flex-start !important;
+        padding-bottom: 0 !important;
+      }
+      .holo-window {
+        min-height: 0 !important;
+        max-height: 100% !important;
+        overflow-y: auto !important;
+        padding: 14px 16px !important;
+      }
+      .holo-content {
+        min-height: 0 !important;
+        gap: 10px !important;
+      }
+      #mount-proximity-prompt {
+        bottom: 146px;
+        max-width: calc(100vw - 24px);
+        font-size: 11px;
+        padding: 7px 14px;
+      }
+    }
+
+    @media (max-height: 500px) {
+      #sandbox-hud {
+        top: 8px;
+        left: 10px;
+        max-height: calc(100vh - 134px);
+      }
+      #sandbox-hud.collapsed {
+        max-height: 36px;
+        padding: 5px 10px;
+      }
+      #mobile-left-thumbpad {
+        left: calc(12px + env(safe-area-inset-left, 0px));
+        bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+        width: 106px;
+        height: 106px;
+      }
+      #mobile-left-thumbpad-knob {
+        width: 42px;
+        height: 42px;
+        margin: -21px 0 0 -21px;
+      }
+      #mobile-touch-actions {
+        left: calc(124px + env(safe-area-inset-left, 0px));
+        bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+        width: 54px;
+        gap: 5px;
+      }
+      .mobile-action-btn {
+        width: 54px;
+        height: 30px;
+        font-size: 9px;
+      }
+      #intro-dialogue-overlay {
+        top: 48px !important;
+        bottom: 12px !important;
+        left: 186px !important;
+        right: 166px !important;
+        align-items: flex-start !important;
+        padding: 0 !important;
+      }
+      #intro-dialogue-card {
+        width: 100% !important;
+        max-height: 100% !important;
+        overflow-y: auto !important;
+        padding: 10px 12px !important;
+        gap: 6px !important;
+      }
+      #holo-projection-stage,
+      body.sidebar-collapsed #holo-projection-stage {
+        top: 48px !important;
+        bottom: 12px !important;
+        left: 186px !important;
+        right: 166px !important;
+        align-items: flex-start !important;
+        padding-bottom: 0 !important;
+      }
+      .holo-window {
+        min-height: 0 !important;
+        max-height: 100% !important;
+        overflow-y: auto !important;
+        padding: 10px 14px !important;
+      }
+      .holo-content {
+        min-height: 0 !important;
+        gap: 8px !important;
+      }
+      #mount-proximity-prompt {
+        bottom: 12px;
+        left: 340px;
+        max-width: 280px;
+        font-size: 10.5px;
+        padding: 6px 12px;
+      }
+    }
+
+    /* ==========================================================================
+       Interactive DOOM_HEAD Two-Stage Hologram Popup & Multi-Turn Chatbox (Spec 041)
+       ========================================================================== */
+    #doom-holo-chat-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 86;
+      pointer-events: none;
+    }
+    #doom-holo-chat-overlay.active {
+      display: block;
+    }
+    #doom-holo-tether-svg {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: none;
+      z-index: 85;
+    }
+    #doom-holo-chat-panel {
+      position: fixed;
+      right: 32px;
+      top: 50%;
+      transform: translateY(-50%) scale(0.96);
+      width: min(468px, calc(100vw - 48px));
+      max-height: min(600px, calc(100vh - 110px));
+      display: flex;
+      flex-direction: column;
+      pointer-events: auto;
+      background: linear-gradient(165deg, rgba(2, 24, 36, 0.92) 0%, rgba(4, 36, 54, 0.94) 55%, rgba(26, 12, 2, 0.92) 100%);
+      border: 1.5px solid rgba(0, 213, 255, 0.78);
+      box-shadow:
+        0 18px 48px rgba(0, 0, 0, 0.85),
+        0 0 28px rgba(0, 213, 255, 0.30),
+        inset 0 0 22px rgba(0, 213, 255, 0.12);
+      border-radius: 12px;
+      padding: 16px 18px;
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      overflow: hidden;
+      opacity: 0;
+      transition: opacity 0.26s cubic-bezier(0.16, 1, 0.3, 1), transform 0.26s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease;
+      user-select: text;
+      -webkit-user-select: text;
+    }
+    #doom-holo-chat-overlay.active #doom-holo-chat-panel {
+      opacity: 1;
+      transform: translateY(-50%) scale(1);
+    }
+    #doom-holo-chat-panel::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(
+        to bottom,
+        rgba(0, 213, 255, 0.04) 0px,
+        rgba(0, 213, 255, 0.04) 1px,
+        transparent 1px,
+        transparent 4px
+      );
+      pointer-events: none;
+      z-index: 0;
+    }
+    .doom-holo-header {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding-bottom: 10px;
+      margin-bottom: 12px;
+      border-bottom: 1px solid rgba(0, 213, 255, 0.32);
+    }
+    .doom-holo-badge-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .doom-holo-kicker-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(0, 213, 255, 0.16);
+      border: 1px solid rgba(0, 213, 255, 0.65);
+      color: #ecfeff;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 10.5px;
+      font-weight: 800;
+      padding: 3px 9px;
+      border-radius: 999px;
+      letter-spacing: 0.06em;
+    }
+    .doom-holo-status-pill {
+      background: rgba(245, 158, 11, 0.16);
+      border: 1px solid rgba(245, 158, 11, 0.58);
+      color: #fde68a;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 9.5px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 999px;
+      letter-spacing: 0.05em;
+    }
+    .doom-holo-header-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .doom-holo-icon-btn {
+      background: rgba(15, 23, 42, 0.78);
+      border: 1px solid rgba(56, 189, 248, 0.45);
+      color: #bae6fd;
+      border-radius: 6px;
+      padding: 4px 8px;
+      font-size: 10.5px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .doom-holo-icon-btn:hover {
+      background: rgba(0, 213, 255, 0.25);
+      border-color: #00d5ff;
+      color: #ffffff;
+    }
+    .doom-holo-icon-btn.close-btn {
+      border-color: rgba(248, 113, 113, 0.55);
+      color: #fecaca;
+    }
+    .doom-holo-icon-btn.close-btn:hover {
+      background: rgba(239, 68, 68, 0.28);
+      border-color: #f87171;
+      color: #ffffff;
+    }
+    #doom-holo-stage-starters {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    #doom-holo-chat-panel[data-stage="chatbox"] #doom-holo-stage-starters {
+      display: none;
+    }
+    .doom-starters-header-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .doom-starters-subtitle {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 10.5px;
+      font-weight: 700;
+      color: #67e8f9;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    .doom-starter-option-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 4px;
+      width: 100%;
+      text-align: left;
+      background: linear-gradient(135deg, rgba(0, 153, 204, 0.16) 0%, rgba(217, 91, 0, 0.14) 100%);
+      border: 1px solid rgba(0, 213, 255, 0.52);
+      border-radius: 9px;
+      padding: 10px 13px;
+      color: #f0f9ff;
+      cursor: pointer;
+      transition: all 0.16s ease;
+      box-shadow: inset 0 0 12px rgba(0, 213, 255, 0.08);
+    }
+    .doom-starter-option-btn:hover:not(:disabled) {
+      background: linear-gradient(135deg, rgba(0, 213, 255, 0.28) 0%, rgba(245, 158, 11, 0.24) 100%);
+      border-color: #ffcc4d;
+      box-shadow: 0 0 16px rgba(0, 213, 255, 0.32);
+      transform: translateX(3px);
+    }
+    .doom-starter-option-btn:disabled {
+      opacity: 0.6;
+      cursor: wait;
+    }
+    .doom-starter-option-tag {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 9.5px;
+      font-weight: 800;
+      color: #fbbf24;
+      letter-spacing: 0.07em;
+    }
+    .doom-starter-option-text {
+      font-size: 13px;
+      font-weight: 600;
+      color: #ecfeff;
+      line-height: 1.4;
+    }
+    #doom-holo-stage-chatbox {
+      position: relative;
+      z-index: 2;
+      display: none;
+      flex-direction: column;
+      flex: 1;
+      min-height: 210px;
+      max-height: 360px;
+      margin-bottom: 12px;
+      border: 1px solid rgba(0, 213, 255, 0.26);
+      border-radius: 8px;
+      background: rgba(2, 14, 22, 0.72);
+      overflow: hidden;
+    }
+    #doom-holo-chat-panel[data-stage="chatbox"] #doom-holo-stage-chatbox {
+      display: flex;
+    }
+    #doom-chat-messages-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      scroll-behavior: smooth;
+    }
+    .doom-chat-msg {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      max-width: 88%;
+      padding: 9px 12px;
+      border-radius: 9px;
+      font-size: 12.8px;
+      line-height: 1.48;
+      word-break: break-word;
+    }
+    .doom-chat-msg.user {
+      align-self: flex-end;
+      background: rgba(217, 91, 0, 0.24);
+      border: 1px solid rgba(245, 158, 11, 0.65);
+      color: #fff7ed;
+      border-bottom-right-radius: 2px;
+    }
+    .doom-chat-msg.assistant {
+      align-self: flex-start;
+      background: rgba(0, 153, 204, 0.20);
+      border: 1px solid rgba(0, 213, 255, 0.62);
+      color: #ecfeff;
+      border-bottom-left-radius: 2px;
+    }
+    .doom-chat-msg.error {
+      align-self: stretch;
+      max-width: 100%;
+      background: rgba(127, 29, 29, 0.38);
+      border: 1px solid rgba(248, 113, 113, 0.68);
+      color: #fecaca;
+    }
+    .doom-chat-msg-sender {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 9.5px;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      opacity: 0.85;
+    }
+    .doom-chat-msg.user .doom-chat-msg-sender {
+      color: #fdba74;
+      text-align: right;
+    }
+    .doom-chat-msg.assistant .doom-chat-msg-sender {
+      color: #67e8f9;
+    }
+    #doom-chat-input-form {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding-top: 8px;
+      border-top: 1px solid rgba(0, 213, 255, 0.24);
+    }
+    #doom-chat-input {
+      flex: 1;
+      background: rgba(3, 18, 28, 0.90);
+      border: 1.5px solid rgba(0, 213, 255, 0.55);
+      border-radius: 8px;
+      padding: 9px 12px;
+      color: #f8fafc;
+      font-size: 13px;
+      font-family: inherit;
+      outline: none;
+      user-select: text;
+      -webkit-user-select: text;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    #doom-chat-input:focus {
+      border-color: #ffcc4d;
+      box-shadow: 0 0 12px rgba(255, 204, 77, 0.32);
+    }
+    #doom-chat-input::placeholder {
+      color: rgba(103, 232, 249, 0.52);
+    }
+    #doom-chat-send-btn {
+      background: linear-gradient(135deg, rgba(0, 213, 255, 0.32), rgba(245, 158, 11, 0.32));
+      border: 1.5px solid #00d5ff;
+      color: #ecfeff;
+      border-radius: 8px;
+      padding: 9px 14px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 11.5px;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.15s ease;
+    }
+    #doom-chat-send-btn:hover:not(:disabled) {
+      background: linear-gradient(135deg, rgba(0, 213, 255, 0.52), rgba(245, 158, 11, 0.48));
+      border-color: #ffcc4d;
+      color: #ffffff;
+      box-shadow: 0 0 14px rgba(0, 213, 255, 0.4);
+    }
+    #doom-chat-send-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .doom-holo-footer-meta {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 7px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 9.5px;
+      color: #94a3b8;
+    }
+    @media (max-width: 768px) {
+      #doom-holo-chat-panel {
+        right: 12px;
+        left: 12px;
+        width: auto;
+        top: auto;
+        bottom: 16px;
+        transform: none;
+        max-height: 62vh;
+      }
+      #doom-holo-chat-overlay.active #doom-holo-chat-panel {
+        transform: none;
+      }
+    }
   </style>
 </head>
 <body>
@@ -1015,6 +1643,34 @@
     <span id="mount-prompt-label">
       <span class="prompt-station">SCREEN_MOUNT_01</span> — Press E or Click Mount to Focus
     </span>
+  </div>
+
+  <!-- Mobile Single-Thumbpad & Context Action Controls (Spec 040) -->
+  <div id="mobile-touch-controls" role="region" aria-label="Mobile Touch Locomotion Controls">
+    <div
+      id="mobile-left-thumbpad"
+      role="slider"
+      aria-label="Left Analog Movement & Auto-Sprint Thumbpad"
+      aria-valuemin="0"
+      aria-valuemax="100"
+      aria-valuenow="0"
+    >
+      <div class="mobile-thumbpad-sprint-ring" aria-hidden="true"></div>
+      <div class="mobile-thumbpad-crosshair" aria-hidden="true"></div>
+      <span id="mobile-left-thumbpad-label">MOVE</span>
+      <div id="mobile-left-thumbpad-knob" aria-hidden="true"></div>
+    </div>
+    <div id="mobile-touch-actions" role="group" aria-label="Mobile Quick Actions">
+      <button id="mobile-action-jump-btn" class="mobile-action-btn" type="button" title="Jump (Space)">
+        JUMP
+      </button>
+      <button id="mobile-action-interact-btn" class="mobile-action-btn" type="button" title="Focus / Exit Wall Mount (E)">
+        MOUNT
+      </button>
+      <button id="mobile-action-mode-btn" class="mobile-action-btn" type="button" title="Toggle Free-Roam / Scroll Corridor Mode">
+        ROAM
+      </button>
+    </div>
   </div>
 
   <!-- Large-Scale See-Through Holographic Project Pop-Up Stage -->
@@ -1074,10 +1730,10 @@
 
         <div class="holo-body-grid">
           <div id="holo-right-data-pane" class="holo-main-col" data-holo-interactive="data-pane">
-            <div id="holo-kicker" class="holo-kicker">3D ENVIRONMENT &amp; SPATIAL ENGINE</div>
-            <h2 id="holo-title" class="holo-title">Freeman Alley Photogrammetry Pipeline</h2>
+            <div id="holo-kicker" class="holo-kicker">STATION 01 // OBJ-200 &bull; GRAPHRAG POLICY ENGINE</div>
+            <h2 id="holo-title" class="holo-title">Lymphemeda Treatment Act Medicare Qualifications Chatbot</h2>
             <p id="holo-description" class="holo-description">
-              Automated Blender-to-Three.js spatial pipeline converting 1.1M-polygon raw photogrammetry scans into 1:1 human-calibrated browser environments with invisible bumper-cage physics.
+              GraphRAG LLM for Lymphemeda Treatment Act Medicare Qualifications.
             </p>
             <div id="holo-tags" class="holo-tag-row"></div>
           </div>
@@ -1089,22 +1745,22 @@
                 id="holo-primary-link"
                 class="holo-link-btn"
                 data-holo-interactive="primary-cta"
-                href="https://github.com/mrdoob/three.js"
+                href="https://luisp1028.github.io/lag-policy-engine-showcase/"
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                <span id="holo-primary-link-text">Launch Project Showcase</span>
+                <span id="holo-primary-link-text">LIVE_DEMO (React Showcase)</span>
                 <span aria-hidden="true">↗</span>
               </a>
               <a
                 id="holo-secondary-link"
                 class="holo-link-btn secondary"
                 data-holo-interactive="secondary-cta"
-                href="./scene_preparation.md"
+                href="https://github.com/LuisP1028/lag-policy-engine-showcase"
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                <span id="holo-secondary-link-text">Read Technical Specification</span>
+                <span id="holo-secondary-link-text">SRC_CODE (GitHub)</span>
                 <span aria-hidden="true">↗</span>
               </a>
             </div>
@@ -1208,6 +1864,132 @@
       <span style="color: #4ade80;">&#10003; ALL DIALOGUE READ</span>
       <span style="color: #f8fafc;">&bull;</span>
       <span style="color: #38bdf8;">SCROLL DOWN TO WALK INTO ALLEY &darr;</span>
+    </div>
+  </div>
+
+  <!-- DOOM_HEAD Interactive Two-Stage Hologram Popup & Multi-Turn Chatbox Overlay -->
+  <div id="doom-holo-chat-overlay" aria-label="DOOM_HEAD Hologram Dialogue Interface" aria-hidden="true">
+    <svg id="doom-holo-tether-svg" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="doom-tether-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="#00d5ff" stop-opacity="0.92" />
+          <stop offset="55%" stop-color="#a855f7" stop-opacity="0.78" />
+          <stop offset="100%" stop-color="#00d5ff" stop-opacity="0.88" />
+        </linearGradient>
+      </defs>
+      <path
+        id="doom-holo-tether-glow"
+        d=""
+        fill="none"
+        stroke="rgba(0, 213, 255, 0.28)"
+        stroke-width="6"
+        stroke-linecap="round"
+      />
+      <path
+        id="doom-holo-tether-path"
+        d=""
+        fill="none"
+        stroke="url(#doom-tether-grad)"
+        stroke-width="2"
+        stroke-dasharray="6 4"
+        stroke-linecap="round"
+      />
+      <circle
+        id="doom-holo-tether-origin-dot"
+        cx="-100"
+        cy="-100"
+        r="5"
+        fill="#00d5ff"
+        stroke="#ffffff"
+        stroke-width="1.5"
+      />
+      <circle
+        id="doom-holo-tether-panel-dot"
+        cx="-100"
+        cy="-100"
+        r="4"
+        fill="#a855f7"
+        stroke="#00d5ff"
+        stroke-width="1.5"
+      />
+    </svg>
+
+    <div id="doom-holo-chat-panel" role="dialog" aria-labelledby="doom-holo-title">
+      <div class="doom-holo-header">
+        <div class="doom-holo-title-group">
+          <span class="doom-holo-eyebrow">HOLO.SYS // DOOM_COMPANION LINK</span>
+          <div class="doom-holo-title" id="doom-holo-title">
+            <span class="doom-holo-status-dot" id="doom-holo-status-dot"></span>
+            <span>DOOM_HEAD // HOLO-TERMINAL</span>
+            <span class="doom-holo-model-badge" id="doom-holo-model-badge">QWEN 3.8</span>
+          </div>
+        </div>
+        <div class="doom-holo-header-actions">
+          <button
+            id="doom-back-to-starters-btn"
+            class="doom-holo-icon-btn"
+            type="button"
+            style="display: none;"
+            title="Reset conversation and view Qwen 2.5 starters"
+          >
+            &#8634; Starters
+          </button>
+          <button
+            id="doom-close-chat-btn"
+            class="doom-holo-icon-btn close-btn"
+            type="button"
+            title="Exit DOOM_HEAD Dialogue Mode (Esc)"
+          >
+            &#10005; ESC
+          </button>
+        </div>
+      </div>
+
+      <!-- Stage 1: Selectable Conversation Starters (Qwen 2.5) -->
+      <div id="doom-holo-stage-starters">
+        <div class="doom-starters-header-row">
+          <span class="doom-starters-label">&#9889; SELECT CONVERSATION STARTER (QWEN 2.5)</span>
+          <button
+            id="doom-refresh-starters-btn"
+            class="doom-holo-icon-btn"
+            type="button"
+            title="Regenerate conversation starters via Qwen 2.5"
+          >
+            &#8635; Refresh
+          </button>
+        </div>
+        <button id="doom-starter-btn-0" class="doom-starter-option-btn" type="button">
+          <span class="starter-idx">OPTION 01 // QWEN 2.5</span>
+          <span class="starter-text" id="doom-starter-text-0">Synthesizing neural prompt vector...</span>
+        </button>
+        <button id="doom-starter-btn-1" class="doom-starter-option-btn" type="button">
+          <span class="starter-idx">OPTION 02 // QWEN 2.5</span>
+          <span class="starter-text" id="doom-starter-text-1">Calibrating holographic dialogue link...</span>
+        </button>
+      </div>
+
+      <!-- Stage 2: Scrollable Multi-Turn Chatbox Window (Qwen 3.8) -->
+      <div id="doom-holo-stage-chatbox">
+        <div id="doom-chat-messages-list" role="log" aria-live="polite"></div>
+      </div>
+
+      <!-- Persistent Bottom Input Box & Footer (Active in Both Stages) -->
+      <div class="doom-holo-footer">
+        <form id="doom-chat-input-form" autocomplete="off">
+          <input
+            id="doom-chat-input"
+            type="text"
+            placeholder="Transmit message to DOOM_HEAD..."
+            maxlength="600"
+            aria-label="Message to DOOM_HEAD"
+          />
+          <button id="doom-chat-send-btn" type="submit">SEND &rarr;</button>
+        </form>
+        <div class="doom-holo-meta-bar">
+          <span id="doom-holo-status-pill">STAGE 1 // STARTERS READY</span>
+          <span>CLICK 3D SCENE OR <kbd style="color:#e0f2fe;">ESC</kbd> TO EXIT</span>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -1790,6 +2572,9 @@
         <button id="toggle-dialogue-btn" class="hud-btn secondary" type="button" style="flex: 1;" title="Toggle Dynamic Conversational Dialogue Cycling (Key T)">
           Start Dialogue (T)
         </button>
+        <button id="hud-open-doom-chat-btn" class="hud-btn" type="button" style="flex: 1; background: rgba(168, 85, 247, 0.24); border-color: #a855f7; color: #f3e8ff;" title="Click DOOM_HEAD or press to open Two-Stage Qwen 3.8 Hologram Dialogue">
+          💬 DOOM_HEAD Chat
+        </button>
       </div>
       <div class="hud-row">
         <select id="animation-select" class="hud-select" aria-label="Select Ready Player Me Animation"></select>
@@ -1852,8 +2637,8 @@
 
     <div class="hud-section">
       <span class="hud-label">
-        <span>2D Holographic Media Columns (14 Assets)</span>
-        <span id="holo-column-status-label">Active: 14/14</span>
+        <span>2D Holographic Media Columns (15 Assets)</span>
+        <span id="holo-column-status-label">Active: 15/15</span>
       </span>
       <div class="hud-row" style="margin-bottom: 5px;">
         <select id="holo-column-select" class="hud-select" aria-label="Select Hologram Column Asset">
@@ -1871,6 +2656,7 @@
           <option value="tiger_vid">17: tiger_vid (VID 24fps, 1.061:1)</option>
           <option value="watercolor_gallery">18: watercolor_gallery (SHADER CANVAS, 0.528:1)</option>
           <option value="e_acc_logo">19: e_acc_logo (IMG, 0.962:1, No Tint)</option>
+          <option value="villainy_inc_sign">20: villainy_inc_sign (3D NEON SIGN, 1.442:1)</option>
         </select>
       </div>
       <!-- Interactive Carousel Slide Deck Controls (Swipe in 3D or Step / Upload Here) -->
@@ -1951,7 +2737,7 @@
         <div style="display: grid; grid-template-columns: 54px 24px 1fr 24px 48px; gap: 4px; align-items: center; margin-bottom: 6px;">
           <label for="holo-scale-slider" style="font-size: 10.5px; color: #94a3b8;">Scale (x):</label>
           <button id="holo-scale-down-btn" class="hud-btn secondary" type="button" style="padding: 1px 0; font-size: 12px; font-weight: bold;" title="Shrink Hologram (- or _)">&minus;</button>
-          <input id="holo-scale-slider" class="hud-slider" type="range" min="0.2" max="4.0" step="0.01" value="1.00" />
+          <input id="holo-scale-slider" class="hud-slider" type="range" min="0.2" max="8.0" step="0.01" value="1.00" />
           <button id="holo-scale-up-btn" class="hud-btn secondary" type="button" style="padding: 1px 0; font-size: 12px; font-weight: bold;" title="Enlarge Hologram (Shift + '+' or '=')">+</button>
           <input id="holo-scale-input" type="number" step="0.05" min="0.1" max="10.0" value="1.00" style="width: 48px; background: rgba(15,23,42,0.85); color: #e2e8f0; border: 1px solid rgba(56,189,248,0.3); border-radius: 3px; font-size: 10.5px; padding: 2px 3px; text-align: right;" />
         </div>
@@ -1993,6 +2779,7 @@
         <div>Pan: <span id="tel-pan" class="val">Settled (2.6s)</span></div>
         <div style="grid-column: 1 / -1;">Scene Cut: <span id="tel-cutter" class="val">UNCUT (42,314 / 42,314 Tris)</span></div>
         <div style="grid-column: 1 / -1;">MP3 Deck: <span id="tel-mp3" class="val">STOPPED &bull; DOOM ALLOY // INTRO</span></div>
+        <div style="grid-column: 1 / -1;">DOOM Chat: <span id="tel-doom-chat" class="val">Dormant (Click DOOM_HEAD)</span></div>
       </div>
     </div>
 
@@ -2022,6 +2809,6 @@
 
   <div id="fatal-error-banner" role="alert"></div>
 
-  <script type="module" src="./sandbox.js?v=087"></script>
+  <script type="module" src="./sandbox.js?v=095"></script>
 </body>
 </html>

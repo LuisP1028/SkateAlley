@@ -17,7 +17,7 @@ import {
   WATERCOLOR_DEFAULT_PARAMS,
   WATERCOLOR_GALLERY_SPEC,
   WATERCOLOR_SKYBOX_SPEC,
-} from './watercolor_shader.js?v=079';
+} from './watercolor_shader.js?v=080';
 import {
   BINARY_TRAIL_PALETTE,
   RUNNING_EFFECTS_SPEC,
@@ -67,6 +67,7 @@ import {
   HOLO_MEDIA_MANIFEST,
   HOLO_MEDIA_BY_ID,
   HOLO_CAROUSEL_DEFAULT_SLIDES,
+  SSM_WHITEPAPER_HOLO_SPEC,
   HOLO_SPECTRAL_TINT_PRESETS,
   HOLO_LIFECYCLE_STATES,
   HOLO_GLITCH_MODES,
@@ -81,8 +82,10 @@ import {
   evaluateLifecycleStateEnvelope,
   createHologramColumnShaderMaterial,
   createHologramColumnInstance,
+  HologramColumnInstance,
   HoloVideoStreamController,
-} from './hologram_columns.js?v=078';
+  HoloScrollableDocumentController,
+} from './hologram_columns.js?v=082';
 
 import {
   STICKER_ASSET_MANIFEST,
@@ -160,7 +163,7 @@ import {
   processMp3ChassisBitmap,
   drawTechnoVectorText,
   measureTechnoVectorText,
-} from './doom_tracks_mp3_hud.js?v=085';
+} from './doom_tracks_mp3_hud.js?v=088';
 
 // ============================================================================
 // Constants & Deterministic Configuration (functional_specification_013 & 014)
@@ -170,7 +173,7 @@ const ASSET_PATHS = {
   alarmLight: './alarm_light.glb',
   hologram: './hologram.glb',
   alleyPipes: ALLEY_METAL_PIPES_ASSET_URL,
-  villainySign: './villainy_inc_textured.glb',
+  villainySign: './villainy_inc_textured.glb?v=045',
   luisSign: './LUIS_AI_ENGINEER_SIGN.glb',
   hoodie: './LUIS_HOLOSYS_RIGGED.glb?v=044',
   hoodieHolo: './LUIS_HOLOSYS_RIGGED.glb?v=044',
@@ -496,7 +499,7 @@ const DOCK_SCROLL_SPAN = 0.02;           // 2% scroll window after endProgress t
 const PROXIMITY_INTERACT_RADIUS = 3.50;  // m — horizontal distance threshold for 'E' interaction in Free-Roam Mode
 const FOCUS_CAM_DISTANCE = 2.05;         // m — front-on camera distance along mount outward normal in Mount Focus Mode
 const FOCUS_TRANSITION_DURATION = 0.36;  // s — smooth camera transition duration into/between/out of wall mounts
-const CLICK_MAX_DRAG_PIXELS = 6.0;       // px — max pointer travel to distinguish a clean mount click from orbit drag
+const CLICK_MAX_DRAG_PIXELS = 10.0;      // px — max pointer travel to distinguish a clean 3D tap from orbit drag (Spec 040 §5.3 & §6)
 const MOUNT_BRICK_CLEARANCE = 0.22;      // m — bracket clearance along outward normal clearing scanned brick relief
 
 // Glowing Primary-Corridor Floor-Border Neon System parameters (Spec 018 §3 & §4)
@@ -532,7 +535,7 @@ const CAM_DEFAULT_PITCH = 0.05;    // rad subtle over-the-shoulder angle looking
 const CAM_SHOULDER_OFFSET_X = 0.36; // m lateral right-shoulder camera offset placing torso on left-center foreground
 const CAM_MIN_DISTANCE = 0.85;     // m minimum zoom distance
 const CAM_MAX_DISTANCE = 6.50;     // m maximum zoom distance
-const CAM_MIN_PITCH = -0.15;       // rad minimum vertical orbit angle
+const CAM_MIN_PITCH = -0.72;       // rad minimum vertical orbit angle (allows looking up ~41 deg at overhead Villainy Inc. sign)
 const CAM_MAX_PITCH = 1.35;        // rad maximum vertical orbit angle
 const CAM_WALL_MARGIN = 0.22;      // m clearance margin from alley walls
 
@@ -602,23 +605,23 @@ const HOLO_PROJECT_STATIONS = [
     mountedRotationDeg: 90,
     startProgress: 0.05,
     endProgress: 0.18,
-    kicker: 'STATION 01 // 3D ENVIRONMENT & SPATIAL ENGINE',
-    title: 'Freeman Alley Photogrammetry Pipeline',
+    kicker: 'STATION 01 // OBJ-200 • GRAPHRAG POLICY ENGINE',
+    title: 'Lymphemeda Treatment Act Medicare Qualifications Chatbot',
     description:
-      'Automated Blender-to-Three.js spatial pipeline converting 1.1M-polygon raw photogrammetry scans into 1:1 human-calibrated browser environments with invisible bumper-cage physics.',
-    tags: ['Three.js r186', 'Blender 5.2 Python', 'UV-Locked Decimation', 'WebP 2K VRAM'],
+      'GraphRAG LLM for Lymphemeda Treatment Act Medicare Qualifications.',
+    tags: ['OBJ-200', 'GraphRAG LLM', '8-Hop Lineage', '17 Cat / 18 Edge'],
     metrics: [
-      { value: '111K', label: 'Triangles' },
-      { value: '36 MB', label: 'GPU VRAM' },
-      { value: '60 FPS', label: 'WebGL 2.0' },
+      { value: '8-Hop', label: 'Lineage' },
+      { value: '17 / 18', label: 'Cat / Edge' },
+      { value: 'GraphRAG', label: 'Policy LLM' },
     ],
     primaryLink: {
-      label: 'Launch Environment Spec',
-      url: './functional_specification_034.md',
+      label: 'LIVE_DEMO (React Showcase)',
+      url: 'https://luisp1028.github.io/lag-policy-engine-showcase/',
     },
     secondaryLink: {
-      label: 'Inspect Scene Cutter Spec',
-      url: './functional_specification_036.md',
+      label: 'SRC_CODE (GitHub)',
+      url: 'https://github.com/LuisP1028/lag-policy-engine-showcase',
     },
   },
   {
@@ -634,23 +637,23 @@ const HOLO_PROJECT_STATIONS = [
     mountedRotationDeg: -90,
     startProgress: 0.21,
     endProgress: 0.34,
-    kicker: 'STATION 02 // SKELETAL RIGGING & ANIMATION CORE',
-    title: 'Ready Player Me 64-Bone Animation & Dialogue Engine',
+    kicker: 'STATION 02 // OBJ-04 • FINETUNED PERSONA ENGINE',
+    title: 'EVIL DIGITAL TWIN',
     description:
-      'Decoupled Ready Player Me (RPM) humanoid animation controller binding 24 standalone idle, conversational, and locomotion clips across dual 64-bone rigs with dynamic mid-sentence dialogue chaining.',
-    tags: ['64 RPM Bones', '24 Standalone Clips', 'Dialogue State Machine', 'Crossfade Mixer'],
+      'Digital persona finetuned on philosophy and MF DOOM, with Twitter and LinkedIn accounts.',
+    tags: ['OBJ-04', 'Philosophy + MF DOOM', 'Finetuned LLM', 'Twitter & LinkedIn'],
     metrics: [
-      { value: '64', label: 'RPM Bones' },
-      { value: '24', label: 'RPM Clips' },
-      { value: '0.00m', label: 'Foot Slide' },
+      { value: 'OBJ-04', label: 'Unit ID' },
+      { value: 'DOOM', label: 'Persona' },
+      { value: 'Live', label: 'Terminal' },
     ],
     primaryLink: {
-      label: 'Explore RPM Animation Spec',
-      url: './animation_Redo.md',
+      label: 'LIVE_DEMO (Digital Twin)',
+      url: 'https://choppedcheese-digitaltwin.hf.space',
     },
     secondaryLink: {
-      label: 'View RPM Rig Migration',
-      url: './scripts/migrate_to_rpm_rig.py',
+      label: 'SRC_CODE (Repository)',
+      url: 'https://huggingface.co/spaces/ChoppedCheese/DigitalTwin/tree/main',
     },
   },
   {
@@ -666,23 +669,24 @@ const HOLO_PROJECT_STATIONS = [
     mountedRotationDeg: 90,
     startProgress: 0.37,
     endProgress: 0.50,
-    kicker: 'STATION 03 // SKATE 3 RUST / BEVY WEBGPU CLEAN-ROOM',
-    title: 'SkateRoom 35-Joint Physics & Skate Park Engine',
+    kicker: 'STATION 03 // OBJ-01 • QUANTITATIVE ECONOMETRICS',
+    title: 'STATE SPACE MODEL WITH BAYESIAN INFERENCE',
     description:
-      'Playable Rust/Bevy WebAssembly & WebGPU clean-room port featuring custom 35-joint Skate 3 humanoid rigs (PlatoDoom, Luis, and Iridescent Holo), Havok-derived deck physics, and multi-chunk pack streaming.',
-    tags: ['Rust + Bevy', 'WebGPU / WASM', '35-Joint RX2 Rig', 'StartPark + BlackBox'],
+      'Bayesian state space model of mean reverting, cointegrated financial assets.',
+    tags: ['OBJ-01', 'Bayesian SSM', 'Ornstein-Uhlenbeck', 'Cointegration'],
     metrics: [
-      { value: '3', label: 'Skater Rigs' },
-      { value: '2', label: 'Playable Parks' },
-      { value: '60 FPS', label: 'WebGPU WASM' },
+      { value: '4.2', label: 'OU Kappa' },
+      { value: 'p < 0.05', label: 'ADF Test' },
+      { value: '9', label: 'HMM Regimes' },
     ],
     primaryLink: {
-      label: 'Enter SkateRoom (Play Now)',
-      url: './skate3_cleanroom/',
+      label: 'LIVE_DEMO (YouTube Feed 2)',
+      url: 'https://www.youtube.com/watch?v=1a9GwWK9HkQ',
     },
     secondaryLink: {
-      label: 'Read Clean-Room Port Spec',
-      url: './skate_port.md',
+      label: 'WHITE_PAPER (3D Holo Column)',
+      url: '#ssm-whitepaper-column',
+      action: 'open-whitepaper-column',
     },
   },
   {
@@ -9391,9 +9395,19 @@ varying vec3 vHoloViewPos;
 }
 
 // ============================================================================
-// Autonomous Above-Shoulder Levitating DOOM_.glb Companion Kinematics (Spec 022 §3)
+// Autonomous Above-Shoulder Levitating DOOM_.glb Companion Kinematics (Spec 022 §3 & Spec 041 §3)
 // ============================================================================
 const DOOM_COMPANION_EQUILIBRIUM = { x: -0.430, y: 1.862, z: 0.055 };
+const DOOM_COMPANION_CHAT_ANCHOR = { x: -0.480, y: 1.660, z: 0.720 };
+const DOOM_COMPANION_CHAT_YAW = Math.atan2(
+  -DOOM_COMPANION_CHAT_ANCHOR.x,
+  -DOOM_COMPANION_CHAT_ANCHOR.z
+); // ~ +2.55359 rad (+146.31 deg) — points DOOM_Companion +Z directly at LUIS's head (0, 1.66, 0)
+const LUIS_HEAD_CHAT_YAW = Math.atan2(
+  DOOM_COMPANION_CHAT_ANCHOR.x,
+  DOOM_COMPANION_CHAT_ANCHOR.z
+); // ~ -0.58800 rad (-33.69 deg) — points LUIS's head +Z directly at DOOM_Companion (-0.48, 1.66, +0.72)
+const DOOM_CHAT_TRANSITION_DURATION = 0.42; // s — smooth camera pan & mutual facing blend duration
 const DOOM_LEVITATION_AMP_Y = 0.036;   // m — vertical bobbing amplitude (peak-to-trough = 0.072m in [0.055m, 0.095m])
 const DOOM_LEVITATION_OMEGA_Y = 2.80;  // rad/s — vertical hover frequency (~0.446 Hz in [0.35, 0.65] Hz)
 const DOOM_LEVITATION_AMP_X = 0.011;   // m — lateral micro-drift amplitude (in [0.006m, 0.016m])
@@ -9403,6 +9417,12 @@ const DOOM_LEVITATION_OMEGA_Z = 2.10;  // rad/s — depth drift frequency
 const DOOM_LEVITATION_AMP_PITCH = 0.052; // rad (~2.98 deg in [1.5, 4.5] deg)
 const DOOM_LEVITATION_AMP_ROLL = 0.048;  // rad (~2.75 deg in [1.5, 4.5] deg)
 const DOOM_LEVITATION_AMP_YAW = 0.061;   // rad (~3.50 deg in [2.0, 6.0] deg)
+
+const _tempBoneWorldQuat = new THREE.Quaternion();
+const _tempParentWorldQuat = new THREE.Quaternion();
+const _tempParentWorldQuatInv = new THREE.Quaternion();
+const _tempDeltaWorldQuat = new THREE.Quaternion();
+const _tempLocalAxis = new THREE.Vector3();
 
 // ============================================================================
 // Character Controller Class
@@ -9419,12 +9439,22 @@ class CharacterController {
     this.skinnedMeshes = [];
     this.companionMesh = null;
     this.companionMeshes = [];
+    this.companionHitProxy = null;
     this.renderMeshes = [];
     this.companionAnchor = new THREE.Vector3(
       DOOM_COMPANION_EQUILIBRIUM.x,
       DOOM_COMPANION_EQUILIBRIUM.y,
       DOOM_COMPANION_EQUILIBRIUM.z
     );
+    this.companionCurrentAnchor = this.companionAnchor.clone();
+    this.companionChatWeight = 0.0;
+    this.companionChatTargetWeight = 0.0;
+    this.companionSpeakingPulse = 0.0;
+    this.luisHeadWorldPos = new THREE.Vector3();
+    this.luisHeadForwardWorld = new THREE.Vector3(0, 0, 1);
+    this.companionWorldPos = new THREE.Vector3();
+    this.companionForwardWorld = new THREE.Vector3(0, 0, 1);
+    this.mutualFacingDotProduct = 1.0;
     this.companionLevitationState = {
       timeSec: 0.0,
       dx: 0.0,
@@ -9433,6 +9463,8 @@ class CharacterController {
       pitch: 0.0,
       roll: 0.0,
       yaw: 0.0,
+      baseYaw: 0.0,
+      chatWeight: 0.0,
     };
     this.defaultMaterials = new Map();
     this.defaultMaterial = null;
@@ -9476,6 +9508,11 @@ class CharacterController {
           }
           node.position.copy(this.companionAnchor);
           node.rotation.set(0.0, 0.0, 0.0);
+          node.userData = {
+            ...node.userData,
+            isDoomCompanion: true,
+            characterId: id,
+          };
           if (!this.companionMesh) {
             this.companionMesh = node;
           }
@@ -9590,6 +9627,24 @@ class CharacterController {
     if (id === 'hoodie' && this.rigProfile !== 'SKATE3_RX2_RIG' && !this.companionMesh) {
       raiseFatalError(`Character '${id}' is missing required 'DOOM_Companion' mesh node.`);
     }
+    this.companionCurrentAnchor.copy(this.companionAnchor);
+    if (this.companionMesh) {
+      const proxyGeo = new THREE.SphereGeometry(0.28, 16, 12);
+      const proxyMat = new THREE.MeshBasicMaterial({
+        color: 0x00d5ff,
+        transparent: true,
+        opacity: 0.0,
+        depthWrite: false,
+      });
+      const hitProxy = new THREE.Mesh(proxyGeo, proxyMat);
+      hitProxy.name = `DOOM_Companion_HitProxy_${id}`;
+      hitProxy.userData = {
+        isDoomCompanion: true,
+        characterId: id,
+      };
+      this.companionMesh.add(hitProxy);
+      this.companionHitProxy = hitProxy;
+    }
 
     this.position = new THREE.Vector3(spawnPos.x, floorY, spawnPos.z);
     this.velocity = new THREE.Vector3(0, 0, 0);
@@ -9661,15 +9716,40 @@ class CharacterController {
     return this.resolveClipName(baseName);
   }
 
-  updateCompanionLevitation(timeSec = 0.0) {
+  updateCompanionLevitation(timeSec = 0.0, dt = 0.0) {
     if (!this.companionMesh) return null;
     const t = Number(timeSec) || 0.0;
-    const dy = DOOM_LEVITATION_AMP_Y * Math.sin(DOOM_LEVITATION_OMEGA_Y * t);
+    const stepDt = Math.max(0.0, Number(dt) || 0.0);
+
+    if (stepDt > 0.0) {
+      const rate = stepDt / DOOM_CHAT_TRANSITION_DURATION;
+      if (this.companionChatWeight < this.companionChatTargetWeight) {
+        this.companionChatWeight = Math.min(this.companionChatTargetWeight, this.companionChatWeight + rate);
+      } else if (this.companionChatWeight > this.companionChatTargetWeight) {
+        this.companionChatWeight = Math.max(this.companionChatTargetWeight, this.companionChatWeight - rate);
+      }
+    }
+
+    const w = Math.max(0.0, Math.min(1.0, this.companionChatWeight));
+    const sChat = w * w * (3.0 - 2.0 * w);
+
+    this.companionCurrentAnchor.set(
+      this.companionAnchor.x + (DOOM_COMPANION_CHAT_ANCHOR.x - this.companionAnchor.x) * sChat,
+      this.companionAnchor.y + (DOOM_COMPANION_CHAT_ANCHOR.y - this.companionAnchor.y) * sChat,
+      this.companionAnchor.z + (DOOM_COMPANION_CHAT_ANCHOR.z - this.companionAnchor.z) * sChat
+    );
+
+    const speakGain = 1.0 + 0.48 * Math.max(0.0, Math.min(1.0, this.companionSpeakingPulse));
+    const dy = DOOM_LEVITATION_AMP_Y * speakGain * Math.sin(DOOM_LEVITATION_OMEGA_Y * t);
     const dx = DOOM_LEVITATION_AMP_X * Math.sin(DOOM_LEVITATION_OMEGA_X * t + 0.85);
     const dz = DOOM_LEVITATION_AMP_Z * Math.cos(DOOM_LEVITATION_OMEGA_Z * t + 0.40);
-    const pitch = DOOM_LEVITATION_AMP_PITCH * Math.sin(DOOM_LEVITATION_OMEGA_X * t + 0.25);
+    const pitch =
+      DOOM_LEVITATION_AMP_PITCH * speakGain * Math.sin(DOOM_LEVITATION_OMEGA_X * t + 0.25) -
+      0.04 * sChat;
     const roll = DOOM_LEVITATION_AMP_ROLL * Math.cos(DOOM_LEVITATION_OMEGA_Z * t + 1.10);
-    const yaw = DOOM_LEVITATION_AMP_YAW * Math.sin(0.95 * t);
+    const baseYaw = DOOM_COMPANION_CHAT_YAW * sChat;
+    const dyaw = DOOM_LEVITATION_AMP_YAW * speakGain * Math.sin(0.95 * t);
+    const yaw = baseYaw + dyaw;
 
     this.companionLevitationState.timeSec = t;
     this.companionLevitationState.dx = dx;
@@ -9678,16 +9758,76 @@ class CharacterController {
     this.companionLevitationState.pitch = pitch;
     this.companionLevitationState.roll = roll;
     this.companionLevitationState.yaw = yaw;
+    this.companionLevitationState.baseYaw = baseYaw;
+    this.companionLevitationState.chatWeight = Number(w.toFixed(4));
 
     for (const comp of this.companionMeshes) {
       comp.position.set(
-        this.companionAnchor.x + dx,
-        this.companionAnchor.y + dy,
-        this.companionAnchor.z + dz
+        this.companionCurrentAnchor.x + dx,
+        this.companionCurrentAnchor.y + dy,
+        this.companionCurrentAnchor.z + dz
       );
       comp.rotation.set(pitch, yaw, roll);
     }
     return this.companionLevitationState;
+  }
+
+  applyConversationalHeadLook() {
+    if (!this.companionMesh) return null;
+    this.root.updateMatrixWorld(true);
+    const headBone = this.bonesByName.get('Head') || this.root.getObjectByName('Head');
+    const neckBone = this.bonesByName.get('Neck') || this.root.getObjectByName('Neck');
+    if (!headBone) return null;
+
+    this.companionMesh.getWorldPosition(this.companionWorldPos);
+    headBone.getWorldPosition(this.luisHeadWorldPos);
+
+    const w = Math.max(0.0, Math.min(1.0, this.companionChatWeight));
+    const sChat = w * w * (3.0 - 2.0 * w);
+
+    if (sChat > 0.0005) {
+      const toDoomX = this.companionWorldPos.x - this.luisHeadWorldPos.x;
+      const toDoomZ = this.companionWorldPos.z - this.luisHeadWorldPos.z;
+      const targetWorldYaw = Math.atan2(toDoomX, toDoomZ);
+
+      headBone.getWorldQuaternion(_tempBoneWorldQuat);
+      this.luisHeadForwardWorld.set(0, 0, 1).applyQuaternion(_tempBoneWorldQuat);
+      const curHeadWorldYaw = Math.atan2(this.luisHeadForwardWorld.x, this.luisHeadForwardWorld.z);
+      const rawDeltaYaw = Math.atan2(
+        Math.sin(targetWorldYaw - curHeadWorldYaw),
+        Math.cos(targetWorldYaw - curHeadWorldYaw)
+      );
+      const deltaYaw = rawDeltaYaw * sChat;
+
+      if (neckBone && neckBone.parent) {
+        neckBone.parent.getWorldQuaternion(_tempParentWorldQuat);
+        _tempParentWorldQuatInv.copy(_tempParentWorldQuat).invert();
+        _tempLocalAxis.copy(WORLD_UP).applyQuaternion(_tempParentWorldQuatInv).normalize();
+        _tempDeltaWorldQuat.setFromAxisAngle(_tempLocalAxis, deltaYaw * 0.38);
+        neckBone.quaternion.premultiply(_tempDeltaWorldQuat);
+        neckBone.updateMatrixWorld(true);
+      }
+
+      if (headBone.parent) {
+        headBone.parent.getWorldQuaternion(_tempParentWorldQuat);
+        _tempParentWorldQuatInv.copy(_tempParentWorldQuat).invert();
+        _tempLocalAxis.copy(WORLD_UP).applyQuaternion(_tempParentWorldQuatInv).normalize();
+        _tempDeltaWorldQuat.setFromAxisAngle(_tempLocalAxis, deltaYaw * (neckBone ? 0.62 : 1.0));
+        headBone.quaternion.premultiply(_tempDeltaWorldQuat);
+        headBone.updateMatrixWorld(true);
+      }
+    }
+
+    headBone.getWorldQuaternion(_tempBoneWorldQuat);
+    this.luisHeadForwardWorld.set(0, 0, 1).applyQuaternion(_tempBoneWorldQuat).normalize();
+
+    this.companionMesh.getWorldQuaternion(_tempBoneWorldQuat);
+    this.companionForwardWorld.set(0, 0, 1).applyQuaternion(_tempBoneWorldQuat).normalize();
+
+    this.mutualFacingDotProduct = Number(
+      this.luisHeadForwardWorld.dot(this.companionForwardWorld).toFixed(4)
+    );
+    return this.mutualFacingDotProduct;
   }
 
   setHolographicShader(enabled) {
@@ -10075,6 +10215,8 @@ const cameraOrbit = {
   desiredDistance: CAM_DEFAULT_DISTANCE,
   effectiveDistance: CAM_DEFAULT_DISTANCE,
   isDragging: false,
+  pointerId: null,
+  userLookOverride: false,
   downClientX: 0,
   downClientY: 0,
   maxDragTravel: 0,
@@ -10082,6 +10224,199 @@ const cameraOrbit = {
   lastPointerY: 0,
   pivotCurrent: new THREE.Vector3(0, CAM_PIVOT_HEIGHT, 3.0),
   pivotTarget: new THREE.Vector3(0, CAM_PIVOT_HEIGHT, 3.0),
+};
+
+// ============================================================================
+// Mobile Single-Thumbpad & Multi-Touch Look State (Spec 040 §3–§6)
+// ============================================================================
+const THUMBPAD_DEADZONE = 0.12;
+const THUMBPAD_SPRINT_THRESHOLD = 0.78;
+
+function isMobileTouchForceDisabled() {
+  if (typeof window === 'undefined') return false;
+  try {
+    const params = new URLSearchParams(window.location ? window.location.search : '');
+    const explicit = params.get('touch') ?? params.get('mobile');
+    return explicit === '0' || explicit === 'false';
+  } catch {
+    return false;
+  }
+}
+
+function detectInitialMobileTouchMode() {
+  if (typeof window === 'undefined') return false;
+  try {
+    const params = new URLSearchParams(window.location ? window.location.search : '');
+    const explicit = params.get('touch') ?? params.get('mobile');
+    if (explicit === '1' || explicit === 'true') return true;
+    if (explicit === '0' || explicit === 'false') return false;
+  } catch {
+    // ignore URLSearchParams errors
+  }
+  const isCoarse = Boolean(
+    typeof window.matchMedia === 'function' &&
+      (window.matchMedia('(pointer: coarse)').matches ||
+        window.matchMedia('(any-pointer: coarse)').matches)
+  );
+  const vw = window.innerWidth || 1280;
+  const vh = window.innerHeight || 720;
+  return isCoarse || vw <= 900 || vh <= 500;
+}
+
+const mobileTouch = {
+  enabled: detectInitialMobileTouchMode(),
+  active: false,
+  pointerId: null,
+  centerClientX: 0,
+  centerClientY: 0,
+  maxRadiusPx: 44,
+  knobOffsetX: 0,
+  knobOffsetY: 0,
+  lx: 0.0,
+  ly: 0.0,
+  magnitude: 0.0,
+  zone: 'deadzone',
+  isSprinting: false,
+  walkSpeedFactor: 0.0,
+  lookActive: false,
+  lookPointerId: null,
+  deadzone: THUMBPAD_DEADZONE,
+  sprintThreshold: THUMBPAD_SPRINT_THRESHOLD,
+  tapThresholdPx: CLICK_MAX_DRAG_PIXELS,
+  setEnabled(flag) {
+    this.enabled = Boolean(flag);
+    if (typeof document !== 'undefined' && document.body) {
+      document.body.classList.toggle('mobile-touch-enabled', this.enabled);
+    }
+    if (!this.enabled) {
+      this.reset();
+    } else {
+      this.syncDOM();
+    }
+    if (sandbox.mp3Player && typeof sandbox.mp3Player.setDisplayMode === 'function') {
+      window.dispatchEvent(new Event('resize'));
+    }
+    return this.enabled;
+  },
+  syncDOM() {
+    if (typeof document === 'undefined') return;
+    const baseEl = document.getElementById('mobile-left-thumbpad');
+    const knobEl = document.getElementById('mobile-left-thumbpad-knob');
+    const labelEl = document.getElementById('mobile-left-thumbpad-label');
+    if (baseEl) {
+      baseEl.classList.toggle('walking', this.zone === 'walk');
+      baseEl.classList.toggle('sprinting', this.zone === 'sprint');
+      baseEl.setAttribute('aria-valuenow', String(Math.round(this.magnitude * 100)));
+    }
+    if (knobEl) {
+      knobEl.style.transform = `translate(${this.knobOffsetX.toFixed(1)}px, ${this.knobOffsetY.toFixed(1)}px)`;
+    }
+    if (labelEl) {
+      labelEl.textContent =
+        this.zone === 'sprint' ? 'SPRINT' : this.zone === 'walk' ? 'WALK' : 'MOVE';
+    }
+  },
+  setVector(rawLx, rawLy, { autoEnterFreeRoam = true } = {}) {
+    let x = Number(rawLx) || 0.0;
+    let y = Number(rawLy) || 0.0;
+    const rawMag = Math.hypot(x, y);
+    if (rawMag > 1.0) {
+      x /= rawMag;
+      y /= rawMag;
+    }
+    const mag = Math.min(1.0, Math.hypot(x, y));
+    this.lx = Number(x.toFixed(4));
+    this.ly = Number(y.toFixed(4));
+    this.magnitude = Number(mag.toFixed(4));
+    this.active = mag >= THUMBPAD_DEADZONE || this.pointerId !== null;
+
+    if (typeof document !== 'undefined') {
+      const baseEl = document.getElementById('mobile-left-thumbpad');
+      if (baseEl) {
+        const rect = baseEl.getBoundingClientRect();
+        if (rect.width > 0) {
+          this.maxRadiusPx = rect.width * 0.36;
+        }
+      }
+    }
+    this.knobOffsetX = this.lx * this.maxRadiusPx;
+    this.knobOffsetY = -this.ly * this.maxRadiusPx;
+
+    if (mag < THUMBPAD_DEADZONE) {
+      this.zone = 'deadzone';
+      this.isSprinting = false;
+      this.walkSpeedFactor = 0.0;
+    } else if (mag < THUMBPAD_SPRINT_THRESHOLD) {
+      this.zone = 'walk';
+      this.isSprinting = false;
+      const uWalk = (mag - THUMBPAD_DEADZONE) / (THUMBPAD_SPRINT_THRESHOLD - THUMBPAD_DEADZONE);
+      this.walkSpeedFactor = Number(Math.max(0.35, Math.min(1.0, 0.35 + 0.65 * uWalk)).toFixed(4));
+    } else {
+      this.zone = 'sprint';
+      this.isSprinting = true;
+      this.walkSpeedFactor = 1.0;
+    }
+
+    this.syncDOM();
+
+    if (autoEnterFreeRoam && mag >= THUMBPAD_DEADZONE && sandbox.ready) {
+      if (sandbox.isPopupFocused && mag >= 0.18) {
+        sandbox.exitMathPodPopupFocus();
+      }
+      if (sandbox.mode === 'mount-focus' && mag >= 0.18) {
+        sandbox.exitMountFocusMode();
+      } else if (sandbox.mode === 'scroll') {
+        if (sandbox.director) {
+          if (sandbox.director.cameraPanState.mode === 'playing') {
+            sandbox.director.stopStartupPan();
+          }
+          if (sandbox.director.introSequenceState.scrollLocked) {
+            sandbox.director.introSequenceState.scrollLocked = false;
+            sandbox.director.introSequenceState.phase = 'scrolling-alley';
+            syncIntroDialogueOverlayUI();
+            syncDirectorHUDInputs();
+          }
+        }
+        enterFreeRoamMode();
+      }
+    }
+    return this;
+  },
+  updateFromClientPoint(clientX, clientY) {
+    if (typeof document !== 'undefined') {
+      const baseEl = document.getElementById('mobile-left-thumbpad');
+      if (baseEl) {
+        const rect = baseEl.getBoundingClientRect();
+        if (rect.width > 0 && rect.height > 0) {
+          this.centerClientX = rect.left + rect.width * 0.5;
+          this.centerClientY = rect.top + rect.height * 0.5;
+          this.maxRadiusPx = rect.width * 0.36;
+        }
+      }
+    }
+    const rMax = Math.max(16, this.maxRadiusPx);
+    const dx = clientX - this.centerClientX;
+    const dy = clientY - this.centerClientY;
+    const dist = Math.hypot(dx, dy);
+    const k = dist > rMax ? rMax / dist : 1.0;
+    const normLx = (dx * k) / rMax;
+    const normLy = -(dy * k) / rMax;
+    return this.setVector(normLx, normLy, { autoEnterFreeRoam: true });
+  },
+  reset() {
+    this.pointerId = null;
+    this.active = false;
+    this.lx = 0.0;
+    this.ly = 0.0;
+    this.magnitude = 0.0;
+    this.zone = 'deadzone';
+    this.isSprinting = false;
+    this.walkSpeedFactor = 0.0;
+    this.knobOffsetX = 0.0;
+    this.knobOffsetY = 0.0;
+    this.syncDOM();
+    return this;
+  },
 };
 
 const mountFocusCameraState = {
@@ -10107,6 +10442,405 @@ const popupFocusCameraState = {
   toLookAt: new THREE.Vector3(),
   viewOffset: new THREE.Vector3(0, 0, -POPUP_FOCUS_CAM_DISTANCE),
 };
+
+// ============================================================================
+// DOOM_HEAD Interactive Two-Stage Hologram Dialogue & Camera State (Spec 041)
+// ============================================================================
+const doomChatCameraState = {
+  active: false,
+  returningToOrbit: false,
+  transitionProgress: 1.0,
+  fromPos: new THREE.Vector3(),
+  fromLookAt: new THREE.Vector3(),
+  toPos: new THREE.Vector3(),
+  toLookAt: new THREE.Vector3(),
+};
+
+const doomChatState = {
+  isOpen: false,
+  stage: 'starters', // 'starters' | 'chatbox'
+  chatModelId: 'Qwen/Qwen3.8-27B',
+  startersModelId: 'Qwen/Qwen2.5-7B-Instruct',
+  activeChatModelResolved: 'Qwen/Qwen3.8-27B',
+  activeStartersModelResolved: 'Qwen/Qwen2.5-Coder-32B-Instruct',
+  personaPrompt: '',       // Intentionally empty default per Spec 041 §5
+  starterTopicPrompt: '',  // Intentionally empty default per Spec 041 §5
+  starters: [
+    'What is the story behind the holographic systems in Freeman Alley?',
+    'How do you and Luis collaborate on AI engineering projects?',
+  ],
+  startersLoading: false,
+  startersLoadedFromHF: false,
+  startersLatencyMs: 0,
+  chatLoading: false,
+  lastChatLatencyMs: 0,
+  messages: [],
+  lastError: null,
+  speakingTimerSec: 0.0,
+};
+
+const _doomCamLocalOffset = new THREE.Vector3(-0.56, 1.66, 1.62);
+const _doomLookLocalOffset = new THREE.Vector3(0.22, 1.56, 0.16);
+const _doomTempWorldPos = new THREE.Vector3();
+const _doomTempLookPos = new THREE.Vector3();
+const _doomTempScreenVec = new THREE.Vector3();
+
+function computeDoomChatCameraPose(targetChar) {
+  const char = targetChar || (sandbox && sandbox.characters ? sandbox.characters.hoodie : null);
+  if (!char) {
+    return {
+      cameraPos: new THREE.Vector3(0.18, 1.68, 4.68),
+      lookAtPos: new THREE.Vector3(-0.68, 1.60, 3.18),
+    };
+  }
+  const cosY = Math.cos(char.yaw);
+  const sinY = Math.sin(char.yaw);
+
+  // Rotate local camera offset (+0.18, 1.68, +1.68) by character yaw around Y axis
+  const camWorldXRaw =
+    char.position.x + _doomCamLocalOffset.x * cosY + _doomCamLocalOffset.z * sinY;
+  const camWorldY = char.position.y + _doomCamLocalOffset.y;
+  const camWorldZ =
+    char.position.z - _doomCamLocalOffset.x * sinY + _doomCamLocalOffset.z * cosY;
+
+  const minWallX = resolveAlleyWallProfileX('left', camWorldZ) + 0.24;
+  const maxWallX = resolveAlleyWallProfileX('right', camWorldZ) - 0.24;
+  const camWorldX = Math.max(minWallX, Math.min(maxWallX, camWorldXRaw));
+
+  const lookWorldX =
+    char.position.x + _doomLookLocalOffset.x * cosY + _doomLookLocalOffset.z * sinY;
+  const lookWorldY = char.position.y + _doomLookLocalOffset.y;
+  const lookWorldZ =
+    char.position.z - _doomLookLocalOffset.x * sinY + _doomLookLocalOffset.z * cosY;
+
+  _doomTempWorldPos.set(camWorldX, camWorldY, camWorldZ);
+  _doomTempLookPos.set(lookWorldX, lookWorldY, lookWorldZ);
+  return {
+    cameraPos: _doomTempWorldPos,
+    lookAtPos: _doomTempLookPos,
+  };
+}
+
+function syncDoomHoloChatDOM() {
+  if (typeof document === 'undefined') return;
+  const overlayEl = document.getElementById('doom-holo-chat-overlay');
+  const stageStartersEl = document.getElementById('doom-holo-stage-starters');
+  const stageChatboxEl = document.getElementById('doom-holo-stage-chatbox');
+  const backBtnEl = document.getElementById('doom-back-to-starters-btn');
+  const starterBtn0 = document.getElementById('doom-starter-btn-0');
+  const starterBtn1 = document.getElementById('doom-starter-btn-1');
+  const starterText0 = document.getElementById('doom-starter-text-0');
+  const starterText1 = document.getElementById('doom-starter-text-1');
+  const msgListEl = document.getElementById('doom-chat-messages-list');
+  const statusPillEl = document.getElementById('doom-holo-status-pill');
+  const statusDotEl = document.getElementById('doom-holo-status-dot');
+  const modelBadgeEl = document.getElementById('doom-holo-model-badge');
+  const sendBtnEl = document.getElementById('doom-chat-send-btn');
+  const hudBtnEl = document.getElementById('hud-open-doom-chat-btn');
+
+  if (overlayEl) {
+    overlayEl.classList.toggle('active', Boolean(doomChatState.isOpen));
+    overlayEl.setAttribute('aria-hidden', String(!doomChatState.isOpen));
+  }
+
+  if (hudBtnEl) {
+    hudBtnEl.textContent = doomChatState.isOpen
+      ? '💬 Exit DOOM_HEAD Chat'
+      : '💬 DOOM_HEAD Chat';
+  }
+
+  const isChatboxStage = doomChatState.stage === 'chatbox';
+  if (stageStartersEl) {
+    stageStartersEl.style.display = isChatboxStage ? 'none' : 'flex';
+  }
+  if (stageChatboxEl) {
+    stageChatboxEl.classList.toggle('active', isChatboxStage);
+    stageChatboxEl.style.display = isChatboxStage ? 'flex' : 'none';
+  }
+  if (backBtnEl) {
+    backBtnEl.style.display = isChatboxStage ? 'inline-flex' : 'none';
+  }
+
+  if (starterText0) {
+    starterText0.textContent = doomChatState.startersLoading
+      ? 'Synthesizing Qwen 2.5 conversation starter 01...'
+      : doomChatState.starters[0] || 'Ask DOOM_HEAD a question...';
+  }
+  if (starterText1) {
+    starterText1.textContent = doomChatState.startersLoading
+      ? 'Synthesizing Qwen 2.5 conversation starter 02...'
+      : doomChatState.starters[1] || 'Explore Freeman Alley systems...';
+  }
+  if (starterBtn0) {
+    starterBtn0.classList.toggle('loading', Boolean(doomChatState.startersLoading));
+    starterBtn0.disabled = Boolean(doomChatState.startersLoading || doomChatState.chatLoading);
+  }
+  if (starterBtn1) {
+    starterBtn1.classList.toggle('loading', Boolean(doomChatState.startersLoading));
+    starterBtn1.disabled = Boolean(doomChatState.startersLoading || doomChatState.chatLoading);
+  }
+  if (sendBtnEl) {
+    sendBtnEl.disabled = Boolean(doomChatState.chatLoading);
+    sendBtnEl.textContent = doomChatState.chatLoading ? 'WAIT...' : 'SEND →';
+  }
+  if (statusDotEl) {
+    statusDotEl.classList.toggle(
+      'busy',
+      Boolean(doomChatState.chatLoading || doomChatState.startersLoading)
+    );
+  }
+  if (modelBadgeEl) {
+    modelBadgeEl.textContent = isChatboxStage ? 'QWEN 3.8' : 'QWEN 2.5 → 3.8';
+  }
+
+  if (statusPillEl) {
+    if (doomChatState.lastError) {
+      statusPillEl.textContent = `ERR // ${doomChatState.lastError.slice(0, 42)}`;
+    } else if (doomChatState.chatLoading) {
+      statusPillEl.textContent = 'QWEN 3.8 // SYNTHESIZING REPLY...';
+    } else if (doomChatState.startersLoading) {
+      statusPillEl.textContent = 'QWEN 2.5 // GENERATING STARTERS...';
+    } else if (isChatboxStage) {
+      const turnCount = doomChatState.messages.filter((m) => m.role === 'assistant').length;
+      const latTag = doomChatState.lastChatLatencyMs
+        ? ` (${Math.round(doomChatState.lastChatLatencyMs)}ms)`
+        : '';
+      statusPillEl.textContent = `STAGE 2 // MULTI-TURN CHAT (${turnCount} TURNS)${latTag}`;
+    } else {
+      const latTag = doomChatState.startersLatencyMs
+        ? ` (${Math.round(doomChatState.startersLatencyMs)}ms)`
+        : '';
+      statusPillEl.textContent = `STAGE 1 // QWEN 2.5 STARTERS READY${latTag}`;
+    }
+  }
+
+  if (msgListEl && isChatboxStage) {
+    msgListEl.innerHTML = '';
+    for (let i = 0; i < doomChatState.messages.length; i++) {
+      const msg = doomChatState.messages[i];
+      const msgDiv = document.createElement('div');
+      if (msg.role === 'user') {
+        msgDiv.className = 'doom-chat-msg user';
+        const roleSpan = document.createElement('span');
+        roleSpan.className = 'msg-role';
+        roleSpan.textContent = 'VISITOR // YOU';
+        const bodyDiv = document.createElement('div');
+        bodyDiv.textContent = msg.content;
+        msgDiv.appendChild(roleSpan);
+        msgDiv.appendChild(bodyDiv);
+      } else if (msg.role === 'error') {
+        msgDiv.className = 'doom-chat-msg error';
+        const roleSpan = document.createElement('span');
+        roleSpan.className = 'msg-role';
+        roleSpan.textContent = 'HOLO.SYS // DIAGNOSTIC FAULT';
+        const bodyDiv = document.createElement('div');
+        bodyDiv.textContent = msg.content;
+        msgDiv.appendChild(roleSpan);
+        msgDiv.appendChild(bodyDiv);
+      } else {
+        msgDiv.className = 'doom-chat-msg assistant';
+        const roleSpan = document.createElement('span');
+        roleSpan.className = 'msg-role';
+        const modelShort = (msg.model || doomChatState.activeChatModelResolved || 'Qwen 3.8')
+          .split('/')
+          .pop();
+        roleSpan.textContent = `DOOM_HEAD // ${modelShort}`;
+        const bodyDiv = document.createElement('div');
+        bodyDiv.textContent = msg.content;
+        msgDiv.appendChild(roleSpan);
+        msgDiv.appendChild(bodyDiv);
+      }
+      msgListEl.appendChild(msgDiv);
+    }
+
+    if (doomChatState.chatLoading) {
+      const thinkingDiv = document.createElement('div');
+      thinkingDiv.className = 'doom-chat-msg assistant thinking';
+      const roleSpan = document.createElement('span');
+      roleSpan.className = 'msg-role';
+      roleSpan.textContent = 'DOOM_HEAD // QWEN 3.8';
+      const bodyDiv = document.createElement('div');
+      bodyDiv.textContent = 'Synthesizing neural response...';
+      thinkingDiv.appendChild(roleSpan);
+      thinkingDiv.appendChild(bodyDiv);
+      msgListEl.appendChild(thinkingDiv);
+    }
+
+    msgListEl.scrollTop = msgListEl.scrollHeight;
+  }
+}
+
+function updateDoomHoloChatTether() {
+  if (typeof document === 'undefined' || !doomChatState.isOpen) return;
+  const char = sandbox.getDoomChatCharacter ? sandbox.getDoomChatCharacter() : sandbox.characters?.hoodie;
+  if (!char || !char.companionMesh) return;
+
+  const panelEl = document.getElementById('doom-holo-chat-panel');
+  const pathEl = document.getElementById('doom-holo-tether-path');
+  const glowEl = document.getElementById('doom-holo-tether-glow');
+  const originDotEl = document.getElementById('doom-holo-tether-origin-dot');
+  const panelDotEl = document.getElementById('doom-holo-tether-panel-dot');
+  if (!panelEl || !pathEl || !glowEl || !originDotEl || !panelDotEl) return;
+
+  char.companionMesh.getWorldPosition(_doomTempScreenVec);
+  _doomTempScreenVec.project(camera);
+
+  const vw = window.innerWidth || 1280;
+  const vh = window.innerHeight || 720;
+  const sx = (_doomTempScreenVec.x * 0.5 + 0.5) * vw;
+  const sy = (-_doomTempScreenVec.y * 0.5 + 0.5) * vh;
+
+  const rect = panelEl.getBoundingClientRect();
+  if (rect.width <= 0 || rect.height <= 0) return;
+
+  const px = rect.left;
+  const py = rect.top + Math.min(92, rect.height * 0.28);
+  const c1x = sx + (px - sx) * 0.42;
+  const c1y = sy - 24;
+  const c2x = sx + (px - sx) * 0.68;
+  const c2y = py;
+
+  const dStr = `M ${sx.toFixed(1)} ${sy.toFixed(1)} C ${c1x.toFixed(1)} ${c1y.toFixed(1)}, ${c2x.toFixed(1)} ${c2y.toFixed(1)}, ${px.toFixed(1)} ${py.toFixed(1)}`;
+  pathEl.setAttribute('d', dStr);
+  glowEl.setAttribute('d', dStr);
+  originDotEl.setAttribute('cx', sx.toFixed(1));
+  originDotEl.setAttribute('cy', sy.toFixed(1));
+  panelDotEl.setAttribute('cx', px.toFixed(1));
+  panelDotEl.setAttribute('cy', py.toFixed(1));
+}
+
+async function fetchDoomStartersFromHF() {
+  if (doomChatState.startersLoading) return doomChatState.starters;
+  doomChatState.startersLoading = true;
+  doomChatState.lastError = null;
+  syncDoomHoloChatDOM();
+  updateTelemetryHUD();
+
+  try {
+    const response = await fetch('./api/doom/starters', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: doomChatState.startersModelId,
+        topicPrompt: doomChatState.starterTopicPrompt,
+        temperature: 0.75,
+        max_tokens: 120,
+      }),
+    });
+    const data = await response.json();
+    if (!response.ok || !data || !data.ok || !Array.isArray(data.starters) || data.starters.length < 2) {
+      const errMsg = (data && data.error) || `HTTP ${response.status} from /api/doom/starters`;
+      throw new Error(errMsg);
+    }
+    doomChatState.starters = [
+      String(data.starters[0]).trim(),
+      String(data.starters[1]).trim(),
+    ];
+    doomChatState.startersLoadedFromHF = true;
+    doomChatState.activeStartersModelResolved = data.model || doomChatState.startersModelId;
+    doomChatState.startersLatencyMs = Number(data.latencyMs ?? data.latency_ms) || 0;
+    return doomChatState.starters;
+  } catch (err) {
+    doomChatState.lastError = err?.message || String(err);
+    throw err;
+  } finally {
+    doomChatState.startersLoading = false;
+    syncDoomHoloChatDOM();
+    updateTelemetryHUD();
+  }
+}
+
+async function sendDoomChatMessageToHF(rawText) {
+  const text = String(rawText || '').trim();
+  if (!text || doomChatState.chatLoading) return null;
+
+  doomChatState.stage = 'chatbox';
+  doomChatState.lastError = null;
+  doomChatState.messages.push({
+    role: 'user',
+    content: text,
+    timestamp: Date.now(),
+  });
+  doomChatState.chatLoading = true;
+
+  const char = sandbox.getDoomChatCharacter ? sandbox.getDoomChatCharacter() : sandbox.characters?.hoodie;
+  if (char) {
+    char.startDialogue();
+    char.companionSpeakingPulse = 1.0;
+  }
+  if (sandbox.audio) {
+    sandbox.audio.trigger('onActivate', { target: 'DOOM_Companion', source: 'doom-chat-send' });
+  }
+
+  const inputEl = typeof document !== 'undefined' ? document.getElementById('doom-chat-input') : null;
+  if (inputEl) {
+    inputEl.value = '';
+  }
+
+  syncDoomHoloChatDOM();
+  updateTelemetryHUD();
+
+  try {
+    const apiMessages = doomChatState.messages
+      .filter((m) => m.role === 'user' || m.role === 'assistant')
+      .map((m) => ({ role: m.role, content: m.content }));
+
+    const response = await fetch('./api/doom/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: doomChatState.chatModelId,
+        personaPrompt: doomChatState.personaPrompt,
+        messages: apiMessages,
+        temperature: 0.7,
+        max_tokens: 320,
+      }),
+    });
+    const data = await response.json();
+    if (!response.ok || !data || !data.ok || typeof data.reply !== 'string' || !data.reply.trim()) {
+      const errMsg = (data && data.error) || `HTTP ${response.status} from /api/doom/chat`;
+      throw new Error(errMsg);
+    }
+
+    const replyText = data.reply.trim();
+    doomChatState.activeChatModelResolved = data.model || doomChatState.chatModelId;
+    doomChatState.lastChatLatencyMs = Number(data.latencyMs ?? data.latency_ms) || 0;
+    doomChatState.speakingTimerSec = 2.8;
+    doomChatState.messages.push({
+      role: 'assistant',
+      content: replyText,
+      model: doomChatState.activeChatModelResolved,
+      latencyMs: doomChatState.lastChatLatencyMs,
+      timestamp: Date.now(),
+    });
+
+    if (char) {
+      char.startDialogue();
+      char.companionSpeakingPulse = 1.0;
+    }
+    if (sandbox.audio) {
+      sandbox.audio.trigger('onDataStream', {
+        target: 'DOOM_Companion',
+        source: 'doom-chat-reply',
+        model: doomChatState.activeChatModelResolved,
+      });
+    }
+    return replyText;
+  } catch (err) {
+    const errMsg = err?.message || String(err);
+    doomChatState.lastError = errMsg;
+    doomChatState.messages.push({
+      role: 'error',
+      content: errMsg,
+      timestamp: Date.now(),
+    });
+    throw err;
+  } finally {
+    doomChatState.chatLoading = false;
+    syncDoomHoloChatDOM();
+    updateTelemetryHUD();
+  }
+}
 
 const pointerNDC = new THREE.Vector2(-999, -999);
 const raycaster = new THREE.Raycaster();
@@ -10347,7 +11081,8 @@ function updateWallScreenMounts(clampedDt = 1 / 60) {
     }
     const st = m.station;
 
-    const isFocusedOverlayActive = sandbox.mode === 'mount-focus' && sandbox.focusedMount === m;
+    const isFocusedOverlayActive =
+      sandbox.mode === 'mount-focus' && sandbox.focusedMount === m && !sandbox.whitepaperColumnOpen;
 
     if (effectiveProgress < st.startProgress) {
       // State A — Pre-Station / Unmounted Standby (Spec 036 §5.2: single-layer unified hologram card on wall)
@@ -10508,7 +11243,13 @@ function updateProximityAndHoverWallMounts() {
   if (sandbox.mode !== 'freeroam' || sandbox.isPopupFocused) {
     sandbox.proximityMount = null;
     sandbox.hoveredMount = null;
-    document.body.classList.remove('mount-pointer-hover');
+    const hasOtherInteractiveHover = Boolean(
+      sandbox.hoveredMathPod ||
+        sandbox.hoveredMathPodPopupId ||
+        sandbox.hoveredHoloColumnId ||
+        (sandbox.hologramColumns && sandbox.hologramColumns.activeDragColumnId)
+    );
+    document.body.classList.toggle('mount-pointer-hover', hasOtherInteractiveHover);
     if (promptEl) {
       promptEl.classList.remove('visible');
     }
@@ -10553,7 +11294,16 @@ function updateProximityAndHoverWallMounts() {
     sandbox.hoveredMount.triggerGlitchSpike(0.18);
   }
 
-  document.body.classList.toggle('mount-pointer-hover', Boolean(sandbox.hoveredMount));
+  document.body.classList.toggle(
+    'mount-pointer-hover',
+    Boolean(
+      sandbox.hoveredMount ||
+        sandbox.hoveredMathPod ||
+        sandbox.hoveredMathPodPopupId ||
+        sandbox.hoveredHoloColumnId ||
+        (sandbox.hologramColumns && sandbox.hologramColumns.activeDragColumnId)
+    )
+  );
 
   // 3. Update on-screen interaction prompt
   const promptMount = sandbox.hoveredMount || sandbox.proximityMount;
@@ -10620,7 +11370,7 @@ function updateHolographicPopupUI() {
 
   winEl.classList.toggle('mount-focus-active', isMountFocus);
 
-  if (!activeStation) {
+  if (!activeStation || sandbox.whitepaperColumnOpen) {
     if (winEl.classList.contains('active')) {
       winEl.classList.remove('active');
       winEl.setAttribute('aria-hidden', 'true');
@@ -10720,7 +11470,16 @@ function updateHolographicPopupUI() {
 
     if (primaryLinkEl) primaryLinkEl.href = activeStation.primaryLink.url;
     if (primaryTextEl) primaryTextEl.textContent = activeStation.primaryLink.label;
-    if (secondaryLinkEl) secondaryLinkEl.href = activeStation.secondaryLink.url;
+    if (secondaryLinkEl) {
+      secondaryLinkEl.href = activeStation.secondaryLink.url;
+      if (activeStation.secondaryLink.action) {
+        secondaryLinkEl.dataset.holoAction = activeStation.secondaryLink.action;
+        secondaryLinkEl.removeAttribute('target');
+      } else {
+        delete secondaryLinkEl.dataset.holoAction;
+        secondaryLinkEl.setAttribute('target', '_blank');
+      }
+    }
     if (secondaryTextEl) secondaryTextEl.textContent = activeStation.secondaryLink.label;
 
     const pipsContainer = document.getElementById('holo-station-pips');
@@ -10795,7 +11554,8 @@ function enterFreeRoamMode() {
     keysPressed.ArrowUp ||
     keysPressed.ArrowLeft ||
     keysPressed.ArrowDown ||
-    keysPressed.ArrowRight;
+    keysPressed.ArrowRight ||
+    Boolean(mobileTouch && mobileTouch.magnitude >= THUMBPAD_DEADZONE);
 
   if (activeChar && !hasInput) {
     activeChar.velocity.set(0, 0, 0);
@@ -10826,6 +11586,8 @@ const sandbox = {
   mode: 'scroll', // 'scroll' (Scroll-Walk Mode) | 'freeroam' (Interactive Free-Roam Mode) | 'mount-focus' (Mount Focus Mode)
   isMountFocused: false,
   focusedMount: null,
+  whitepaperColumnOpen: false,
+  whitepaperHoloColumn: null,
   proximityMount: null,
   hoveredMount: null,
   scrollProgress: 0.0,
@@ -11031,6 +11793,9 @@ const sandbox = {
     this.hologramColumns.setSelectedColumn(col.id);
     if (this.holoEditMode && this.transformControls) {
       this.transformControls.attach(col.rootGroup);
+      if (this.transformControlsHelper) {
+        this.transformControlsHelper.updateMatrixWorld(true);
+      }
     }
     syncHoloEditorHUDInputs();
     return col;
@@ -11058,6 +11823,9 @@ const sandbox = {
     this.hologramColumns.setAllColumnsForceVisible(nextState);
 
     if (nextState) {
+      if (this.hoveredHoloColumnId) {
+        this.selectedHoloColumnId = this.hoveredHoloColumnId;
+      }
       if (this.director && this.director.editMode) {
         this.director.editMode = false;
         this.director.rootGroup.visible = false;
@@ -11079,6 +11847,13 @@ const sandbox = {
         enterFreeRoamMode();
       }
       const col = this.hologramColumns.getColumn(this.selectedHoloColumnId) || this.hologramColumns.columns[0];
+      if (col) {
+        const colTransform = col.getTransformState();
+        if (colTransform && colTransform.yRel > 2.2 && cameraOrbit.pitch > -0.18) {
+          cameraOrbit.pitch = -0.18;
+        }
+      }
+      updateCameraController(1 / 60);
       if (col && this.transformControls) {
         this.selectedHoloColumnId = col.id;
         this.hologramColumns.setSelectedColumn(col.id);
@@ -11086,6 +11861,9 @@ const sandbox = {
         this.transformControls.setMode(this.holoGizmoMode);
         this.transformControls.setSpace(this.holoGizmoMode === 'translate' ? 'world' : 'local');
         this.transformControls.attach(col.rootGroup);
+        if (this.transformControlsHelper) {
+          this.transformControlsHelper.updateMatrixWorld(true);
+        }
       }
     } else if (this.transformControls && !this.lamppostEditMode && !(this.director && this.director.editMode)) {
       this.transformControls.detach();
@@ -11103,6 +11881,9 @@ const sandbox = {
     if (this.transformControls) {
       this.transformControls.setMode(mode);
       this.transformControls.setSpace(mode === 'translate' ? 'world' : 'local');
+      if (this.transformControlsHelper) {
+        this.transformControlsHelper.updateMatrixWorld(true);
+      }
     }
     syncHoloEditorHUDInputs();
     renderer.render(scene, camera);
@@ -11111,6 +11892,9 @@ const sandbox = {
   updateSelectedHoloTransform(partialTransform, persist = true) {
     if (!this.hologramColumns) return null;
     const updated = this.hologramColumns.setColumnTransform(this.selectedHoloColumnId, partialTransform, persist);
+    if (this.transformControlsHelper) {
+      this.transformControlsHelper.updateMatrixWorld(true);
+    }
     syncHoloEditorHUDInputs();
     renderer.render(scene, camera);
     return updated;
@@ -11130,11 +11914,11 @@ const sandbox = {
     if (!col) return false;
     const t = col.getTransformState();
     const targetZ = Math.max(1.5, t.z - 2.35);
-    const targetX = t.x + 0.62;
+    const targetX = col.id === 'villainy_inc_sign' ? t.x - CAM_SHOULDER_OFFSET_X : t.x + 0.62;
     const lookYaw = 0.0;
     this.teleportCharacterTo(targetX, this.environment ? this.environment.floorY : 0.0, targetZ, lookYaw);
     cameraOrbit.yaw = 0.0;
-    cameraOrbit.pitch = 0.04;
+    cameraOrbit.pitch = t.yRel > 2.2 ? -0.34 : 0.04;
     cameraOrbit.pivotCurrent.set(targetX, (this.environment ? this.environment.floorY : 0.0) + CAM_PIVOT_HEIGHT, targetZ);
     cameraOrbit.pivotTarget.copy(cameraOrbit.pivotCurrent);
     updateCameraController(1 / 60);
@@ -11422,8 +12206,281 @@ const sandbox = {
   clipNames: [],
   keysPressed,
   cameraOrbit,
+  mobileTouch,
+  setMobileTouchEnabled(enabled) {
+    return mobileTouch.setEnabled(enabled);
+  },
+  setThumbpadVector(lx, ly, opts = {}) {
+    return mobileTouch.setVector(lx, ly, opts);
+  },
+  resetThumbpad() {
+    return mobileTouch.reset();
+  },
   mountFocusCameraState,
   popupFocusCameraState,
+  doomChatCameraState,
+  doomChatState,
+  isDoomChatOpen: false,
+  hoveredDoomCompanion: false,
+  getDoomChatCharacter() {
+    const active = this.getActiveCharacter ? this.getActiveCharacter() : null;
+    if (active && active.companionMesh) return active;
+    if (this.characters && this.characters.hoodie && this.characters.hoodie.companionMesh) {
+      return this.characters.hoodie;
+    }
+    return active || (this.characters ? this.characters.hoodie : null);
+  },
+  getDoomCompanionRaycastTargets() {
+    const targets = [];
+    if (!this.characters) return targets;
+    for (const char of Object.values(this.characters)) {
+      if (!char || !char.root || !char.root.visible) continue;
+      if (char.companionHitProxy) {
+        targets.push(char.companionHitProxy);
+      }
+      if (Array.isArray(char.companionMeshes)) {
+        for (const m of char.companionMeshes) {
+          if (m) targets.push(m);
+        }
+      }
+    }
+    return targets;
+  },
+  enterDoomChatMode({ immediate = false, resetToStarters = false } = {}) {
+    if (!this.ready) return null;
+
+    if (this.activeCharacterId !== 'hoodie' && this.characters && this.characters.hoodie) {
+      this.swapCharacter();
+    }
+    const targetChar = this.getDoomChatCharacter();
+    if (!targetChar) return null;
+
+    if (this.isPopupFocused) {
+      this.exitMathPodPopupFocus({ immediate: true });
+    }
+    if (this.mode === 'mount-focus') {
+      this.exitMountFocusMode({ immediate: true });
+    }
+    if (this.director && this.director.cameraPanState && this.director.cameraPanState.mode === 'playing') {
+      this.director.stopStartupPan(true);
+    }
+
+    for (const k of Object.keys(keysPressed)) {
+      keysPressed[k] = false;
+    }
+    jumpRequested = false;
+    cameraOrbit.isDragging = false;
+    cameraOrbit.pointerId = null;
+    cameraOrbit.userLookOverride = false;
+    mobileTouch.reset();
+
+    if (!this.sidebarCollapsed) {
+      this._autoCollapsedForDoomChat = true;
+      this.toggleSidebar(true);
+    }
+
+    // Hide the intro dialogue overlay pill while DOOM_HEAD hologram chat is active so there is zero visual clutter
+    const introOverlayEl = typeof document !== 'undefined' ? document.getElementById('intro-dialogue-overlay') : null;
+    if (introOverlayEl) {
+      introOverlayEl.style.opacity = '0';
+      introOverlayEl.style.pointerEvents = 'none';
+    }
+
+    targetChar.velocity.set(0, 0, 0);
+    targetChar.companionChatTargetWeight = 1.0;
+    if (immediate) {
+      targetChar.companionChatWeight = 1.0;
+    }
+    targetChar.startDialogue('TALK_EXPLAIN');
+    targetChar.mixer.update(0.0);
+    targetChar.updateCompanionLevitation(holoShaderUniforms.uHoloTime.value, immediate ? 1.0 : 1 / 60);
+    targetChar.applyConversationalHeadLook();
+
+    const destPose = computeDoomChatCameraPose(targetChar);
+    this.isDoomChatOpen = true;
+    doomChatState.isOpen = true;
+    if (resetToStarters || doomChatState.messages.length === 0) {
+      doomChatState.stage = 'starters';
+    }
+
+    doomChatCameraState.active = true;
+    doomChatCameraState.returningToOrbit = false;
+    doomChatCameraState.fromPos.copy(camera.position);
+    doomChatCameraState.fromLookAt.copy(mountFocusCameraState.currentLookAt);
+    doomChatCameraState.toPos.copy(destPose.cameraPos);
+    doomChatCameraState.toLookAt.copy(destPose.lookAtPos);
+    doomChatCameraState.transitionProgress = immediate ? 1.0 : 0.0;
+
+    if (!doomChatState.startersLoadedFromHF && !doomChatState.startersLoading) {
+      fetchDoomStartersFromHF().catch(() => {});
+    }
+
+    if (this.audio) {
+      this.audio.trigger('onActivate', { target: 'DOOM_Companion', source: 'doom-chat-open' });
+    }
+
+    syncDoomHoloChatDOM();
+    updateCameraController(immediate ? 1.0 : 1 / 60);
+    updateDoomHoloChatTether();
+    updateTelemetryHUD();
+    renderer.render(scene, camera);
+    return this.getDoomChatState();
+  },
+  exitDoomChatMode({ immediate = false } = {}) {
+    if (!this.ready) return false;
+    if (!this.isDoomChatOpen && !doomChatState.isOpen && !doomChatCameraState.active) {
+      return false;
+    }
+
+    this.isDoomChatOpen = false;
+    doomChatState.isOpen = false;
+    doomChatCameraState.active = false;
+
+    const targetChar = this.getDoomChatCharacter();
+    if (targetChar) {
+      targetChar.companionChatTargetWeight = 0.0;
+      targetChar.companionSpeakingPulse = 0.0;
+      if (immediate) {
+        targetChar.companionChatWeight = 0.0;
+      }
+      const isIntroTalkingLock =
+        this.mode === 'scroll' &&
+        this.scrollProgress <= 0.002 &&
+        this.director &&
+        this.director.introSequenceState &&
+        this.director.introSequenceState.phase === 'dialogue-active';
+      if (!isIntroTalkingLock) {
+        targetChar.stopDialogue();
+      }
+      targetChar.mixer.update(0.0);
+      targetChar.updateCompanionLevitation(holoShaderUniforms.uHoloTime.value, immediate ? 1.0 : 1 / 60);
+      targetChar.applyConversationalHeadLook();
+    }
+
+    if (this._autoCollapsedForDoomChat) {
+      this._autoCollapsedForDoomChat = false;
+      this.toggleSidebar(false);
+    }
+
+    const introOverlayEl = typeof document !== 'undefined' ? document.getElementById('intro-dialogue-overlay') : null;
+    if (introOverlayEl) {
+      introOverlayEl.style.opacity = '';
+      introOverlayEl.style.pointerEvents = 'none';
+      syncIntroDialogueOverlayUI();
+    }
+
+    const inputEl = typeof document !== 'undefined' ? document.getElementById('doom-chat-input') : null;
+    if (inputEl && typeof document !== 'undefined' && document.activeElement === inputEl) {
+      inputEl.blur();
+    }
+
+    const orbitState = computeThirdPersonCameraPose();
+    if (immediate) {
+      doomChatCameraState.returningToOrbit = false;
+      doomChatCameraState.transitionProgress = 1.0;
+      camera.position.copy(orbitState.cameraPos);
+      camera.lookAt(orbitState.pivotPos);
+      camera.updateMatrixWorld(true);
+      mountFocusCameraState.currentLookAt.copy(orbitState.pivotPos);
+    } else {
+      doomChatCameraState.returningToOrbit = true;
+      doomChatCameraState.fromPos.copy(camera.position);
+      doomChatCameraState.fromLookAt.copy(mountFocusCameraState.currentLookAt);
+      doomChatCameraState.toPos.copy(orbitState.cameraPos);
+      doomChatCameraState.toLookAt.copy(orbitState.pivotPos);
+      doomChatCameraState.transitionProgress = 0.0;
+    }
+
+    if (this.audio) {
+      this.audio.trigger('onHover', { target: 'DOOM_Companion', source: 'doom-chat-close' });
+    }
+
+    syncDoomHoloChatDOM();
+    updateCameraController(immediate ? 1.0 : 1 / 60);
+    updateTelemetryHUD();
+    renderer.render(scene, camera);
+    return true;
+  },
+  toggleDoomChatMode(opts = {}) {
+    if (this.isDoomChatOpen || doomChatState.isOpen) {
+      return this.exitDoomChatMode(opts);
+    }
+    return this.enterDoomChatMode(opts);
+  },
+  resetDoomChatToStarters({ refreshStarters = false } = {}) {
+    doomChatState.stage = 'starters';
+    doomChatState.messages = [];
+    doomChatState.lastError = null;
+    syncDoomHoloChatDOM();
+    updateTelemetryHUD();
+    if (refreshStarters) {
+      fetchDoomStartersFromHF().catch(() => {});
+    }
+    return this.getDoomChatState();
+  },
+  async refreshDoomStarters() {
+    return fetchDoomStartersFromHF();
+  },
+  async selectDoomStarter(index = 0) {
+    const idx = Number(index) === 1 ? 1 : 0;
+    const starterText = doomChatState.starters[idx] || doomChatState.starters[0];
+    if (!starterText) return null;
+    return sendDoomChatMessageToHF(starterText);
+  },
+  async sendDoomChatMessage(text) {
+    return sendDoomChatMessageToHF(text);
+  },
+  setDoomChatConfig(partial = {}) {
+    if (!partial || typeof partial !== 'object') return this.getDoomChatState();
+    if (typeof partial.personaPrompt === 'string') {
+      doomChatState.personaPrompt = partial.personaPrompt;
+    }
+    if (typeof partial.starterTopicPrompt === 'string') {
+      doomChatState.starterTopicPrompt = partial.starterTopicPrompt;
+    }
+    if (typeof partial.chatModelId === 'string' && partial.chatModelId.trim()) {
+      doomChatState.chatModelId = partial.chatModelId.trim();
+    }
+    if (typeof partial.startersModelId === 'string' && partial.startersModelId.trim()) {
+      doomChatState.startersModelId = partial.startersModelId.trim();
+    }
+    syncDoomHoloChatDOM();
+    return this.getDoomChatState();
+  },
+  getDoomChatState() {
+    const char = this.getDoomChatCharacter();
+    return {
+      isOpen: Boolean(this.isDoomChatOpen && doomChatState.isOpen),
+      stage: doomChatState.stage,
+      chatModelId: doomChatState.chatModelId,
+      startersModelId: doomChatState.startersModelId,
+      activeChatModelResolved: doomChatState.activeChatModelResolved,
+      activeStartersModelResolved: doomChatState.activeStartersModelResolved,
+      personaPrompt: doomChatState.personaPrompt,
+      starterTopicPrompt: doomChatState.starterTopicPrompt,
+      starters: [...doomChatState.starters],
+      startersLoading: Boolean(doomChatState.startersLoading),
+      startersLoadedFromHF: Boolean(doomChatState.startersLoadedFromHF),
+      startersLatencyMs: doomChatState.startersLatencyMs,
+      chatLoading: Boolean(doomChatState.chatLoading),
+      lastChatLatencyMs: doomChatState.lastChatLatencyMs,
+      messages: doomChatState.messages.map((m) => ({ ...m })),
+      lastError: doomChatState.lastError,
+      cameraTransitionProgress: doomChatCameraState.transitionProgress,
+      companionChatWeight: char ? Number(char.companionChatWeight.toFixed(4)) : 0.0,
+      mutualFacingDotProduct: char ? char.mutualFacingDotProduct : 1.0,
+      luisDialogueActive: Boolean(char && char.dialogueActive),
+      luisState: char ? char.state : 'Idle',
+      luisCurrentClip: char ? char.currentClipName : null,
+      companionLocalPos: char && char.companionMesh
+        ? {
+            x: Number(char.companionMesh.position.x.toFixed(4)),
+            y: Number(char.companionMesh.position.y.toFixed(4)),
+            z: Number(char.companionMesh.position.z.toFixed(4)),
+          }
+        : null,
+    };
+  },
   focusMathPodPopup(podOrCalloutId, { immediate = false } = {}) {
     if (!this.ready || !this.mathPodPopups) return null;
     const callout = this.mathPodPopups.getCallout(podOrCalloutId);
@@ -11443,6 +12500,9 @@ const sandbox = {
     }
     jumpRequested = false;
     cameraOrbit.isDragging = false;
+    cameraOrbit.pointerId = null;
+    cameraOrbit.userLookOverride = false;
+    mobileTouch.reset();
 
     for (const c of this.mathPodPopups.callouts) {
       c.isCameraFocused = c === callout;
@@ -11628,24 +12688,14 @@ const sandbox = {
     updateTelemetryHUD();
   },
   resolveActiveSkateRoomCharId() {
-    const variant = String(this.currentVariantKey || this.activeVariantKey || '');
-    if (variant.startsWith('platodoom_') || this.activeCharacterId === 'tunic') {
-      return 'platodoom';
-    }
-    if (variant === 'luis_holo') {
-      return 'luis_holo';
-    }
-    const activeChar = this.getActiveCharacter ? this.getActiveCharacter() : null;
-    if (activeChar && activeChar.isHoloShaderActive && this.activeCharacterId === 'hoodie' && !variant) {
-      return 'luis_holo';
-    }
     return 'luis';
   },
   resolveSkateRoomPortalUrl(opts = {}) {
     if (opts && typeof opts.targetUrl === 'string' && opts.targetUrl.trim()) {
       return opts.targetUrl.trim();
     }
-    const charId = (opts && opts.charId) || this.resolveActiveSkateRoomCharId();
+    const rawCharId = (opts && opts.charId) || this.resolveActiveSkateRoomCharId();
+    const charId = rawCharId === 'luis_holo' ? 'luis_holo' : 'luis';
     return `./skate3_cleanroom/?char=${encodeURIComponent(charId)}`;
   },
   teleportToSkateRoom(opts = {}) {
@@ -11677,6 +12727,9 @@ const sandbox = {
     }
     jumpRequested = false;
     cameraOrbit.isDragging = false;
+    cameraOrbit.pointerId = null;
+    cameraOrbit.userLookOverride = false;
+    mobileTouch.reset();
     document.body.classList.remove('mount-pointer-hover');
 
     const activeChar = this.getActiveCharacter();
@@ -11685,6 +12738,14 @@ const sandbox = {
       activeChar.mixer.update(0.0);
       activeChar.updateCompanionLevitation(holoShaderUniforms.uHoloTime.value);
       activeChar.root.updateMatrixWorld(true);
+    }
+
+    if (this.whitepaperColumnOpen && targetMount.mountName !== 'SCREEN_MOUNT_03') {
+      this.whitepaperColumnOpen = false;
+      if (this.whitepaperHoloColumn) {
+        this.whitepaperHoloColumn.lifecycleState = 'inactive';
+        this.whitepaperHoloColumn.rootGroup.visible = false;
+      }
     }
 
     this.mode = 'mount-focus';
@@ -11745,6 +12806,14 @@ const sandbox = {
     if (!this.ready) return false;
     if (this.mode !== 'mount-focus' && !this.isMountFocused) return false;
 
+    if (this.whitepaperColumnOpen) {
+      this.whitepaperColumnOpen = false;
+      if (this.whitepaperHoloColumn) {
+        this.whitepaperHoloColumn.lifecycleState = 'inactive';
+        this.whitepaperHoloColumn.rootGroup.visible = false;
+      }
+    }
+
     if (this.focusedMount) {
       this.focusedMount.triggerGlitchSpike(0.18);
     }
@@ -11788,6 +12857,10 @@ const sandbox = {
   },
   interactNearestWallMount() {
     if (!this.ready) return null;
+    if (this.whitepaperColumnOpen) {
+      this.closeWhitepaperHologramColumn();
+      return null;
+    }
     if (this.mode === 'mount-focus') {
       this.exitMountFocusMode();
       return null;
@@ -11799,6 +12872,91 @@ const sandbox = {
       return this.focusWallMount(target.mountName);
     }
     return null;
+  },
+  openWhitepaperHologramColumn({ immediate = false } = {}) {
+    if (!this.ready || !this.whitepaperHoloColumn) return null;
+    const m3 = this.wallMountsByName['SCREEN_MOUNT_03'];
+    if (!m3) return null;
+
+    if (this.mode !== 'mount-focus' || this.focusedMount !== m3) {
+      this.focusWallMount('SCREEN_MOUNT_03', { immediate: true });
+    }
+
+    this.whitepaperColumnOpen = true;
+    const col = this.whitepaperHoloColumn;
+    const colX = Number((m3.locatorPosition.x + 0.50).toFixed(4));
+    const colY = Number((m3.locatorPosition.y + 0.01).toFixed(4));
+    const colZ = Number(m3.locatorPosition.z.toFixed(4));
+
+    col.rootGroup.position.set(colX, colY, colZ);
+    col.rootGroup.rotation.set(0.0, Math.PI / 2, 0.0);
+    col.rootGroup.scale.set(0.78, 0.78, 1.0);
+    col.rootGroup.updateMatrixWorld(true);
+
+    if (immediate) {
+      col.lifecycleState = 'active';
+      col.lifecycleProgress = 1.0;
+      col.rootGroup.visible = true;
+    } else {
+      col.materialize({ durationSec: 0.42, axis: 'vertical' });
+    }
+    col.triggerGlitchBurst({ intensity: 0.55, durationSec: 0.18 });
+    if (col.documentController) {
+      col.documentController.renderViewport();
+    }
+
+    const destLookAt = new THREE.Vector3(colX, colY, colZ);
+    const destCamPos = new THREE.Vector3(colX + 1.44, colY, colZ);
+
+    mountFocusCameraState.active = true;
+    mountFocusCameraState.returningToOrbit = false;
+    mountFocusCameraState.fromPos.copy(camera.position);
+    mountFocusCameraState.fromLookAt.copy(mountFocusCameraState.currentLookAt);
+    mountFocusCameraState.toPos.copy(destCamPos);
+    mountFocusCameraState.toLookAt.copy(destLookAt);
+    mountFocusCameraState.transitionProgress = immediate ? 1.0 : 0.0;
+
+    if (this.audio) {
+      this.audio.trigger('onActivate', { stationId: 'proj-03', source: 'ssm-whitepaper-column' });
+    }
+
+    updateWallScreenMounts();
+    updateCameraController(immediate ? 1.0 : 1 / 60);
+    updateHolographicPopupUI();
+    if (this.hologramColumns) {
+      this.hologramColumns.update(1 / 60, holoShaderUniforms.uHoloTime.value, this.getActiveCharacter(), camera);
+    }
+    updateTelemetryHUD();
+    renderer.render(scene, camera);
+    return col;
+  },
+  closeWhitepaperHologramColumn({ immediate = false } = {}) {
+    if (!this.ready || !this.whitepaperColumnOpen) return false;
+    this.whitepaperColumnOpen = false;
+    if (this.whitepaperHoloColumn) {
+      this.whitepaperHoloColumn.lifecycleState = 'inactive';
+      this.whitepaperHoloColumn.lifecycleProgress = 0.0;
+      this.whitepaperHoloColumn.rootGroup.visible = false;
+    }
+    if (this.mode === 'mount-focus' && this.focusedMount) {
+      this.focusWallMount(this.focusedMount.mountName, { immediate });
+    } else {
+      updateWallScreenMounts();
+      updateHolographicPopupUI();
+      if (this.hologramColumns) {
+        this.hologramColumns.update(1 / 60, holoShaderUniforms.uHoloTime.value, this.getActiveCharacter(), camera);
+      }
+      renderer.render(scene, camera);
+    }
+    return true;
+  },
+  scrollWhitepaperHologramColumn(deltaY, { immediate = false } = {}) {
+    if (!this.whitepaperHoloColumn) return 0.0;
+    const nextScroll = this.whitepaperHoloColumn.scrollDocumentByPixels(deltaY, immediate);
+    if (immediate) {
+      renderer.render(scene, camera);
+    }
+    return nextScroll;
   },
   evaluateScrollCorridorPath(progress) {
     return evaluateScrollCorridorPath(progress);
@@ -11818,9 +12976,14 @@ const sandbox = {
     const activeChar = this.getActiveCharacter();
 
     // Cleanly disengage Mount Focus Mode if active (§6.3)
-    if (this.mode === 'mount-focus' || this.isMountFocused) {
+    if (this.mode === 'mount-focus' || this.isMountFocused || this.whitepaperColumnOpen) {
       this.isMountFocused = false;
       this.focusedMount = null;
+      this.whitepaperColumnOpen = false;
+      if (this.whitepaperHoloColumn) {
+        this.whitepaperHoloColumn.lifecycleState = 'inactive';
+        this.whitepaperHoloColumn.rootGroup.visible = false;
+      }
       mountFocusCameraState.active = false;
       mountFocusCameraState.returningToOrbit = false;
     }
@@ -11837,6 +13000,21 @@ const sandbox = {
       cameraOrbit.pitch = CAM_DEFAULT_PITCH;
       cameraOrbit.desiredDistance = CAM_DEFAULT_DISTANCE;
       cameraOrbit.isDragging = false;
+      cameraOrbit.pointerId = null;
+      cameraOrbit.userLookOverride = false;
+      mobileTouch.reset();
+    }
+
+    if (clamped > 0.002 && this.director) {
+      if (this.director.cameraPanState && this.director.cameraPanState.playing) {
+        this.director.stopStartupPan(true);
+      }
+      if (this.director.introSequenceState) {
+        this.director.introSequenceState.scrollLocked = false;
+        this.director.introSequenceState.phase = 'scrolling-alley';
+      }
+      syncIntroDialogueOverlayUI();
+      syncDirectorHUDInputs();
     }
 
     this.targetScrollProgress = clamped;
@@ -11911,6 +13089,9 @@ const sandbox = {
     }
     jumpRequested = false;
     cameraOrbit.isDragging = false;
+    cameraOrbit.pointerId = null;
+    cameraOrbit.userLookOverride = false;
+    mobileTouch.reset();
 
     document.body.classList.remove('freeroam-mode');
     document.body.classList.remove('mount-pointer-hover');
@@ -12146,6 +13327,30 @@ const sandbox = {
           `Character variant '${assetUrl}' contains ${gltf.animations.length} prohibited embedded legacy animation clips.`
         );
       }
+      if (
+        spec.characterSlot === 'hoodie' &&
+        !gltf.scene.getObjectByName('DOOM_Companion') &&
+        this.variantCache.luis_holo &&
+        this.variantCache.luis_holo.companionMesh
+      ) {
+        const srcComp = this.variantCache.luis_holo.companionMesh;
+        const clonedComp = srcComp.clone();
+        clonedComp.name = 'DOOM_Companion';
+        clonedComp.geometry = srcComp.geometry.clone();
+        clonedComp.position.copy(this.variantCache.luis_holo.companionAnchor);
+        clonedComp.rotation.set(0, 0, 0);
+        // Remove any cloned hitProxy child before CharacterController constructor creates a fresh one
+        const staleProxies = [];
+        clonedComp.traverse((child) => {
+          if (child !== clonedComp && child.name && child.name.startsWith('DOOM_Companion_HitProxy')) {
+            staleProxies.push(child);
+          }
+        });
+        for (const sp of staleProxies) {
+          if (sp.parent) sp.parent.remove(sp);
+        }
+        gltf.scene.add(clonedComp);
+      }
       controller = new CharacterController({
         id: spec.characterSlot,
         label: spec.label,
@@ -12287,6 +13492,7 @@ const sandbox = {
 if (typeof window !== 'undefined') {
   window.__SANDBOX__ = sandbox;
   window.__sandbox = sandbox;
+  window.sandbox = sandbox;
 }
 
 // ============================================================================
@@ -12558,7 +13764,7 @@ function updateScrollWalkLocomotion(dt) {
   activeChar._lastFrameStepDist = frameStepDist;
   activeChar._wasGroundedBeforeStep = true;
 
-  if (!(sandbox.director && sandbox.director.editMode)) {
+  if (!(sandbox.director && sandbox.director.editMode) && !cameraOrbit.userLookOverride && !cameraOrbit.isDragging) {
     cameraOrbit.yaw = 0.0;
     cameraOrbit.pitch = CAM_DEFAULT_PITCH;
     cameraOrbit.desiredDistance = CAM_DEFAULT_DISTANCE;
@@ -12592,10 +13798,19 @@ function updateFreeRoamCharacterLocomotion(dt) {
     const upPos = keysPressed.Space || keysPressed.KeyE ? 1.0 : 0.0;
     const downNeg = keysPressed.KeyC || keysPressed.ControlLeft || keysPressed.ControlRight ? 1.0 : 0.0;
 
-    const forwardInput = forwardPos - forwardNeg;
-    const rightInput = rightPos - rightNeg;
+    const kbFwd = forwardPos - forwardNeg;
+    const kbRight = rightPos - rightNeg;
+    const hasKbFly = kbFwd !== 0.0 || kbRight !== 0.0;
+    const padFlyActive = Boolean(mobileTouch && mobileTouch.magnitude >= THUMBPAD_DEADZONE);
+
+    const forwardInput = hasKbFly ? kbFwd : padFlyActive ? mobileTouch.ly : 0.0;
+    const rightInput = hasKbFly ? kbRight : padFlyActive ? mobileTouch.lx : 0.0;
     const verticalInput = upPos - downNeg;
-    const isBoost = Boolean(keysPressed.ShiftLeft || keysPressed.ShiftRight);
+    const isBoost = Boolean(
+      keysPressed.ShiftLeft ||
+        keysPressed.ShiftRight ||
+        (padFlyActive && !hasKbFly && mobileTouch.isSprinting)
+    );
     const flySpeed = isBoost ? 18.0 : 8.0;
 
     const cosPitch = Math.cos(cameraOrbit.pitch);
@@ -12648,10 +13863,21 @@ function updateFreeRoamCharacterLocomotion(dt) {
   const rightPos = keysPressed.KeyD || keysPressed.ArrowRight ? 1.0 : 0.0;
   const rightNeg = keysPressed.KeyA || keysPressed.ArrowLeft ? 1.0 : 0.0;
 
-  const forwardInput = forwardPos - forwardNeg;
-  const rightInput = rightPos - rightNeg;
-  const hasMovementInput = forwardInput !== 0.0 || rightInput !== 0.0;
-  const isSprinting = Boolean(keysPressed.ShiftLeft || keysPressed.ShiftRight);
+  const kbForwardInput = forwardPos - forwardNeg;
+  const kbRightInput = rightPos - rightNeg;
+  const hasKeyboardMove = kbForwardInput !== 0.0 || kbRightInput !== 0.0;
+  const padActive = Boolean(mobileTouch && mobileTouch.magnitude >= THUMBPAD_DEADZONE);
+
+  const forwardInput = hasKeyboardMove ? kbForwardInput : padActive ? mobileTouch.ly : 0.0;
+  const rightInput = hasKeyboardMove ? kbRightInput : padActive ? mobileTouch.lx : 0.0;
+  const hasMovementInput = Math.hypot(forwardInput, rightInput) > 1e-4;
+  const isSprinting = Boolean(
+    keysPressed.ShiftLeft ||
+      keysPressed.ShiftRight ||
+      (padActive && !hasKeyboardMove && mobileTouch.isSprinting)
+  );
+  const walkSpeedScale =
+    padActive && !hasKeyboardMove && !isSprinting ? mobileTouch.walkSpeedFactor : 1.0;
 
   if (hasMovementInput || jumpRequested || keysPressed.Space) {
     if (activeChar.customEmoteActive) activeChar.customEmoteActive = false;
@@ -12664,7 +13890,11 @@ function updateFreeRoamCharacterLocomotion(dt) {
   const normDirX = moveLen > 1e-6 ? moveDirX / moveLen : 0.0;
   const normDirZ = moveLen > 1e-6 ? moveDirZ / moveLen : 0.0;
 
-  const targetSpeed = hasMovementInput ? (isSprinting ? RUN_SPEED : WALK_SPEED) : 0.0;
+  const targetSpeed = hasMovementInput
+    ? isSprinting
+      ? RUN_SPEED
+      : WALK_SPEED * walkSpeedScale
+    : 0.0;
   const targetVelX = normDirX * targetSpeed;
   const targetVelZ = normDirZ * targetSpeed;
 
@@ -12763,7 +13993,7 @@ function updateFreeRoamCharacterLocomotion(dt) {
         activeChar.crossfadeTo('JUMP_DEFAULT', JUMP_CROSSFADE, true);
       }
     } else if (hasMovementInput || currentPlanarSpeed > 0.08) {
-      if (isSprinting && currentPlanarSpeed > WALK_SPEED * 1.1) {
+      if (isSprinting && (hasMovementInput || currentPlanarSpeed > WALK_SPEED * 1.1)) {
         activeChar.state = 'Run';
         activeChar.crossfadeTo('JOG_DEFAULT', CROSSFADE_DURATION);
         if (activeChar.currentAction) {
@@ -12896,7 +14126,58 @@ function updateCameraController(dt = 1 / 60) {
   const activeChar = sandbox.getActiveCharacter();
   const orbitState = computeThirdPersonCameraPose();
 
-  if (popupFocusCameraState.active && sandbox.isPopupFocused && sandbox.mathPodPopups) {
+  if (doomChatCameraState.active && sandbox.isDoomChatOpen) {
+    const targetChar = sandbox.getDoomChatCharacter() || activeChar;
+    const destPose = computeDoomChatCameraPose(targetChar);
+    doomChatCameraState.toPos.copy(destPose.cameraPos);
+    doomChatCameraState.toLookAt.copy(destPose.lookAtPos);
+
+    if (doomChatCameraState.transitionProgress < 1.0) {
+      doomChatCameraState.transitionProgress = Math.min(
+        1.0,
+        doomChatCameraState.transitionProgress + dt / DOOM_CHAT_TRANSITION_DURATION
+      );
+    }
+    const t = doomChatCameraState.transitionProgress;
+    const ease = 1.0 - Math.pow(1.0 - t, 3);
+
+    camera.position.lerpVectors(
+      doomChatCameraState.fromPos,
+      doomChatCameraState.toPos,
+      ease
+    );
+    mountFocusCameraState.currentLookAt.lerpVectors(
+      doomChatCameraState.fromLookAt,
+      doomChatCameraState.toLookAt,
+      ease
+    );
+    camera.lookAt(mountFocusCameraState.currentLookAt);
+  } else if (doomChatCameraState.returningToOrbit) {
+    doomChatCameraState.toPos.copy(orbitState.cameraPos);
+    doomChatCameraState.toLookAt.copy(orbitState.pivotPos);
+    doomChatCameraState.transitionProgress = Math.min(
+      1.0,
+      doomChatCameraState.transitionProgress + dt / DOOM_CHAT_TRANSITION_DURATION
+    );
+    const t = doomChatCameraState.transitionProgress;
+    const ease = 1.0 - Math.pow(1.0 - t, 3);
+
+    camera.position.lerpVectors(
+      doomChatCameraState.fromPos,
+      doomChatCameraState.toPos,
+      ease
+    );
+    mountFocusCameraState.currentLookAt.lerpVectors(
+      doomChatCameraState.fromLookAt,
+      doomChatCameraState.toLookAt,
+      ease
+    );
+    camera.lookAt(mountFocusCameraState.currentLookAt);
+
+    if (doomChatCameraState.transitionProgress >= 1.0) {
+      doomChatCameraState.returningToOrbit = false;
+    }
+  } else if (popupFocusCameraState.active && sandbox.isPopupFocused && sandbox.mathPodPopups) {
     const callout = sandbox.mathPodPopups.getCallout(sandbox.focusedMathPodPopupId);
     if (!callout || (!callout.isVisible && callout.state === 'DORMANT')) {
       sandbox.isPopupFocused = false;
@@ -13179,6 +14460,19 @@ function updateTelemetryHUD() {
     elScrollBar.style.width = `${(sandbox.scrollProgress * 100).toFixed(1)}%`;
   }
 
+  const elMobileModeBtn = document.getElementById('mobile-action-mode-btn');
+  if (elMobileModeBtn) {
+    elMobileModeBtn.textContent = isFreeRoam || isMountFocus ? 'SCROLL' : 'ROAM';
+    elMobileModeBtn.classList.toggle('active', isFreeRoam);
+  }
+  const elMobileInteractBtn = document.getElementById('mobile-action-interact-btn');
+  if (elMobileInteractBtn) {
+    const hasNearMount = Boolean(sandbox.proximityMount || sandbox.hoveredMount || sandbox.activeHoloProject);
+    elMobileInteractBtn.textContent = isMountFocus ? 'EXIT' : 'MOUNT';
+    elMobileInteractBtn.classList.toggle('highlight-mount', isMountFocus || Boolean(sandbox.proximityMount));
+    elMobileInteractBtn.classList.toggle('active', hasNearMount);
+  }
+
   const elTelMode = document.getElementById('tel-mode');
   const elTelScroll = document.getElementById('tel-scroll');
   const elAvatar = document.getElementById('tel-avatar');
@@ -13330,6 +14624,22 @@ function updateTelemetryHUD() {
           : `Settled (${cp.durationSec.toFixed(1)}s)`;
     }
   }
+  const elTelDoomChat = document.getElementById('tel-doom-chat');
+  if (elTelDoomChat) {
+    if (sandbox.isDoomChatOpen && doomChatState.isOpen) {
+      const char = sandbox.getDoomChatCharacter();
+      const dotVal = char ? char.mutualFacingDotProduct.toFixed(2) : '-1.00';
+      const stageTag =
+        doomChatState.stage === 'chatbox'
+          ? `STAGE 2: CHATBOX (${doomChatState.messages.length} msgs)`
+          : 'STAGE 1: STARTERS';
+      elTelDoomChat.textContent = `ACTIVE // ${stageTag} • Facing dot=${dotVal}`;
+    } else {
+      elTelDoomChat.textContent = doomChatState.startersLoadedFromHF
+        ? 'Dormant (Qwen 2.5 Starters Ready)'
+        : 'Dormant (Click DOOM_HEAD)';
+    }
+  }
 }
 
 function syncHoloEditorHUDInputs() {
@@ -13471,16 +14781,29 @@ function stepSimulation(dt) {
     scene.fog.density += (targetFogDensity - scene.fog.density) * Math.min(1.0, 4.0 * clampedDt);
   }
 
+  if (doomChatState.speakingTimerSec > 0.0) {
+    doomChatState.speakingTimerSec = Math.max(0.0, doomChatState.speakingTimerSec - clampedDt);
+  }
+  const doomTargetChar = sandbox.getDoomChatCharacter();
+  if (doomTargetChar) {
+    doomTargetChar.companionSpeakingPulse =
+      doomChatState.chatLoading || doomChatState.speakingTimerSec > 0.0
+        ? Math.min(1.0, (doomTargetChar.companionSpeakingPulse || 0.0) + clampedDt * 5.0)
+        : Math.max(0.0, (doomTargetChar.companionSpeakingPulse || 0.0) - clampedDt * 3.0);
+  }
+
   if (sandbox.characters.hoodie.root.visible) {
     sandbox.characters.hoodie.updateDialogueState(clampedDt);
     sandbox.characters.hoodie.mixer.update(clampedDt);
-    sandbox.characters.hoodie.updateCompanionLevitation(holoShaderUniforms.uHoloTime.value);
+    sandbox.characters.hoodie.updateCompanionLevitation(holoShaderUniforms.uHoloTime.value, clampedDt);
+    sandbox.characters.hoodie.applyConversationalHeadLook();
     sandbox.characters.hoodie.root.updateMatrixWorld(true);
   }
   if (sandbox.characters.tunic.root.visible) {
     sandbox.characters.tunic.updateDialogueState(clampedDt);
     sandbox.characters.tunic.mixer.update(clampedDt);
-    sandbox.characters.tunic.updateCompanionLevitation(holoShaderUniforms.uHoloTime.value);
+    sandbox.characters.tunic.updateCompanionLevitation(holoShaderUniforms.uHoloTime.value, clampedDt);
+    sandbox.characters.tunic.applyConversationalHeadLook();
     sandbox.characters.tunic.root.updateMatrixWorld(true);
   }
 
@@ -13496,6 +14819,7 @@ function stepSimulation(dt) {
   updateWallScreenMounts(clampedDt);
   updateProximityAndHoverWallMounts();
   updateCameraController(clampedDt);
+  updateDoomHoloChatTether();
   updateHolographicPopupUI();
   updateSFXAndAudioSubsystems(clampedDt, holoShaderUniforms.uHoloTime.value);
   if (sandbox.mathPods) {
@@ -13535,10 +14859,16 @@ function bindSidebarCollapseControls() {
   if (sandbox._sidebarControlsBound) return;
   sandbox._sidebarControlsBound = true;
 
+  if (detectInitialMobileTouchMode()) {
+    sandbox.toggleSidebar(true);
+    mobileTouch.setEnabled(true);
+  }
+
   const sidebarCollapseBtn = document.getElementById('sidebar-collapse-btn');
   if (sidebarCollapseBtn) {
     sidebarCollapseBtn.addEventListener('click', (e) => {
       e.stopPropagation();
+      sandbox._userManuallyToggledSidebar = true;
       sandbox.toggleSidebar();
     });
   }
@@ -13547,6 +14877,7 @@ function bindSidebarCollapseControls() {
   if (hudHeaderTitle) {
     hudHeaderTitle.addEventListener('click', () => {
       if (sandbox.sidebarCollapsed) {
+        sandbox._userManuallyToggledSidebar = true;
         sandbox.toggleSidebar(false);
       }
     });
@@ -13559,13 +14890,154 @@ function bindSidebarCollapseControls() {
     }
     if (e.code === 'KeyB' && !e.ctrlKey && !e.metaKey && !e.altKey) {
       e.preventDefault();
+      sandbox._userManuallyToggledSidebar = true;
       sandbox.toggleSidebar();
     }
   });
 }
 
+function bindMobileTouchControls() {
+  if (sandbox._mobileTouchControlsBound) return;
+  sandbox._mobileTouchControlsBound = true;
+
+  if (typeof document === 'undefined') return;
+  document.body.classList.toggle('mobile-touch-enabled', Boolean(mobileTouch.enabled));
+  mobileTouch.syncDOM();
+
+  const thumbpadEl = document.getElementById('mobile-left-thumbpad');
+  if (thumbpadEl) {
+    thumbpadEl.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (sandbox.audio) {
+        sandbox.audio.unlock();
+      }
+      if (!mobileTouch.enabled && !isMobileTouchForceDisabled()) {
+        mobileTouch.setEnabled(true);
+      }
+      mobileTouch.pointerId = e.pointerId;
+      try {
+        if (typeof thumbpadEl.setPointerCapture === 'function') {
+          thumbpadEl.setPointerCapture(e.pointerId);
+        }
+      } catch {
+        // ignore synthetic pointer capture errors
+      }
+      mobileTouch.updateFromClientPoint(e.clientX, e.clientY);
+    });
+
+    thumbpadEl.addEventListener('pointermove', (e) => {
+      if (mobileTouch.pointerId === null || e.pointerId !== mobileTouch.pointerId) {
+        return;
+      }
+      e.preventDefault();
+      e.stopPropagation();
+      mobileTouch.updateFromClientPoint(e.clientX, e.clientY);
+    });
+
+    const endThumbpadPointer = (e) => {
+      if (mobileTouch.pointerId === null || e.pointerId !== mobileTouch.pointerId) {
+        return;
+      }
+      e.preventDefault();
+      e.stopPropagation();
+      try {
+        if (typeof thumbpadEl.releasePointerCapture === 'function') {
+          thumbpadEl.releasePointerCapture(e.pointerId);
+        }
+      } catch {
+        // ignore
+      }
+      mobileTouch.reset();
+    };
+
+    thumbpadEl.addEventListener('pointerup', endThumbpadPointer);
+    thumbpadEl.addEventListener('pointercancel', endThumbpadPointer);
+    thumbpadEl.addEventListener('lostpointercapture', (e) => {
+      if (mobileTouch.pointerId !== null && e.pointerId === mobileTouch.pointerId) {
+        mobileTouch.reset();
+      }
+    });
+  }
+
+  const jumpBtn = document.getElementById('mobile-action-jump-btn');
+  if (jumpBtn) {
+    jumpBtn.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (!sandbox.ready) return;
+      if (sandbox.audio) sandbox.audio.unlock();
+      if (sandbox.mode === 'scroll') {
+        if (sandbox.director) {
+          if (sandbox.director.cameraPanState.mode === 'playing') {
+            sandbox.director.stopStartupPan();
+          }
+          sandbox.director.introSequenceState.scrollLocked = false;
+          sandbox.director.introSequenceState.phase = 'scrolling-alley';
+          syncIntroDialogueOverlayUI();
+          syncDirectorHUDInputs();
+        }
+        enterFreeRoamMode();
+      }
+      if (sandbox.mode === 'freeroam') {
+        jumpRequested = true;
+      }
+    });
+  }
+
+  const interactBtn = document.getElementById('mobile-action-interact-btn');
+  if (interactBtn) {
+    interactBtn.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (!sandbox.ready) return;
+      if (sandbox.audio) sandbox.audio.unlock();
+      if (sandbox.mode === 'mount-focus') {
+        sandbox.exitMountFocusMode();
+        return;
+      }
+      updateProximityAndHoverWallMounts();
+      const targetMount =
+        sandbox.proximityMount ||
+        sandbox.hoveredMount ||
+        (sandbox.activeHoloProject
+          ? sandbox.resolveWallMount(sandbox.activeHoloProject.mountName)
+          : null) ||
+        sandbox.wallMounts[0];
+      if (targetMount) {
+        sandbox.focusWallMount(targetMount.mountName);
+      }
+    });
+  }
+
+  const modeBtn = document.getElementById('mobile-action-mode-btn');
+  if (modeBtn) {
+    modeBtn.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (!sandbox.ready) return;
+      if (sandbox.audio) sandbox.audio.unlock();
+      if (sandbox.mode === 'scroll') {
+        if (sandbox.director) {
+          if (sandbox.director.cameraPanState.mode === 'playing') {
+            sandbox.director.stopStartupPan();
+          }
+          sandbox.director.introSequenceState.scrollLocked = false;
+          sandbox.director.introSequenceState.phase = 'scrolling-alley';
+          syncIntroDialogueOverlayUI();
+          syncDirectorHUDInputs();
+        }
+        enterFreeRoamMode();
+      } else {
+        sandbox.returnToScrollMode();
+      }
+    });
+  }
+}
+
 function bindInputListeners() {
   bindSidebarCollapseControls();
+  bindMobileTouchControls();
   window.addEventListener(
     'scroll',
     () => {
@@ -13598,6 +15070,10 @@ function bindInputListeners() {
     if (!sandbox.ready) return;
     const activeTag = document.activeElement ? document.activeElement.tagName : '';
     if (activeTag === 'INPUT' || activeTag === 'SELECT' || activeTag === 'TEXTAREA') {
+      if (e.code === 'Escape' && sandbox.isDoomChatOpen) {
+        e.preventDefault();
+        sandbox.exitDoomChatMode();
+      }
       return;
     }
     if (sandbox.audio) {
@@ -13822,6 +15298,16 @@ function bindInputListeners() {
     }
 
     if (e.code === 'Escape') {
+      if (sandbox.isDoomChatOpen) {
+        e.preventDefault();
+        sandbox.exitDoomChatMode();
+        return;
+      }
+      if (sandbox.whitepaperColumnOpen) {
+        e.preventDefault();
+        sandbox.closeWhitepaperHologramColumn();
+        return;
+      }
       if (sandbox.isPopupFocused) {
         e.preventDefault();
         sandbox.exitMathPodPopupFocus();
@@ -13832,6 +15318,39 @@ function bindInputListeners() {
         sandbox.exitMountFocusMode();
       }
       return;
+    }
+
+    if (sandbox.whitepaperColumnOpen && sandbox.whitepaperHoloColumn) {
+      if (e.code === 'ArrowDown') {
+        e.preventDefault();
+        sandbox.whitepaperHoloColumn.scrollDocumentByPixels(180);
+        return;
+      }
+      if (e.code === 'ArrowUp') {
+        e.preventDefault();
+        sandbox.whitepaperHoloColumn.scrollDocumentByPixels(-180);
+        return;
+      }
+      if (e.code === 'PageDown' || e.code === 'Space') {
+        e.preventDefault();
+        sandbox.whitepaperHoloColumn.scrollDocumentPage(1);
+        return;
+      }
+      if (e.code === 'PageUp') {
+        e.preventDefault();
+        sandbox.whitepaperHoloColumn.scrollDocumentPage(-1);
+        return;
+      }
+      if (e.code === 'Home') {
+        e.preventDefault();
+        sandbox.whitepaperHoloColumn.scrollDocumentToProgress(0.0);
+        return;
+      }
+      if (e.code === 'End') {
+        e.preventDefault();
+        sandbox.whitepaperHoloColumn.scrollDocumentToProgress(1.0);
+        return;
+      }
     }
 
     if (e.code === 'KeyM') {
@@ -13931,7 +15450,10 @@ function bindInputListeners() {
         return;
       }
 
-      // Pressing any movement key exits Popup Focus Mode, Mount Focus Mode, or hands off Scroll-Walk Mode to Free-Roam Mode (§5.2 & §5.3)
+      // Pressing any movement key exits DOOM_HEAD Dialogue Mode, Popup Focus Mode, Mount Focus Mode, or hands off Scroll-Walk Mode to Free-Roam Mode (§5.2 & §5.3)
+      if (sandbox.isDoomChatOpen && isMoveKey) {
+        sandbox.exitDoomChatMode();
+      }
       if (sandbox.isPopupFocused && isMoveKey) {
         sandbox.exitMathPodPopupFocus();
       }
@@ -13959,37 +15481,92 @@ function bindInputListeners() {
     }
   });
 
-  window.addEventListener('blur', () => {
+  const resetAllPointerAndTouchStates = () => {
     for (const k of Object.keys(keysPressed)) {
       keysPressed[k] = false;
     }
     cameraOrbit.isDragging = false;
+    cameraOrbit.pointerId = null;
+    mobileTouch.lookActive = false;
+    mobileTouch.lookPointerId = null;
+    mobileTouch.reset();
     if (sandbox.mathPods && sandbox.mathPods.activeDragPodId) {
       sandbox.mathPods.endDrag();
       sandbox.draggedMathPod = null;
     }
-  });
+    if (sandbox.hologramColumns && sandbox.hologramColumns.activeDragColumnId) {
+      sandbox.hologramColumns.endDrag();
+    }
+    if (sandbox.hologramColumns && sandbox.hologramColumns.activeSwipeColumnId) {
+      sandbox.hologramColumns.endSlideSwipe(0, 0);
+    }
+    if (sandbox.lamppostLight && sandbox.lamppostLight.isDraggingTarget) {
+      sandbox.lamppostLight.endTargetDrag();
+    }
+  };
+
+  window.addEventListener('blur', resetAllPointerAndTouchStates);
+  window.addEventListener('orientationchange', resetAllPointerAndTouchStates);
+  if (typeof document !== 'undefined') {
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        resetAllPointerAndTouchStates();
+      }
+    });
+  }
 
   let podPointerDownState = null;
   let popupPointerDownState = null;
+  let doomPointerDownState = null;
+  let activeSceneObjectPointerId = null;
   const canvas = renderer.domElement;
   canvas.addEventListener('pointerdown', (e) => {
+    if (e.pointerType === 'touch' && !mobileTouch.enabled && !isMobileTouchForceDisabled()) {
+      mobileTouch.setEnabled(true);
+    }
+    if (mobileTouch.pointerId !== null && e.pointerId === mobileTouch.pointerId) {
+      return;
+    }
     if (sandbox.radialMenu && sandbox.radialMenu.isOpen()) {
       return;
     }
     if (sandbox.audio) {
       sandbox.audio.unlock();
     }
-    if (sandbox.transformControls && (sandbox.transformControls.dragging || sandbox.transformControls.axis !== null)) {
+    const tcAxis = sandbox.transformControls ? sandbox.transformControls.axis : null;
+    const isExplicitGizmoHandle =
+      Boolean(sandbox.transformControls && sandbox.transformControls.enabled) &&
+      (sandbox.holoGizmoMode === 'rotate' || sandbox.holoGizmoMode === 'scale'
+        ? tcAxis !== null
+        : tcAxis === 'X' || tcAxis === 'Y' || tcAxis === 'Z');
+    if (sandbox.transformControls && (sandbox.transformControls.dragging || isExplicitGizmoHandle)) {
       return;
     }
-    if (sandbox.ready && e.button === 0) {
+    const isPrimaryOrTouch = e.button === 0 || e.button === undefined || e.pointerType === 'touch';
+    if (sandbox.ready && isPrimaryOrTouch && activeSceneObjectPointerId === null) {
       const rect = canvas.getBoundingClientRect();
       if (rect.width > 0 && rect.height > 0) {
         pointerNDC.x = ((e.clientX - rect.left) / rect.width) * 2.0 - 1.0;
         pointerNDC.y = -((e.clientY - rect.top) / rect.height) * 2.0 + 1.0;
       }
       pointerRaycaster.setFromCamera(pointerNDC, camera);
+
+      // Click on DOOM_HEAD (DOOM_Companion) -> Open Two-Stage Hologram Dialogue & Close-Up Two-Shot Camera Pan (Spec 041)
+      const doomTargets = sandbox.getDoomCompanionRaycastTargets();
+      if (doomTargets.length > 0) {
+        const doomHits = pointerRaycaster.intersectObjects(doomTargets, false);
+        if (doomHits.length > 0) {
+          doomPointerDownState = {
+            pointerId: e.pointerId,
+            clientX: e.clientX,
+            clientY: e.clientY,
+          };
+          if (e.pointerType !== 'touch') {
+            activeSceneObjectPointerId = e.pointerId;
+            return;
+          }
+        }
+      }
 
       // Click-to-select Director 3D Handles (Spawn Marker, Camera Start/End, LookAt Start/End)
       if (sandbox.director && sandbox.director.editMode && sandbox.director.rootGroup.visible) {
@@ -14005,6 +15582,7 @@ function bindInputListeners() {
       if (sandbox.lamppostLight && sandbox.lamppostLight.targetMarkerGroup && sandbox.lamppostLight.targetMarkerGroup.visible) {
         const lampHits = pointerRaycaster.intersectObjects(sandbox.lamppostLight.raycastTargets, false);
         if (lampHits.length > 0 && (!sandbox.transformControls || sandbox.transformControls.axis === null)) {
+          activeSceneObjectPointerId = e.pointerId;
           sandbox.lamppostLight.beginTargetDrag(pointerRaycaster.ray, camera);
           return;
         }
@@ -14015,11 +15593,15 @@ function bindInputListeners() {
         const popupHits = sandbox.mathPodPopups.raycastCallouts(pointerRaycaster);
         if (popupHits.length > 0 && popupHits[0].object.userData.calloutId) {
           popupPointerDownState = {
+            pointerId: e.pointerId,
             calloutId: popupHits[0].object.userData.calloutId,
             clientX: e.clientX,
             clientY: e.clientY,
           };
-          return;
+          if (e.pointerType !== 'touch') {
+            activeSceneObjectPointerId = e.pointerId;
+            return;
+          }
         }
       }
 
@@ -14034,36 +15616,50 @@ function bindInputListeners() {
       const hasHoloHit = Boolean(holoHits.length > 0 && holoHits[0].object.userData.holoColumnId);
       const podIsCloser =
         hasPodHit &&
-        (!sandbox.holoEditMode || !hasHoloHit || podHits[0].distance <= holoHits[0].distance);
+        (!hasHoloHit || podHits[0].distance <= holoHits[0].distance);
 
-      // Stage 1 Click: Click a MathPod -> Reveal/Toggle its Holographic Pop-Up (or drag pod)
+      // Stage 1 Click: Click a MathPod -> Reveal/Toggle its Holographic Pop-Up (or drag pod on desktop)
       if (podIsCloser) {
         const podId = podHits[0].object.userData.podId;
-        const pod = sandbox.mathPods.beginDrag(podId, pointerRaycaster.ray, camera);
-        sandbox.draggedMathPod = pod;
-        podPointerDownState = { podId, clientX: e.clientX, clientY: e.clientY };
-        if (sandbox.audio) {
-          sandbox.audio.trigger('onUpdate', { target: pod.id, source: 'math-pod-grab' });
+        podPointerDownState = { pointerId: e.pointerId, podId, clientX: e.clientX, clientY: e.clientY };
+        if (e.pointerType !== 'touch' || sandbox.holoEditMode) {
+          activeSceneObjectPointerId = e.pointerId;
+          const pod = sandbox.mathPods.beginDrag(podId, pointerRaycaster.ray, camera);
+          sandbox.draggedMathPod = pod;
+          if (sandbox.audio) {
+            sandbox.audio.trigger('onUpdate', { target: pod.id, source: 'math-pod-grab' });
+          }
+          return;
         }
-        return;
       }
 
-      // Click-and-swipe Carousel Hologram Columns (or 3D placement drag when Holo Edit Mode is ON)
+      // Click-and-swipe Carousel Hologram Columns (or 3D placement drag when Holo Edit Mode is ON or asset supports direct drag)
       if (hasHoloHit) {
         const hitId = holoHits[0].object.userData.holoColumnId;
         const hitCol = sandbox.hologramColumns.getColumn(hitId);
         sandbox.selectHologramColumnForEdit(hitId);
-        if (!sandbox.holoEditMode && hitCol && hitCol.isCarousel) {
+        if (!sandbox.holoEditMode && hitCol && hitCol.isScrollableDocument) {
+          activeSceneObjectPointerId = e.pointerId;
+          hitCol.beginDocumentDrag(e.clientX, e.clientY, holoHits[0].uv || null);
+          return;
+        }
+        if (!sandbox.holoEditMode && hitCol && hitCol.isCarousel && holoHits[0].distance <= 6.5) {
+          activeSceneObjectPointerId = e.pointerId;
           sandbox.hologramColumns.beginSlideSwipe(hitId, e.clientX, e.clientY, holoHits[0].uv || null);
           if (sandbox.audio) {
             sandbox.audio.trigger('onUpdate', { target: hitId, source: 'holo-carousel-swipe-start' });
           }
           return;
         }
-        if (sandbox.holoEditMode) {
-          // Start direct coplanar 3D placement drag when Holo Edit Mode is ON unless gizmo is in 'rotate' or 'scale'
-          const isGizmoRotateOrScale = sandbox.holoGizmoMode === 'rotate' || sandbox.holoGizmoMode === 'scale';
-          if (!isGizmoRotateOrScale && (!sandbox.transformControls || sandbox.transformControls.axis === null)) {
+        if (sandbox.holoEditMode || (hitCol && hitCol.allowDirectDrag)) {
+          activeSceneObjectPointerId = e.pointerId;
+          // Start direct coplanar 3D placement drag when Holo Edit Mode is ON (or direct drag is enabled) unless gizmo is in 'rotate' or 'scale'
+          const isGizmoRotateOrScale =
+            sandbox.holoEditMode && (sandbox.holoGizmoMode === 'rotate' || sandbox.holoGizmoMode === 'scale');
+          if (!isGizmoRotateOrScale) {
+            if (sandbox.transformControls && sandbox.transformControls.enabled) {
+              sandbox.transformControls.enabled = false;
+            }
             sandbox.hologramColumns.beginDrag(hitId, pointerRaycaster.ray, camera);
           }
           if (sandbox.audio) {
@@ -14074,73 +15670,107 @@ function bindInputListeners() {
         if (sandbox.audio) {
           sandbox.audio.trigger('onUpdate', { target: hitId, source: 'holo-column-select' });
         }
-        return;
       }
     }
-    if (
-      sandbox.mode !== 'freeroam' &&
-      !(sandbox.director && (sandbox.director.editMode || sandbox.director.cameraPOVMode))
-    ) {
+
+    const canLookAround =
+      sandbox.mode === 'freeroam' ||
+      sandbox.mode === 'scroll' ||
+      Boolean(sandbox.director && (sandbox.director.editMode || sandbox.director.cameraPOVMode));
+    if (!canLookAround) {
       return;
     }
-    if (e.button === 0 || e.button === 2) {
+    if (cameraOrbit.isDragging && cameraOrbit.pointerId !== null && cameraOrbit.pointerId !== e.pointerId) {
+      return;
+    }
+    if (isPrimaryOrTouch || e.button === 2) {
       cameraOrbit.isDragging = true;
+      cameraOrbit.pointerId = e.pointerId;
       cameraOrbit.downClientX = e.clientX;
       cameraOrbit.downClientY = e.clientY;
       cameraOrbit.maxDragTravel = 0;
       cameraOrbit.lastPointerX = e.clientX;
       cameraOrbit.lastPointerY = e.clientY;
+      mobileTouch.lookActive = true;
+      mobileTouch.lookPointerId = e.pointerId;
     }
   });
 
   window.addEventListener('pointermove', (e) => {
+    if (mobileTouch.pointerId !== null && e.pointerId === mobileTouch.pointerId) {
+      mobileTouch.updateFromClientPoint(e.clientX, e.clientY);
+      return;
+    }
     if (sandbox.radialMenu && sandbox.radialMenu.isOpen()) {
       return;
     }
     if (sandbox.transformControls && sandbox.transformControls.dragging) {
       cameraOrbit.isDragging = false;
-      return;
-    }
-    const rect = canvas.getBoundingClientRect();
-    if (rect.width > 0 && rect.height > 0) {
-      pointerNDC.x = ((e.clientX - rect.left) / rect.width) * 2.0 - 1.0;
-      pointerNDC.y = -((e.clientY - rect.top) / rect.height) * 2.0 + 1.0;
-    }
-
-    if (sandbox.ready && sandbox.lamppostLight && sandbox.lamppostLight.isDraggingTarget) {
-      pointerRaycaster.setFromCamera(pointerNDC, camera);
-      sandbox.lamppostLight.updateTargetDrag(pointerRaycaster.ray);
-      syncLamppostEditorHUDInputs();
+      cameraOrbit.pointerId = null;
+      mobileTouch.lookActive = false;
+      mobileTouch.lookPointerId = null;
       return;
     }
 
-    if (sandbox.ready && sandbox.hologramColumns && sandbox.hologramColumns.activeSwipeColumnId) {
-      sandbox.hologramColumns.updateSlideSwipe(e.clientX, e.clientY, Math.max(200, rect.width * 0.28));
-      syncHoloEditorHUDInputs();
-      return;
-    }
+    if (activeSceneObjectPointerId !== null && e.pointerId === activeSceneObjectPointerId) {
+      const rect = canvas.getBoundingClientRect();
+      if (rect.width > 0 && rect.height > 0) {
+        pointerNDC.x = ((e.clientX - rect.left) / rect.width) * 2.0 - 1.0;
+        pointerNDC.y = -((e.clientY - rect.top) / rect.height) * 2.0 + 1.0;
+      }
 
-    if (sandbox.ready && sandbox.hologramColumns && sandbox.hologramColumns.activeDragColumnId) {
-      pointerRaycaster.setFromCamera(pointerNDC, camera);
-      sandbox.hologramColumns.updateDrag(pointerRaycaster.ray);
-      syncHoloEditorHUDInputs();
-      return;
-    }
+      if (sandbox.ready && sandbox.lamppostLight && sandbox.lamppostLight.isDraggingTarget) {
+        pointerRaycaster.setFromCamera(pointerNDC, camera);
+        sandbox.lamppostLight.updateTargetDrag(pointerRaycaster.ray);
+        syncLamppostEditorHUDInputs();
+        return;
+      }
 
-    if (sandbox.ready && sandbox.mathPods && sandbox.mathPods.activeDragPodId) {
-      pointerRaycaster.setFromCamera(pointerNDC, camera);
-      sandbox.mathPods.updateDrag(pointerRaycaster.ray);
-      return;
+      if (
+        sandbox.ready &&
+        sandbox.whitepaperHoloColumn &&
+        sandbox.whitepaperHoloColumn.docDragGesture &&
+        sandbox.whitepaperHoloColumn.docDragGesture.active
+      ) {
+        sandbox.whitepaperHoloColumn.updateDocumentDrag(e.clientX, e.clientY, Math.max(300, rect.height));
+        return;
+      }
+
+      if (sandbox.ready && sandbox.hologramColumns && sandbox.hologramColumns.activeSwipeColumnId) {
+        sandbox.hologramColumns.updateSlideSwipe(e.clientX, e.clientY, Math.max(200, rect.width * 0.28));
+        syncHoloEditorHUDInputs();
+        return;
+      }
+
+      if (sandbox.ready && sandbox.hologramColumns && sandbox.hologramColumns.activeDragColumnId) {
+        pointerRaycaster.setFromCamera(pointerNDC, camera);
+        sandbox.hologramColumns.updateDrag(pointerRaycaster.ray);
+        syncHoloEditorHUDInputs();
+        return;
+      }
+
+      if (sandbox.ready && sandbox.mathPods && sandbox.mathPods.activeDragPodId) {
+        pointerRaycaster.setFromCamera(pointerNDC, camera);
+        sandbox.mathPods.updateDrag(pointerRaycaster.ray);
+        return;
+      }
     }
 
     // Check pointer intersection with 3D wall mounts for onHover telemetry audio (SFX.md §4.3)
     if (sandbox.ready && !cameraOrbit.isDragging && e.target === canvas) {
+      const rect = canvas.getBoundingClientRect();
+      if (rect.width > 0 && rect.height > 0) {
+        pointerNDC.x = ((e.clientX - rect.left) / rect.width) * 2.0 - 1.0;
+        pointerNDC.y = -((e.clientY - rect.top) / rect.height) * 2.0 + 1.0;
+      }
       pointerRaycaster.setFromCamera(pointerNDC, camera);
       let hoveredHoloColumn = false;
       if (sandbox.hologramColumns) {
         const holoHits = pointerRaycaster.intersectObjects(sandbox.hologramColumns.raycastTargets, false);
         hoveredHoloColumn = holoHits.length > 0;
         const hoveredId = hoveredHoloColumn ? holoHits[0].object.userData.holoColumnId : null;
+        sandbox.hoveredHoloColumnId = hoveredId;
+        sandbox.hologramColumns.setHoveredColumn(hoveredId);
         for (let i = 0; i < sandbox.hologramColumns.columns.length; i++) {
           const c = sandbox.hologramColumns.columns[i];
           if (c.isCarousel) {
@@ -14181,22 +15811,38 @@ function bindInputListeners() {
         }
       }
 
+      const doomTargets = sandbox.getDoomCompanionRaycastTargets();
+      const doomHits = doomTargets.length > 0 ? pointerRaycaster.intersectObjects(doomTargets, false) : [];
+      const isHoveringDoom = doomHits.length > 0;
+      if (isHoveringDoom && !sandbox.hoveredDoomCompanion && sandbox.audio) {
+        sandbox.audio.trigger('onHover', { target: 'DOOM_Companion', source: 'doom-head-3d' });
+      }
+      sandbox.hoveredDoomCompanion = isHoveringDoom;
+
       document.body.classList.toggle(
         'mount-pointer-hover',
         Boolean(
           sandbox.hoveredMount ||
             sandbox.hoveredMathPod ||
             sandbox.hoveredMathPodPopupId ||
-            hoveredHoloColumn
+            hoveredHoloColumn ||
+            sandbox.hoveredDoomCompanion
         )
       );
     }
 
-    if (
-      !cameraOrbit.isDragging ||
-      (sandbox.mode !== 'freeroam' &&
-        !(sandbox.director && (sandbox.director.editMode || sandbox.director.cameraPOVMode)))
-    ) {
+    if (!cameraOrbit.isDragging) {
+      return;
+    }
+    if (cameraOrbit.pointerId !== null && e.pointerId !== cameraOrbit.pointerId) {
+      return;
+    }
+
+    const canLookAround =
+      sandbox.mode === 'freeroam' ||
+      sandbox.mode === 'scroll' ||
+      Boolean(sandbox.director && (sandbox.director.editMode || sandbox.director.cameraPOVMode));
+    if (!canLookAround) {
       return;
     }
 
@@ -14223,93 +15869,202 @@ function bindInputListeners() {
       return;
     }
 
+    if (sandbox.mode === 'scroll' && cameraOrbit.maxDragTravel > 2.0) {
+      cameraOrbit.userLookOverride = true;
+      if (sandbox.director && sandbox.director.cameraPanState.mode === 'settled') {
+        sandbox.director.cameraPanState.mode = 'orbit';
+      }
+    }
+
     cameraOrbit.yaw -= dx * 0.0065;
+    cameraOrbit.yaw = Math.atan2(Math.sin(cameraOrbit.yaw), Math.cos(cameraOrbit.yaw));
     cameraOrbit.pitch = Math.max(
       CAM_MIN_PITCH,
       Math.min(CAM_MAX_PITCH, cameraOrbit.pitch + dy * 0.0055)
     );
   });
 
-  window.addEventListener('pointerup', (e) => {
+  const handleWindowPointerEnd = (e, isCancel = false) => {
+    if (mobileTouch.pointerId !== null && e.pointerId === mobileTouch.pointerId) {
+      mobileTouch.reset();
+      return;
+    }
     if (sandbox.radialMenu && sandbox.radialMenu.isOpen()) {
       return;
     }
-    if (sandbox.lamppostLight && sandbox.lamppostLight.isDraggingTarget) {
-      sandbox.lamppostLight.endTargetDrag();
-      syncLamppostEditorHUDInputs();
-      return;
-    }
-    if (sandbox.hologramColumns && sandbox.hologramColumns.activeSwipeColumnId) {
-      const swipedCol = sandbox.hologramColumns.endSlideSwipe(e.clientX, e.clientY);
-      syncHoloEditorHUDInputs();
-      if (sandbox.audio && swipedCol) {
-        sandbox.audio.trigger('onUpdate', { target: swipedCol.id, source: 'holo-carousel-slide-commit' });
+    if (activeSceneObjectPointerId !== null && e.pointerId === activeSceneObjectPointerId) {
+      activeSceneObjectPointerId = null;
+      if (sandbox.lamppostLight && sandbox.lamppostLight.isDraggingTarget) {
+        sandbox.lamppostLight.endTargetDrag();
+        syncLamppostEditorHUDInputs();
+        return;
       }
-      return;
-    }
-    if (sandbox.hologramColumns && sandbox.hologramColumns.activeDragColumnId) {
-      const releasedCol = sandbox.hologramColumns.endDrag();
-      syncHoloEditorHUDInputs();
-      if (sandbox.audio && releasedCol) {
-        sandbox.audio.trigger('onHover', { target: releasedCol.id, source: 'holo-column-release' });
-      }
-      return;
-    }
-    if (popupPointerDownState && popupPointerDownState.calloutId) {
-      const dx = e.clientX - popupPointerDownState.clientX;
-      const dy = e.clientY - popupPointerDownState.clientY;
-      const clickedCalloutId = popupPointerDownState.calloutId;
-      popupPointerDownState = null;
-      if (Math.hypot(dx, dy) <= CLICK_MAX_DRAG_PIXELS) {
-        sandbox.focusMathPodPopup(clickedCalloutId);
-      }
-      return;
-    }
-    if (sandbox.mathPods && sandbox.mathPods.activeDragPodId) {
-      const releasedPod = sandbox.mathPods.endDrag();
-      sandbox.draggedMathPod = null;
-      if (podPointerDownState && podPointerDownState.podId) {
-        const dx = e.clientX - podPointerDownState.clientX;
-        const dy = e.clientY - podPointerDownState.clientY;
-        if (Math.hypot(dx, dy) <= CLICK_MAX_DRAG_PIXELS && sandbox.mathPodPopups) {
-          const isNowOpen = sandbox.mathPodPopups.togglePinForPod(podPointerDownState.podId);
-          if (!isNowOpen && sandbox.focusedMathPodPopupId === podPointerDownState.podId) {
-            sandbox.exitMathPodPopupFocus();
-          }
-          if (sandbox.mathPods) {
-            sandbox.mathPods.update(1 / 60, holoShaderUniforms.uHoloTime.value);
-          }
-          renderer.render(scene, camera);
+      if (
+        sandbox.whitepaperHoloColumn &&
+        sandbox.whitepaperHoloColumn.docDragGesture &&
+        sandbox.whitepaperHoloColumn.docDragGesture.active
+      ) {
+        const docAction = sandbox.whitepaperHoloColumn.endDocumentDrag(e.clientX, e.clientY);
+        if (docAction === 'close') {
+          sandbox.closeWhitepaperHologramColumn();
+        } else if (docAction === 'page-up') {
+          sandbox.whitepaperHoloColumn.scrollDocumentPage(-1);
+        } else if (docAction === 'page-down') {
+          sandbox.whitepaperHoloColumn.scrollDocumentPage(1);
+        } else if (docAction === 'open-pdf') {
+          window.open('./SSMWhitePaper.pdf', '_blank', 'noopener,noreferrer');
         }
-        podPointerDownState = null;
+        return;
       }
-      if (sandbox.audio && releasedPod) {
-        sandbox.audio.trigger('onHover', { target: releasedPod.id, source: 'math-pod-release' });
+      if (sandbox.hologramColumns && sandbox.hologramColumns.activeSwipeColumnId) {
+        const swipedCol = sandbox.hologramColumns.endSlideSwipe(e.clientX, e.clientY);
+        syncHoloEditorHUDInputs();
+        if (sandbox.audio && swipedCol) {
+          sandbox.audio.trigger('onUpdate', { target: swipedCol.id, source: 'holo-carousel-slide-commit' });
+        }
+        return;
       }
+      if (sandbox.hologramColumns && sandbox.hologramColumns.activeDragColumnId) {
+        const releasedCol = sandbox.hologramColumns.endDrag();
+        if (sandbox.holoEditMode && sandbox.transformControls) {
+          sandbox.transformControls.enabled = true;
+          if (sandbox.transformControlsHelper) {
+            sandbox.transformControlsHelper.updateMatrixWorld(true);
+          }
+        }
+        syncHoloEditorHUDInputs();
+        if (sandbox.audio && releasedCol) {
+          sandbox.audio.trigger('onHover', { target: releasedCol.id, source: 'holo-column-release' });
+        }
+        return;
+      }
+      if (doomPointerDownState && doomPointerDownState.pointerId === e.pointerId) {
+        const dx = e.clientX - doomPointerDownState.clientX;
+        const dy = e.clientY - doomPointerDownState.clientY;
+        doomPointerDownState = null;
+        if (!isCancel && Math.hypot(dx, dy) <= CLICK_MAX_DRAG_PIXELS) {
+          sandbox.enterDoomChatMode();
+        }
+        return;
+      }
+      if (popupPointerDownState && popupPointerDownState.calloutId) {
+        const dx = e.clientX - popupPointerDownState.clientX;
+        const dy = e.clientY - popupPointerDownState.clientY;
+        const clickedCalloutId = popupPointerDownState.calloutId;
+        popupPointerDownState = null;
+        if (!isCancel && Math.hypot(dx, dy) <= CLICK_MAX_DRAG_PIXELS) {
+          sandbox.focusMathPodPopup(clickedCalloutId);
+        }
+        return;
+      }
+      if (sandbox.mathPods && sandbox.mathPods.activeDragPodId) {
+        const releasedPod = sandbox.mathPods.endDrag();
+        sandbox.draggedMathPod = null;
+        if (podPointerDownState && podPointerDownState.podId) {
+          const dx = e.clientX - podPointerDownState.clientX;
+          const dy = e.clientY - podPointerDownState.clientY;
+          if (!isCancel && Math.hypot(dx, dy) <= CLICK_MAX_DRAG_PIXELS && sandbox.mathPodPopups) {
+            const isNowOpen = sandbox.mathPodPopups.togglePinForPod(podPointerDownState.podId);
+            if (!isNowOpen && sandbox.focusedMathPodPopupId === podPointerDownState.podId) {
+              sandbox.exitMathPodPopupFocus();
+            }
+            if (sandbox.mathPods) {
+              sandbox.mathPods.update(1 / 60, holoShaderUniforms.uHoloTime.value);
+            }
+            renderer.render(scene, camera);
+          }
+          podPointerDownState = null;
+        }
+        if (sandbox.audio && releasedPod) {
+          sandbox.audio.trigger('onHover', { target: releasedPod.id, source: 'math-pod-release' });
+        }
+        return;
+      }
+    }
+
+    if (cameraOrbit.isDragging && cameraOrbit.pointerId !== null && e.pointerId !== cameraOrbit.pointerId) {
       return;
     }
 
     const wasDragging = cameraOrbit.isDragging;
     const dragDistance = cameraOrbit.maxDragTravel;
     cameraOrbit.isDragging = false;
+    cameraOrbit.pointerId = null;
+    mobileTouch.lookActive = false;
+    mobileTouch.lookPointerId = null;
+
+    if (doomPointerDownState && doomPointerDownState.pointerId === e.pointerId) {
+      const dx = e.clientX - doomPointerDownState.clientX;
+      const dy = e.clientY - doomPointerDownState.clientY;
+      doomPointerDownState = null;
+      if (!isCancel && Math.hypot(dx, dy) <= CLICK_MAX_DRAG_PIXELS) {
+        sandbox.enterDoomChatMode();
+        return;
+      }
+    }
+
+    if (popupPointerDownState && popupPointerDownState.pointerId === e.pointerId) {
+      const dx = e.clientX - popupPointerDownState.clientX;
+      const dy = e.clientY - popupPointerDownState.clientY;
+      const clickedCalloutId = popupPointerDownState.calloutId;
+      popupPointerDownState = null;
+      if (!isCancel && Math.hypot(dx, dy) <= CLICK_MAX_DRAG_PIXELS) {
+        sandbox.focusMathPodPopup(clickedCalloutId);
+        return;
+      }
+    }
+
+    if (podPointerDownState && podPointerDownState.pointerId === e.pointerId) {
+      const dx = e.clientX - podPointerDownState.clientX;
+      const dy = e.clientY - podPointerDownState.clientY;
+      const clickedPodId = podPointerDownState.podId;
+      podPointerDownState = null;
+      if (!isCancel && Math.hypot(dx, dy) <= CLICK_MAX_DRAG_PIXELS && sandbox.mathPodPopups) {
+        const isNowOpen = sandbox.mathPodPopups.togglePinForPod(clickedPodId);
+        if (!isNowOpen && sandbox.focusedMathPodPopupId === clickedPodId) {
+          sandbox.exitMathPodPopupFocus();
+        }
+        if (sandbox.mathPods) {
+          sandbox.mathPods.update(1 / 60, holoShaderUniforms.uHoloTime.value);
+        }
+        renderer.render(scene, camera);
+        return;
+      }
+    }
+
+    if (isCancel) {
+      return;
+    }
+
+    const isPrimaryOrTouch = e.button === 0 || e.button === undefined || e.pointerType === 'touch';
+    const isCanvasTarget = e.target === canvas || e.target === window || e.target === document.body;
+
+    if (
+      sandbox.isDoomChatOpen &&
+      isPrimaryOrTouch &&
+      dragDistance <= CLICK_MAX_DRAG_PIXELS &&
+      isCanvasTarget
+    ) {
+      sandbox.exitDoomChatMode();
+      return;
+    }
 
     if (
       sandbox.isPopupFocused &&
-      e.button === 0 &&
+      isPrimaryOrTouch &&
       dragDistance <= CLICK_MAX_DRAG_PIXELS &&
-      e.target === canvas
+      isCanvasTarget
     ) {
       sandbox.exitMathPodPopupFocus();
       return;
     }
 
-    // Distinguish clean click on 3D wall mount from camera orbit drag (§4.2 & §6.1)
+    // Distinguish clean tap/click on 3D wall mount from camera orbit drag (§4.2, §6.1 & Spec 040 §5.3)
     if (
-      wasDragging &&
-      sandbox.mode === 'freeroam' &&
-      e.button === 0 &&
+      isPrimaryOrTouch &&
       dragDistance <= CLICK_MAX_DRAG_PIXELS &&
-      e.target === canvas
+      isCanvasTarget &&
+      (wasDragging || sandbox.mode === 'mount-focus')
     ) {
       const rect = canvas.getBoundingClientRect();
       if (rect.width > 0 && rect.height > 0) {
@@ -14319,13 +16074,41 @@ function bindInputListeners() {
         const hits = pointerRaycaster.intersectObjects(sandbox.wallMountRaycastTargets, false);
         if (hits.length > 0 && hits[0].object.userData.mountName) {
           const hitMount = sandbox.wallMountsByName[hits[0].object.userData.mountName];
-          if (hitMount && hitMount.isMounted) {
-            sandbox.focusWallMount(hitMount.mountName);
+          if (hitMount) {
+            const hitUv = hits[0].uv;
+            const st = hitMount.station;
+            if (hitUv && hitUv.x >= 0.57 && hitUv.x <= 0.96 && st) {
+              // Secondary CTA Button on 3D screen mount canvas (cta2Y = 440, cta2H = 48 -> v in [0.38, 0.455])
+              if (hitUv.y >= 0.375 && hitUv.y <= 0.455 && st.secondaryLink) {
+                if (
+                  st.secondaryLink.action === 'open-whitepaper-column' ||
+                  st.secondaryLink.url === '#ssm-whitepaper-column'
+                ) {
+                  sandbox.openWhitepaperHologramColumn();
+                  return;
+                }
+                if (st.secondaryLink.url && sandbox.mode === 'mount-focus') {
+                  window.open(st.secondaryLink.url, '_blank', 'noopener,noreferrer');
+                  return;
+                }
+              }
+              // Primary CTA Button on 3D screen mount canvas (cta1Y = 374, cta1H = 54 -> v in [0.46, 0.54])
+              if (hitUv.y >= 0.46 && hitUv.y <= 0.545 && st.primaryLink && sandbox.mode === 'mount-focus') {
+                window.open(st.primaryLink.url, '_blank', 'noopener,noreferrer');
+                return;
+              }
+            }
+            if (sandbox.mode === 'freeroam' || sandbox.mode === 'scroll') {
+              sandbox.focusWallMount(hitMount.mountName);
+            }
           }
         }
       }
     }
-  });
+  };
+
+  window.addEventListener('pointerup', (e) => handleWindowPointerEnd(e, false));
+  window.addEventListener('pointercancel', (e) => handleWindowPointerEnd(e, true));
 
   window.addEventListener(
     'wheel',
@@ -14335,6 +16118,12 @@ function bindInputListeners() {
         return;
       }
       if (e.target && e.target.closest && e.target.closest('#sandbox-hud')) {
+        return;
+      }
+
+      if (sandbox.whitepaperColumnOpen && sandbox.whitepaperHoloColumn) {
+        e.preventDefault();
+        sandbox.whitepaperHoloColumn.scrollDocumentByPixels(e.deltaY * 1.45);
         return;
       }
 
@@ -14424,6 +16213,16 @@ function bindInputListeners() {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
+    if (!isMobileTouchForceDisabled()) {
+      const shouldBeMobile = detectInitialMobileTouchMode();
+      if (shouldBeMobile && !mobileTouch.enabled) {
+        mobileTouch.setEnabled(true);
+      }
+      if (shouldBeMobile && !sandbox._userManuallyToggledSidebar && !sandbox.sidebarCollapsed) {
+        sandbox.toggleSidebar(true);
+      }
+    }
+    mobileTouch.syncDOM();
     if (sandbox.mode === 'scroll') {
       syncWindowScrollToFraction(sandbox.targetScrollProgress);
     }
@@ -14519,6 +16318,26 @@ function bindInputListeners() {
     exitFocusBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       sandbox.exitMountFocusMode();
+    });
+  }
+
+  const holoSecondaryLinkEl = document.getElementById('holo-secondary-link');
+  if (holoSecondaryLinkEl) {
+    holoSecondaryLinkEl.addEventListener('click', (e) => {
+      const activeSt =
+        sandbox.activeHoloProject ||
+        (sandbox.focusedMount ? sandbox.focusedMount.station : null) ||
+        getActiveHoloStationForProgress(sandbox.scrollProgress, sandbox.mode);
+      if (
+        activeSt &&
+        activeSt.secondaryLink &&
+        (activeSt.secondaryLink.action === 'open-whitepaper-column' ||
+          activeSt.secondaryLink.url === '#ssm-whitepaper-column')
+      ) {
+        e.preventDefault();
+        e.stopPropagation();
+        sandbox.openWhitepaperHologramColumn();
+      }
     });
   }
 
@@ -14664,6 +16483,66 @@ function bindInputListeners() {
   if (toggleDialogueBtn) {
     toggleDialogueBtn.addEventListener('click', () => {
       sandbox.toggleDialogue();
+    });
+  }
+
+  const hudOpenDoomChatBtn = document.getElementById('hud-open-doom-chat-btn');
+  if (hudOpenDoomChatBtn) {
+    hudOpenDoomChatBtn.addEventListener('click', () => {
+      sandbox.toggleDoomChatMode();
+    });
+  }
+
+  const doomCloseChatBtn = document.getElementById('doom-close-chat-btn');
+  if (doomCloseChatBtn) {
+    doomCloseChatBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      sandbox.exitDoomChatMode();
+    });
+  }
+
+  const doomBackToStartersBtn = document.getElementById('doom-back-to-starters-btn');
+  if (doomBackToStartersBtn) {
+    doomBackToStartersBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      sandbox.resetDoomChatToStarters({ refreshStarters: false });
+    });
+  }
+
+  const doomRefreshStartersBtn = document.getElementById('doom-refresh-starters-btn');
+  if (doomRefreshStartersBtn) {
+    doomRefreshStartersBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      sandbox.refreshDoomStarters().catch(() => {});
+    });
+  }
+
+  const doomStarterBtn0 = document.getElementById('doom-starter-btn-0');
+  if (doomStarterBtn0) {
+    doomStarterBtn0.addEventListener('click', (e) => {
+      e.stopPropagation();
+      sandbox.selectDoomStarter(0).catch(() => {});
+    });
+  }
+
+  const doomStarterBtn1 = document.getElementById('doom-starter-btn-1');
+  if (doomStarterBtn1) {
+    doomStarterBtn1.addEventListener('click', (e) => {
+      e.stopPropagation();
+      sandbox.selectDoomStarter(1).catch(() => {});
+    });
+  }
+
+  const doomChatInputForm = document.getElementById('doom-chat-input-form');
+  const doomChatInputEl = document.getElementById('doom-chat-input');
+  if (doomChatInputForm && doomChatInputEl) {
+    doomChatInputForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const val = doomChatInputEl.value;
+      if (val && val.trim()) {
+        sandbox.sendDoomChatMessage(val).catch(() => {});
+      }
     });
   }
 
@@ -15109,45 +16988,99 @@ function buildVillainyNeonSignSubsystem(villainySignGLTF, floorY = 0.0) {
   }
 
   // Entrance overhead placement spanning across the alley throat (Z = 5.15m, just ahead of SPAWN_PLAYER Z = 3.00m)
-  const signZ = 5.15;
-  const signRelY = 2.82;
-  const signScale = 1.32;
-  const xL = resolveAlleyWallProfileX('left', signZ);
-  const xR = resolveAlleyWallProfileX('right', signZ);
-  const signX = Number(((xL + xR) * 0.5).toFixed(3));
-  const signY = floorY + signRelY;
+  const defaultSignZ = 5.15;
+  const defaultSignRelY = 2.82;
+  const defaultSignScale = 1.32;
+  const defaultYawRad = Math.PI;
+  const defaultXL = resolveAlleyWallProfileX('left', defaultSignZ);
+  const defaultXR = resolveAlleyWallProfileX('right', defaultSignZ);
+  const defaultSignX = Number(((defaultXL + defaultXR) * 0.5).toFixed(3));
+  const defaultSignY = floorY + defaultSignRelY;
+
+  const basePlaneWidthMeters = 1.6606;
+  const basePlaneHeightMeters = 1.1516;
+  const signAspectRatio = Number((basePlaneWidthMeters / basePlaneHeightMeters).toFixed(4));
 
   const assemblyGroup = new THREE.Group();
   assemblyGroup.name = 'VILLAINY_INC_OVERHEAD_SIGN';
-  assemblyGroup.position.set(signX, signY, signZ);
+  assemblyGroup.position.set(defaultSignX, defaultSignY, defaultSignZ);
+  // Rotate 180 deg around Y so the front (+Z in glTF) faces -Z toward the alley entrance camera
+  assemblyGroup.rotation.set(0.0, defaultYawRad, 0.0);
+  assemblyGroup.scale.setScalar(defaultSignScale);
 
   const modelClone = villainySignGLTF.scene.clone(true);
   modelClone.name = 'VillainyIncSignMeshRoot';
-  // Rotate 180 deg around Y so the front (+Z in glTF) faces -Z toward the alley entrance camera
-  modelClone.rotation.set(0.0, Math.PI, 0.0);
-  modelClone.scale.setScalar(signScale);
+  modelClone.position.set(0.0, 0.0, 0.0);
+  modelClone.rotation.set(0.0, 0.0, 0.0);
+  modelClone.scale.setScalar(1.0);
 
+  const signMeshes = [];
+  const signMaterials = [];
   modelClone.traverse((child) => {
     if (child.isMesh && child.material) {
       child.castShadow = true;
       child.receiveShadow = true;
+      child.userData.holoColumnId = 'villainy_inc_sign';
+      signMeshes.push(child);
       const mats = Array.isArray(child.material) ? child.material : [child.material];
       for (const m of mats) {
         if (!m) continue;
         m.emissiveIntensity = 3.10;
         m.needsUpdate = true;
+        if (!signMaterials.includes(m)) {
+          signMaterials.push(m);
+        }
       }
     }
   });
+  if (signMeshes.length === 0) {
+    raiseFatalError("Zero mesh primitives found inside 'villainy_inc_textured.glb'.");
+  }
   assemblyGroup.add(modelClone);
 
-  // Subtle local neon fill light so the sign's rusted iron scrollwork, peeling paint, and surrounding brick glow
+  // Invisible bounding-box hit proxy so clicking anywhere on the sign face, letters, or iron frame raycasts cleanly
+  const hitProxyGeom = new THREE.BoxGeometry(basePlaneWidthMeters + 0.14, basePlaneHeightMeters + 0.14, 0.24);
+  const hitProxyMat = new THREE.MeshBasicMaterial({
+    name: 'VillainySignHitProxyMat',
+    transparent: true,
+    opacity: 0.0,
+    depthWrite: false,
+    colorWrite: false,
+    side: THREE.DoubleSide,
+  });
+  const hitProxyMesh = new THREE.Mesh(hitProxyGeom, hitProxyMat);
+  hitProxyMesh.name = 'VillainySignHitProxy';
+  hitProxyMesh.userData.holoColumnId = 'villainy_inc_sign';
+  assemblyGroup.add(hitProxyMesh);
+
+  // Selection wireframe highlight matching Hologram Column assets when in 3D Gizmo Edit Mode, hovering, or dragging
+  const selectionEdgesGeom = new THREE.EdgesGeometry(
+    new THREE.BoxGeometry(basePlaneWidthMeters + 0.06, basePlaneHeightMeters + 0.06, 0.16)
+  );
+  const selectionFrameMat = new THREE.LineBasicMaterial({
+    name: 'VillainySignSelectionFrameMat',
+    color: 0x38bdf8,
+    transparent: true,
+    opacity: 0.92,
+    fog: false,
+    toneMapped: false,
+    depthTest: false,
+  });
+  const selectionFrame = new THREE.LineSegments(selectionEdgesGeom, selectionFrameMat);
+  selectionFrame.name = 'VillainySignSelectionFrame';
+  selectionFrame.renderOrder = 999;
+  selectionFrame.visible = false;
+  assemblyGroup.add(selectionFrame);
+
+  // Subtle local neon fill light in front of the sign (+Z local = -Z world at yaw = Math.PI)
   const signNeonLight = new THREE.PointLight(0xff4224, 2.4, 6.5, 1.6);
   signNeonLight.name = 'VillainySignNeonFillLight';
-  signNeonLight.position.set(0.0, 0.05, -0.48);
+  signNeonLight.position.set(0.0, 0.05 / defaultSignScale, 0.48 / defaultSignScale);
   assemblyGroup.add(signNeonLight);
 
   // Structural weathered steel tension cables & wall anchor plates suspending the sign across the alley
+  const hardwareGroup = new THREE.Group();
+  hardwareGroup.name = 'VillainySignSuspensionHardwareGroup';
   const hardwareMat = new THREE.MeshStandardMaterial({
     name: 'VillainySignSuspensionSteelMat',
     color: 0x3b3632,
@@ -15155,46 +17088,352 @@ function buildVillainyNeonSignSubsystem(villainySignGLTF, floorY = 0.0) {
     metalness: 0.65,
   });
 
-  const halfSignSpanX = 0.76 * signScale;
-  const topMountLocalY = 0.44 * signScale;
-  const sideMountLocalY = 0.16 * signScale;
-  const leftWallDeltaX = (xL + 0.04) - signX;
-  const rightWallDeltaX = (xR - 0.04) - signX;
+  const unitRodCurve = new THREE.LineCurve3(new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 1, 0));
+  const unitRodGeom = new THREE.TubeGeometry(unitRodCurve, 4, 0.014, 6, false);
+  const plateGeom = new THREE.BoxGeometry(0.04, 0.14, 0.14);
+  const rodMeshes = [];
+  const plateMeshes = [];
 
-  const cablePairs = [
-    // Upper diagonal suspension cables to left & right brick walls
-    [new THREE.Vector3(-halfSignSpanX, topMountLocalY, 0.0), new THREE.Vector3(leftWallDeltaX, topMountLocalY + 0.52, 0.0)],
-    [new THREE.Vector3(halfSignSpanX, topMountLocalY, 0.0), new THREE.Vector3(rightWallDeltaX, topMountLocalY + 0.52, 0.0)],
-    // Lateral horizontal stabilizer struts to left & right brick walls
-    [new THREE.Vector3(-halfSignSpanX, sideMountLocalY, 0.0), new THREE.Vector3(leftWallDeltaX, sideMountLocalY + 0.05, 0.0)],
-    [new THREE.Vector3(halfSignSpanX, sideMountLocalY, 0.0), new THREE.Vector3(rightWallDeltaX, sideMountLocalY + 0.05, 0.0)],
-  ];
-
-  for (let i = 0; i < cablePairs.length; i++) {
-    const [pStart, pEnd] = cablePairs[i];
-    const curve = new THREE.LineCurve3(pStart, pEnd);
-    const rodGeom = new THREE.TubeGeometry(curve, 4, 0.014, 6, false);
-    const rodMesh = new THREE.Mesh(rodGeom, hardwareMat);
+  for (let i = 0; i < 4; i++) {
+    const rodMesh = new THREE.Mesh(unitRodGeom, hardwareMat);
     rodMesh.name = `VillainySignSupportCable_${i + 1}`;
-    assemblyGroup.add(rodMesh);
+    rodMesh.userData.holoColumnId = 'villainy_inc_sign';
+    hardwareGroup.add(rodMesh);
+    rodMeshes.push(rodMesh);
 
-    const plateGeom = new THREE.BoxGeometry(0.04, 0.14, 0.14);
     const plateMesh = new THREE.Mesh(plateGeom, hardwareMat);
-    plateMesh.position.copy(pEnd);
     plateMesh.name = `VillainySignWallAnchor_${i + 1}`;
-    assemblyGroup.add(plateMesh);
+    plateMesh.userData.holoColumnId = 'villainy_inc_sign';
+    hardwareGroup.add(plateMesh);
+    plateMeshes.push(plateMesh);
   }
 
   villainySignRootGroup.add(assemblyGroup);
+  villainySignRootGroup.add(hardwareGroup);
 
-  return {
+  const localMountLugs = [
+    new THREE.Vector3(-0.76, 0.44, 0.0),
+    new THREE.Vector3(0.76, 0.44, 0.0),
+    new THREE.Vector3(-0.76, 0.16, 0.0),
+    new THREE.Vector3(0.76, 0.16, 0.0),
+  ];
+  const _lugWorldA = new THREE.Vector3();
+  const _lugWorldB = new THREE.Vector3();
+  const _wallAnchorA = new THREE.Vector3();
+  const _wallAnchorB = new THREE.Vector3();
+  const _rodDir = new THREE.Vector3();
+  const _upAxis = new THREE.Vector3(0, 1, 0);
+
+  function updateSingleCableAndPlate(idx, pStart, pEnd) {
+    const rodMesh = rodMeshes[idx];
+    const plateMesh = plateMeshes[idx];
+    if (!rodMesh || !plateMesh) return;
+    _rodDir.subVectors(pEnd, pStart);
+    const len = _rodDir.length();
+    rodMesh.position.copy(pStart);
+    if (len > 1e-4) {
+      _rodDir.multiplyScalar(1.0 / len);
+      rodMesh.quaternion.setFromUnitVectors(_upAxis, _rodDir);
+      rodMesh.scale.set(1.0, len, 1.0);
+    } else {
+      rodMesh.scale.set(1.0, 0.001, 1.0);
+    }
+    plateMesh.position.copy(pEnd);
+  }
+
+  function syncSuspensionHardware() {
+    assemblyGroup.updateMatrixWorld(true);
+    // Pair 0 & 1: Upper diagonal suspension cables to left & right brick walls
+    _lugWorldA.copy(localMountLugs[0]).applyMatrix4(assemblyGroup.matrixWorld);
+    _lugWorldB.copy(localMountLugs[1]).applyMatrix4(assemblyGroup.matrixWorld);
+    const upperLeftLug = _lugWorldA.x <= _lugWorldB.x ? _lugWorldA : _lugWorldB;
+    const upperRightLug = _lugWorldA.x <= _lugWorldB.x ? _lugWorldB : _lugWorldA;
+    const xLUpper = resolveAlleyWallProfileX('left', upperLeftLug.z) + 0.04;
+    const xRUpper = resolveAlleyWallProfileX('right', upperRightLug.z) - 0.04;
+    _wallAnchorA.set(xLUpper, upperLeftLug.y + 0.52, upperLeftLug.z);
+    _wallAnchorB.set(xRUpper, upperRightLug.y + 0.52, upperRightLug.z);
+    updateSingleCableAndPlate(0, upperLeftLug, _wallAnchorA);
+    updateSingleCableAndPlate(1, upperRightLug, _wallAnchorB);
+
+    // Pair 2 & 3: Lateral horizontal stabilizer struts to left & right brick walls
+    _lugWorldA.copy(localMountLugs[2]).applyMatrix4(assemblyGroup.matrixWorld);
+    _lugWorldB.copy(localMountLugs[3]).applyMatrix4(assemblyGroup.matrixWorld);
+    const lowerLeftLug = _lugWorldA.x <= _lugWorldB.x ? _lugWorldA : _lugWorldB;
+    const lowerRightLug = _lugWorldA.x <= _lugWorldB.x ? _lugWorldB : _lugWorldA;
+    const xLLower = resolveAlleyWallProfileX('left', lowerLeftLug.z) + 0.04;
+    const xRLower = resolveAlleyWallProfileX('right', lowerRightLug.z) - 0.04;
+    _wallAnchorA.set(xLLower, lowerLeftLug.y + 0.05, lowerLeftLug.z);
+    _wallAnchorB.set(xRLower, lowerRightLug.y + 0.05, lowerRightLug.z);
+    updateSingleCableAndPlate(2, lowerLeftLug, _wallAnchorA);
+    updateSingleCableAndPlate(3, lowerRightLug, _wallAnchorB);
+  }
+
+  const subsystem = {
     rootGroup: villainySignRootGroup,
     assemblyGroup,
+    hardwareGroup,
     model: modelClone,
-    position: { x: signX, y: signY, z: signZ, relY: signRelY },
-    scale: signScale,
-    yawRad: Math.PI,
+    selectionFrame,
+    hitProxyMesh,
+    signNeonLight,
+    raycastTargets: [hitProxyMesh, ...signMeshes, ...rodMeshes, ...plateMeshes],
+    position: { x: defaultSignX, y: defaultSignY, z: defaultSignZ, relY: defaultSignRelY },
+    scale: defaultSignScale,
+    yawRad: defaultYawRad,
+    pitchRad: 0.0,
+    rollRad: 0.0,
+
+    syncStateFromAssembly() {
+      const p = assemblyGroup.position;
+      const r = assemblyGroup.rotation;
+      const s = assemblyGroup.scale;
+      this.position.x = Number(p.x.toFixed(4));
+      this.position.y = Number(p.y.toFixed(4));
+      this.position.z = Number(p.z.toFixed(4));
+      this.position.relY = Number((p.y - floorY).toFixed(4));
+      this.scale = Number(s.x.toFixed(4));
+      this.yawRad = Math.abs(r.y - Math.PI) < 1e-4 ? Math.PI : Number(r.y.toFixed(4));
+      this.pitchRad = Number(r.x.toFixed(4));
+      this.rollRad = Number(r.z.toFixed(4));
+      syncSuspensionHardware();
+    },
+
+    getTransformState() {
+      this.syncStateFromAssembly();
+      const p = assemblyGroup.position;
+      const r = assemblyGroup.rotation;
+      const s = assemblyGroup.scale;
+      const scaleX = Number(s.x.toFixed(4));
+      const scaleY = Number(s.y.toFixed(4));
+      const scaleZ = Number(s.z.toFixed(4));
+      return {
+        id: 'villainy_inc_sign',
+        code: 'VILLAINY_INC_SIGN',
+        index: 20,
+        wallSide: p.x < 0 ? 'L' : 'R',
+        x: Number(p.x.toFixed(4)),
+        y: Number(p.y.toFixed(4)),
+        yRel: Number((p.y - floorY).toFixed(4)),
+        z: Number(p.z.toFixed(4)),
+        pitchRad: Number(r.x.toFixed(4)),
+        yawRad: Number(r.y.toFixed(4)),
+        rollRad: Number(r.z.toFixed(4)),
+        scale: scaleX,
+        scaleX,
+        scaleY,
+        scaleZ,
+        planeWidthMeters: Number((basePlaneWidthMeters * scaleX).toFixed(4)),
+        planeHeightMeters: Number((basePlaneHeightMeters * scaleY).toFixed(4)),
+        basePlaneWidthMeters,
+        basePlaneHeightMeters,
+        aspectRatio: signAspectRatio,
+      };
+    },
+
+    setTransformState(partial = {}) {
+      if (!partial || typeof partial !== 'object') return this.getTransformState();
+      if (typeof partial.x === 'number' && Number.isFinite(partial.x)) {
+        assemblyGroup.position.x = partial.x;
+      }
+      if (typeof partial.yRel === 'number' && Number.isFinite(partial.yRel)) {
+        assemblyGroup.position.y = floorY + partial.yRel;
+      } else if (typeof partial.y === 'number' && Number.isFinite(partial.y)) {
+        assemblyGroup.position.y = partial.y;
+      }
+      if (typeof partial.z === 'number' && Number.isFinite(partial.z)) {
+        assemblyGroup.position.z = partial.z;
+      }
+      if (typeof partial.pitchRad === 'number' && Number.isFinite(partial.pitchRad)) {
+        assemblyGroup.rotation.x = partial.pitchRad;
+      }
+      if (typeof partial.yawRad === 'number' && Number.isFinite(partial.yawRad)) {
+        assemblyGroup.rotation.y = partial.yawRad;
+      }
+      if (typeof partial.rollRad === 'number' && Number.isFinite(partial.rollRad)) {
+        assemblyGroup.rotation.z = partial.rollRad;
+      }
+      if (typeof partial.scale === 'number' && Number.isFinite(partial.scale)) {
+        const sc = Math.max(0.1, Math.min(10.0, partial.scale));
+        assemblyGroup.scale.set(sc, sc, sc);
+      } else {
+        if (typeof partial.scaleX === 'number' && Number.isFinite(partial.scaleX)) {
+          const sx = Math.max(0.1, Math.min(10.0, partial.scaleX));
+          assemblyGroup.scale.x = sx;
+          if (typeof partial.scaleY !== 'number') assemblyGroup.scale.y = sx;
+          if (typeof partial.scaleZ !== 'number') assemblyGroup.scale.z = sx;
+        }
+        if (typeof partial.scaleY === 'number' && Number.isFinite(partial.scaleY)) {
+          assemblyGroup.scale.y = Math.max(0.1, Math.min(10.0, partial.scaleY));
+        }
+        if (typeof partial.scaleZ === 'number' && Number.isFinite(partial.scaleZ)) {
+          assemblyGroup.scale.z = Math.max(0.1, Math.min(10.0, partial.scaleZ));
+        }
+      }
+      assemblyGroup.updateMatrixWorld(true);
+      this.syncStateFromAssembly();
+      return this.getTransformState();
+    },
+
+    resetTransformToDefault() {
+      assemblyGroup.position.set(defaultSignX, defaultSignY, defaultSignZ);
+      assemblyGroup.rotation.set(0.0, defaultYawRad, 0.0);
+      assemblyGroup.scale.setScalar(defaultSignScale);
+      assemblyGroup.updateMatrixWorld(true);
+      this.syncStateFromAssembly();
+      return this.getTransformState();
+    },
+
+    createHoloColumnAdapter() {
+      let lifecycleState = 'active';
+      const adapterParams = {
+        colorAndLuminance: {
+          primaryTintHex: '#ff4224',
+          secondaryTintHex: '#fbbf24',
+          colorRemapWeight: 0,
+        },
+      };
+      const colAdapter = {
+        id: 'villainy_inc_sign',
+        code: 'VILLAINY_INC_SIGN',
+        index: 20,
+        mediaType: 'mesh3d',
+        isCarousel: false,
+        is3DMesh: true,
+        allowDirectDrag: true,
+        get lifecycleState() {
+          return lifecycleState;
+        },
+        set lifecycleState(val) {
+          lifecycleState = val;
+          const isVisible = val !== 'inactive';
+          assemblyGroup.visible = isVisible;
+          hardwareGroup.visible = isVisible;
+        },
+        rootGroup: assemblyGroup,
+        primaryMesh: signMeshes[0] || hitProxyMesh,
+        selectionFrame,
+        raycastTargets: [hitProxyMesh, ...signMeshes, ...rodMeshes, ...plateMeshes],
+        assetSpec: {
+          id: 'villainy_inc_sign',
+          code: 'VILLAINY_INC_SIGN',
+          index: 20,
+          repoPath: ASSET_PATHS.villainySign,
+          mediaType: 'mesh3d',
+          label: 'Villainy Inc. 3D Neon Sign',
+          aspectRatio: signAspectRatio,
+        },
+        geoSpec: {
+          planeWidth: basePlaneWidthMeters,
+          planeHeight: basePlaneHeightMeters,
+        },
+        params: adapterParams,
+        getTransformState() {
+          return subsystem.getTransformState();
+        },
+        setTransformState(partial) {
+          return subsystem.setTransformState(partial);
+        },
+        resetTransformToDefault() {
+          return subsystem.resetTransformToDefault();
+        },
+        onTransformMutated() {
+          subsystem.syncStateFromAssembly();
+        },
+        getStateSummary() {
+          return {
+            id: 'villainy_inc_sign',
+            code: 'VILLAINY_INC_SIGN',
+            index: 20,
+            mediaType: 'mesh3d',
+            lifecycleState,
+            isCarousel: false,
+            isVisible: assemblyGroup.visible,
+            aspectRatio: signAspectRatio,
+            transform: subsystem.getTransformState(),
+            params: adapterParams,
+          };
+        },
+        setSelectionHighlight(selected) {
+          if (selectionFrame && selectionFrame.material) {
+            selectionFrame.material.color.setHex(selected ? 0x38bdf8 : 0xff4224);
+            selectionFrame.material.opacity = selected ? 0.95 : 0.65;
+          }
+        },
+        triggerGlitchBurst() {},
+        setParams(partial = {}) {
+          if (partial && partial.colorAndLuminance) {
+            Object.assign(adapterParams.colorAndLuminance, partial.colorAndLuminance);
+            const weight = Number(adapterParams.colorAndLuminance.colorRemapWeight ?? 0);
+            const hex = adapterParams.colorAndLuminance.primaryTintHex || '#ff4224';
+            for (const m of signMaterials) {
+              if (m && m.emissive) {
+                if (weight <= 0.01) {
+                  m.emissive.setHex(0xffffff);
+                } else {
+                  m.emissive.set(hex);
+                }
+                m.needsUpdate = true;
+              }
+            }
+            if (signNeonLight) {
+              signNeonLight.color.set(weight <= 0.01 ? '#ff4224' : hex);
+            }
+          }
+        },
+        getParams() {
+          return adapterParams;
+        },
+        materialize() {
+          lifecycleState = 'active';
+          assemblyGroup.visible = true;
+          hardwareGroup.visible = true;
+        },
+        dematerialize() {
+          lifecycleState = 'inactive';
+          assemblyGroup.visible = false;
+          hardwareGroup.visible = false;
+        },
+        setAgitatedState(agitated) {
+          lifecycleState = agitated ? 'agitated' : 'active';
+          assemblyGroup.visible = true;
+          hardwareGroup.visible = true;
+          const targetEmissive = agitated ? 4.2 : 3.10;
+          for (const m of signMaterials) {
+            if (m) m.emissiveIntensity = targetEmissive;
+          }
+          if (signNeonLight) {
+            signNeonLight.intensity = agitated ? 3.4 : 2.4;
+          }
+        },
+        swapMediaSource() {},
+        play() {},
+        pause() {},
+        togglePlay() {},
+        setLoop() {},
+        setPlaybackRate() {},
+        scrubToTime() {},
+        scrubToFrame() {},
+        resetFrameZero() {},
+        update() {
+          const isCulled = Boolean(
+            (villainySignRootGroup.userData && villainySignRootGroup.userData.culledBySceneCutter) ||
+              (assemblyGroup.userData && assemblyGroup.userData.culledBySceneCutter)
+          );
+          const isVisible = lifecycleState !== 'inactive' && !isCulled;
+          assemblyGroup.visible = isVisible;
+          hardwareGroup.visible = isVisible;
+          for (const mesh of signMeshes) {
+            mesh.visible = isVisible;
+          }
+        },
+        dispose() {},
+      };
+      return colAdapter;
+    },
   };
+
+  subsystem.syncStateFromAssembly();
+  return subsystem;
 }
 
 async function initSandbox() {
@@ -15409,10 +17648,28 @@ async function initSandbox() {
   });
   sandbox.hologramColumns = hologramColumnsSystem;
 
-  // Register Water Color Gallery into Hologram Columns editor so it can be tweaked via "G", HUD sliders, and 3D gizmo
+  // Build and integrate Overhead "VILLAINY INC." PBR Neon Sign across the alley entrance
+  sandbox.villainySign = buildVillainyNeonSignSubsystem(villainySignGLTF, floorY);
+
+  // Register Water Color Gallery and Villainy Inc. Neon Sign into Hologram Columns editor so they can be tweaked via "G", HUD sliders, 3D gizmo, and direct drag
   if (sandbox.hologramColumns && typeof waterColorGallerySystem.createHoloColumnAdapter === 'function') {
     const wcAdapter = waterColorGallerySystem.createHoloColumnAdapter(floorY);
     sandbox.hologramColumns.registerCustomColumn(wcAdapter);
+  }
+  if (sandbox.hologramColumns && sandbox.villainySign && typeof sandbox.villainySign.createHoloColumnAdapter === 'function') {
+    const villainyAdapter = sandbox.villainySign.createHoloColumnAdapter(floorY);
+    sandbox.hologramColumns.registerCustomColumn(villainyAdapter);
+  }
+  if (sandbox.hologramColumns) {
+    const ssmWhitepaperCol = new HologramColumnInstance(SSM_WHITEPAPER_HOLO_SPEC, {
+      floorY,
+      uTimeUniform: holoShaderUniforms.uHoloTime,
+      applyStencilReject: applyCharacterOcclusionStencilReject,
+      initialState: 'inactive',
+    });
+    hologramColumnsRootGroup.add(ssmWhitepaperCol.rootGroup);
+    sandbox.hologramColumns.registerCustomColumn(ssmWhitepaperCol);
+    sandbox.whitepaperHoloColumn = ssmWhitepaperCol;
   }
 
   // Build and integrate 3D Spawn Coordinates & Startup Camera Pan Director System
@@ -15425,7 +17682,32 @@ async function initSandbox() {
   const transformControls = new TransformControls(camera, renderer.domElement);
   transformControls.setSize(0.85);
   transformControls.setMode(sandbox.holoGizmoMode || 'translate');
+  transformControls.showXY = false;
+  transformControls.showYZ = false;
+  transformControls.showXZ = false;
   transformControls.enabled = false;
+  if (typeof transformControls._getPointer === 'function') {
+    const origGetPointer = transformControls._getPointer;
+    transformControls._getPointer = function (event) {
+      const ptr = origGetPointer.call(this, event);
+      if (event && event.type === 'pointermove' && ptr) {
+        ptr.button = -1;
+      }
+      return ptr;
+    };
+  }
+  if (typeof transformControls.pointerHover === 'function') {
+    const origPointerHover = transformControls.pointerHover.bind(transformControls);
+    transformControls.pointerHover = function (pointer) {
+      if (this._root) {
+        this._root.updateMatrixWorld(true);
+      }
+      origPointerHover(pointer);
+      if (this._plane) {
+        this._plane.updateMatrixWorld(true);
+      }
+    };
+  }
   const transformHelper = transformControls.getHelper();
   transformHelper.name = 'HologramTransformControlsHelper';
   scene.add(transformHelper);
@@ -15449,6 +17731,10 @@ async function initSandbox() {
         sandbox.lamppostLight.saveToStorage();
         syncLamppostEditorHUDInputs();
       } else if (sandbox.hologramColumns) {
+        const col = sandbox.hologramColumns.getColumn(sandbox.selectedHoloColumnId);
+        if (col && typeof col.onTransformMutated === 'function') {
+          col.onTransformMutated();
+        }
         sandbox.hologramColumns.saveTransformsToStorage();
         syncHoloEditorHUDInputs();
       }
@@ -15471,14 +17757,18 @@ async function initSandbox() {
       const sx = Math.max(0.1, Math.min(10.0, col.rootGroup.scale.x));
       const sy = Math.max(0.1, Math.min(10.0, col.rootGroup.scale.y));
       const axis = transformControls.axis || '';
+      const isUniform3D = Boolean(col.is3DMesh);
       if (axis === 'X') {
-        col.rootGroup.scale.set(sx, sx, 1.0);
+        col.rootGroup.scale.set(sx, sx, isUniform3D ? sx : 1.0);
       } else if (axis === 'Y') {
-        col.rootGroup.scale.set(sy, sy, 1.0);
+        col.rootGroup.scale.set(sy, sy, isUniform3D ? sy : 1.0);
       } else {
         const s = Math.max(0.1, Math.min(10.0, (sx + sy) * 0.5));
-        col.rootGroup.scale.set(s, s, 1.0);
+        col.rootGroup.scale.set(s, s, isUniform3D ? s : 1.0);
       }
+    }
+    if (col && typeof col.onTransformMutated === 'function') {
+      col.onTransformMutated();
     }
     syncHoloEditorHUDInputs();
   });
@@ -15512,9 +17802,6 @@ async function initSandbox() {
     uTimeUniform: sfxSharedUniforms.uTime,
     applyStencilReject: applyCharacterOcclusionStencilReject,
   });
-
-  // Build and integrate Overhead "VILLAINY INC." PBR Neon Sign across the alley entrance
-  sandbox.villainySign = buildVillainyNeonSignSubsystem(villainySignGLTF, floorY);
 
   // Build and integrate Running Mode Speed Effects & Cyber-Techno Binary Trail (Spec 023 §3)
   sandbox.runningEffects = buildRunningEffectsSystem(floorY);
@@ -15678,6 +17965,9 @@ async function initSandbox() {
     hoodie: hoodieController,
     tunic: tunicController,
   };
+  if (sandbox.mathPodPopups) {
+    sandbox.mathPodPopups.registerSceneAssetPresets(scene);
+  }
   sandbox.variantCache = {
     luis_holo: hoodieController,
     platodoom_holo: tunicController,
@@ -15815,6 +18105,8 @@ async function initSandbox() {
   }
 
   bindInputListeners();
+  syncDoomHoloChatDOM();
+  fetchDoomStartersFromHF().catch(() => {});
 
   // Non-blocking discovery of Server Mac HTTPS Quick Tunnel (functional_specification_037.md)
   sandbox.tunnelConfig = null;

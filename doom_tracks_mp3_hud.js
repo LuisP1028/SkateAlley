@@ -1507,9 +1507,12 @@ export function createDoomTracksMp3HUD(options = {}) {
 
     // 1. Compact SCREEN_ONLY viewport rectangle (docked in bottom-right corner)
     const screenAspect = MP3_SCREEN_ONLY_CROP.w / MP3_SCREEN_ONLY_CROP.h;
-    const w0 = Math.round(Math.min(410, Math.max(290, vw * 0.275)));
+    const isCompactMobile = vw <= 640 || vh <= 500;
+    const w0 = isCompactMobile
+      ? Math.round(Math.min(156, Math.max(132, Math.min(vw * 0.39, vh * 0.25 * screenAspect))))
+      : Math.round(Math.min(410, Math.max(290, vw * 0.275)));
     const h0 = Math.round(w0 / screenAspect);
-    const margin0 = 18;
+    const margin0 = isCompactMobile ? 12 : 18;
     const screenRect0 = {
       x: vw - w0 - margin0,
       y: vh - h0 - margin0,

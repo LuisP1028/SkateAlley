@@ -692,6 +692,54 @@ export const HOLO_MEDIA_MANIFEST = Object.freeze([
   corridorPlacement: Object.freeze({ ...a.corridorPlacement })
 })));
 
+export const SSM_WHITEPAPER_HOLO_SPEC = Object.freeze({
+  id: 'ssm_whitepaper_column',
+  code: 'HOLO-COL-SSM-WP',
+  index: 18,
+  label: 'STATE SPACE MODEL WHITEPAPER (SCROLLABLE 5-PAGE PDF)',
+  title: 'STATE SPACE MODEL WITH BAYESIAN INFERENCE // WHITEPAPER',
+  kicker: 'HOLO-DOC // OBJ-01 WHITEPAPER',
+  subtitle: 'SSMWhitePaper.pdf',
+  mediaType: 'scrollable_document',
+  type: 'scrollable_document',
+  repoPath: 'SSMWhitePaper.pdf',
+  pdfUrl: './SSMWhitePaper.pdf',
+  pageImagePaths: Object.freeze([
+    'assets/ssm_whitepaper/holo_page_01.png',
+    'assets/ssm_whitepaper/holo_page_02.png',
+    'assets/ssm_whitepaper/holo_page_03.png',
+    'assets/ssm_whitepaper/holo_page_04.png',
+    'assets/ssm_whitepaper/holo_page_05.png',
+  ]),
+  pageHeights: Object.freeze([1791, 1860, 1860, 1860, 511]),
+  width: 1200,
+  height: 1560,
+  aspectRatio: Number((1200 / 1560).toFixed(4)),
+  defaultTintPreset: 'cyan',
+  blendMode: 'normal',
+  colorRemapWeight: 0.14,
+  emissiveIntensity: 1.48,
+  baseOpacityMultiplier: 0.98,
+  bypassExteriorCutout: true,
+  hasDarkSubjectFloor: true,
+  darkSubjectFloorMinAlpha: 0.92,
+  isHighKeyStudioBackdrop: false,
+  studioBackdropMode: 'none',
+  corridorPlacement: Object.freeze({
+    wallSide: 'L',
+    x: -1.08,
+    yRel: 1.76,
+    z: 15.00,
+    pitchRad: 0.0,
+    yawRad: Number((Math.PI / 2).toFixed(4)),
+    rollRad: 0.0,
+    scale: 0.78,
+    scaleX: 0.78,
+    scaleY: 0.78,
+    scaleZ: 1.0,
+  }),
+});
+
 export const HOLO_MEDIA_BY_ID = Object.freeze((() => {
   const map = {};
   for (const asset of HOLO_MEDIA_MANIFEST) {
@@ -708,6 +756,9 @@ export const HOLO_MEDIA_BY_ID = Object.freeze((() => {
       }
     }
   }
+  map[SSM_WHITEPAPER_HOLO_SPEC.id] = SSM_WHITEPAPER_HOLO_SPEC;
+  map[SSM_WHITEPAPER_HOLO_SPEC.code] = SSM_WHITEPAPER_HOLO_SPEC;
+  map[SSM_WHITEPAPER_HOLO_SPEC.repoPath] = SSM_WHITEPAPER_HOLO_SPEC;
   return map;
 })());
 
@@ -726,6 +777,8 @@ export function resolveHoloMediaSpec(identifier) {
       const normMediaType =
         rawType === 'video'
           ? 'video'
+          : rawType === 'scrollable_document'
+          ? 'scrollable_document'
           : rawType === 'placeholder' || rawType === 'procedural'
           ? 'placeholder'
           : 'image';
@@ -743,6 +796,10 @@ export function resolveHoloMediaSpec(identifier) {
         type: normMediaType,
         repoPath,
         url: repoPath,
+        pdfUrl: identifier.pdfUrl || repoPath,
+        pageImagePaths: identifier.pageImagePaths || null,
+        pageHeights: identifier.pageHeights || null,
+        blendMode: identifier.blendMode,
         width: w,
         height: h,
         aspectRatio: identifier.aspectRatio || Number((w / h).toFixed(4)),
@@ -1310,10 +1367,379 @@ export class HoloVideoStreamController {
   }
 }
 
+export class HoloScrollableDocumentController {
+  constructor(assetSpec, options = {}) {
+    this.assetSpec = assetSpec;
+    this.type = 'scrollable_document';
+    this.viewportWidth = assetSpec.width || 1200;
+    this.viewportHeight = assetSpec.height || 1560;
+    this.headerHeight = 84;
+    this.footerHeight = 68;
+    this.bodyTop = this.headerHeight;
+    this.bodyHeight = this.viewportHeight - this.headerHeight - this.footerHeight; // 1408
+    this.pageDrawX = 16;
+    this.pageDrawWidth = 1120;
+    this.dividerHeight = 36;
+
+    const rawPaths = Array.isArray(assetSpec.pageImagePaths) && assetSpec.pageImagePaths.length > 0
+      ? assetSpec.pageImagePaths
+      : [
+          'assets/ssm_whitepaper/holo_page_01.png',
+          'assets/ssm_whitepaper/holo_page_02.png',
+          'assets/ssm_whitepaper/holo_page_03.png',
+          'assets/ssm_whitepaper/holo_page_04.png',
+          'assets/ssm_whitepaper/holo_page_05.png',
+        ];
+    const rawHeights = Array.isArray(assetSpec.pageHeights) && assetSpec.pageHeights.length === rawPaths.length
+      ? assetSpec.pageHeights
+      : [1791, 1860, 1860, 1860, 511];
+
+    this.pages = rawPaths.map((p, idx) => {
+      const scaledH = Math.round((rawHeights[idx] || 1800) * (this.pageDrawWidth / 1200));
+      return {
+        index: idx + 1,
+        path: p,
+        scaledHeight: scaledH,
+        topY: 0,
+        bottomY: 0,
+        image: null,
+        loaded: false,
+      };
+    });
+
+    this.recomputeLayout();
+    this.scrollY = 0.0;
+    this.targetScrollY = 0.0;
+    this.currentPage = 1;
+
+    if (typeof document !== 'undefined') {
+      this.canvas = document.createElement('canvas');
+      this.canvas.width = this.viewportWidth;
+      this.canvas.height = this.viewportHeight;
+      this.ctx = this.canvas.getContext('2d');
+      this.texture = new THREE.CanvasTexture(this.canvas);
+      this.texture.colorSpace = THREE.SRGBColorSpace;
+      this.texture.minFilter = THREE.LinearFilter;
+      this.texture.magFilter = THREE.LinearFilter;
+      this.texture.wrapS = THREE.ClampToEdgeWrapping;
+      this.texture.wrapT = THREE.ClampToEdgeWrapping;
+      this.texture.anisotropy = 4;
+
+      for (const page of this.pages) {
+        if (typeof Image !== 'undefined') {
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+          img.onload = () => {
+            page.image = img;
+            page.loaded = true;
+            if (img.naturalWidth > 0 && img.naturalHeight > 0) {
+              page.scaledHeight = Math.round(img.naturalHeight * (this.pageDrawWidth / img.naturalWidth));
+              this.recomputeLayout();
+            }
+            this.renderViewport();
+          };
+          img.src = resolveMediaUrl(page.path);
+        }
+      }
+      this.renderViewport();
+    } else {
+      this.canvas = null;
+      this.ctx = null;
+      this.texture = createDeterministicPlaceholderTexture(assetSpec);
+    }
+  }
+
+  recomputeLayout() {
+    let cursorY = 0;
+    for (let i = 0; i < this.pages.length; i++) {
+      const page = this.pages[i];
+      page.topY = cursorY;
+      page.bottomY = cursorY + page.scaledHeight;
+      cursorY = page.bottomY + (i < this.pages.length - 1 ? this.dividerHeight : 0);
+    }
+    this.totalContentHeight = Math.max(this.bodyHeight, cursorY);
+    this.maxScrollY = Math.max(1, this.totalContentHeight - this.bodyHeight);
+  }
+
+  get scrollProgress() {
+    return Math.max(0.0, Math.min(1.0, this.scrollY / this.maxScrollY));
+  }
+
+  scrollByPixels(deltaY, immediate = false) {
+    this.targetScrollY = Math.max(0.0, Math.min(this.maxScrollY, this.targetScrollY + deltaY));
+    if (immediate) {
+      this.scrollY = this.targetScrollY;
+      this.renderViewport();
+    }
+    return this.targetScrollY;
+  }
+
+  scrollToProgress(progress, immediate = false) {
+    const clamped = Math.max(0.0, Math.min(1.0, Number(progress) || 0.0));
+    this.targetScrollY = clamped * this.maxScrollY;
+    if (immediate) {
+      this.scrollY = this.targetScrollY;
+      this.renderViewport();
+    }
+    return this.targetScrollY;
+  }
+
+  scrollPage(deltaPages = 1, immediate = false) {
+    const step = (this.bodyHeight - 96) * deltaPages;
+    return this.scrollByPixels(step, immediate);
+  }
+
+  update(dt = 1 / 60) {
+    if (Math.abs(this.targetScrollY - this.scrollY) > 0.25) {
+      const alpha = Math.min(1.0, Math.max(0.05, dt * 16.0));
+      this.scrollY += (this.targetScrollY - this.scrollY) * alpha;
+      if (Math.abs(this.targetScrollY - this.scrollY) <= 0.4) {
+        this.scrollY = this.targetScrollY;
+      }
+      this.renderViewport();
+      return true;
+    }
+    return false;
+  }
+
+  drawFallbackPage(ctx, page, drawX, drawY, drawW, drawH) {
+    ctx.fillStyle = '#081422';
+    ctx.fillRect(drawX, drawY, drawW, drawH);
+    ctx.strokeStyle = 'rgba(56, 189, 248, 0.35)';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(drawX + 12, drawY + 12, drawW - 24, drawH - 24);
+
+    ctx.fillStyle = '#e0f2fe';
+    ctx.font = 'bold 30px ui-monospace, SFMono-Regular, Menlo, monospace';
+    ctx.textAlign = 'left';
+    ctx.fillText(`BAYESIAN LINEAR GAUSSIAN SSM // PAGE 0${page.index} OF 0${this.pages.length}`, drawX + 48, drawY + 76);
+
+    ctx.fillStyle = '#38bdf8';
+    ctx.font = '600 22px ui-monospace, SFMono-Regular, Menlo, monospace';
+    ctx.fillText('LOADING HIGH-DPI LATEX WHITEPAPER TEXTURE...', drawX + 48, drawY + 128);
+  }
+
+  renderViewport() {
+    if (!this.ctx || !this.canvas) return;
+    const ctx = this.ctx;
+    const w = this.viewportWidth;
+    const h = this.viewportHeight;
+
+    ctx.clearRect(0, 0, w, h);
+
+    // 1. Deep holographic obsidian backing
+    ctx.fillStyle = '#07121e';
+    ctx.fillRect(0, 0, w, h);
+
+    // Determine active page at viewport center
+    const centerDocY = this.scrollY + this.bodyHeight * 0.45;
+    let activePageIdx = 1;
+    for (const p of this.pages) {
+      if (centerDocY >= p.topY) {
+        activePageIdx = p.index;
+      }
+    }
+    this.currentPage = activePageIdx;
+
+    // 2. Clipped Document Body Region (y = 84 .. 1492)
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, this.bodyTop, w - 52, this.bodyHeight);
+    ctx.clip();
+
+    for (let i = 0; i < this.pages.length; i++) {
+      const page = this.pages[i];
+      const screenTopY = this.bodyTop + (page.topY - this.scrollY);
+      const screenBottomY = screenTopY + page.scaledHeight;
+
+      if (screenBottomY >= this.bodyTop && screenTopY <= this.bodyTop + this.bodyHeight) {
+        if (page.loaded && page.image) {
+          ctx.drawImage(
+            page.image,
+            this.pageDrawX,
+            Math.round(screenTopY),
+            this.pageDrawWidth,
+            page.scaledHeight
+          );
+        } else {
+          this.drawFallbackPage(
+            ctx,
+            page,
+            this.pageDrawX,
+            Math.round(screenTopY),
+            this.pageDrawWidth,
+            page.scaledHeight
+          );
+        }
+
+        // Subtle luminous cyan page border
+        ctx.strokeStyle = 'rgba(56, 189, 248, 0.28)';
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(
+          this.pageDrawX,
+          Math.round(screenTopY),
+          this.pageDrawWidth,
+          page.scaledHeight
+        );
+      }
+
+      // Page-break divider bar between pages
+      if (i < this.pages.length - 1) {
+        const divTopY = screenBottomY;
+        if (divTopY + this.dividerHeight >= this.bodyTop && divTopY <= this.bodyTop + this.bodyHeight) {
+          ctx.fillStyle = 'rgba(6, 28, 46, 0.92)';
+          ctx.fillRect(this.pageDrawX, Math.round(divTopY), this.pageDrawWidth, this.dividerHeight);
+
+          ctx.strokeStyle = 'rgba(0, 213, 255, 0.48)';
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.moveTo(this.pageDrawX + 24, Math.round(divTopY + this.dividerHeight * 0.5));
+          ctx.lineTo(this.pageDrawX + this.pageDrawWidth - 24, Math.round(divTopY + this.dividerHeight * 0.5));
+          ctx.stroke();
+
+          ctx.fillStyle = '#07121e';
+          ctx.fillRect(this.pageDrawX + 410, Math.round(divTopY + 4), 300, this.dividerHeight - 8);
+          ctx.fillStyle = '#7dd3fc';
+          ctx.font = 'bold 15px ui-monospace, SFMono-Regular, Menlo, monospace';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(
+            `PAGE 0${page.index} END  //  PAGE 0${page.index + 1}`,
+            this.pageDrawX + this.pageDrawWidth * 0.5,
+            Math.round(divTopY + this.dividerHeight * 0.5)
+          );
+        }
+      }
+    }
+    ctx.restore();
+
+    // 3. Right-Edge Vertical Scrollbar Track (x = 1148 .. 1188, y = 94 .. 1482)
+    const trackX = 1152;
+    const trackW = 28;
+    const trackY = this.bodyTop + 12;
+    const trackH = this.bodyHeight - 24;
+
+    ctx.fillStyle = 'rgba(8, 36, 58, 0.85)';
+    ctx.strokeStyle = 'rgba(56, 189, 248, 0.58)';
+    ctx.lineWidth = 2;
+    ctx.fillRect(trackX, trackY, trackW, trackH);
+    ctx.strokeRect(trackX, trackY, trackW, trackH);
+
+    const visibleRatio = Math.min(1.0, this.bodyHeight / this.totalContentHeight);
+    const thumbH = Math.max(64, Math.round(trackH * visibleRatio));
+    const maxThumbTravel = Math.max(1, trackH - thumbH);
+    const thumbY = Math.round(trackY + this.scrollProgress * maxThumbTravel);
+
+    ctx.fillStyle = '#00d5ff';
+    ctx.fillRect(trackX + 3, thumbY, trackW - 6, thumbH);
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(trackX + 3, thumbY, trackW - 6, thumbH);
+
+    // 4. Top Holographic Document Header Bar (y = 0 .. 84)
+    ctx.fillStyle = 'rgba(5, 18, 32, 0.96)';
+    ctx.fillRect(0, 0, w, this.headerHeight);
+    ctx.strokeStyle = '#00d5ff';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(0, this.headerHeight);
+    ctx.lineTo(w, this.headerHeight);
+    ctx.stroke();
+
+    ctx.fillStyle = '#38bdf8';
+    ctx.font = 'bold 16px ui-monospace, SFMono-Regular, Menlo, monospace';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillText('HOLO-DOC // OBJ-01 WHITEPAPER COLUMN (3D SCROLLABLE)', 24, 30);
+
+    ctx.fillStyle = '#f0f9ff';
+    ctx.font = 'bold 23px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+    ctx.fillText('Bayesian Linear Gaussian State Space Model (SSM)', 24, 64);
+
+    // Top-Right Close / Back to Mount Button (x = 876 .. 1180, y = 16 .. 68)
+    const closeX = 876;
+    const closeY = 16;
+    const closeW = 304;
+    const closeH = 52;
+    ctx.fillStyle = 'rgba(185, 28, 28, 0.42)';
+    ctx.strokeStyle = '#f87171';
+    ctx.lineWidth = 2;
+    ctx.fillRect(closeX, closeY, closeW, closeH);
+    ctx.strokeRect(closeX, closeY, closeW, closeH);
+    ctx.fillStyle = '#fef2f2';
+    ctx.font = 'bold 17px ui-monospace, SFMono-Regular, Menlo, monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('✕ CLOSE / BACK (ESC)', closeX + closeW * 0.5, closeY + closeH * 0.5 + 1);
+
+    // 5. Bottom Holographic Navigation & Telemetry Footer Bar (y = 1492 .. 1560)
+    ctx.fillStyle = 'rgba(5, 18, 32, 0.96)';
+    ctx.fillRect(0, this.bodyTop + this.bodyHeight, w, this.footerHeight);
+    ctx.strokeStyle = 'rgba(0, 213, 255, 0.72)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(0, this.bodyTop + this.bodyHeight);
+    ctx.lineTo(w, this.bodyTop + this.bodyHeight);
+    ctx.stroke();
+
+    const pct = Math.round(this.scrollProgress * 100);
+    ctx.fillStyle = '#bae6fd';
+    ctx.font = 'bold 17px ui-monospace, SFMono-Regular, Menlo, monospace';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(
+      `PAGE 0${this.currentPage} OF 0${this.pages.length}  •  SCROLL: ${pct}%  •  WHEEL OR DRAG COLUMN`,
+      24,
+      this.bodyTop + this.bodyHeight + this.footerHeight * 0.5
+    );
+
+    // Footer Interactive Buttons: [ ▲ PG UP ]  [ ▼ PG DN ]  [ PDF ↗ ]
+    const btns = [
+      { label: '▲ PG UP', x: 642, w: 164 },
+      { label: '▼ PG DN', x: 818, w: 164 },
+      { label: 'PDF ↗', x: 994, w: 184 },
+    ];
+    const btnY = this.bodyTop + this.bodyHeight + 12;
+    const btnH = 44;
+    ctx.font = 'bold 16px ui-monospace, SFMono-Regular, Menlo, monospace';
+    ctx.textAlign = 'center';
+    for (const b of btns) {
+      ctx.fillStyle = 'rgba(8, 47, 73, 0.85)';
+      ctx.strokeStyle = '#38bdf8';
+      ctx.lineWidth = 1.8;
+      ctx.fillRect(b.x, btnY, b.w, btnH);
+      ctx.strokeRect(b.x, btnY, b.w, btnH);
+      ctx.fillStyle = '#e0f2fe';
+      ctx.fillText(b.label, b.x + b.w * 0.5, btnY + btnH * 0.5 + 1);
+    }
+
+    // Outer Hologram Column Frame
+    ctx.strokeStyle = '#00d5ff';
+    ctx.lineWidth = 4;
+    ctx.strokeRect(2, 2, w - 4, h - 4);
+
+    if (this.texture) {
+      this.texture.needsUpdate = true;
+    }
+  }
+
+  dispose() {
+    if (this.texture) {
+      this.texture.dispose();
+      this.texture = null;
+    }
+    this.canvas = null;
+    this.ctx = null;
+  }
+}
+
 export function createHoloMediaTextureController(assetSpec, options = {}) {
   const spec = resolveHoloMediaSpec(assetSpec.id || assetSpec);
   if (spec.mediaType === 'video') {
     return new HoloVideoStreamController(spec, options);
+  }
+  if (spec.mediaType === 'scrollable_document') {
+    return new HoloScrollableDocumentController(spec, options);
   }
   if (spec.mediaType === 'placeholder' || String(spec.repoPath || '').startsWith('procedural://')) {
     const texture = createProceduralSlideCardTexture(
@@ -2369,6 +2795,20 @@ export class HologramColumnInstance {
     this.videoController = this.textureController.type === 'video' || initialSlideSpec.mediaType === 'video'
       ? this.textureController
       : null;
+    this.isScrollableDocument =
+      this.textureController.type === 'scrollable_document' ||
+      initialSlideSpec.mediaType === 'scrollable_document';
+    this.allowDirectDrag = !this.isCarousel && !this.isScrollableDocument;
+    this.documentController = this.isScrollableDocument ? this.textureController : null;
+    this.docDragGesture = {
+      active: false,
+      startClientX: 0,
+      startClientY: 0,
+      lastClientY: 0,
+      maxTravelPx: 0,
+      startUvX: 0.5,
+      startUvY: 0.5,
+    };
 
     // Shader Materials
     this.primaryMaterial = createHologramColumnShaderMaterial(
@@ -3021,6 +3461,88 @@ export class HologramColumnInstance {
       this.videoController.resetFrameZero();
       this.params.playback.currentTimeSec = 0.0;
     }
+    if (this.documentController) {
+      this.documentController.scrollToProgress(0.0, true);
+    }
+  }
+
+  scrollDocumentByPixels(deltaY, immediate = false) {
+    if (!this.documentController) return 0.0;
+    return this.documentController.scrollByPixels(deltaY, immediate);
+  }
+
+  scrollDocumentToProgress(progress, immediate = false) {
+    if (!this.documentController) return 0.0;
+    return this.documentController.scrollToProgress(progress, immediate);
+  }
+
+  scrollDocumentPage(deltaPages = 1, immediate = false) {
+    if (!this.documentController) return 0.0;
+    this.triggerGlitchBurst({ intensity: 0.42, durationSec: 0.14 });
+    return this.documentController.scrollPage(deltaPages, immediate);
+  }
+
+  evaluateDocumentHitAction(hitUv) {
+    if (!hitUv || !this.documentController) return null;
+    const u = hitUv.x;
+    const v = hitUv.y;
+    // Top-Right Close / Back Button: canvas x in [876, 1180] (u in [0.73, 0.985]), y in [16, 68] (v in [0.95, 0.995])
+    if (u >= 0.72 && v >= 0.935) {
+      return 'close';
+    }
+    // Bottom Footer Buttons: y in [1492, 1560] (v <= 0.048)
+    if (v <= 0.052) {
+      if (u >= 0.52 && u <= 0.675) return 'page-up';
+      if (u > 0.675 && u <= 0.822) return 'page-down';
+      if (u > 0.822 && u <= 0.985) return 'open-pdf';
+    }
+    // Right-Edge Vertical Scrollbar Track: x >= 1144 (u >= 0.945), y in [96, 1480] (v in [0.052, 0.938])
+    if (u >= 0.945 && v > 0.052 && v < 0.938) {
+      const targetProgress = Math.max(0.0, Math.min(1.0, 1.0 - (v - 0.052) / (0.938 - 0.052)));
+      this.documentController.scrollToProgress(targetProgress, false);
+      return 'scrollbar-jump';
+    }
+    return null;
+  }
+
+  beginDocumentDrag(clientX, clientY, hitUv = null) {
+    if (!this.documentController) return false;
+    this.docDragGesture.active = true;
+    this.docDragGesture.startClientX = clientX;
+    this.docDragGesture.startClientY = clientY;
+    this.docDragGesture.lastClientY = clientY;
+    this.docDragGesture.maxTravelPx = 0.0;
+    this.docDragGesture.startUvX = hitUv ? hitUv.x : 0.5;
+    this.docDragGesture.startUvY = hitUv ? hitUv.y : 0.5;
+    return true;
+  }
+
+  updateDocumentDrag(clientX, clientY, viewportHeightPx = 800) {
+    if (!this.docDragGesture.active || !this.documentController) return 0.0;
+    const dy = clientY - this.docDragGesture.lastClientY;
+    this.docDragGesture.lastClientY = clientY;
+    const totalTravel = Math.hypot(
+      clientX - this.docDragGesture.startClientX,
+      clientY - this.docDragGesture.startClientY
+    );
+    if (totalTravel > this.docDragGesture.maxTravelPx) {
+      this.docDragGesture.maxTravelPx = totalTravel;
+    }
+    const scaleY = (this.documentController.bodyHeight * 1.45) / Math.max(240, viewportHeightPx * 0.72);
+    return this.documentController.scrollByPixels(-dy * scaleY, true);
+  }
+
+  endDocumentDrag(clientX, clientY) {
+    if (!this.docDragGesture.active || !this.documentController) return null;
+    this.docDragGesture.active = false;
+    const travel = this.docDragGesture.maxTravelPx;
+    if (travel <= 10.0) {
+      return this.evaluateDocumentHitAction({
+        x: this.docDragGesture.startUvX,
+        y: this.docDragGesture.startUvY,
+      });
+    }
+    return 'drag-scroll';
   }
 
   update(dt, timeSec, activeChar = null, camera = null) {
@@ -3084,6 +3606,10 @@ export class HologramColumnInstance {
       this.lifecycleState,
       this.manualBurstState.active ? this.manualBurstState : null
     );
+
+    if (this.documentController && typeof this.documentController.update === 'function') {
+      this.documentController.update(dt);
+    }
 
     if (this.videoController && typeof this.videoController.stepVideoClock === 'function') {
       const clockState = this.videoController.stepVideoClock(dt, glitch.frameStutterState);
@@ -3222,6 +3748,10 @@ export class HologramColumnInstance {
       index: this.index,
       mediaType: this.mediaType,
       isCarousel: this.isCarousel,
+      isScrollableDocument: Boolean(this.isScrollableDocument),
+      documentPage: this.documentController ? this.documentController.currentPage : null,
+      documentTotalPages: this.documentController ? this.documentController.pages.length : null,
+      documentScrollProgress: this.documentController ? Number(this.documentController.scrollProgress.toFixed(4)) : null,
       slideCount: this.slides.length,
       activeSlideIndex: this.activeSlideIndex,
       nextSlideIndex: this.nextSlideIndex,
@@ -3316,6 +3846,7 @@ export function buildHologramColumnsSystem(options = {}) {
   let selectedColumnId = columns[0] ? columns[0].id : 'holo_slide_carousel';
   let activeDragColumnId = null;
   let activeSwipeColumnId = null;
+  let hoveredColumnId = null;
   const dragPlane = new THREE.Plane();
   const dragGrabOffset = new THREE.Vector3();
   const tempPlaneNormal = new THREE.Vector3();
@@ -3323,8 +3854,16 @@ export function buildHologramColumnsSystem(options = {}) {
 
   function updateSelectionHighlights() {
     for (const col of columns) {
+      const isSelected = col.id === selectedColumnId;
+      const isDragging = activeDragColumnId === col.id;
+      const isHovered = Boolean(col.allowDirectDrag && hoveredColumnId === col.id);
+      if (typeof col.setSelectionHighlight === 'function') {
+        col.setSelectionHighlight(isSelected || isDragging || isHovered);
+      }
       if (col.selectionFrame) {
-        col.selectionFrame.visible = Boolean((editModeActive || activeDragColumnId) && col.id === selectedColumnId);
+        col.selectionFrame.visible = Boolean(
+          (editModeActive && isSelected) || isDragging || isHovered
+        );
       }
     }
   }
@@ -3406,6 +3945,20 @@ export function buildHologramColumnsSystem(options = {}) {
 
     get activeSwipeColumnId() {
       return activeSwipeColumnId;
+    },
+
+    get hoveredColumnId() {
+      return hoveredColumnId;
+    },
+
+    setHoveredColumn(idOrIndex) {
+      const col = idOrIndex ? columnsById[idOrIndex] : null;
+      const nextId = col ? col.id : null;
+      if (hoveredColumnId !== nextId) {
+        hoveredColumnId = nextId;
+        updateSelectionHighlights();
+      }
+      return hoveredColumnId;
     },
 
     beginSlideSwipe(idOrIndex, clientX, clientY, hitUv = null) {
@@ -3496,10 +4049,13 @@ export function buildHologramColumnsSystem(options = {}) {
 
       if (worldRay.intersectPlane(dragPlane, tempHitPoint)) {
         const nextX = THREE.MathUtils.clamp(tempHitPoint.x + dragGrabOffset.x, -3.5, 3.5);
-        const nextY = THREE.MathUtils.clamp(tempHitPoint.y + dragGrabOffset.y, floorY + 0.1, floorY + 5.5);
+        const nextY = THREE.MathUtils.clamp(tempHitPoint.y + dragGrabOffset.y, floorY + 0.1, floorY + 7.5);
         const nextZ = THREE.MathUtils.clamp(tempHitPoint.z + dragGrabOffset.z, -2.0, 56.0);
         col.rootGroup.position.set(nextX, nextY, nextZ);
         col.rootGroup.updateMatrixWorld(true);
+        if (typeof col.onTransformMutated === 'function') {
+          col.onTransformMutated();
+        }
       }
       return col;
     },
@@ -3508,6 +4064,9 @@ export function buildHologramColumnsSystem(options = {}) {
       if (!activeDragColumnId) return null;
       const col = this.getColumn(activeDragColumnId);
       activeDragColumnId = null;
+      if (col && typeof col.onTransformMutated === 'function') {
+        col.onTransformMutated();
+      }
       saveTransformsToStorage();
       updateSelectionHighlights();
       return col;
@@ -3645,6 +4204,10 @@ export function buildHologramColumnsSystem(options = {}) {
       }
       columnsById[customCol.id] = customCol;
       if (customCol.code) columnsById[customCol.code] = customCol;
+      if (customCol.index !== undefined) {
+        columnsById[String(customCol.index)] = customCol;
+        columnsById[customCol.index] = customCol;
+      }
       if (customCol.primaryMesh) {
         customCol.primaryMesh.userData.holoColumnId = customCol.id;
         if (!raycastTargets.includes(customCol.primaryMesh)) {
@@ -3665,7 +4228,18 @@ export function buildHologramColumnsSystem(options = {}) {
           if (raw) {
             const parsed = JSON.parse(raw);
             if (parsed && parsed[customCol.id]) {
-              customCol.setTransformState(parsed[customCol.id]);
+              const saved = parsed[customCol.id];
+              const isLegacyWaterColorDefault =
+                customCol.id === 'watercolor_gallery' &&
+                ((Math.abs((saved.z ?? 0) - 42.2) < 1e-2 && Math.abs((saved.scale ?? 1) - 1.0) < 1e-2) ||
+                  (Math.abs((saved.z ?? 0) - 42.786) < 1e-2 && Math.abs((saved.scale ?? 1) - 1.875) < 1e-2) ||
+                  (Math.abs((saved.z ?? 0) - 42.6182) < 1e-3 && Math.abs((saved.scale ?? 1) - 1.875) < 1e-2));
+              if (!isLegacyWaterColorDefault) {
+                customCol.setTransformState(saved);
+              } else {
+                parsed[customCol.id] = customCol.getTransformState();
+                window.localStorage.setItem(storageKey, JSON.stringify(parsed));
+              }
             }
           }
         } catch (_) {}
@@ -3691,12 +4265,12 @@ export function buildHologramColumnsSystem(options = {}) {
           if (col.selectionFrame) col.selectionFrame.visible = false;
           continue;
         }
-        if (col.rootGroup) col.rootGroup.visible = true;
+        const isActiveLifecycle = col.lifecycleState !== 'inactive';
+        if (col.rootGroup) col.rootGroup.visible = isActiveLifecycle;
         if (typeof col.update === 'function') {
           col.update(dt, timeSec, activeChar, camera);
         }
 
-        const isActiveLifecycle = col.lifecycleState !== 'inactive';
         const distZ = col.rootGroup ? Math.abs(col.rootGroup.position.z - centerZ) : 0;
         const shouldRenderMeshes =
           isActiveLifecycle && (forceAllVisible || editModeActive || distZ <= windowDistance || col.id === selectedColumnId);
@@ -3707,7 +4281,12 @@ export function buildHologramColumnsSystem(options = {}) {
           col.auraMesh.visible = shouldRenderMeshes;
         }
         if (col.selectionFrame) {
-          col.selectionFrame.visible = Boolean(editModeActive && col.id === selectedColumnId && shouldRenderMeshes);
+          const isSelected = col.id === selectedColumnId;
+          const isDragging = activeDragColumnId === col.id;
+          const isHovered = Boolean(col.allowDirectDrag && hoveredColumnId === col.id);
+          col.selectionFrame.visible = Boolean(
+            ((editModeActive && isSelected) || isDragging || isHovered) && shouldRenderMeshes
+          );
         }
       }
     },

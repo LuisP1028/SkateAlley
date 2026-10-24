@@ -401,7 +401,15 @@ async function main() {
   };
 
   const charPicker = document.getElementById('char');
-  const selectedChar = params.get('char') || 'platodoom';
+  const rawChar = (params.get('char') || '').trim().toLowerCase();
+  const validChars = pack.characters ? Object.keys(pack.characters) : ['luis', 'luis_holo'];
+  const selectedChar = validChars.includes(rawChar) ? rawChar : 'luis';
+  if (rawChar && rawChar !== selectedChar && typeof history !== 'undefined' && history.replaceState) {
+    const cleanUrl = new URL(location.href);
+    cleanUrl.searchParams.set('char', selectedChar);
+    history.replaceState(null, '', cleanUrl.toString());
+  }
+  globalThis.SKATE_ACTIVE_CHAR = selectedChar;
   if (charPicker) {
     charPicker.value = selectedChar;
     charPicker.onchange = () => {
@@ -416,7 +424,7 @@ async function main() {
     parts: pack.core.parts,
     hash: pack.core.hash
   };
-  const coreParts = activeChar.parts || [activeChar.pack || 'core.pack'];
+  const coreParts = activeChar.parts || [activeChar.pack || 'core_luis.pack'];
   const coreSize = activeChar.size;
   const coreHash = activeChar.hash;
 
