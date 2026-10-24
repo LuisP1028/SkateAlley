@@ -1,147 +1,3 @@
-// Translations
-const translations = {
-    en: {
-        title: "Vice City by DOS Zone Team",
-        enterKey: "Save Manager",
-        cloudSaves: "Cloud saves:",
-        enabled: "enabled",
-        disabled: "disabled",
-        fetching: "fetching...",
-         clickToPlay: "Click to play",
-        gameLang: "LANGUAGE:",
-        cheats: "CHEATS (F3):",
-        downloading: "DOWNLOADING...",
-        StructuredCredits: "PROJECT CREDITS",
-        originalEngine: "ORIGINAL ENGINE",
-        revcTeam: "Reverse Engineered by the reVC Team",
-        webPort: "WEB PORT",
-        portedBy: "Ported by",
-        developers: "DEVELOPERS",
-        clickToContinue: "Click to continue...",
-        loading: "Loading...",
-        initEngine: "Initializing engine...",
-        startingGame: "Starting game...",
-        loadingSaves: "Loading saves...",
-        loadingData: "Loading game data...",
-        confirmOwnership: "Select any file from original game to confirm ownership",
-        confirmOwnershipAlert: "Please select any file from original GTA Vice City game to confirm ownership",
-        corruptedFileAlert: "Selected file does not match original game files, maybe corrupted or unsupported version",
-        demoOffDisclaimer: "Since the project attracted massive attention from gaming media, there is a high risk of receiving a claim from Take-Two. Wait for further updates in our social networks.",
-        controls: "CONTROLS",
-        controlsTitle: "CONTROLS",
-        tabOnFoot: "ON FOOT",
-        tabVehicle: "VEHICLE",
-        tabGeneral: "GENERAL",
-        ctrlMove: "Move",
-        ctrlSprint: "Sprint",
-        ctrlJump: "Jump",
-        ctrlCrouch: "Crouch",
-        ctrlAttack: "Attack / Fire",
-        ctrlAim: "Aim / Target",
-        ctrlEnterVehicle: "Enter Vehicle",
-        ctrlNextWeapon: "Next Weapon",
-        ctrlPrevWeapon: "Prev Weapon",
-        ctrlLookBehind: "Look Behind",
-        ctrlZoomIn: "Sniper Zoom In",
-        ctrlZoomOut: "Sniper Zoom Out",
-        ctrlAccelerate: "Accelerate",
-        ctrlBrake: "Brake / Reverse",
-        ctrlSteer: "Steer",
-        ctrlHandbrake: "Handbrake",
-        ctrlExitVehicle: "Exit Vehicle",
-        ctrlHorn: "Horn / Siren",
-        ctrlRadio: "Change Radio",
-        ctrlSubMission: "Sub-mission",
-        ctrlLookLeft: "Look Left",
-        ctrlLookRight: "Look Right",
-        ctrlLookBack: "Look Back",
-        ctrlTurret: "Turret / Dodo",
-        ctrlCamera: "Change Camera",
-        ctrlPause: "Pause Menu",
-        ctrlRadar: "Radar Mode",
-        mobileWarning: "WARNING: Mobile devices are not officially supported! The game may crash due to memory limits (especially on iOS). Play at your own risk.",
-        manageSaves: "SAVE MANAGER",
-        saveManagerTitle: "SAVE MANAGER",
-        saveManagerDesc: "Export all your saves and settings into a single archive, or import a previously saved archive.",
-        exportSaves: "EXPORT",
-        importSaves: "IMPORT",
-        exportSuccess: "Saves exported successfully!",
-        importSuccess: "Saves imported successfully!",
-        noSavesFound: "No saves found to export!",
-        errorReadingFile: "Error reading archive!"
-    },
-    ru: {
-        title: "Vice City от команды DOS Zone",
-        enterKey: "Менеджер сохранений",
-        cloudSaves: "Облачные сохранения:",
-        enabled: "включены",
-        disabled: "выключены",
-        fetching: "загрузка...",
-        clickToPlay: "Нажмите чтобы играть",
-        gameLang: "ЯЗЫК:",
-        cheats: "ЧИТЫ (F3):",
-        downloading: "ЗАГРУЗКА...",
-        StructuredCredits: "СОЗДАТЕЛИ ПРОЕКТА",
-        originalEngine: "ОРИГИНАЛЬНЫЙ ДВИЖОК",
-        revcTeam: "Реверс-инжиниринг: команда reVC",
-        webPort: "ВЕБ-ПОРТ",
-        portedBy: "Портировано",
-        developers: "РАЗРАБОТЧИКИ",
-        clickToContinue: "Нажмите для продолжения...",
-        loading: "Загрузка...",
-        initEngine: "Инициализация движка...",
-        startingGame: "Запуск игры...",
-        loadingSaves: "Загрузка сохранений...",
-        loadingData: "Загрузка данных игры...",
-        confirmOwnership: "Выберите любой файл из оригинальной игры для подтверждения владения",
-        confirmOwnershipAlert: "Пожалуйста, выберите любой файл из оригинальной игры GTA Vice City для подтверждения владения",
-        corruptedFileAlert: "Выбранный файл не соответствует оригинальным файлам игры, возможно поврежден или неподдерживаемая версия",
-        demoOffDisclaimer: "Так как проект привлек огромное внимание игровых СМИ, существует высокий риск получения претензии от Take-Two. Следите за дальнейшими обновлениями в наших социальных сетях.",
-        controls: "УПРАВЛЕНИЕ",
-        controlsTitle: "УПРАВЛЕНИЕ",
-        tabOnFoot: "ПЕШКОМ",
-        tabVehicle: "ТРАНСПОРТ",
-        tabGeneral: "ОБЩИЕ",
-        ctrlMove: "Движение",
-        ctrlSprint: "Бег",
-        ctrlJump: "Прыжок",
-        ctrlCrouch: "Присесть",
-        ctrlAttack: "Атака / Огонь",
-        ctrlAim: "Прицел",
-        ctrlEnterVehicle: "Сесть в машину",
-        ctrlNextWeapon: "След. оружие",
-        ctrlPrevWeapon: "Пред. оружие",
-        ctrlLookBehind: "Оглянуться",
-        ctrlZoomIn: "Приблизить (снайп.)",
-        ctrlZoomOut: "Отдалить (снайп.)",
-        ctrlAccelerate: "Газ",
-        ctrlBrake: "Тормоз / Назад",
-        ctrlSteer: "Руль",
-        ctrlHandbrake: "Ручник",
-        ctrlExitVehicle: "Выйти из машины",
-        ctrlHorn: "Сигнал / Сирена",
-        ctrlRadio: "Сменить радио",
-        ctrlSubMission: "Миссия (такси и т.д.)",
-        ctrlLookLeft: "Смотреть влево",
-        ctrlLookRight: "Смотреть вправо",
-        ctrlLookBack: "Смотреть назад",
-        ctrlTurret: "Башня / Додо",
-        ctrlCamera: "Сменить камеру",
-        ctrlPause: "Пауза",
-        ctrlRadar: "Режим радара",
-        mobileWarning: "ВНИМАНИЕ: Мобильные устройства официально не поддерживаются! Игра может вылетать из-за нехватки памяти (особенно на iOS). Играйте на свой страх и риск.",
-        manageSaves: "МЕНЕДЖЕР СОХРАНЕНИЙ",
-        saveManagerTitle: "МЕНЕДЖЕР СОХРАНЕНИЙ",
-        saveManagerDesc: "Экспортируйте все ваши сохранения и настройки в один архив или импортируйте ранее сохраненный архив.",
-        exportSaves: "ЭКСПОРТ",
-        importSaves: "ИМПОРТ",
-        exportSuccess: "Сохранения успешно экспортированы!",
-        importSuccess: "Сохранения успешно импортированы!",
-        noSavesFound: "Сохранения для экспорта не найдены!",
-        errorReadingFile: "Ошибка чтения архива!"
-    }
-};
-
 window.__REVCDOS_STATUS__ = {
     haveOriginalGame: false,
     dataLoadedBytes: 0,
@@ -154,588 +10,340 @@ window.__REVCDOS_STATUS__ = {
     cacheHit: false,
 };
 
-const params = new URLSearchParams(window.location.search);
-let currentLang = params.get('lang') ?? ((navigator.language || navigator.userLanguage).startsWith('ru') ? 'ru' : 'en');
-let currentLanguage = currentLang;
-let gameLang = currentLang;
-let maxFPS = Number(params.get('max_fps') || 0);
-
-let resolvePreloadedPackage = null;
-const preloadedPackagePromise = new Promise((resolve) => {
-    resolvePreloadedPackage = resolve;
-});
-
-function t(key) {
-    return translations[currentLang][key] || translations['en'][key] || key;
-}
-
-const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-const isTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
-const isMobileDevice = isMobile || isTouch;
-
-function setLanguage(lang) {
-    currentLang = lang;
-    currentLanguage = lang;
-    gameLang = lang;
-    localStorage.setItem('vcsky.lang', lang);
-
-    const btnEn = document.getElementById('btn-en');
-    const btnRu = document.getElementById('btn-ru');
-    if (btnEn) btnEn.classList.toggle('active', lang === 'en');
-    if (btnRu) btnRu.classList.toggle('active', lang === 'ru');
-
-    const gameLangSelect = document.getElementById('game-lang');
-    if (gameLangSelect) gameLangSelect.value = lang;
-
-    updateTranslations();
-}
-
-const demoOff = true;
-const requestOriginalGame = params.get('request_original_game') === '1';
-if (requestOriginalGame) {
-    localStorage.removeItem('vcsky.haveOriginalGame');
-} else {
-    localStorage.setItem('vcsky.haveOriginalGame', 'true');
-}
-let haveOriginalGame = localStorage.getItem('vcsky.haveOriginalGame') === 'true';
-window.__REVCDOS_STATUS__.haveOriginalGame = haveOriginalGame;
-
-const cheatsEnabled = params.get('cheats') !== '0';
-
-function ownerShipConfirmed() {
-    haveOriginalGame = true;
-    localStorage.setItem('vcsky.haveOriginalGame', 'true');
-    window.__REVCDOS_STATUS__.haveOriginalGame = true;
-
-    const clickToPlayButton = document.getElementById('click-to-play-button');
-    if (clickToPlayButton) {
-        clickToPlayButton.textContent = t('clickToPlay');
-        clickToPlayButton.classList.remove('disabled');
-    }
-    const disclaimer = document.getElementById('demo-off-disclaimer');
-    if (disclaimer) {
-        disclaimer.textContent = '';
-        disclaimer.style.display = 'none';
-    }
-}
-
-function updateTranslations() {
-    document.querySelectorAll('[data-i18n]').forEach(el => {
-        const key = el.getAttribute('data-i18n');
-        if (key === 'cloudSavesDisabled') {
-            return;
-        }
-        el.textContent = t(key);
-    });
-
-    const followEl = document.getElementById('follow');
-    if (followEl) {
-        followEl.textContent = t('title');
-    }
-    if (typeof updateKeyStatus === 'function') {
-        updateKeyStatus();
-    }
-
-    const disclaimer = document.getElementById('demo-off-disclaimer');
-    const clickToPlayButton = document.getElementById('click-to-play-button');
-    if (haveOriginalGame) {
-        ownerShipConfirmed();
-    } else if (clickToPlayButton && disclaimer) {
-        if (demoOff) {
-            clickToPlayButton.textContent = t('confirmOwnership');
-            disclaimer.textContent = t('demoOffDisclaimer');
-            disclaimer.style.display = 'block';
-        } else {
-            clickToPlayButton.classList.add('disabled');
-            disclaimer.textContent = t('confirmOwnership');
-            disclaimer.style.display = 'block';
-        }
-    }
-}
-
-function openControlsModal(e) {
-    if (e) e.stopPropagation();
-    const modal = document.getElementById('controls-modal');
-    if (modal) modal.classList.add('visible');
-}
-
-function closeControlsModal(e) {
-    if (e) e.stopPropagation();
-    const modal = document.getElementById('controls-modal');
-    if (modal) modal.classList.remove('visible');
-}
-
-function switchControlsTab(tab) {
-    document.querySelectorAll('.controls-tab').forEach(btn => {
-        btn.classList.remove('active');
-    });
-    document.querySelectorAll('.controls-section').forEach(sec => {
-        sec.classList.remove('active');
-    });
-    if (typeof event !== 'undefined' && event && event.target) {
-        event.target.classList.add('active');
-    }
-    const sec = document.getElementById('controls-' + tab);
-    if (sec) sec.classList.add('active');
-}
-
-document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') {
-        const controlsModal = document.getElementById('controls-modal');
-        if (controlsModal && controlsModal.classList.contains('visible')) {
-            closeControlsModal();
-        }
-        const saveModal = document.getElementById('save-modal');
-        if (saveModal && saveModal.classList.contains('visible')) {
-            closeSaveModal();
-        }
-    }
-});
-
-// Save Manager Functions
-function openSaveModal(e) {
-    if (e) e.stopPropagation();
-    const statusEl = document.getElementById('save-manager-status');
-    if (statusEl) statusEl.textContent = '';
-    const modal = document.getElementById('save-modal');
-    if (modal) modal.classList.add('visible');
-}
-
-function closeSaveModal(e) {
-    if (e) e.stopPropagation();
-    const modal = document.getElementById('save-modal');
-    if (modal) modal.classList.remove('visible');
-}
-
-const SAVE_DB_NAME = "emscripten_filesystem";
-const SAVE_STORE_NAME = "FILES";
-
-function openSaveDB() {
-    return new Promise((resolve, reject) => {
-        const req = indexedDB.open(SAVE_DB_NAME);
-        req.onsuccess = (e) => resolve(e.target.result);
-        req.onerror = (e) => reject(e.target.error);
-    });
-}
-
-function arrayBufferToBase64(buffer) {
-    let binary = '';
-    const bytes = new Uint8Array(buffer);
-    const len = bytes.byteLength;
-    for (let i = 0; i < len; i++) {
-        binary += String.fromCharCode(bytes[i]);
-    }
-    return window.btoa(binary);
-}
-
-function base64ToUint8Array(base64) {
-    const binary_string = window.atob(base64);
-    const len = binary_string.length;
-    const bytes = new Uint8Array(len);
-    for (let i = 0; i < len; i++) {
-        bytes[i] = binary_string.charCodeAt(i);
-    }
-    return bytes;
-}
-
-async function exportSaves() {
-    const statusEl = document.getElementById('save-manager-status');
-    try {
-        const db = await openSaveDB();
-        if (!db.objectStoreNames.contains(SAVE_STORE_NAME)) {
-            statusEl.style.color = '#ff0055';
-            statusEl.textContent = t('noSavesFound');
-            db.close();
-            return;
-        }
-        const tx = db.transaction([SAVE_STORE_NAME], "readonly");
-        const store = tx.objectStore(SAVE_STORE_NAME);
-
-        const keysReq = store.getAllKeys();
-        const valsReq = store.getAll();
-
-        keysReq.onsuccess = () => {
-            valsReq.onsuccess = () => {
-                const keys = keysReq.result;
-                const vals = valsReq.result;
-
-                const exportData = {};
-                let count = 0;
-                for (let i = 0; i < keys.length; i++) {
-                    const k = keys[i];
-                    if (typeof k === 'string' && k.startsWith('/vc-assets/local/userfiles/')) {
-                        const fileData = vals[i];
-                        if (fileData instanceof Uint8Array || fileData instanceof ArrayBuffer) {
-                            exportData[k] = arrayBufferToBase64(fileData);
-                            count++;
-                        } else if (fileData && fileData.contents) {
-                            exportData[k] = arrayBufferToBase64(fileData.contents);
-                            count++;
-                        }
-                    }
+if (typeof Element !== "undefined" && Element.prototype) {
+    const origRequestPointerLock = Element.prototype.requestPointerLock;
+    if (typeof origRequestPointerLock === "function") {
+        Element.prototype.requestPointerLock = function (...args) {
+            try {
+                const res = origRequestPointerLock.apply(this, args);
+                if (res && typeof res.catch === "function") {
+                    return res.catch(() => {});
                 }
-
-                db.close();
-
-                if (count === 0) {
-                    statusEl.style.color = '#ff0055';
-                    statusEl.textContent = t('noSavesFound');
-                    return;
-                }
-
-                const jsonStr = JSON.stringify(exportData);
-                const blob = new Blob([jsonStr], { type: "application/json" });
-                const url = URL.createObjectURL(blob);
-
-                const a = document.createElement('a');
-                a.href = url;
-                const date = new Date().toISOString().slice(0, 10);
-                a.download = `vc_saves_${date}.save`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-
-                statusEl.style.color = '#00ff66';
-                statusEl.textContent = t('exportSuccess');
-            };
-        };
-    } catch (err) {
-        console.error(err);
-        statusEl.style.color = '#ff0055';
-        statusEl.textContent = t('noSavesFound');
-    }
-}
-
-async function importSaves(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-    const statusEl = document.getElementById('save-manager-status');
-
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-        try {
-            const data = JSON.parse(e.target.result);
-            const db = await openSaveDB();
-
-            const tx = db.transaction([SAVE_STORE_NAME], "readwrite");
-            const store = tx.objectStore(SAVE_STORE_NAME);
-
-            for (const key of Object.keys(data)) {
-                if (key.startsWith('/vc-assets/local/userfiles/')) {
-                    const bytes = base64ToUint8Array(data[key]);
-                    store.put(bytes, key);
-                }
+                return res;
+            } catch (_) {
+                return Promise.resolve();
             }
-
-            tx.oncomplete = () => {
-                db.close();
-                statusEl.style.color = '#00ff66';
-                statusEl.textContent = t('importSuccess');
-                event.target.value = '';
-            };
-
-            tx.onerror = () => {
-                db.close();
-                statusEl.style.color = '#ff0055';
-                statusEl.textContent = t('errorReadingFile');
-            };
-        } catch (err) {
-            console.error(err);
-            statusEl.style.color = '#ff0055';
-            statusEl.textContent = t('errorReadingFile');
-        }
-    };
-    reader.readAsText(file);
+        };
+    }
+    const origRequestFullscreen = Element.prototype.requestFullscreen;
+    if (typeof origRequestFullscreen === "function") {
+        Element.prototype.requestFullscreen = function (...args) {
+            try {
+                const res = origRequestFullscreen.apply(this, args);
+                if (res && typeof res.catch === "function") {
+                    return res.catch(() => {});
+                }
+                return res;
+            } catch (_) {
+                return Promise.resolve();
+            }
+        };
+    }
 }
 
+const cloudSavesStatus = document.getElementById('cloud-saves-status');
+var statusElement = document.getElementById("status");
+var progressElement = document.getElementById("progress");
+var spinnerElement = document.getElementById('spinner');
+var data_content;
+var wasm_content;
+
+const params = new URLSearchParams(window.location.search);
+
+// Base URLs & expected payload metrics
 const replaceBR = "vcbr/";
 const EXPECTED_EN_DATA_SIZE = 135355111;
 const EXPECTED_EN_WASM_SIZE = 7625877;
+const CACHE_NAME = "revcdos-pack-v1";
 const dataSize = EXPECTED_EN_DATA_SIZE;
-const PACK_CACHE_NAME = "revcdos-pack-v1";
-const PACK_CACHE_KEY = "vcbr/vc-sky-en-v6.data";
 
-let streamingBasePrefix = "";
+let resolvedTunnelOrigin = "";
+(function initTunnelParam() {
+    const srv = params.get("server") || params.get("backend_url");
+    if (srv && /^https?:\/\//i.test(srv.trim())) {
+        resolvedTunnelOrigin = srv.trim().replace(/\/+$/, "");
+    }
+})();
 
-function replaceFetch(url) {
-    let normalized = String(url || "");
-    if (normalized.startsWith("https://") || normalized.startsWith("http://")) {
-        try {
-            const parsed = new URL(normalized);
-            normalized = parsed.pathname.replace(/^\/+/, "");
-        } catch (_) {
-            normalized = normalized.replace(/^https?:\/\/[^/]+\/+/, "");
+async function resolveTunnelOriginFromConfig() {
+    if (resolvedTunnelOrigin) return resolvedTunnelOrigin;
+    try {
+        const resp = await fetch("../tunnel.json", { cache: "no-store" });
+        if (resp.ok) {
+            const cfg = await resp.json();
+            const candidate = cfg.url || cfg.public_https_url || cfg.backend_url || "";
+            if (typeof candidate === "string" && /^https?:\/\//i.test(candidate.trim())) {
+                resolvedTunnelOrigin = candidate.trim().replace(/\/+$/, "");
+                return resolvedTunnelOrigin;
+            }
         }
+    } catch (_) {}
+    return "";
+}
+
+function replaceFetch(str) {
+    const raw = String(str || "");
+    const qIdx = raw.indexOf("?");
+    const pathPart = qIdx === -1 ? raw : raw.slice(0, qIdx);
+    const queryPart = qIdx === -1 ? "" : raw.slice(qIdx);
+
+    const basePrefix = resolvedTunnelOrigin ? `${resolvedTunnelOrigin}/revcdos/vcsky/` : "vcsky/";
+
+    const m = pathPart.match(/^(?:https?:\/\/[^/]+\/)?\/?(?:revcdos\/)?vcsky\/(.*)$/i);
+    if (m) {
+        return basePrefix + m[1].toLowerCase() + queryPart;
     }
-    if (normalized.startsWith("/")) {
-        normalized = normalized.replace(/^\/+/, "");
+    const idx = pathPart.toLowerCase().indexOf("vcsky/");
+    if (idx !== -1) {
+        return basePrefix + pathPart.slice(idx + "vcsky/".length).toLowerCase() + queryPart;
     }
-    const vcskyIdx = normalized.toLowerCase().indexOf("vcsky/");
-    if (vcskyIdx !== -1) {
-        const relAfterVcsky = normalized.slice(vcskyIdx + "vcsky/".length).toLowerCase();
-        return (streamingBasePrefix ? streamingBasePrefix + "vcsky/" : "vcsky/") + relAfterVcsky;
-    }
-    return normalized.toLowerCase();
+    return pathPart.toLowerCase() + queryPart;
 }
 window.replaceFetch = replaceFetch;
 
-// Key handling with localStorage
-const KEY_STORAGE_KEY = 'vcsky.key';
-const keyInput = document.getElementById('key-input');
-const keyStatus = document.getElementById('key-status');
-const cloudSavesStatus = document.getElementById('cloud-saves-status');
-let currentKey = localStorage.getItem(KEY_STORAGE_KEY) ?? '';
-let resolvedKey = null;
-let keyValidationTimeout = null;
-
-function updateKeyStatus() {
-    if (!keyStatus || !cloudSavesStatus) return;
-    keyStatus.classList.remove('valid', 'invalid');
-    if (resolvedKey !== null && currentKey.length === 5) {
-        if (resolvedKey) {
-            keyStatus.classList.add('valid');
-            cloudSavesStatus.textContent = t('cloudSaves') + ' ' + t('enabled');
-            cloudSavesStatus.style.color = '#28a745';
-        } else {
-            keyStatus.classList.add('invalid');
-            cloudSavesStatus.textContent = t('cloudSaves') + ' ' + t('disabled');
-            cloudSavesStatus.style.color = '#aaa';
+// Wrap #canvas getContext so WebGL2/WebGL contexts preserve their drawing buffer for frame inspection
+(function wrapCanvasWebGLContext() {
+    const canvas = document.getElementById("canvas");
+    if (!canvas || canvas.__revcdosWrapped) return;
+    const origGetContext = canvas.getContext.bind(canvas);
+    canvas.getContext = function (type, attrs) {
+        if (type === "webgl2" || type === "webgl" || type === "experimental-webgl") {
+            attrs = Object.assign({}, attrs || {}, { preserveDrawingBuffer: true });
         }
-    } else if (currentKey.length > 0 && currentKey.length < 5) {
-        keyStatus.classList.add('invalid');
-        cloudSavesStatus.textContent = t('cloudSaves') + ' ' + t('disabled');
-        cloudSavesStatus.style.color = '#aaa';
-    } else {
-        cloudSavesStatus.textContent = t('cloudSaves') + ' ' + t('disabled');
-        cloudSavesStatus.style.color = '#aaa';
-    }
-}
-
-async function validateKey(key) {
-    if (key.length !== 5) {
-        resolvedKey = null;
-        updateKeyStatus();
-        return;
-    }
-
-    if (cloudSavesStatus) {
-        cloudSavesStatus.textContent = t('cloudSaves') + ' ' + t('fetching');
-        cloudSavesStatus.style.color = '#aaa';
-    }
-    const result = await CloudSDK.resolveToken(key);
-    if (currentKey === key) {
-        resolvedKey = result?.ey ?? false;
-        updateKeyStatus();
-    }
-}
-
-if (keyInput) {
-    keyInput.value = currentKey;
-    if (currentKey.length === 5) {
-        validateKey(currentKey);
-    } else {
-        updateKeyStatus();
-    }
-
-    keyInput.addEventListener('input', (e) => {
-        currentKey = e.target.value;
-        resolvedKey = null;
-        localStorage.setItem(KEY_STORAGE_KEY, currentKey);
-
-        if (keyValidationTimeout) {
-            clearTimeout(keyValidationTimeout);
-        }
-
-        if (currentKey.length === 5) {
-            keyValidationTimeout = setTimeout(() => {
-                validateKey(currentKey);
-            }, 300);
-        } else {
-            updateKeyStatus();
-        }
-    });
-
-    keyInput.addEventListener('click', (e) => {
-        e.stopPropagation();
-    });
-}
-
-const followLink = document.getElementById('follow');
-if (followLink) {
-    followLink.addEventListener('click', (e) => {
-        e.stopPropagation();
-    });
-}
-
-let autoContinueTimer = null;
-
-function startGame(e) {
-    if (e) e.stopPropagation();
-
-    const clickToPlay = document.querySelector('.click-to-play');
-    const clickToPlayButton = document.getElementById('click-to-play-button');
-    const keyContainer = document.querySelector('.key-container');
-    const configPanel = document.getElementById('config-panel');
-    const btnControls = document.querySelectorAll('.btn-controls');
-
-    if (keyContainer) {
-        keyContainer.style.display = 'none';
-    }
-    if (configPanel) {
-        configPanel.style.display = 'none';
-    }
-    btnControls.forEach(b => { b.style.display = 'none'; });
-
-    let gameStarted = false;
-    const startGameNow = () => {
-        if (gameStarted) return;
-        gameStarted = true;
-        if (autoContinueTimer) {
-            clearTimeout(autoContinueTimer);
-            autoContinueTimer = null;
-        }
-        window.removeEventListener('click', startGameNow);
-        const video = document.querySelector('.intro');
-        if (video) {
-            try { video.pause(); } catch (_) {}
-            video.style.display = 'none';
-        }
-        if (clickToPlayButton) clickToPlayButton.style.display = 'none';
-        const progressContainer = document.getElementById('progress-container');
-        if (progressContainer) progressContainer.style.display = 'flex';
-        loadData();
+        return origGetContext(type, attrs);
     };
+    canvas.__revcdosWrapped = true;
+})();
 
-    if (clickToPlayButton) {
-        clickToPlayButton.textContent = t('clickToContinue');
+// Unlock Web Audio contexts on user gesture
+(function setupWebAudioUnlock() {
+    const activeAudioContexts = [];
+    const OrigAudioContext = window.AudioContext || window.webkitAudioContext;
+    if (OrigAudioContext && !OrigAudioContext.__revcdosWrapped) {
+        const WrappedAudioContext = function (...args) {
+            const ctx = new OrigAudioContext(...args);
+            activeAudioContexts.push(ctx);
+            return ctx;
+        };
+        WrappedAudioContext.prototype = OrigAudioContext.prototype;
+        Object.setPrototypeOf(WrappedAudioContext, OrigAudioContext);
+        WrappedAudioContext.__revcdosWrapped = true;
+        window.AudioContext = WrappedAudioContext;
+        if (window.webkitAudioContext) window.webkitAudioContext = WrappedAudioContext;
     }
-    const creditsEl = document.querySelector('.credits');
-    if (creditsEl) creditsEl.style.display = 'none';
-    const coverEl = document.querySelector('.cover');
-    if (coverEl) coverEl.style.display = 'none';
-
-    const video = document.querySelector('.intro');
-    if (video) {
-        try {
-            const playPromise = video.play();
-            if (playPromise && typeof playPromise.catch === 'function') {
-                playPromise.catch(() => {});
+    const resumeAllAudio = () => {
+        for (const ctx of activeAudioContexts) {
+            if (ctx && ctx.state === "suspended" && typeof ctx.resume === "function") {
+                try { ctx.resume().catch(() => {}); } catch (_) {}
             }
-        } catch (_) {}
-    }
-
-    if (clickToPlay) {
-        clickToPlay.style.justifyContent = 'end';
-    }
-    const buttonContainer = document.querySelector('.button-container');
-    if (buttonContainer) {
-        buttonContainer.style.background = 'none';
-        buttonContainer.style.border = 'none';
-        buttonContainer.style.boxShadow = 'none';
-    }
-    const mobileWarning = document.querySelector('.mobile-warning');
-    if (mobileWarning) {
-        mobileWarning.style.display = 'none';
-    }
-
-    setTimeout(() => {
-        window.addEventListener('click', startGameNow);
-    }, 100);
-
-    // Bounded auto-continuation so clicking "Click to play" (or ?autostart=1) enters gameplay deterministically
-    autoContinueTimer = setTimeout(() => {
-        startGameNow();
-    }, 1200);
-}
-
-const clickToPlayBtn = document.getElementById('click-to-play-button');
-if (clickToPlayBtn) {
-    clickToPlayBtn.addEventListener('click', async (e) => {
-        e.stopPropagation();
-        if (haveOriginalGame) {
-            startGame(e);
-        } else if (demoOff) {
-            let sha256sums = localStorage.getItem('vcsky.sha256sums');
-            if (!sha256sums) {
-                const response = await fetch(replaceFetch('vcsky/sha256sums.txt'));
-                sha256sums = await response.text();
-                localStorage.setItem('vcsky.sha256sums', sha256sums);
-            }
-            const fileInput = document.getElementById('original-game-file');
-            fileInput.onchange = (evt) => {
-                const file = evt.target.files[0];
-                if (file) {
-                    const reader = new FileReader();
-                    reader.onload = async function (event) {
-                        const arrayBuffer = event.target.result;
-                        const hashBuffer = await crypto.subtle.digest('SHA-256', arrayBuffer);
-                        const hashArray = Array.from(new Uint8Array(hashBuffer));
-                        const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('').toLowerCase();
-                        if (sha256sums.indexOf(hashHex) !== -1) {
-                            ownerShipConfirmed();
-                            startGame(e);
-                        } else {
-                            alert(t('corruptedFileAlert'));
-                        }
-                    };
-                    reader.readAsArrayBuffer(file);
-                } else {
-                    alert(t('confirmOwnershipAlert'));
-                }
-            };
-            fileInput.click();
         }
+    };
+    ["pointerdown", "click", "keydown", "touchend"].forEach((evt) => {
+        window.addEventListener(evt, resumeAllAudio, { passive: true });
     });
+})();
+
+// Configurable mode - show settings UI before play
+const configurableMode = params.get('configurable') === "1";
+
+// Settings that can be configured via URL or UI
+var autoFullScreen = params.get('fullscreen') !== "0";
+var cheatsEnabled = params.get('cheats') !== "0";
+var maxFPS = parseInt(params.get('max_fps')) || 0;
+
+// Pre-enabled full-game mode (unless ?request_original_game=1)
+if (params.get('request_original_game') === "1") {
+    try {
+        localStorage.removeItem('vcsky.haveOriginalGame');
+    } catch (e) {}
+} else {
+    try {
+        localStorage.setItem('vcsky.haveOriginalGame', 'true');
+    } catch (e) {}
 }
 
-var statusElement = document.getElementById('status');
-var progressElement = document.getElementById('progress');
-var spinnerElement = document.getElementById('spinner');
-var outputElement = document.getElementById('output');
+const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+let isTouch = isMobile && window.matchMedia('(pointer: coarse)').matches;
 
-function setProgress(pct, labelKeyOrText) {
-    const progressFill = document.getElementById('progress-bar-fill');
-    const progressText = document.getElementById('progress-text');
-    const clamped = Math.max(0, Math.min(100, Math.round(pct)));
-    if (progressFill) {
-        progressFill.style.width = `${clamped}%`;
-    }
-    if (progressText) {
-        const translated = translations[currentLang]?.[labelKeyOrText] || labelKeyOrText;
-        progressText.textContent = `${translated} ${clamped}%`;
+document.body.dataset.isTouch = isTouch ? 1 : 0;
+
+const textDecoder = new TextDecoder();
+let haveOriginalGame = false;
+
+const translations = {
+    en: {
+        clickToPlayDemo: "Click to play demo",
+        clickToPlayFull: "Click to play",
+        invalidKey: "invalid key",
+        checking: "checking...",
+        cloudSaves: "Cloud saves:",
+        enabled: "enabled",
+        disabled: "disabled",
+        playDemoText: "You can play the DEMO version, or provide the original game files to play the full version.",
+        disclaimer: "DISCLAIMER:",
+        disclaimerSources: "This game is based on an open source version of GTA: Vice City. It is not a commercial release and is not affiliated with Rockstar Games.",
+        disclaimerCheckbox: "I own the original game",
+        disclaimerPrompt: "You need to provide a file from the original game to confirm ownership of the original game.",
+        cantContinuePlaying: "You can't continue playing in DEMO version. Please provide the original game files to continue playing.",
+        demoAlert: "The demo version is intended only for familiarizing yourself with the game technology. All features are available, but you won't be able to progress through the game's storyline. Please provide the original game files to launch the full version.",
+        downloading: "Downloading",
+        enterKey: "enter your key",
+        clickToContinue: "Click to continue...",
+        enterJsDosKey: "Enter js-dos key (5 len)",
+        portBy: "HTML5 port by:",
+        ruTranslate: "",
+        demoOffDisclaimer: "Due to the unexpectedly high popularity of the project, resulting in significant traffic costs, and in order to avoid any risk of the project being shut down due to rights holder claims, we have disabled the demo version. You can still run the full version by providing the original game resources.",
+        configLanguage: "Language:",
+        configCheats: "Cheats (F3)",
+        configFullscreen: "Fullscreen",
+        configMaxFps: "Max FPS:",
+        configUnlimited: "(0 = unlimited)",
+    },
+    ru: {
+        clickToPlayDemo: "Играть в демо версию",
+        clickToPlayFull: "Играть",
+        invalidKey: "неверный ключ",
+        checking: "проверка...",
+        cloudSaves: "Облачные сохранения:",
+        enabled: "включены",
+        disabled: "выключены",
+        playDemoText: "Вы можете играть в демо версию, или предоставить оригинальные файлы игры для полной версии.",
+        disclaimer: "ОТКАЗ ОТ ОТВЕТСТВЕННОСТИ:",
+        disclaimerSources: "Эта игра основана на открытой версии GTA: Vice City. Она не является коммерческим изданием и не связана с Rockstar Games.",
+        disclaimerCheckbox: "Я владею оригинальной игрой",
+        disclaimerPrompt: "Вам потребуется приложить какой-либо файл из оригинальной игры для подтверждения владения оригинальной игрой.",
+        cantContinuePlaying: "Вы не можете продолжить игру в демо версии. Пожалуйста, предоставьте оригинальные файлы игры для продолжения игры.",
+        demoAlert: "Демо версия предназначена только для ознакомления с технологией игры. Все функции доступны, но вы не сможете продолжить игру по сюжету. Пожалуйста, предоставьте оригинальные файлы игры для запуска полной версии.",
+        downloading: "Загрузка",
+        enterKey: "введите ваш ключ",
+        clickToContinue: "Нажмите для продолжения...",
+        enterJsDosKey: "Введите ключ js-dos (5 букв)",
+        portBy: "Авторы HTML5 порта:",
+        ruTranslate: `
+<div class="translated-by">
+    <span>Переведено на русский студией</span>
+    <a href="https://www.gamesvoice.ru/" target="_blank">GamesVoice</a>
+</div>
+`,
+        demoOffDisclaimer: "В связи с неожиданно высокой популярностью проекта, как следствие — значительными расходами на трафик, а также во избежание рисков закрытия проекта из-за претензий правообладателей, мы отключили возможность запуска демо-версии. При этом вы по-прежнему можете запустить полную версию, предоставив оригинальные ресурсы.",
+        configLanguage: "Язык:",
+        configCheats: "Читы (F3)",
+        configFullscreen: "Полный экран",
+        configMaxFps: "Макс. FPS:",
+        configUnlimited: "(0 = без ограничений)",
+    },
+};
+
+var currentLanguage = "en";
+if (params.get("lang") === "ru") {
+    currentLanguage = "ru";
+} else if (params.get("lang") === "en") {
+    currentLanguage = "en";
+}
+window.currentLanguage = currentLanguage;
+
+window.t = function (key) {
+    return (translations[currentLanguage] && translations[currentLanguage][key]) ?? translations.en[key] ?? key;
+};
+
+function updateGameDataForLanguage(lang) {
+    if (lang === 'ru') {
+        data_content = `${replaceBR}vc-sky-ru-v6.data`;
+        wasm_content = `${replaceBR}vc-sky-ru-v6.wasm`;
+    } else {
+        data_content = `${replaceBR}vc-sky-en-v6.data`;
+        wasm_content = `${replaceBR}vc-sky-en-v6.wasm`;
     }
 }
 
-async function fetchStreamWithProgress(url, totalExpectedBytes, initialBytesOffset = 0) {
-    const response = await fetch(url);
+updateGameDataForLanguage(currentLanguage);
+
+function updateAllTranslations() {
+    const keyInputEl = document.querySelector('.jsdos-key-input');
+    if (keyInputEl) keyInputEl.setAttribute('placeholder', t("enterJsDosKey"));
+
+    const clickToPlayBtn = document.getElementById('click-to-play-button');
+    if (clickToPlayBtn) {
+        clickToPlayBtn.textContent = haveOriginalGame ? t('clickToPlayFull') : t('clickToPlayDemo');
+    }
+
+    const demoOffDisclaimerEl = document.getElementById('demo-off-disclaimer');
+    if (demoOffDisclaimerEl) {
+        demoOffDisclaimerEl.textContent = haveOriginalGame ? "" : "* " + t('demoOffDisclaimer');
+        demoOffDisclaimerEl.hidden = Boolean(haveOriginalGame);
+    }
+
+    const cloudSavesLinkEl = document.getElementById('cloud-saves-link');
+    if (cloudSavesLinkEl) cloudSavesLinkEl.textContent = t('cloudSaves');
+
+    if (cloudSavesStatus) cloudSavesStatus.textContent = t('enterKey');
+
+    const playDemoTextEl = document.getElementById('play-demo-text');
+    if (playDemoTextEl) playDemoTextEl.textContent = t('playDemoText');
+
+    const disclaimerTextEl = document.getElementById('disclaimer-text');
+    if (disclaimerTextEl) disclaimerTextEl.textContent = t('disclaimer');
+
+    const disclaimerSourcesEl = document.getElementById('disclaimer-sources');
+    if (disclaimerSourcesEl) disclaimerSourcesEl.textContent = t('disclaimerSources');
+
+    const disclaimerCheckboxLabelEl = document.getElementById('disclaimer-checkbox-label');
+    if (disclaimerCheckboxLabelEl) disclaimerCheckboxLabelEl.textContent = t('disclaimerCheckbox');
+
+    const portByEl = document.getElementById('port-by');
+    if (portByEl) portByEl.textContent = t('portBy');
+
+    const developedByEl = document.querySelector('.developed-by');
+    const existingTranslatedBy = developedByEl?.querySelector('.translated-by');
+    if (existingTranslatedBy) existingTranslatedBy.remove();
+    if (developedByEl && t('ruTranslate')) {
+        developedByEl.insertAdjacentHTML('beforeend', t('ruTranslate'));
+    }
+
+    const configLangLabel = document.getElementById('config-lang-label');
+    if (configLangLabel) configLangLabel.textContent = t('configLanguage');
+
+    const configCheatsLabel = document.getElementById('config-cheats-label');
+    if (configCheatsLabel) configCheatsLabel.textContent = t('configCheats');
+
+    const configFullscreenLabel = document.getElementById('config-fullscreen-label');
+    if (configFullscreenLabel) configFullscreenLabel.textContent = t('configFullscreen');
+
+    const configMaxFpsLabel = document.getElementById('config-max-fps-label');
+    if (configMaxFpsLabel) configMaxFpsLabel.textContent = t('configMaxFps');
+
+    const configMaxFpsUnlimited = document.getElementById('config-max-fps-unlimited');
+    if (configMaxFpsUnlimited) configMaxFpsUnlimited.textContent = t('configUnlimited');
+}
+
+async function readResponseWithProgress(response, totalBytes, initialOffset = 0) {
     if (!response.ok) {
-        throw new Error(`HTTP ${response.status} fetching ${url}`);
+        throw new Error(`HTTP ${response.status} for ${response.url}`);
     }
-    if (!response.body || typeof response.body.getReader !== 'function') {
-        const buf = await response.arrayBuffer();
-        const bytes = new Uint8Array(buf);
-        if (totalExpectedBytes > 0) {
-            setProgress(((initialBytesOffset + bytes.byteLength) / totalExpectedBytes) * 100, 'loadingData');
+    if (!response.body || typeof response.body.getReader !== "function") {
+        const ab = await response.arrayBuffer();
+        const u8 = new Uint8Array(ab);
+        const loaded = initialOffset + u8.byteLength;
+        window.__REVCDOS_STATUS__.dataLoadedBytes = loaded;
+        if (typeof setStatus === "function") {
+            setStatus(`Downloading...(${loaded}/${totalBytes})`);
         }
-        return bytes;
+        return u8;
     }
-
     const reader = response.body.getReader();
-    const chunks = [];
     let receivedLength = 0;
-
+    const chunks = [];
     while (true) {
         const { done, value } = await reader.read();
         if (done) break;
         chunks.push(value);
         receivedLength += value.length;
-        if (totalExpectedBytes > 0) {
-            const pct = Math.min(99, Math.round(((initialBytesOffset + receivedLength) / totalExpectedBytes) * 100));
-            setProgress(pct, 'loadingData');
+        const loaded = initialOffset + receivedLength;
+        window.__REVCDOS_STATUS__.dataLoadedBytes = loaded;
+        if (typeof setStatus === "function") {
+            setStatus(`Downloading...(${loaded}/${totalBytes})`);
         }
     }
-
     const out = new Uint8Array(receivedLength);
     let pos = 0;
     for (const chunk of chunks) {
@@ -745,178 +353,652 @@ async function fetchStreamWithProgress(url, totalExpectedBytes, initialBytesOffs
     return out;
 }
 
-async function fetchPartsFromManifest(basePrefix = "") {
-    let partPaths = [
-        "parts/vc-sky-en-v6.data.part00",
-        "parts/vc-sky-en-v6.data.part01",
-        "parts/vc-sky-en-v6.data.part02",
-        "parts/vc-sky-en-v6.data.part03",
+async function fetchPartsAndConcatenate(basePrefix = "") {
+    let partsList = [
+        "./parts/vc-sky-en-v6.data.part00",
+        "./parts/vc-sky-en-v6.data.part01",
+        "./parts/vc-sky-en-v6.data.part02",
+        "./parts/vc-sky-en-v6.data.part03",
     ];
     let expectedTotal = EXPECTED_EN_DATA_SIZE;
 
     try {
-        const manifestResp = await fetch(`${basePrefix}pack.json`, { cache: "no-store" });
-        if (manifestResp.ok) {
-            const manifest = await manifestResp.json();
-            if (manifest?.data?.totalBytes) {
-                expectedTotal = manifest.data.totalBytes;
-            }
-            if (Array.isArray(manifest?.data?.parts) && manifest.data.parts.length > 0) {
-                partPaths = manifest.data.parts
-                    .slice()
-                    .sort((a, b) => (a.index ?? 0) - (b.index ?? 0))
-                    .map(p => p.path);
+        const packResp = await fetch(`${basePrefix}pack.json`, { cache: "no-store" });
+        if (packResp.ok) {
+            const pack = await packResp.json();
+            const dataMeta = pack?.data || pack?.files?.["vcbr/vc-sky-en-v6.data"];
+            if (dataMeta) {
+                if (typeof dataMeta.size === "number" && dataMeta.size > 0) {
+                    expectedTotal = dataMeta.size;
+                } else if (typeof dataMeta.totalBytes === "number" && dataMeta.totalBytes > 0) {
+                    expectedTotal = dataMeta.totalBytes;
+                }
+                if (Array.isArray(dataMeta.parts) && dataMeta.parts.length > 0) {
+                    partsList = dataMeta.parts.map((p) => (typeof p === "string" ? p : p.path || p.file));
+                }
             }
         }
-    } catch (_) {
-        // Proceed with deterministic 4-part list
-    }
+    } catch (_) {}
 
     const combined = new Uint8Array(expectedTotal);
     let offset = 0;
-
-    for (const partPath of partPaths) {
-        const partBytes = await fetchStreamWithProgress(`${basePrefix}${partPath}`, expectedTotal, offset);
+    for (const part of partsList) {
+        const cleanPart = part.replace(/^\.\//, "");
+        const url = basePrefix ? `${basePrefix}${cleanPart}` : part;
+        const resp = await fetch(url);
+        const partBytes = await readResponseWithProgress(resp, expectedTotal, offset);
         if (offset + partBytes.byteLength > combined.byteLength) {
-            throw new Error(`Part overflow assembling ${partPath}: ${offset + partBytes.byteLength} > ${combined.byteLength}`);
+            throw new Error(`Chunk overflow assembling ${url}`);
         }
         combined.set(partBytes, offset);
         offset += partBytes.byteLength;
     }
-
     if (offset !== expectedTotal) {
-        throw new Error(`Incomplete part assembly: got ${offset} bytes, expected ${expectedTotal}`);
+        throw new Error(`Incomplete multipart assembly: got ${offset}, expected ${expectedTotal}`);
     }
     return combined;
 }
 
-async function resolveTunnelBaseUrl() {
-    try {
-        const resp = await fetch("../tunnel.json", { cache: "no-store" });
-        if (!resp.ok) return null;
-        const data = await resp.json();
-        if (data && typeof data.url === "string" && data.url.trim().length > 0) {
-            return data.url.trim().replace(/\/+$/, "") + "/revcdos/";
+async function loadData() {
+    const forceParts = params.get("useparts") === "1";
+    const skipCache = params.get("nocache") === "1";
+    let cache = null;
+
+    if (!skipCache && typeof caches !== "undefined") {
+        try {
+            cache = await caches.open(CACHE_NAME);
+            if (!forceParts) {
+                const cached = (await cache.match(data_content)) || (await cache.match(`./${data_content}`));
+                if (cached && data_content !== "index.data") {
+                    const ab = await cached.arrayBuffer();
+                    if (currentLanguage !== "en" || ab.byteLength === EXPECTED_EN_DATA_SIZE) {
+                        window.__REVCDOS_STATUS__.cacheHit = true;
+                        window.__REVCDOS_STATUS__.dataLoadedBytes = ab.byteLength;
+                        if (typeof setStatus === "function") {
+                            setStatus(`Downloading...(${ab.byteLength}/${dataSize})`);
+                        }
+                        return new Uint8Array(ab);
+                    }
+                }
+            }
+        } catch (e) {
+            console.warn("Failed to open CacheStorage:", e);
         }
-    } catch (_) {}
-    return null;
+    }
+
+    let u8Buffer = null;
+
+    // 1. Try direct fetch of vcbr/vc-sky-en-v6.data unless ?useparts=1
+    if (!forceParts) {
+        try {
+            const response = await fetch(data_content);
+            const candidate = await readResponseWithProgress(response, dataSize, 0);
+            if (currentLanguage === "en" && candidate.byteLength !== EXPECTED_EN_DATA_SIZE) {
+                throw new Error(`Invalid byte length ${candidate.byteLength} for ${data_content}`);
+            }
+            u8Buffer = candidate;
+        } catch (directErr) {
+            console.warn("Direct .data fetch unavailable, falling back to 4-part chunks:", directErr);
+        }
+    }
+
+    // 2. Fallback (or ?useparts=1): stream and concatenate ./parts/vc-sky-en-v6.data.part00..03
+    if (!u8Buffer) {
+        try {
+            u8Buffer = await fetchPartsAndConcatenate("");
+        } catch (partsErr) {
+            console.warn("Local parts fetch failed, checking ../tunnel.json failover:", partsErr);
+        }
+    }
+
+    // 3. Failover to ../tunnel.json if hosted on a static origin without local binaries
+    if (!u8Buffer) {
+        const tunnelOrigin = await resolveTunnelOriginFromConfig();
+        if (tunnelOrigin) {
+            const remoteBase = `${tunnelOrigin}/revcdos/`;
+            try {
+                const response = await fetch(`${remoteBase}${data_content}`);
+                u8Buffer = await readResponseWithProgress(response, dataSize, 0);
+            } catch (_) {
+                u8Buffer = await fetchPartsAndConcatenate(remoteBase);
+            }
+        }
+    }
+
+    if (!u8Buffer || (currentLanguage === "en" && u8Buffer.byteLength !== EXPECTED_EN_DATA_SIZE)) {
+        const msg = `Failed to load ${data_content} (got ${u8Buffer ? u8Buffer.byteLength : 0} bytes, expected ${EXPECTED_EN_DATA_SIZE})`;
+        window.__REVCDOS_STATUS__.lastError = msg;
+        throw new Error(msg);
+    }
+
+    window.__REVCDOS_STATUS__.dataLoadedBytes = u8Buffer.byteLength;
+
+    if (cache && !skipCache) {
+        try {
+            await cache.put(
+                data_content,
+                new Response(u8Buffer.buffer.slice(u8Buffer.byteOffset, u8Buffer.byteOffset + u8Buffer.byteLength), {
+                    status: 200,
+                    headers: {
+                        "Content-Type": "application/octet-stream",
+                        "Content-Length": String(u8Buffer.byteLength),
+                    },
+                })
+            );
+        } catch (e) {
+            console.warn("Failed to cache data in CacheStorage:", e.message);
+        }
+    }
+
+    return u8Buffer;
 }
 
-async function loadData() {
-    const progressText = document.getElementById('progress-text');
-    const progressFill = document.getElementById('progress-bar-fill');
-    if (progressText) progressText.textContent = t('loadingData');
-    if (progressFill) progressFill.style.width = '0%';
+let startInProgress = false;
+async function startGame(e) {
+    if (e && typeof e.stopPropagation === "function") {
+        e.stopPropagation();
+    }
+    if (startInProgress) return;
+    startInProgress = true;
 
-    const forceParts = params.get('useparts') === '1';
-    const disableCache = params.get('nocache') === '1';
+    const startContainer = document.querySelector('.start-container');
+    if (startContainer) startContainer.style.display = 'none';
+    const disclaimerEl = document.querySelector('.disclaimer');
+    if (disclaimerEl) disclaimerEl.style.display = 'none';
+    const developedByEl = document.querySelector('.developed-by');
+    if (developedByEl) developedByEl.style.display = 'none';
 
-    let dataBuffer = null;
-
-    // 1. Check CacheStorage ('revcdos-pack-v1')
-    if (!disableCache && !forceParts && typeof caches !== 'undefined') {
+    const intro = document.querySelector('.intro');
+    const introContainer = document.querySelector('.intro-container');
+    const loaderContainer = document.querySelector('.loader-container');
+    const clickToPlayEl = document.querySelector('.click-to-play');
+    if (clickToPlayEl) clickToPlayEl.style.display = 'none';
+    if (loaderContainer) loaderContainer.style.display = "flex";
+    if (introContainer) introContainer.hidden = false;
+    if (intro) {
         try {
-            const cache = await caches.open(PACK_CACHE_NAME);
-            const cachedResp = await cache.match(PACK_CACHE_KEY);
-            if (cachedResp) {
-                const buf = await cachedResp.arrayBuffer();
-                if (buf.byteLength === EXPECTED_EN_DATA_SIZE) {
-                    dataBuffer = new Uint8Array(buf);
-                    window.__REVCDOS_STATUS__.cacheHit = true;
-                    window.__REVCDOS_STATUS__.dataLoadedBytes = dataBuffer.byteLength;
-                    setProgress(100, 'loadingData');
-                } else {
-                    await cache.delete(PACK_CACHE_KEY);
-                }
+            const playPromise = intro.play();
+            if (playPromise && typeof playPromise.catch === "function") {
+                playPromise.catch(() => {});
             }
-        } catch (cacheErr) {
-            console.warn('[reVCDOS] CacheStorage read skipped:', cacheErr);
-        }
+        } catch (_) {}
     }
 
-    // 2. Direct fetch from vcbr/vc-sky-en-v6.data (unless ?useparts=1)
-    if (!dataBuffer && !forceParts) {
-        try {
-            const dataUrl = `${replaceBR}vc-sky-${gameLang}-v6.data`;
-            const fetched = await fetchStreamWithProgress(dataUrl, dataSize, 0);
-            if (gameLang === 'en' && fetched.byteLength !== EXPECTED_EN_DATA_SIZE) {
-                throw new Error(`Unexpected vc-sky-en-v6.data size: ${fetched.byteLength} (expected ${EXPECTED_EN_DATA_SIZE})`);
-            }
-            dataBuffer = fetched;
-        } catch (directErr) {
-            console.warn('[reVCDOS] Direct vcbr/ fetch failed, falling back to 4-part assembly:', directErr);
+    try {
+        const dataBuffer = await loadData();
+        if (spinnerElement) spinnerElement.hidden = true;
+        setStatus(t("clickToContinue"));
+        if (introContainer) {
+            introContainer.hidden = false;
+            introContainer.style.cursor = 'pointer';
         }
-    }
 
-    // 3. Fallback (or ?useparts=1): 4-part chunk assembly from ./parts/vc-sky-en-v6.data.part00..03
-    if (!dataBuffer) {
-        try {
-            dataBuffer = await fetchPartsFromManifest("");
-        } catch (partsErr) {
-            console.warn('[reVCDOS] Local 4-part assembly failed, probing ../tunnel.json failover:', partsErr);
-        }
-    }
-
-    // 4. Failover via ../tunnel.json
-    if (!dataBuffer) {
-        const tunnelBase = await resolveTunnelBaseUrl();
-        if (tunnelBase) {
-            streamingBasePrefix = tunnelBase;
-            try {
-                const fetched = await fetchStreamWithProgress(`${tunnelBase}vcbr/vc-sky-${gameLang}-v6.data`, dataSize, 0);
-                if (gameLang === 'en' && fetched.byteLength !== EXPECTED_EN_DATA_SIZE) {
-                    throw new Error(`Unexpected tunnel data size: ${fetched.byteLength}`);
-                }
-                dataBuffer = fetched;
-            } catch (tunnelErr) {
-                window.__REVCDOS_STATUS__.lastError = String(tunnelErr?.message || tunnelErr);
-                throw tunnelErr;
+        let gameLaunched = false;
+        let autoTimer = null;
+        const continueToGame = () => {
+            if (gameLaunched) return;
+            gameLaunched = true;
+            if (autoTimer) {
+                clearTimeout(autoTimer);
+                autoTimer = null;
             }
+            window.removeEventListener('click', continueToGame);
+            window.removeEventListener('pointerup', continueToGame);
+            window.removeEventListener('keydown', continueToGame);
+            if (intro) {
+                try { intro.pause(); } catch (_) {}
+            }
+            if (introContainer) {
+                introContainer.style.display = 'none';
+            }
+            loadGame(dataBuffer);
+        };
+
+        window.addEventListener('click', continueToGame, { once: true });
+        window.addEventListener('pointerup', continueToGame, { once: true });
+        window.addEventListener('keydown', continueToGame, { once: true });
+
+        if (
+            params.get('autostart') === '1' ||
+            params.get('autostart') === 'true' ||
+            params.get('skip_intro') === '1'
+        ) {
+            continueToGame();
         } else {
-            const err = new Error("Failed to load vc-sky-en-v6.data from vcbr/, parts/, or tunnel.json");
-            window.__REVCDOS_STATUS__.lastError = err.message;
+            autoTimer = setTimeout(continueToGame, 1500);
+        }
+    } catch (err) {
+        startInProgress = false;
+        window.__REVCDOS_STATUS__.lastError = String(err?.message || err);
+        setStatus(`Error: ${err?.message || err}`);
+        if (spinnerElement) spinnerElement.hidden = true;
+    }
+}
+
+function setStatus(text) {
+    if (!text) {
+        if (progressElement) progressElement.hidden = true;
+        if (spinnerElement) spinnerElement.hidden = true;
+        return;
+    }
+    const match = text.match(/(.+)\((\d+\.?\d*)\/(\d+)\)/);
+    if (match) {
+        const [current, total] = match.slice(2, 4).map(Number);
+        const percent = (current / total * 100).toFixed(0);
+        if (statusElement) statusElement.textContent = t("downloading") + ` ${percent}%`;
+        if (progressElement) {
+            progressElement.value = current;
+            progressElement.max = total;
+            progressElement.hidden = false;
+        }
+        if (spinnerElement) {
+            spinnerElement.hidden = false;
+            const progressBarFill = spinnerElement.querySelector('.progress-bar-fill');
+            if (progressBarFill) {
+                progressBarFill.style.width = percent + '%';
+            }
+        }
+    } else if (statusElement) {
+        statusElement.textContent = text;
+    }
+}
+
+async function loadGame(data) {
+    const pkgBuffer = data.buffer.byteLength === data.byteLength
+        ? data.buffer
+        : data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength);
+
+    var Module = {
+        mainCalled: () => {
+            window.__REVCDOS_STATUS__.wasmReady = true;
+            window.__REVCDOS_STATUS__.mainCalled = true;
+            try {
+                try {
+                    Module.FS.unlink("/vc-assets/local/revc.ini");
+                } catch (_) {}
+                Module.FS.createDataFile("/vc-assets/local/revc.ini", 0, revc_ini, true, true);
+            } catch (e) {
+                console.error('mainCalled error:', e);
+            }
+        },
+        syncRevcIni: () => {
+            try {
+                const path = Module.FS.lookupPath("/vc-assets/local/revc.ini");
+                if (path && path.node && path.node.contents) {
+                    localStorage.setItem('vcsky.revc.ini', textDecoder.decode(path.node.contents));
+                }
+            } catch (e) {
+                console.error('syncRevcIni error:', e);
+            }
+        },
+        preRun: [],
+        postRun: [],
+        print: (...args) => console.log(args.join(' ')),
+        printErr: (...args) => {
+            const msg = args.join(' ');
+            if (msg.includes('alGetProcAddress() called without a valid context')) return;
+            console.error(msg);
+        },
+        getPreloadedPackage: () => {
+            return pkgBuffer;
+        },
+        canvas: (function () {
+            const canvas = document.getElementById('canvas');
+            canvas.addEventListener('webglcontextlost', (e) => {
+                window.__REVCDOS_STATUS__.lastError = 'WebGL context lost';
+                if (statusElement) statusElement.textContent = 'WebGL context lost. Please reload the page.';
+                e.preventDefault();
+            });
+            return canvas;
+        })(),
+        setStatus,
+        totalDependencies: 0,
+        monitorRunDependencies: (num) => {
+            Module.totalDependencies = Math.max(Module.totalDependencies, num);
+            Module.setStatus(`Preparing... (${Module.totalDependencies - num}/${Module.totalDependencies})`);
+        },
+        hotelMission: () => {
+            if (!haveOriginalGame) {
+                showWasted();
+                alert(t("cantContinuePlaying"));
+                throw new Error(t("cantContinuePlaying"));
+            }
+        },
+    };
+    Module.log = Module.print;
+    Module.instantiateWasm = async (info, receiveInstance) => {
+        try {
+            const wasmResp = await fetch(wasm_content ? wasm_content : "vcbr/vc-sky-en-v6.wasm");
+            if (!wasmResp.ok) {
+                throw new Error(`HTTP ${wasmResp.status} fetching ${wasm_content}`);
+            }
+            const wasm = await wasmResp.arrayBuffer();
+            const module = await WebAssembly.instantiate(wasm, info);
+            window.__REVCDOS_STATUS__.wasmReady = true;
+            return receiveInstance(module.instance, module);
+        } catch (err) {
+            window.__REVCDOS_STATUS__.lastError = String(err?.message || err);
             throw err;
         }
+    };
+    window.onerror = (message) => {
+        window.__REVCDOS_STATUS__.lastError = String(message);
+        Module.setStatus(`Error: ${message}`);
+        if (spinnerElement) spinnerElement.hidden = true;
+    };
+
+    const ignoredParams = new Set([
+        'autostart',
+        'useparts',
+        'nocache',
+        'skip_intro',
+        'request_original_game',
+        'configurable',
+        'lang',
+        'server',
+        'backend_url',
+        'custom_saves',
+        'fullscreen',
+        'cheats',
+        'max_fps',
+    ]);
+    Module.arguments = [];
+    for (const [k, v] of params.entries()) {
+        if (ignoredParams.has(k)) continue;
+        Module.arguments.push(k);
+        if (v) Module.arguments.push(v);
     }
 
-    // Also probe whether local vcsky/sha256sums.txt is reachable; if not, point streamingBasePrefix at tunnelBase
-    if (!streamingBasePrefix) {
+    // Non-blocking save sync on pagehide so returning to '../' never triggers a blocking prompt
+    window.addEventListener('pagehide', () => {
         try {
-            const probe = await fetch("vcsky/sha256sums.txt", { method: "HEAD" });
-            if (!probe.ok) {
-                const tunnelBase = await resolveTunnelBaseUrl();
-                if (tunnelBase) streamingBasePrefix = tunnelBase;
-            }
-        } catch (_) {
-            const tunnelBase = await resolveTunnelBaseUrl();
-            if (tunnelBase) streamingBasePrefix = tunnelBase;
+            Module.syncRevcIni?.();
+        } catch (_) {}
+    });
+
+    window.Module = Module;
+    const script = document.createElement('script');
+    script.async = true;
+    script.src = 'index.js';
+    document.body.appendChild(script);
+
+    document.body.classList.add('gameIsStarted');
+
+    if (typeof GamepadEmulator === "function") {
+        const emulator = new GamepadEmulator();
+        emulator.AddEmulatedGamepad(null, true);
+        const moveEl = document.getElementById('move');
+        const lookEl = document.getElementById('look');
+        if (moveEl) {
+            emulator.AddDisplayJoystickEventListeners(0, [{
+                directions: { up: true, down: true, left: true, right: true },
+                dragDistance: 100,
+                tapTarget: moveEl,
+                lockTargetWhilePressed: true,
+                xAxisIndex: 0,
+                yAxisIndex: 1,
+                swapAxes: false,
+                invertX: false,
+                invertY: false,
+            }]);
         }
-    }
-
-    window.__REVCDOS_STATUS__.dataLoadedBytes = dataBuffer.byteLength;
-    setProgress(100, 'loadingData');
-
-    // Store in CacheStorage ('revcdos-pack-v1') for instant warm starts
-    if (!disableCache && typeof caches !== 'undefined' && dataBuffer.byteLength === EXPECTED_EN_DATA_SIZE) {
-        try {
-            const cache = await caches.open(PACK_CACHE_NAME);
-            const respToCache = new Response(dataBuffer.slice(0), {
-                status: 200,
-                headers: {
-                    'Content-Type': 'application/octet-stream',
-                    'Content-Length': String(dataBuffer.byteLength)
-                }
-            });
-            await cache.put(PACK_CACHE_KEY, respToCache);
-        } catch (cacheWriteErr) {
-            console.warn('[reVCDOS] CacheStorage write skipped:', cacheWriteErr);
+        if (lookEl) {
+            emulator.AddDisplayJoystickEventListeners(0, [{
+                directions: { up: true, down: true, left: true, right: true },
+                dragDistance: 100,
+                tapTarget: lookEl,
+                lockTargetWhilePressed: true,
+                xAxisIndex: 2,
+                yAxisIndex: 3,
+                swapAxes: false,
+                invertX: false,
+                invertY: false,
+            }]);
         }
-    }
 
-    loadGame(dataBuffer);
+        const bindTouchBtn = (cfg) => {
+            if (cfg.tapTarget) emulator.AddDisplayButtonEventListeners(0, [cfg]);
+        };
+        bindTouchBtn({ buttonIndex: 9, lockTargetWhilePressed: false, tapTarget: document.querySelector('.touch-control.menu') });
+        bindTouchBtn({ buttonIndex: 3, lockTargetWhilePressed: false, tapTarget: document.querySelector('.touch-control.car.getIn') });
+        bindTouchBtn({ buttonIndex: 0, lockTargetWhilePressed: false, tapTarget: document.querySelector('.touch-control.run') });
+        bindTouchBtn({ buttonIndex: 1, lockTargetWhilePressed: false, tapTarget: document.querySelector('.touch-control.fist') });
+        bindTouchBtn({ buttonIndex: 5, lockTargetWhilePressed: false, tapTarget: document.querySelector('.touch-control.drift') });
+        bindTouchBtn({ buttonIndex: 2, lockTargetWhilePressed: false, tapTarget: document.querySelector('.touch-control.jump') });
+        bindTouchBtn({ buttonIndex: 4, lockTargetWhilePressed: false, tapTarget: document.querySelector('.touch-control.mobile') });
+        bindTouchBtn({ buttonIndex: 11, lockTargetWhilePressed: false, tapTarget: document.querySelector('.touch-control.job') });
+        bindTouchBtn({ buttonIndex: 4, lockTargetWhilePressed: false, tapTarget: document.querySelector('.touch-control.radio') });
+        bindTouchBtn({ buttonIndex: 7, lockTargetWhilePressed: false, tapTarget: document.querySelector('.touch-control.weapon') });
+        bindTouchBtn({ buttonIndex: 8, lockTargetWhilePressed: false, tapTarget: document.querySelector('.touch-control.camera') });
+        bindTouchBtn({ buttonIndex: 10, lockTargetWhilePressed: false, tapTarget: document.querySelector('.touch-control.horn') });
+        bindTouchBtn({ buttonIndex: 7, buttonIndexes: [1, 7], lockTargetWhilePressed: false, tapTarget: document.querySelector('.touch-control.fireRight') });
+        bindTouchBtn({ buttonIndex: 6, buttonIndexes: [1, 6], lockTargetWhilePressed: false, tapTarget: document.querySelector('.touch-control.fireLeft') });
+    }
 }
 
-const REVC_INI_DEFAULT = `
+const clickToPlay = document.querySelector('.click-to-play');
+const clickLink = clickToPlay ? clickToPlay.querySelector('button') : document.getElementById('click-to-play-button');
+if (clickToPlay) {
+    clickToPlay.addEventListener('click', (e) => {
+        if (!haveOriginalGame) {
+            alert(t('demoOffDisclaimer'));
+            return;
+        }
+        if (e.target === clickToPlay || e.target === clickLink) {
+            startGame(e);
+            if (!isMobile && autoFullScreen && params.get('autostart') !== '1') {
+                if (window.top === window) {
+                    try {
+                        const req = document.body.requestFullscreen?.(document.documentElement);
+                        if (req && typeof req.catch === "function") req.catch(() => {});
+                    } catch (_) {}
+                } else {
+                    window.top.postMessage({ event: 'request-fullscreen' }, '*');
+                }
+                function lockMouseIfNeeded() {
+                    if (!document.pointerLockElement && typeof Module !== 'undefined' && Module.canvas) {
+                        try {
+                            const p = Module.canvas.requestPointerLock({ unadjustedMovement: true });
+                            if (p && typeof p.catch === "function") {
+                                p.catch(() => {
+                                    try { Module.canvas.requestPointerLock()?.catch?.(() => {}); } catch (_) {}
+                                });
+                            }
+                        } catch (_) {}
+                    }
+                }
+                document.addEventListener("mousedown", lockMouseIfNeeded, { capture: true });
+                if (navigator.keyboard && navigator.keyboard.lock) {
+                    try { navigator.keyboard.lock(["Escape", "KeyW"])?.catch?.(() => {}); } catch (_) {}
+                }
+            }
+        } else if (window.top !== window) {
+            window.top.postMessage({ event: 'request-fullscreen' }, '*');
+        }
+    });
+}
+
+const savesMountPoint = "/vc-assets/local/userfiles";
+const savesFile = "vcsky.saves";
+if (typeof wrapIDBFS === "function") {
+    wrapIDBFS(console.log).addListener({
+        onLoad: (_, mount) => {
+            if (mount.mountpoint !== savesMountPoint) {
+                return null;
+            }
+            const token = localStorage.getItem('vcsky.key');
+            if (token && token.length === 5 && typeof CloudSDK !== "undefined") {
+                const promise = CloudSDK.pullFromStorage(token, savesFile);
+                promise.then((payload) => {
+                    console.log('[IDBFS] onLoad', token, payload ? payload.length / 1024 : 0, 'kb');
+                });
+                return promise;
+            }
+            return null;
+        },
+        onSave: (getData, _, mount) => {
+            if (mount.mountpoint !== savesMountPoint) {
+                return;
+            }
+            const token = localStorage.getItem('vcsky.key');
+            if (token && token.length === 5 && typeof CloudSDK !== "undefined") {
+                getData().then((payload) => {
+                    if (payload.length > 0) {
+                        console.log('[IDBFS] onSave', token, payload.length / 1024, 'kb');
+                        return CloudSDK.pushToStorage(token, savesFile, payload);
+                    }
+                });
+            }
+        },
+    });
+}
+
+const keyInput = document.querySelector('.jsdos-key-input');
+const keyStatus = document.querySelector('.jsdos-key-status');
+
+function updateToken(token) {
+    if (!cloudSavesStatus || !keyStatus) return;
+    cloudSavesStatus.textContent = t('checking');
+    if (token.length === 5 && typeof CloudSDK !== "undefined") {
+        CloudSDK.resolveToken(token).then((profile) => {
+            if (profile) {
+                localStorage.setItem('vcsky.key', profile.token);
+                if (profile.premium) {
+                    keyStatus.textContent = t('enabled');
+                    keyStatus.style.color = 'green';
+                    keyStatus.style.fontWeight = 'bold';
+                } else {
+                    keyStatus.textContent = t('disabled');
+                    keyStatus.style.color = 'red';
+                    keyStatus.style.fontWeight = 'bold';
+                }
+            } else {
+                keyStatus.textContent = t('invalidKey');
+                keyStatus.style.color = 'white';
+                keyStatus.style.fontWeight = 'normal';
+            }
+        });
+    } else {
+        cloudSavesStatus.textContent = t('enterKey');
+    }
+}
+
+if (keyInput) {
+    keyInput.setAttribute('placeholder', t("enterJsDosKey"));
+    keyInput.addEventListener('paste', (e) => {
+        setTimeout(() => {
+            updateToken(e.target.value);
+        }, 100);
+    });
+    keyInput.addEventListener('keyup', (e) => {
+        updateToken(e.target.value);
+    });
+    if (localStorage.getItem('vcsky.key')) {
+        keyInput.value = localStorage.getItem('vcsky.key');
+        updateToken(keyInput.value);
+    } else if (keyStatus) {
+        keyStatus.textContent = t('invalidKey');
+        keyStatus.style.color = 'white';
+        keyStatus.style.fontWeight = 'normal';
+    }
+}
+
+const clickToPlayButton = document.getElementById('click-to-play-button');
+const demoOffDisclaimer = document.getElementById('demo-off-disclaimer');
+const cloudSavesLink = document.getElementById('cloud-saves-link');
+const playDemoText = document.getElementById('play-demo-text');
+const disclaimerText = document.getElementById('disclaimer-text');
+const disclaimerSources = document.getElementById('disclaimer-sources');
+const disclaimerCheckboxLabel = document.getElementById('disclaimer-checkbox-label');
+const disclaimerCheckbox = document.getElementById('disclaimer-checkbox');
+const originalGameFile = document.getElementById('original-game-file');
+const developedBy = document.querySelector('.developed-by');
+const portBy = document.getElementById('port-by');
+
+updateAllTranslations();
+
+function ownerShipConfirmed() {
+    try {
+        localStorage.setItem('vcsky.haveOriginalGame', 'true');
+    } catch (_) {}
+    haveOriginalGame = true;
+    window.__REVCDOS_STATUS__.haveOriginalGame = true;
+    if (disclaimerCheckbox) disclaimerCheckbox.checked = true;
+    if (clickToPlayButton) {
+        clickToPlayButton.textContent = t('clickToPlayFull');
+        clickToPlayButton.classList.remove('disabled');
+    }
+    if (demoOffDisclaimer) {
+        demoOffDisclaimer.textContent = "";
+        demoOffDisclaimer.hidden = true;
+    }
+}
+
+function ownerShipNotConfirmed() {
+    try {
+        localStorage.removeItem('vcsky.haveOriginalGame');
+    } catch (_) {}
+    haveOriginalGame = false;
+    window.__REVCDOS_STATUS__.haveOriginalGame = false;
+    if (disclaimerCheckbox) disclaimerCheckbox.checked = false;
+    if (clickToPlayButton) {
+        clickToPlayButton.textContent = t('clickToPlayDemo');
+        clickToPlayButton.classList.add('disabled');
+    }
+    if (demoOffDisclaimer) {
+        demoOffDisclaimer.textContent = "* " + t('demoOffDisclaimer');
+        demoOffDisclaimer.hidden = false;
+    }
+}
+
+if (disclaimerCheckbox) {
+    disclaimerCheckbox.addEventListener('change', async (inputEvent) => {
+        if (inputEvent.target.checked) {
+            if (confirm(t('disclaimerPrompt'))) {
+                originalGameFile.addEventListener('change', async (e) => {
+                    try {
+                        const file = e.target.files[0];
+                        if (file) {
+                            const sha256sums = (await (await fetch(replaceFetch("https://cdn.dos.zone/vcsky/sha256sums.txt"))).text()).toLowerCase();
+                            const arrayBuffer = await file.arrayBuffer();
+                            if (window.crypto && window.crypto.subtle) {
+                                const hashBuffer = await window.crypto.subtle.digest('SHA-256', arrayBuffer);
+                                const hashArray = Array.from(new Uint8Array(hashBuffer));
+                                const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+                                if (sha256sums.indexOf(hashHex) !== -1) {
+                                    ownerShipConfirmed();
+                                } else {
+                                    ownerShipNotConfirmed();
+                                }
+                            } else {
+                                ownerShipNotConfirmed();
+                            }
+                        } else {
+                            ownerShipNotConfirmed();
+                        }
+                    } catch (error) {
+                        console.error('Error:', error);
+                        ownerShipNotConfirmed();
+                    }
+                }, { once: true });
+                originalGameFile.click();
+                return;
+            }
+        }
+        ownerShipNotConfirmed();
+    });
+}
+
+(localStorage.getItem('vcsky.haveOriginalGame') === 'true' || params.get('request_original_game') !== '1')
+    ? ownerShipConfirmed()
+    : ownerShipNotConfirmed();
+
+function showWasted() {
+    const wastedContainer = document.querySelector('.wasted-container');
+    if (wastedContainer) wastedContainer.hidden = false;
+}
+
+const revc_iniDefault = `
 [VideoMode]
 Width=800
 Height=600
@@ -929,9 +1011,9 @@ HorizantalMouseSens=0.002500
 InvertMouseVertically=1
 DisableMouseSteering=1
 Vibration=0
-Method=${isMobileDevice ? '1' : '0'}
+Method=${isTouch ? '1' : '0'}
 InvertPad=0
-JoystickName=0
+JoystickName=
 PadButtonsInited=0
 [Audio]
 SfxVolume=36
@@ -943,18 +1025,19 @@ Provider=0
 DynamicAcoustics=1
 [Display]
 Brightness=256
-DrawDistance=1.200000
+DrawDistance=1.800000
 Subtitles=0
 ShowHud=1
 RadarMode=0
 ShowLegends=0
-PedDensity=0.600000
-CarDensity=0.600000
+PedDensity=1.200000
+CarDensity=1.200000
 CutsceneBorders=1
 FreeCam=0
 [Graphics]
 AspectRatio=0
 VSync=1
+Trails=1
 FrameLimiter=0
 MultiSampling=0
 IslandLoading=0
@@ -979,51 +1062,51 @@ LightmapMult=1.000000
 GlossMult=1.000000
 [Rendering]
 BackfaceCulling=1
-NewRenderer=0
+NewRenderer=1
 [Draw]
 ProperScaling=1
 FixRadar=1
 FixSprites=1
 [Bindings]
-PED_FIREWEAPON=kbd:PADINS,kbd:LCTRL,mouse:LEFT
-PED_CYCLE_WEAPON_RIGHT=kbd:PADDEL,mouse:WHLDOWN,kbd:E
-PED_CYCLE_WEAPON_LEFT=kbd:PADEND,mouse:WHLUP,kbd:Q
-GO_FORWARD=kbd:UP,kbd:W
-GO_BACK=kbd:DOWN,kbd:S
-GO_LEFT=kbd:LEFT,kbd:A
-GO_RIGHT=kbd:RIGHT,kbd:D
-PED_SNIPER_ZOOM_IN=kbd:PGUP,kbd:Z,mouse:WHLUP
-PED_SNIPER_ZOOM_OUT=kbd:PGDN,kbd:X,mouse:WHLDOWN
-VEHICLE_ENTER_EXIT=kbd:ENTER,kbd:F
-CAMERA_CHANGE_VIEW_ALL_SITUATIONS=kbd:HOME,kbd:V
-PED_JUMPING=kbd:RCTRL,kbd:SPC
-PED_SPRINT=kbd:RSHIFT,kbd:LSHIFT
-PED_LOOKBEHIND=kbd:PADEND,kbd:CAPSLK,mouse:MIDDLE
+PED_FIREWEAPON=mouse:LEFT,2ndKbd:PAD5
+PED_CYCLE_WEAPON_RIGHT=2ndKbd:PADENTER,mouse:WHLDOWN,kbd:E
+PED_CYCLE_WEAPON_LEFT=kbd:PADDEL,mouse:WHLUP,2ndKbd:Q
+GO_FORWARD=kbd:UP,2ndKbd:W
+GO_BACK=kbd:DOWN,2ndKbd:S
+GO_LEFT=2ndKbd:A,kbd:LEFT
+GO_RIGHT=kbd:RIGHT,2ndKbd:D
+PED_SNIPER_ZOOM_IN=kbd:PGUP,2ndKbd:Z,mouse:WHLUP
+PED_SNIPER_ZOOM_OUT=kbd:PGDN,2ndKbd:X,mouse:WHLDOWN
+VEHICLE_ENTER_EXIT=kbd:ENTER,2ndKbd:F
+CAMERA_CHANGE_VIEW_ALL_SITUATIONS=kbd:HOME,2ndKbd:V
+PED_JUMPING=kbd:RCTRL,2ndKbd:SPC
+PED_SPRINT=2ndKbd:LSHIFT,kbd:RSHIFT
+PED_LOOKBEHIND=2ndKbd:CAPSLK,mouse:MIDDLE,kbd:PADINS
 PED_DUCK=kbd:C
 PED_ANSWER_PHONE=kbd:TAB
-VEHICLE_FIREWEAPON=kbd:PADINS,kbd:LCTRL,mouse:LEFT
-VEHICLE_ACCELERATE=kbd:W,kbd:UP
-VEHICLE_BRAKE=kbd:S,kbd:DOWN
-VEHICLE_CHANGE_RADIO_STATION=kbd:INS,kbd:R,mouse:WHLUP
-VEHICLE_HORN=kbd:LSHIFT,kbd:CAPSLK
-TOGGLE_SUBMISSIONS=kbd:PLUS,kbd:CAPSLK
-VEHICLE_HANDBRAKE=kbd:SPC,kbd:RCTRL
+VEHICLE_FIREWEAPON=kbd:PADINS,2ndKbd:LCTRL,mouse:LEFT
+VEHICLE_ACCELERATE=2ndKbd:W
+VEHICLE_BRAKE=2ndKbd:S
+VEHICLE_CHANGE_RADIO_STATION=kbd:INS,2ndKbd:R
+VEHICLE_HORN=2ndKbd:LSHIFT,kbd:RSHIFT
+TOGGLE_SUBMISSIONS=kbd:PLUS,2ndKbd:CAPSLK
+VEHICLE_HANDBRAKE=kbd:RCTRL,2ndKbd:SPC,mouse:RIGHT
 PED_1RST_PERSON_LOOK_LEFT=kbd:PADLEFT
-PED_1RST_PERSON_LOOK_RIGHT=kbd:PADRIGHT
-VEHICLE_LOOKLEFT=kbd:PADEND,kbd:Q
-VEHICLE_LOOKRIGHT=kbd:PADDEL,kbd:E
+PED_1RST_PERSON_LOOK_RIGHT=kbd:PADHOME
+VEHICLE_LOOKLEFT=kbd:PADEND,2ndKbd:Q
+VEHICLE_LOOKRIGHT=kbd:PADDOWN,2ndKbd:E
 VEHICLE_LOOKBEHIND=mouse:MIDDLE
 VEHICLE_TURRETLEFT=kbd:PADLEFT
 VEHICLE_TURRETRIGHT=kbd:PAD5
-VEHICLE_TURRETUP=kbd:PADPGUP,kbd:UP
-VEHICLE_TURRETDOWN=kbd:PADRIGHT,kbd:DOWN
-PED_CYCLE_TARGET_LEFT=kbd:[,kbd:Z
-PED_CYCLE_TARGET_RIGHT=kbd:],kbd:X
+VEHICLE_TURRETUP=kbd:PADPGUP,2ndKbd:UP
+VEHICLE_TURRETDOWN=kbd:PADRIGHT,2ndKbd:DOWN
+PED_CYCLE_TARGET_LEFT=kbd:[,2ndKbd:PADEND
+PED_CYCLE_TARGET_RIGHT=2ndKbd:],kbd:PADDOWN
 PED_CENTER_CAMERA_BEHIND_PLAYER=kbd:#
-PED_LOCK_TARGET=kbd:DEL,mouse:RIGHT
+PED_LOCK_TARGET=kbd:DEL,mouse:RIGHT,2ndKbd:PADRIGHT
 NETWORK_TALK=kbd:T
-PED_1RST_PERSON_LOOK_UP=kbd:PADUP
-PED_1RST_PERSON_LOOK_DOWN=kbd:PAD5
+PED_1RST_PERSON_LOOK_UP=kbd:PADPGUP
+PED_1RST_PERSON_LOOK_DOWN=kbd:PADUP
 _CONTROLLERACTION_36=
 TOGGLE_DPAD=
 SWITCH_DEBUG_CAM_ON=
@@ -1033,332 +1116,54 @@ UNKNOWN_ACTION=
 
 `;
 
-async function loadGame(data) {
-    const progressText = document.getElementById('progress-text');
-    if (progressText) progressText.textContent = t('loadingSaves');
-    const savesMountPoint = "/vc-assets/local/userfiles";
-    try { Module.FS.mkdir('/vc-assets'); } catch (_) {}
-    try { Module.FS.mkdir('/vc-assets/local'); } catch (_) {}
-    try { Module.FS.mkdir(savesMountPoint); } catch (_) {}
-    try { Module.FS.mount(Module.IDBFS, {}, savesMountPoint); } catch (_) {}
-    await new Promise(resolve => {
-        Module.FS.syncfs(true, function (err) {
-            if (err) {
-                console.error('Error syncing IDBFS:', err);
-            }
-            resolve();
+const revc_ini = (() => {
+    const cached = localStorage.getItem('vcsky.revc.ini');
+    if (cached) {
+        return cached;
+    }
+    return revc_iniDefault;
+})();
+
+if (configurableMode) {
+    const configPanel = document.getElementById('config-panel');
+    const configLang = document.getElementById('config-lang');
+    const configCheats = document.getElementById('config-cheats');
+    const configFullscreen = document.getElementById('config-fullscreen');
+    const configMaxFps = document.getElementById('config-max-fps');
+
+    if (configPanel && configCheats && configFullscreen && configMaxFps) {
+        configPanel.style.display = 'block';
+        if (configLang) configLang.value = currentLanguage;
+        configCheats.checked = cheatsEnabled;
+        configFullscreen.checked = autoFullScreen;
+        configMaxFps.value = maxFPS;
+
+        updateAllTranslations();
+
+        if (configLang) {
+            configLang.addEventListener('change', (e) => {
+                currentLanguage = e.target.value;
+                window.currentLanguage = currentLanguage;
+                updateGameDataForLanguage(currentLanguage);
+                updateAllTranslations();
+            });
+        }
+        configCheats.addEventListener('change', (e) => {
+            cheatsEnabled = e.target.checked;
         });
-    });
-
-    if (resolvedKey && currentKey) {
-        try {
-            const cloudData = await CloudSDK.pullFromStorage(currentKey);
-            if (cloudData) {
-                const zip = new Int8Array(cloudData);
-                const zipPath = savesMountPoint + "/cloud_saves.zip";
-                Module.FS.writeFile(zipPath, zip);
-                await Module.extractZip(zipPath, savesMountPoint);
-                Module.FS.unlink(zipPath);
-            }
-        } catch (err) {
-            console.error('Error pulling cloud saves:', err);
-        }
-    }
-
-    const revcIniPath = savesMountPoint + "/revc.ini";
-    try {
-        const stat = Module.FS.stat(revcIniPath);
-        if (!stat || stat.size < 100) {
-            Module.FS.writeFile(revcIniPath, REVC_INI_DEFAULT);
-        }
-    } catch (e) {
-        Module.FS.writeFile(revcIniPath, REVC_INI_DEFAULT);
-    }
-    await new Promise(resolve => {
-        Module.FS.syncfs(false, function () {
-            resolve();
+        configFullscreen.addEventListener('change', (e) => {
+            autoFullScreen = e.target.checked;
         });
-    });
-
-    let revcIniSyncing = false;
-    Module.syncRevcIni = async () => {
-        if (revcIniSyncing) {
-            return;
-        }
-        revcIniSyncing = true;
-        try {
-            await new Promise((resolve) => {
-                Module.FS.syncfs(false, function (err) {
-                    if (err) {
-                        console.error('Error syncing revc.ini to IDBFS:', err);
-                    }
-                    resolve();
-                });
-            });
-
-            if (resolvedKey && currentKey) {
-                try {
-                    const zipPath = savesMountPoint + "/cloud_saves.zip";
-                    await Module.archiveZip(savesMountPoint, zipPath);
-                    const zipData = Module.FS.readFile(zipPath);
-                    Module.FS.unlink(zipPath);
-                    await CloudSDK.pushToStorage(resolvedKey, zipData);
-                } catch (err) {
-                    console.error('Error pushing cloud saves:', err);
-                }
-            }
-        } catch (e) {
-            console.error('Exception during syncing revc.ini to IDBFS:', e);
-        } finally {
-            revcIniSyncing = false;
-        }
-    };
-
-    const progressContainer = document.getElementById('progress-container');
-    if (progressContainer) progressContainer.style.display = 'none';
-    const clickToPlay = document.querySelector('.click-to-play');
-    if (clickToPlay) clickToPlay.style.display = 'none';
-
-    if (progressText) progressText.textContent = t('initEngine');
-    const pkgArrayBuffer = data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength);
-    if (typeof resolvePreloadedPackage === 'function') {
-        resolvePreloadedPackage(pkgArrayBuffer);
+        configMaxFps.addEventListener('input', (e) => {
+            maxFPS = parseInt(e.target.value) || 0;
+        });
     }
-    Module.removeRunDependency('vc-sky-' + gameLang + '-v6.data');
-    if (progressText) progressText.textContent = t('startingGame');
 }
 
-// Wrap canvas.getContext so WebGL2/WebGL contexts always preserve their drawing buffer for inspection & telemetry
-const mainCanvas = document.getElementById('canvas');
-if (mainCanvas && !mainCanvas.__revcdosContextWrapped) {
-    const origGetContext = mainCanvas.getContext.bind(mainCanvas);
-    mainCanvas.getContext = function (type, attributes) {
-        if (type === 'webgl2' || type === 'webgl' || type === 'experimental-webgl') {
-            attributes = Object.assign({}, attributes || {}, {
-                preserveDrawingBuffer: true
-            });
-        }
-        return origGetContext(type, attributes);
-    };
-    if (typeof mainCanvas.requestPointerLock === 'function') {
-        const origRequestPointerLock = mainCanvas.requestPointerLock.bind(mainCanvas);
-        mainCanvas.requestPointerLock = function (...args) {
-            try {
-                const res = origRequestPointerLock(...args);
-                if (res && typeof res.catch === 'function') {
-                    res.catch(() => {});
-                }
-                return res;
-            } catch (_) {}
-        };
-    }
-    mainCanvas.__revcdosContextWrapped = true;
-}
-
-// Non-blocking save sync on pagehide (replaces blocking window.onbeforeunload prompt)
-window.addEventListener('pagehide', () => {
-    try {
-        Module.syncRevcIni?.();
-    } catch (_) {}
-});
-
-// Resume Web Audio contexts on any user interaction
-function unlockWebAudio() {
-    try {
-        const ctx = window.Module?.SDL2?.audioContext || window.Module?.audioContext;
-        if (ctx && ctx.state === 'suspended' && typeof ctx.resume === 'function') {
-            ctx.resume().catch(() => {});
-        }
-    } catch (_) {}
-}
-window.addEventListener('pointerdown', unlockWebAudio, { passive: true });
-window.addEventListener('keydown', unlockWebAudio, { passive: true });
-window.addEventListener('click', unlockWebAudio, { passive: true });
-
-var Module = {
-    autostart: function () {
-        console.log('autostart called');
-    },
-    loggedOut: async function () {
-        const wastedContainer = document.querySelector('.wasted-container');
-        if (wastedContainer) {
-            wastedContainer.removeAttribute('hidden');
-        }
-        console.log('Logged out');
-    },
-    preRun: [
-        () => {
-            Module.addRunDependency('vc-sky-' + gameLang + '-v6.data');
-        },
-    ],
-    postRun: [],
-    getPreloadedPackage: function () {
-        return preloadedPackagePromise;
-    },
-    mainCalled: function () {
-        console.log('mainCalled');
-        window.__REVCDOS_STATUS__.mainCalled = true;
-        try {
-            const clickToPlay = document.querySelector('.click-to-play');
-            if (clickToPlay) clickToPlay.style.display = 'none';
-            const cover = document.querySelector('.cover');
-            if (cover) cover.style.display = 'none';
-            const intro = document.querySelector('.intro');
-            if (intro) {
-                try { intro.pause(); } catch (_) {}
-                intro.style.display = 'none';
-            }
-            if (spinnerElement) spinnerElement.style.display = 'none';
-            if (statusElement) statusElement.style.display = 'none';
-            if (progressElement) progressElement.style.display = 'none';
-        } catch (_) {}
-    },
-    syncRevcIni: () => { },
-    print: (function () {
-        if (outputElement) outputElement.value = '';
-        return function (text) {
-            if (arguments.length > 1) text = Array.prototype.slice.call(arguments).join(' ');
-            console.log(text);
-            if (outputElement) {
-                outputElement.value += text + "\n";
-                outputElement.scrollTop = outputElement.scrollHeight;
-            }
-        };
-    })(),
-    printErr: function (text) {
-        if (arguments.length > 1) text = Array.prototype.slice.call(arguments).join(' ');
-        if (typeof text === 'string' && text.includes('alGetProcAddress() called without a valid context')) {
-            return;
-        }
-        console.error(text);
-    },
-    canvas: (function () {
-        var canvas = document.getElementById('canvas');
-        canvas.addEventListener("webglcontextlost", function (e) {
-            window.__REVCDOS_STATUS__.lastError = "WebGL context lost";
-            console.error('WebGL context lost. You will need to reload the page.');
-            e.preventDefault();
-        }, false);
-        return canvas;
-    })(),
-    setStatus: function (text) {
-        if (!Module.setStatus.last) Module.setStatus.last = { time: Date.now(), text: '' };
-        if (text === Module.setStatus.last.text) return;
-        var m = text.match(/([^(]+)\((\d+(\.\d+)?)\/(\d+)\)/);
-        var now = Date.now();
-        if (m && now - Module.setStatus.last.time < 30) return;
-        Module.setStatus.last.time = now;
-        Module.setStatus.last.text = text;
-        if (m) {
-            text = m[1];
-            progressElement.value = parseInt(m[2]) * 100;
-            progressElement.max = parseInt(m[4]) * 100;
-            progressElement.hidden = false;
-            spinnerElement.hidden = false;
-        } else {
-            progressElement.value = null;
-            progressElement.max = null;
-            progressElement.hidden = true;
-            if (!text) spinnerElement.style.display = 'none';
-        }
-        statusElement.innerHTML = text;
-    },
-    totalDependencies: 0,
-    monitorRunDependencies: function (left) {
-        this.totalDependencies = Math.max(this.totalDependencies, left);
-        Module.setStatus(left ? 'Preparing... (' + (this.totalDependencies - left) + '/' + this.totalDependencies + ')' : 'All downloads complete.');
-    },
-    instantiateWasm: function (imports, receiveInstance) {
-        const wasmUrl = `${replaceBR}vc-sky-${gameLang}-v6.wasm`;
-        fetch(wasmUrl)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status} loading ${wasmUrl}`);
-                }
-                return response.arrayBuffer();
-            })
-            .then(bytes => WebAssembly.instantiate(bytes, imports))
-            .then(output => {
-                window.__REVCDOS_STATUS__.wasmReady = true;
-                receiveInstance(output.instance);
-            })
-            .catch(err => {
-                window.__REVCDOS_STATUS__.lastError = String(err?.message || err);
-                console.error('[reVCDOS] WASM instantiation error:', err);
-            });
-        return {};
-    },
-};
-
-Module.arguments = [];
-params.forEach((value, key) => {
-    if (key === 'lang' || key === 'autostart' || key === 'useparts' || key === 'nocache' || key === 'request_original_game') return;
-    Module.arguments.push(key);
-    if (value) {
-        Module.arguments.push(value);
-    }
-});
-
-// Initialize language on page load
-const savedLang = localStorage.getItem('vcsky.lang');
-if (savedLang && (savedLang === 'en' || savedLang === 'ru')) {
-    currentLang = savedLang;
-    gameLang = savedLang;
-}
-setLanguage(currentLang);
-if (haveOriginalGame) {
-    ownerShipConfirmed();
-}
-
-// Configure Settings Panel Controls
-const gameLangSelect = document.getElementById('game-lang');
-const cheatsToggle = document.getElementById('cheats-toggle');
-
-if (gameLangSelect) {
-    gameLangSelect.value = gameLang;
-    gameLangSelect.addEventListener('change', (e) => {
-        setLanguage(e.target.value);
-    });
-    gameLangSelect.addEventListener('click', (e) => e.stopPropagation());
-}
-
-if (cheatsToggle) {
-    cheatsToggle.checked = cheatsEnabled;
-    if (cheatsEnabled && !Module.arguments.includes('cheats')) {
-        Module.arguments.push('cheats');
-        Module.arguments.push('1');
-    }
-    cheatsToggle.addEventListener('change', (e) => {
-        if (e.target.checked) {
-            if (!Module.arguments.includes('cheats')) {
-                Module.arguments.push('cheats');
-                Module.arguments.push('1');
-            }
-        } else {
-            const index = Module.arguments.indexOf('cheats');
-            if (index !== -1) {
-                Module.arguments.splice(index, 2);
-            }
-        }
-    });
-    cheatsToggle.parentElement.addEventListener('click', (e) => e.stopPropagation());
-}
-
-Module.setStatus('Downloading...');
-window.onerror = function (event, source, lineno, colno, error) {
-    window.__REVCDOS_STATUS__.lastError = error?.stack || String(event);
-    console.error('[reVCDOS window.onerror]', event, error?.errno, error?.stack);
-    Module.setStatus('Exception thrown, see JavaScript console');
-    spinnerElement.style.display = 'none';
-    Module.setStatus = function (text) {
-        if (text) Module.printErr('[post-exception status] ' + text);
-    };
-};
-
-if (params.get('autostart') === '1') {
-    window.addEventListener('DOMContentLoaded', () => {
-        setTimeout(() => {
+if (params.get('autostart') === '1' || params.get('autostart') === 'true') {
+    setTimeout(() => {
+        if (haveOriginalGame) {
             startGame();
-        }, 100);
-    });
+        }
+    }, 50);
 }

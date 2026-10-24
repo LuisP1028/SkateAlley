@@ -1,36 +1,112 @@
-.gitignore|CHANGED|Added git-ignore rules for revcdos/vcbr/vc-sky-en-v6.data, revcdos/vcbr/vc-sky-ru-v6.data, revcdos/vcsky/, and *.zip so >50MB binaries and unpacked streaming assets remain untracked while <=35MB parts are tracked
-index.html|CHANGED|Added #hud-enter-revcdos-btn launcher link in the Freeman Alley HUD to navigate directly to ./revcdos/
-revcdos/GamepadEmulator.js|CHANGED|Added mobile and virtual gamepad touch input emulator for the standalone reVCDOS web application
-revcdos/cover.jpg|CHANGED|Added self-hosted GTA Vice City cover artwork (105,208 bytes) replacing dead cdn.dos.zone cover/wasted URLs
-revcdos/game.js|CHANGED|Implemented standalone reVCDOS bootstrapper with window.__REVCDOS_STATUS__ telemetry, automatic haveOriginalGame full-game activation, local vcbr/ and lowercase vcsky/ routing, CacheStorage (revcdos-pack-v1), 4-part chunk fallback, preserveDrawingBuffer WebGL2 context wrapper, and non-blocking pagehide save sync
-revcdos/idbfs.js|CHANGED|Added Emscripten IDBFS persistence adapter for /vc-assets/local/userfiles save synchronization
-revcdos/index.html|CHANGED|Created standalone /revcdos/ HTML shell with relative cover.jpg and intro.mp4, #config-panel, DOS.Zone Team credits, and #revcdos-back-to-alley-btn return navigation with zero dead CDN references
-revcdos/index.js|CHANGED|Created sequential runtime module loader loading runtime.js, packages/en.js, loader.js, fs.js, syscalls.js, audio.js, graphics.js, events.js, fetch.js, asm_consts/en.js, main.js, and cheats.js
-revcdos/intro.mp4|CHANGED|Added self-hosted GTA Vice City intro video (8,019,046 bytes)
-revcdos/jsdos-cloud-sdk-local.js|CHANGED|Added local offline-compatible JS-DOS Cloud SDK shim
-revcdos/jsdos-cloud-sdk.js|CHANGED|Added JS-DOS Cloud SDK client script
-revcdos/modules/asm_consts/en.js|CHANGED|Added English EM_ASM constant table with 980182 returning 1 (bypassing demo gate) and idempotent IDBFS mount at 981290
-revcdos/modules/asm_consts/ru.js|CHANGED|Added Russian EM_ASM constant table with 980198 returning 1 (bypassing demo gate) and idempotent IDBFS mount at 981306
-revcdos/modules/audio.js|CHANGED|Added OpenAL and SDL2 Web Audio subsystem module for reVCDOS
-revcdos/modules/cheats.js|CHANGED|Added F3 cheat menu overlay module supporting 62 GTA Vice City cheats
-revcdos/modules/events.js|CHANGED|Added keyboard, mouse, pointer-lock, and gamepad event handling module
-revcdos/modules/fetch.js|CHANGED|Added Emscripten Fetch API (emscripten_start_fetch) XHR + IndexedDB module instrumented to update window.__REVCDOS_STATUS__ telemetry
-revcdos/modules/fs.js|CHANGED|Added Emscripten MEMFS + PATH + ERRNO virtual filesystem implementation
-revcdos/modules/graphics.js|CHANGED|Added EGL + WebGL2 rendering and GLSL shader compilation module
-revcdos/modules/loader.js|CHANGED|Added preloaded package unpacker populating /vc-assets/local/... from the 135,355,111-byte startup package with Promise and EEXIST handling
-revcdos/modules/main.js|CHANGED|Added WASM instantiation and execution entry point (createWasm and run)
-revcdos/modules/packages/en.js|CHANGED|Added English DATA_PACKAGE byte-offset manifest for the 1,943 preloaded files in vc-sky-en-v6.data
-revcdos/modules/packages/ru.js|CHANGED|Added Russian DATA_PACKAGE byte-offset manifest
-revcdos/modules/runtime.js|CHANGED|Added Emscripten runtime memory, UTF8, dynCall, and run-dependency primitives
-revcdos/modules/syscalls.js|CHANGED|Added POSIX syscall shim layer for the Emscripten runtime
-revcdos/pack.json|CHANGED|Created 4-part chunk manifest with byte sizes and SHA-256 digests for vc-sky-en-v6.wasm and vc-sky-en-v6.data.part00..03
-revcdos/parts/vc-sky-en-v6.data.part00|CHANGED|Created part 00 (33,838,778 bytes) of vc-sky-en-v6.data
-revcdos/parts/vc-sky-en-v6.data.part01|CHANGED|Created part 01 (33,838,778 bytes) of vc-sky-en-v6.data
-revcdos/parts/vc-sky-en-v6.data.part02|CHANGED|Created part 02 (33,838,778 bytes) of vc-sky-en-v6.data
-revcdos/parts/vc-sky-en-v6.data.part03|CHANGED|Created part 03 (33,838,777 bytes) of vc-sky-en-v6.data
-revcdos/vcbr/vc-sky-en-v6.wasm|CHANGED|Staged pre-decompressed 7,625,877-byte reVC Emscripten WebAssembly binary
-scripts/serve_skatealley.py|CHANGED|Added reVCDOS MIME types, ensure_revcdos_data chunk reassembly, case-insensitive /revcdos/vcsky/ path resolution, and revcdos_webapp readiness reporting in /api/health
-sandbox.js|READ_ONLY_CONTEXT|Consulted as architectural boundary reference only; zero modifications made to Freeman Alley Three.js scene graph
-skate3_cleanroom/index.html|READ_ONLY_CONTEXT|Consulted as standalone WebApp HUD and return-navigation precedent
-nzportable/index.html|READ_ONLY_CONTEXT|Consulted as standalone Emscripten WebGL2 WebApp precedent
-nzportable/pack.json|READ_ONLY_CONTEXT|Consulted as multi-part chunk manifest precedent
+.gitignore CHANGED ticket-001
+scripts/serve_skatealley.py CHANGED ticket-006
+index.html CHANGED ticket-006
+revcdos/index.html CHANGED ticket-003
+revcdos/game.js CHANGED ticket-004
+revcdos/index.js CHANGED ticket-003
+revcdos/pack.json CHANGED ticket-001
+revcdos/GamepadEmulator.js CHANGED ticket-003
+revcdos/idbfs.js CHANGED ticket-003
+revcdos/jsdos-cloud-sdk.js CHANGED ticket-003
+revcdos/jsdos-cloud-sdk-local.js CHANGED ticket-003
+revcdos/cover.jpg CHANGED ticket-003
+revcdos/intro.mp4 CHANGED ticket-003
+revcdos/vcbr/vc-sky-en-v6.wasm CHANGED ticket-001
+revcdos/parts/vc-sky-en-v6.data.part00 CHANGED ticket-001
+revcdos/parts/vc-sky-en-v6.data.part01 CHANGED ticket-001
+revcdos/parts/vc-sky-en-v6.data.part02 CHANGED ticket-001
+revcdos/parts/vc-sky-en-v6.data.part03 CHANGED ticket-001
+revcdos/modules/runtime.js CHANGED ticket-005
+revcdos/modules/loader.js CHANGED ticket-005
+revcdos/modules/fs.js CHANGED ticket-005
+revcdos/modules/audio.js CHANGED ticket-005
+revcdos/modules/graphics.js CHANGED ticket-005
+revcdos/modules/events.js CHANGED ticket-005
+revcdos/modules/fetch.js CHANGED ticket-005
+revcdos/modules/syscalls.js CHANGED ticket-005
+revcdos/modules/main.js CHANGED ticket-005
+revcdos/modules/cheats.js CHANGED ticket-005
+revcdos/modules/asm_consts/en.js CHANGED ticket-005
+revcdos/modules/asm_consts/ru.js CHANGED ticket-005
+revcdos/modules/packages/en.js CHANGED ticket-005
+revcdos/modules/packages/ru.js CHANGED ticket-005
+functional_specification_043.md READ_ONLY_CONTEXT plan
+wayfinder/20261024T194153-999-2zne/tickets/ticket-001.md READ_ONLY_CONTEXT plan
+wayfinder/20261024T194153-999-2zne/tickets/ticket-002.md READ_ONLY_CONTEXT plan
+wayfinder/20261024T194153-999-2zne/tickets/ticket-003.md READ_ONLY_CONTEXT plan
+wayfinder/20261024T194153-999-2zne/tickets/ticket-004.md READ_ONLY_CONTEXT plan
+wayfinder/20261024T194153-999-2zne/tickets/ticket-005.md READ_ONLY_CONTEXT plan
+wayfinder/20261024T194153-999-2zne/tickets/ticket-006.md READ_ONLY_CONTEXT plan
+wayfinder/20261024T194153-999-2zne/map.md READ_ONLY_CONTEXT plan
+wayfinder/20261024T194153-999-2zne/master_component_to_edit_matrix.md READ_ONLY_CONTEXT plan
+wayfinder/20261024T194153-999-2zne/plan-scan-1-report.md READ_ONLY_CONTEXT plan-scan-1
+wayfinder/20261024T194153-999-2zne/plan-scan-2-report.md READ_ONLY_CONTEXT plan-scan-2
+LANGUAGE.md READ_ONLY_CONTEXT plan-scan-1
+.sandcastle/mcp.md READ_ONLY_CONTEXT plan-scan-1
+sandbox.js READ_ONLY_CONTEXT plan-scan-1
+tunnel.json READ_ONLY_CONTEXT plan-scan-1
+package.json READ_ONLY_CONTEXT plan-scan-1
+tests/test_nzportable_spec042.py READ_ONLY_CONTEXT plan-scan-1
+tests/nzportable_e2e_browser.test.mjs READ_ONLY_CONTEXT plan-scan-1
+skate3_cleanroom/index.html READ_ONLY_CONTEXT plan-scan-1
+skate3_cleanroom/loader.js READ_ONLY_CONTEXT plan-scan-1
+skate3_cleanroom/pack.json READ_ONLY_CONTEXT plan-scan-1
+nzportable/index.html READ_ONLY_CONTEXT plan-scan-1
+nzportable/loader.js READ_ONLY_CONTEXT plan-scan-1
+nzportable/pack.json READ_ONLY_CONTEXT plan-scan-1
+assets/20261024T194153-999-2zne/plan-carter54git-README.md READ_ONLY_CONTEXT plan
+assets/20261024T194153-999-2zne/plan-carter54git-preload_files.list.txt READ_ONLY_CONTEXT plan
+assets/20261024T194153-999-2zne/plan-dist-url-audit.txt READ_ONLY_CONTEXT plan
+assets/20261024T194153-999-2zne/plan-hf-Dockerfile.txt READ_ONLY_CONTEXT plan
+assets/20261024T194153-999-2zne/plan-hf-dist-game.js.txt READ_ONLY_CONTEXT plan
+assets/20261024T194153-999-2zne/plan-hf-dist-index.html.txt READ_ONLY_CONTEXT plan
+assets/20261024T194153-999-2zne/plan-hf-dist-index.js.txt READ_ONLY_CONTEXT plan
+assets/20261024T194153-999-2zne/plan-hf-dist-jsdos-cloud-sdk-local.js.txt READ_ONLY_CONTEXT plan
+assets/20261024T194153-999-2zne/plan-hf-dist-jsdos-cloud-sdk.js.txt READ_ONLY_CONTEXT plan
+assets/20261024T194153-999-2zne/plan-hf-dist-modules-asm_consts-en.js.txt READ_ONLY_CONTEXT plan
+assets/20261024T194153-999-2zne/plan-hf-dist-modules-asm_consts-ru.js.txt READ_ONLY_CONTEXT plan
+assets/20261024T194153-999-2zne/plan-hf-dist-modules-fetch.js.txt READ_ONLY_CONTEXT plan
+assets/20261024T194153-999-2zne/plan-hf-dist-modules-fs.js.txt READ_ONLY_CONTEXT plan
+assets/20261024T194153-999-2zne/plan-hf-dist-modules-loader.js.txt READ_ONLY_CONTEXT plan
+assets/20261024T194153-999-2zne/plan-hf-dist-modules-packages-en-head.js.txt READ_ONLY_CONTEXT plan
+assets/20261024T194153-999-2zne/plan-hf-dist-modules-packages-en-tail.js.txt READ_ONLY_CONTEXT plan
+assets/20261024T194153-999-2zne/plan-hf-dist-tree.json READ_ONLY_CONTEXT plan
+assets/20261024T194153-999-2zne/plan-hf-fix_cases.py.txt READ_ONLY_CONTEXT plan
+assets/20261024T194153-999-2zne/plan-hf-server.py.txt READ_ONLY_CONTEXT plan
+assets/20261024T194153-999-2zne/plan-hf-th3w33knd-revcdos-tree.json READ_ONLY_CONTEXT plan
+assets/20261024T194153-999-2zne/plan-hf-th3w33knd-revcdos-vcbr.json READ_ONLY_CONTEXT plan
+assets/20261024T194153-999-2zne/plan-lolendor-dist-game.js.txt READ_ONLY_CONTEXT plan
+assets/20261024T194153-999-2zne/plan-lolendor-dist-index.html.txt READ_ONLY_CONTEXT plan
+assets/20261024T194153-999-2zne/plan-lolendor-dist-modules-asm_consts-en.js.txt READ_ONLY_CONTEXT plan
+assets/20261024T194153-999-2zne/plan-modules-diff.txt READ_ONLY_CONTEXT plan
+assets/20261024T194153-999-2zne/plan-vcsky-zip-header-probe.txt READ_ONLY_CONTEXT plan
+assets/20261024T194153-999-2zne/plan-scan-1-binary-headers-audit.json READ_ONLY_CONTEXT plan-scan-1
+assets/20261024T194153-999-2zne/plan-scan-1-dead-cdn-headers.json READ_ONLY_CONTEXT plan-scan-1
+assets/20261024T194153-999-2zne/plan-scan-1-hf-tree-dist.json READ_ONLY_CONTEXT plan-scan-1
+assets/20261024T194153-999-2zne/plan-scan-1-hf-tree-main.json READ_ONLY_CONTEXT plan-scan-1
+assets/20261024T194153-999-2zne/plan-scan-1-hf-tree-modules.json READ_ONLY_CONTEXT plan-scan-1
+assets/20261024T194153-999-2zne/plan-scan-1-hf-tree-vcbr.json READ_ONLY_CONTEXT plan-scan-1
+assets/20261024T194153-999-2zne/plan-scan-1-upstream-carter-readme.md READ_ONLY_CONTEXT plan-scan-1
+assets/20261024T194153-999-2zne/plan-scan-1-upstream-Dockerfile READ_ONLY_CONTEXT plan-scan-1
+assets/20261024T194153-999-2zne/plan-scan-1-upstream-fetch.js READ_ONLY_CONTEXT plan-scan-1
+assets/20261024T194153-999-2zne/plan-scan-1-upstream-fix_cases.py READ_ONLY_CONTEXT plan-scan-1
+assets/20261024T194153-999-2zne/plan-scan-1-upstream-game.js READ_ONLY_CONTEXT plan-scan-1
+assets/20261024T194153-999-2zne/plan-scan-1-upstream-index.html READ_ONLY_CONTEXT plan-scan-1
+assets/20261024T194153-999-2zne/plan-scan-1-upstream-loader.js READ_ONLY_CONTEXT plan-scan-1
+assets/20261024T194153-999-2zne/plan-scan-1-upstream-lolendor-readme.md READ_ONLY_CONTEXT plan-scan-1
+assets/20261024T194153-999-2zne/plan-scan-1-upstream-lolendor-server.py READ_ONLY_CONTEXT plan-scan-1
+assets/20261024T194153-999-2zne/plan-scan-1-upstream-packages-en.js READ_ONLY_CONTEXT plan-scan-1
+assets/20261024T194153-999-2zne/plan-scan-1-upstream-preload_files.list READ_ONLY_CONTEXT plan-scan-1
+assets/20261024T194153-999-2zne/plan-scan-1-upstream-vc-sky-en-v6.wasm READ_ONLY_CONTEXT plan-scan-1
+assets/20261024T194153-999-2zne/plan-scan-2-carter54-preload_files.list READ_ONLY_CONTEXT plan-scan-2
+assets/20261024T194153-999-2zne/plan-scan-2-carter54-readme.md READ_ONLY_CONTEXT plan-scan-2
+assets/20261024T194153-999-2zne/plan-scan-2-hf-dockerfile READ_ONLY_CONTEXT plan-scan-2
+assets/20261024T194153-999-2zne/plan-scan-2-hf-fix_cases.py READ_ONLY_CONTEXT plan-scan-2
+assets/20261024T194153-999-2zne/plan-scan-2-hf-game.js READ_ONLY_CONTEXT plan-scan-2
+assets/20261024T194153-999-2zne/plan-scan-2-hf-tree.json READ_ONLY_CONTEXT plan-scan-2
+assets/20261024T194153-999-2zne/plan-scan-2-lolendor-cache.py READ_ONLY_CONTEXT plan-scan-2
+assets/20261024T194153-999-2zne/plan-scan-2-lolendor-game.js READ_ONLY_CONTEXT plan-scan-2
+assets/20261024T194153-999-2zne/plan-scan-2-lolendor-readme.md READ_ONLY_CONTEXT plan-scan-2
+assets/20261024T194153-999-2zne/plan-scan-2-lolendor-server.py READ_ONLY_CONTEXT plan-scan-2
+assets/20261024T194153-999-2zne/plan-scan-2-probe-headers.json READ_ONLY_CONTEXT plan-scan-2
+assets/20261024T194153-999-2zne/plan-scan-2-pack.schema.json READ_ONLY_CONTEXT plan-scan-2

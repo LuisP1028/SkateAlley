@@ -75,8 +75,8 @@ var ASM_CONSTS = {
     },
     981306: $0 => {
         const dir = UTF8ToString($0);
-        try { FS.mkdir(dir); } catch (_) {}
-        try { FS.mount(IDBFS, {}, dir); } catch (_) {}
+        FS.mkdir(dir);
+        FS.mount(IDBFS, {}, dir);
         Module.syncdone = 0;
         FS.syncfs(true, function(err) {
             if (err) {

@@ -1,43 +1,66 @@
 {
-  "name": "revcdos-vc-sky-en-v6",
   "version": 1,
-  "engine": "reVC (GTA: Vice City WebAssembly/WebGL2)",
-  "wasm": {
-    "path": "vcbr/vc-sky-en-v6.wasm",
-    "bytes": 7625877,
+  "cacheName": "revcdos-pack-v1",
+  "engine": {
+    "js": "./index.js",
+    "wasm": "./vcbr/vc-sky-en-v6.wasm",
+    "size": 7625877,
     "sha256": "db6aa7b9169a638e06b17f7bed5a6b3e473e00ae7bbb47354729fa94b971ebf2"
   },
   "data": {
-    "targetPath": "vcbr/vc-sky-en-v6.data",
-    "totalBytes": 135355111,
+    "path": "vcbr/vc-sky-en-v6.data",
+    "url": "./vcbr/vc-sky-en-v6.data",
+    "size": 135355111,
     "sha256": "3da895fd1a0c8e8968d0937da45becc35efc697f13a26a0d0463bd6a22acfff6",
-    "chunkSizeBytes": 33838778,
-    "partsCount": 4,
     "parts": [
-      {
-        "index": 0,
-        "path": "parts/vc-sky-en-v6.data.part00",
-        "bytes": 33838778,
-        "sha256": "ab41a0abb9fb051cb5b394c12141a72f19880c043465736d79c8ab0f9e2f562b"
-      },
-      {
-        "index": 1,
-        "path": "parts/vc-sky-en-v6.data.part01",
-        "bytes": 33838778,
-        "sha256": "a5c7121bf6d042ab4b28b105c3f4b4731d00140714e1ddcbd9d6bd645f1dbcf5"
-      },
-      {
-        "index": 2,
-        "path": "parts/vc-sky-en-v6.data.part02",
-        "bytes": 33838778,
-        "sha256": "724ca066f919030e2e6ed1139348299c3b49defa22d53bb960e483dec9cf572c"
-      },
-      {
-        "index": 3,
-        "path": "parts/vc-sky-en-v6.data.part03",
-        "bytes": 33838777,
-        "sha256": "6c58863553713b85deb68f13a5e0d40c23c393286c4e6ea0c8e0bf26370aa6e2"
-      }
+      "./parts/vc-sky-en-v6.data.part00",
+      "./parts/vc-sky-en-v6.data.part01",
+      "./parts/vc-sky-en-v6.data.part02",
+      "./parts/vc-sky-en-v6.data.part03"
+    ],
+    "partSizes": [
+      33838778,
+      33838778,
+      33838778,
+      33838777
+    ],
+    "partSha256": [
+      "ab41a0abb9fb051cb5b394c12141a72f19880c043465736d79c8ab0f9e2f562b",
+      "a5c7121bf6d042ab4b28b105c3f4b4731d00140714e1ddcbd9d6bd645f1dbcf5",
+      "724ca066f919030e2e6ed1139348299c3b49defa22d53bb960e483dec9cf572c",
+      "6c58863553713b85deb68f13a5e0d40c23c393286c4e6ea0c8e0bf26370aa6e2"
     ]
+  },
+  "files": {
+    "vcbr/vc-sky-en-v6.data": {
+      "path": "vcbr/vc-sky-en-v6.data",
+      "url": "./vcbr/vc-sky-en-v6.data",
+      "size": 135355111,
+      "sha256": "3da895fd1a0c8e8968d0937da45becc35efc697f13a26a0d0463bd6a22acfff6",
+      "parts": [
+        "./parts/vc-sky-en-v6.data.part00",
+        "./parts/vc-sky-en-v6.data.part01",
+        "./parts/vc-sky-en-v6.data.part02",
+        "./parts/vc-sky-en-v6.data.part03"
+      ],
+      "partSizes": [
+        33838778,
+        33838778,
+        33838778,
+        33838777
+      ],
+      "partSha256": [
+        "ab41a0abb9fb051cb5b394c12141a72f19880c043465736d79c8ab0f9e2f562b",
+        "a5c7121bf6d042ab4b28b105c3f4b4731d00140714e1ddcbd9d6bd645f1dbcf5",
+        "724ca066f919030e2e6ed1139348299c3b49defa22d53bb960e483dec9cf572c",
+        "6c58863553713b85deb68f13a5e0d40c23c393286c4e6ea0c8e0bf26370aa6e2"
+      ]
+    },
+    "vcbr/vc-sky-en-v6.wasm": {
+      "path": "vcbr/vc-sky-en-v6.wasm",
+      "url": "./vcbr/vc-sky-en-v6.wasm",
+      "size": 7625877,
+      "sha256": "db6aa7b9169a638e06b17f7bed5a6b3e473e00ae7bbb47354729fa94b971ebf2"
+    }
   }
 }

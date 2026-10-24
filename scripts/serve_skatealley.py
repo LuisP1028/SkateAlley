@@ -12,6 +12,7 @@ import json
 import mimetypes
 import os
 import re
+import shutil
 import socketserver
 import time
 import urllib.error
@@ -219,14 +220,16 @@ EXTRA_MIME_TYPES = {
     ".adf": "application/octet-stream",
     ".raw": "application/octet-stream",
     ".sdt": "application/octet-stream",
+    ".scm": "application/octet-stream",
+    ".gxt": "application/octet-stream",
     ".save": "application/octet-stream",
-    ".ini": "text/plain; charset=utf-8",
-    ".cfg": "text/plain; charset=utf-8",
-    ".dat": "text/plain; charset=utf-8",
-    ".ide": "text/plain; charset=utf-8",
-    ".ipl": "text/plain; charset=utf-8",
-    ".zon": "text/plain; charset=utf-8",
-    ".fxt": "text/plain; charset=utf-8",
+    ".ini": "application/octet-stream",
+    ".cfg": "application/octet-stream",
+    ".dat": "application/octet-stream",
+    ".ide": "application/octet-stream",
+    ".ipl": "application/octet-stream",
+    ".zon": "application/octet-stream",
+    ".fxt": "application/octet-stream",
     ".part": "application/octet-stream",
     **{f".part{i:02d}": "application/octet-stream" for i in range(100)},
 }
@@ -361,6 +364,50 @@ ensure_revcdos_data(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 ensure_revcdos_data(os.getcwd())
 
 
+REVCDOS_VCSKY_SUBDIRS = ("anim", "audio", "data", "models", "mp3", "mss", "skins", "text", "txd")
+
+
+def ensure_revcdos_vcsky(base_dir=None):
+    """Materialize revcdos/vcsky/fetched/** from shared workspace cache if absent in a fresh worktree."""
+    root = os.path.abspath(base_dir or os.getcwd())
+    target_vcsky = os.path.join(root, "revcdos", "vcsky")
+    target_fetched = os.path.join(target_vcsky, "fetched")
+    if os.path.isdir(os.path.join(target_fetched, "models")) and os.path.isfile(
+        os.path.join(target_vcsky, "sha256sums.txt")
+    ):
+        for sub in REVCDOS_VCSKY_SUBDIRS:
+            os.makedirs(os.path.join(target_fetched, sub), exist_ok=True)
+        return True
+
+    candidate_sources = [
+        os.path.abspath(os.path.join(root, "..", "..", "..", "revcdos", "vcsky")),
+        "/Users/diesel/Desktop/SkateAlley/revcdos/vcsky",
+    ]
+    for src_vcsky in candidate_sources:
+        if os.path.abspath(src_vcsky) == os.path.abspath(target_vcsky):
+            continue
+        if os.path.isdir(os.path.join(src_vcsky, "fetched", "models")):
+            try:
+                os.makedirs(os.path.dirname(target_vcsky), exist_ok=True)
+                shutil.copytree(src_vcsky, target_vcsky, copy_function=os.link, dirs_exist_ok=True)
+                for sub in REVCDOS_VCSKY_SUBDIRS:
+                    os.makedirs(os.path.join(target_fetched, sub), exist_ok=True)
+                return True
+            except OSError:
+                try:
+                    shutil.copytree(src_vcsky, target_vcsky, dirs_exist_ok=True)
+                    for sub in REVCDOS_VCSKY_SUBDIRS:
+                        os.makedirs(os.path.join(target_fetched, sub), exist_ok=True)
+                    return True
+                except OSError:
+                    pass
+    return os.path.isdir(target_fetched)
+
+
+ensure_revcdos_vcsky(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+ensure_revcdos_vcsky(os.getcwd())
+
+
 class ThreadingHTTPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
     allow_reuse_address = True
     daemon_threads = True
@@ -371,20 +418,21 @@ class SkateAlleyRequestHandler(SimpleHTTPRequestHandler):
 
     def translate_path(self, path):
         resolved = super().translate_path(path)
-        if os.path.exists(resolved):
-            return resolved
         clean_path = path.split("?", 1)[0].split("#", 1)[0]
         if clean_path.lower().startswith("/revcdos/vcsky/"):
             rel = os.path.relpath(resolved, os.getcwd())
+            if os.path.exists(resolved) and rel == rel.lower():
+                return resolved
             parts = rel.split(os.sep)
             cur = os.getcwd()
             for part in parts:
-                candidate = os.path.join(cur, part)
-                if os.path.exists(candidate):
-                    cur = candidate
-                    continue
                 if not os.path.isdir(cur):
                     return resolved
+                if part == part.lower():
+                    candidate = os.path.join(cur, part)
+                    if os.path.exists(candidate):
+                        cur = candidate
+                        continue
                 part_lower = part.lower()
                 matched = next(
                     (entry for entry in os.listdir(cur) if entry.lower() == part_lower),
@@ -394,6 +442,8 @@ class SkateAlleyRequestHandler(SimpleHTTPRequestHandler):
                     return resolved
                 cur = os.path.join(cur, matched)
             return cur
+        if os.path.exists(resolved):
+            return resolved
         return resolved
 
     def end_headers(self):
@@ -699,6 +749,7 @@ def main():
     os.chdir(os.path.abspath(args.dir))
     ensure_nzportable_game_pk3(os.getcwd())
     ensure_revcdos_data(os.getcwd())
+    ensure_revcdos_vcsky(os.getcwd())
     with ThreadingHTTPServer((args.host, args.port), SkateAlleyRequestHandler) as httpd:
         print(f"[skatealley-app-local] Serving {os.getcwd()} on http://{args.host}:{args.port}", flush=True)
         httpd.serve_forever()

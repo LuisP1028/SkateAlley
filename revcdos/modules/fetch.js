@@ -246,7 +246,8 @@ function fetchLoadCachedData(db, fetch, onsuccess, onerror) {
                 HEAP16[fetch + 42 >> 1] = 200;
                 stringToUTF8("OK", fetch + 44, 64);
                 if (typeof window !== "undefined" && window.__REVCDOS_STATUS__) {
-                    window.__REVCDOS_STATUS__.fetchedAssetsCount += 1;
+                    window.__REVCDOS_STATUS__.fetchedAssetsCount = (window.__REVCDOS_STATUS__.fetchedAssetsCount || 0) + 1;
+                    window.__REVCDOS_STATUS__.lastFetchedUrl = typeof replaceFetch === "function" ? replaceFetch(pathStr) : pathStr;
                 }
                 onsuccess(fetch, 0, value)
             } else {

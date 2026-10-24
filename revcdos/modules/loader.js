@@ -133,14 +133,7 @@
                 for (var file of metadata["files"]) {
                     var name = file["filename"];
                     var data = byteArray.subarray(file["start"], file["end"]);
-                    try {
-                        Module["FS_createDataFile"](name, null, data, true, true, true);
-                    } catch (e) {
-                        try {
-                            Module["FS"].unlink(name);
-                            Module["FS_createDataFile"](name, null, data, true, true, true);
-                        } catch (_) {}
-                    }
+                    Module["FS_createDataFile"](name, null, data, true, true, true);
                     Module["removeRunDependency"](`fp ${name}`)
                 }
                 Module["removeRunDependency"]("datafile_/home/caiiiycuk/vc/vc-sky/index.data")
@@ -152,8 +145,6 @@
             };
             if (!fetched) {
                 fetched = await fetchPromise
-            } else if (typeof fetched.then === "function") {
-                fetched = await fetched
             }
             processPackageData(fetched)
         }
