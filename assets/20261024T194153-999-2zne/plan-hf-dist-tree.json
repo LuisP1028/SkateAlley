@@ -1,0 +1,170 @@
+[
+    {
+        "type": "directory",
+        "oid": "75eb3d4c3f588dceed05ac5476a963772886d9fa",
+        "size": 0,
+        "path": "dist/modules"
+    },
+    {
+        "type": "directory",
+        "oid": "be8309245dcb01973b4463309a8037ad4239d194",
+        "size": 0,
+        "path": "dist/modules/asm_consts"
+    },
+    {
+        "type": "directory",
+        "oid": "1c6acad14775424fe2d34c7d62eccb6352a94ae6",
+        "size": 0,
+        "path": "dist/modules/packages"
+    },
+    {
+        "type": "file",
+        "oid": "4eac947c68270f8d73e430d7e6e6cb9e250b8b7b",
+        "size": 35089,
+        "path": "dist/GamepadEmulator.js"
+    },
+    {
+        "type": "file",
+        "oid": "0e5257c78518e04ff2defff5aab525e9ed4c87f6",
+        "size": 105208,
+        "lfs": {
+            "oid": "e2f9e05b539417d4327b487b2e73eba9c6e71fb25567166042aa45351f9b5eb8",
+            "size": 105208,
+            "pointerSize": 131
+        },
+        "xetHash": "019d5ff60644e61b2a3f30581c7ae437e7fc443b7639a0a026e3f851f44531c8",
+        "path": "dist/cover.jpg"
+    },
+    {
+        "type": "file",
+        "oid": "dda53b7ddd2910ccf4ddde80544b070118a9794a",
+        "size": 28529,
+        "path": "dist/game.js"
+    },
+    {
+        "type": "file",
+        "oid": "4f1df2f920d556480eb97033d1f7dbf5ec8a3be7",
+        "size": 7962,
+        "path": "dist/idbfs.js"
+    },
+    {
+        "type": "file",
+        "oid": "61602b4ee4fc91e05c3aa3a6b57cba5483d543cd",
+        "size": 91691,
+        "path": "dist/index.html"
+    },
+    {
+        "type": "file",
+        "oid": "29ed8f356a29bb1e747a63543c429eab6859fafa",
+        "size": 1140,
+        "path": "dist/index.js"
+    },
+    {
+        "type": "file",
+        "oid": "90fb0ddd0b6b7c2e7bdf2d0e845e512f1e2ad174",
+        "size": 8019046,
+        "lfs": {
+            "oid": "d77620000a4b1a93a3d1bed13b71ef7a4678c2f80b3c6faadacb77486d219140",
+            "size": 8019046,
+            "pointerSize": 132
+        },
+        "xetHash": "a1a34ea4f9ce213aca7f853dfa2ccee86934ba7930e05dfb33f5473487269a4c",
+        "path": "dist/intro.mp4"
+    },
+    {
+        "type": "file",
+        "oid": "d154d3384eaedcd3ee0ebb427802883875510d45",
+        "size": 21920,
+        "path": "dist/jsdos-cloud-sdk-local.js"
+    },
+    {
+        "type": "file",
+        "oid": "9ad97bed7728cb8f314040f18e314586aaff985a",
+        "size": 22490,
+        "path": "dist/jsdos-cloud-sdk.js"
+    },
+    {
+        "type": "file",
+        "oid": "8df37306cf8fa072a3f66fd89ff64ee06ae12a7c",
+        "size": 14530,
+        "path": "dist/modules/asm_consts/en.js"
+    },
+    {
+        "type": "file",
+        "oid": "6da9b5fd3a563a3530fb786cd128228fc2613cb0",
+        "size": 16140,
+        "path": "dist/modules/asm_consts/ru.js"
+    },
+    {
+        "type": "file",
+        "oid": "e28787ab36bd90a492225f53070ca9eede19cc1e",
+        "size": 90186,
+        "path": "dist/modules/audio.js"
+    },
+    {
+        "type": "file",
+        "oid": "8721b405a0fda441abf19f1b7407536abe6d2454",
+        "size": 61333,
+        "path": "dist/modules/cheats.js"
+    },
+    {
+        "type": "file",
+        "oid": "ccf9d2ba455823b6adf8aea231624448c5acece8",
+        "size": 54881,
+        "path": "dist/modules/events.js"
+    },
+    {
+        "type": "file",
+        "oid": "13e4d4488d15d2f46abdfab179bb750871e4c565",
+        "size": 13488,
+        "path": "dist/modules/fetch.js"
+    },
+    {
+        "type": "file",
+        "oid": "f688ffb65f92e920546c8e9e4da5c2a499a6c5cd",
+        "size": 99817,
+        "path": "dist/modules/fs.js"
+    },
+    {
+        "type": "file",
+        "oid": "9fe3ae960b9d778a1b1339d6a09797104c96a270",
+        "size": 105045,
+        "path": "dist/modules/graphics.js"
+    },
+    {
+        "type": "file",
+        "oid": "579cf647d3fe5d0fd869d2aaf9d2b566a25fb6e2",
+        "size": 9469,
+        "path": "dist/modules/loader.js"
+    },
+    {
+        "type": "file",
+        "oid": "9a3eee41847d112d06f6accf8c11c69274edf6c0",
+        "size": 37,
+        "path": "dist/modules/main.js"
+    },
+    {
+        "type": "file",
+        "oid": "2efbb99cd5d41da7a5ed7172d2390e0a5561e2dd",
+        "size": 243191,
+        "path": "dist/modules/packages/en.js"
+    },
+    {
+        "type": "file",
+        "oid": "b297ffc09544af3e2c3e26db30ee14e5aa9d5bbb",
+        "size": 244121,
+        "path": "dist/modules/packages/ru.js"
+    },
+    {
+        "type": "file",
+        "oid": "fb7321cc79b7fb30de4e8bddf7265386884f0851",
+        "size": 95224,
+        "path": "dist/modules/runtime.js"
+    },
+    {
+        "type": "file",
+        "oid": "b7cfb326552811e5b8d2c2cd52f34c362214fc8f",
+        "size": 16459,
+        "path": "dist/modules/syscalls.js"
+    }
+]

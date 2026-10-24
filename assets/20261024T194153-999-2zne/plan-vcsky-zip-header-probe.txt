@@ -1,0 +1,10 @@
+('fetched/', 0)
+('fetched/anim/', 0)
+('fetched/anim/cuts.img/', 0)
+('fetched/anim/cuts.img/ass_1.dat', 112)
+('fetched/anim/cuts.img/ass_1.ifp', 222995)
+total_entries=15619, cd_size=1779422, cd_offset=617181446
+upper_count=599
+upper_samples=['fetched/audio/AirHornL.wav', 'fetched/audio/AirHornR.wav', 'fetched/audio/BAR_1.wav', 'fetched/audio/BAR_2.wav', 'fetched/audio/BAR_3.wav', 'fetched/audio/BAR_4.wav', 'fetched/audio/BAR_5.wav', 'fetched/audio/BAR_6.wav', 'fetched/audio/BAR_7.wav', 'fetched/audio/BAR_8.wav', 'fetched/audio/BeachAmb.mp3', 'fetched/audio/BikeRev.wav', 'fetched/audio/BK4_35a.wav', 'fetched/audio/BK4_35b.wav', 'fetched/audio/BK4_40a.wav']
+top_dirs=['fetched/', 'fetched/anim', 'fetched/audio', 'fetched/models']
+root_files=['sha256sums.txt']

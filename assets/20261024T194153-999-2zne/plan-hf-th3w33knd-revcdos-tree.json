@@ -1,0 +1,122 @@
+[
+    {
+        "type": "directory",
+        "oid": "cbbf5f0260309e4391ba284574677b30ba6bf4e9",
+        "size": 0,
+        "path": "additions"
+    },
+    {
+        "type": "directory",
+        "oid": "4e8316ee6e63a6dea53ac24fef42a1ab8c68e09d",
+        "size": 0,
+        "path": "dist"
+    },
+    {
+        "type": "directory",
+        "oid": "0c182b8ba5f06e9600b26900c31cccf1f31d2cec",
+        "size": 0,
+        "path": "utils"
+    },
+    {
+        "type": "directory",
+        "oid": "abff7450b161958f834ffc91de8fa1b3078f3d5a",
+        "size": 0,
+        "path": "vcbr"
+    },
+    {
+        "type": "file",
+        "oid": "0304dd8c50ba644730b003cfe0c438f89936a741",
+        "size": 1818,
+        "path": ".gitattributes"
+    },
+    {
+        "type": "file",
+        "oid": "aeda35ba299cae6d81e1c3ae0ce96f739bb45b03",
+        "size": 169,
+        "path": ".gitignore"
+    },
+    {
+        "type": "file",
+        "oid": "5c2e5918ea6d2ac332b54d63963784e226a2e0a3",
+        "size": 1415,
+        "path": ".htaccess"
+    },
+    {
+        "type": "file",
+        "oid": "0a7f9e7a22afe9e1d7400450594df66c6494ee4c",
+        "size": 950,
+        "path": "Dockerfile"
+    },
+    {
+        "type": "file",
+        "oid": "0601543e01a6d8348e1df9a5a1d6f39028d73638",
+        "size": 1071,
+        "path": "LICENSE"
+    },
+    {
+        "type": "file",
+        "oid": "d1b67df6a1b8e79c4498a2e49dc61acedb275e7c",
+        "size": 20144,
+        "path": "README.md"
+    },
+    {
+        "type": "file",
+        "oid": "2b7a832002487cf3da6ed33114234868a192c9e3",
+        "size": 16386,
+        "path": "colab_reVCDOS.ipynb"
+    },
+    {
+        "type": "file",
+        "oid": "d5dd16bfb7f62cbb45f592d7b8d8088cade7628d",
+        "size": 1809,
+        "path": "docker-compose.yml"
+    },
+    {
+        "type": "file",
+        "oid": "c9e271fb01a1229caf59db4d0d1b87a9bddce8b7",
+        "size": 783,
+        "path": "fix_cases.py"
+    },
+    {
+        "type": "file",
+        "oid": "45dd60ecbfd16f0ef311976afdf69b5ee7bfa57e",
+        "size": 4198,
+        "path": "index.php"
+    },
+    {
+        "type": "file",
+        "oid": "73eaffd6cdb0d2fb4796f5c6d968d014108df76c",
+        "size": 32979,
+        "path": "pixi.lock"
+    },
+    {
+        "type": "file",
+        "oid": "83a19c1e2daa0c58be0c4e27143e0011a4097aac",
+        "size": 707,
+        "path": "pixi.toml"
+    },
+    {
+        "type": "file",
+        "oid": "abe6804763497e15c6e8667addb309cce0940f69",
+        "size": 54,
+        "path": "requirements.txt"
+    },
+    {
+        "type": "file",
+        "oid": "850582c238c1311f34e76a2dba7a3ae570281714",
+        "size": 14496,
+        "path": "server.py"
+    },
+    {
+        "type": "file",
+        "oid": "c5ddcc138f3ac34867a9be089eec620faa228714",
+        "size": 618960890,
+        "lfs": {
+            "oid": "c582831b6b2f45ee5af947269fa62c517ca88eb4b7946634a0476ccb8fc972da",
+            "size": 618960890,
+            "pointerSize": 134
+        },
+        "xetHash": "2adc4bdbc8189b5a66730493d53513d9093b75754b021d31d8b7043e845f48a1",
+        "path": "vcsky.zip"
+    }
+]

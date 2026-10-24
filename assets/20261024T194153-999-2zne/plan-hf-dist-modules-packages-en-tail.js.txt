@@ -1,0 +1,38 @@
+d/loadsc6.txd",
+        start: 133510527,
+        end: 133773863
+    }, {
+        filename: "/vc-assets/local/txd/loadsc7.txd",
+        start: 133773863,
+        end: 134037199
+    }, {
+        filename: "/vc-assets/local/txd/loadsc8.txd",
+        start: 134037199,
+        end: 134300535
+    }, {
+        filename: "/vc-assets/local/txd/loadsc9.txd",
+        start: 134300535,
+        end: 134563871
+    }, {
+        filename: "/vc-assets/local/txd/news.txd",
+        start: 134563871,
+        end: 134827207
+    }, {
+        filename: "/vc-assets/local/txd/outro.txd",
+        start: 134827207,
+        end: 135090543
+    }, {
+        filename: "/vc-assets/local/txd/splash1.txd",
+        start: 135090543,
+        end: 135222807
+    }, {
+        filename: "/vc-assets/local/txd/splash2.txd",
+        start: 135222807,
+        end: 135355071
+    }, {
+        filename: "/vc-assets/local/txd/splash3.txd",
+        start: 135355071,
+        end: 135355111
+    }],
+    remote_package_size: 135355111
+}

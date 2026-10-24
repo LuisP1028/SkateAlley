@@ -1,0 +1,12 @@
+dist/game.js: matches dos.zone
+dist/game.js: matches vcsky
+dist/game.js: matches vcbr
+dist/game.js: matches mainCalled
+dist/game.js: matches replaceFetch
+dist/index.html: matches dos.zone
+dist/index.html: matches vcsky
+dist/index.html: matches wasted.png
+dist/jsdos-cloud-sdk.js: matches morgen
+dist/modules/asm_consts/en.js: matches mainCalled
+dist/modules/asm_consts/ru.js: matches mainCalled
+dist/modules/fetch.js: matches replaceFetch
