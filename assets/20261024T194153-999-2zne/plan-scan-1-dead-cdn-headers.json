@@ -1,0 +1,63 @@
+[
+  {
+    "name": "dos_zone_cdn",
+    "url": "https://cdn.dos.zone/vcsky/",
+    "status": 403,
+    "reason": "Forbidden",
+    "headers": {
+      "Server": "nginx",
+      "Date": "Sat, 24 Oct 2026 19:45:16 GMT",
+      "Content-Type": "application/xml",
+      "Content-Length": "263",
+      "Connection": "close",
+      "Via": "1.1 Caddy",
+      "X-Amz-Request-Id": "tx000005b5b2a1e8ee92c9e-006add0acc-89a6e3f-default",
+      "X-CDN-Edge-Id": "2020",
+      "X-CDN-Edge-Cache": "MISS",
+      "X-CDN-Request-Id": "70e1e7e0300ab9b6d303627e1fd9388d"
+    },
+    "body_snippet": ""
+  },
+  {
+    "name": "br_dos_zone_cdn",
+    "url": "https://br.cdn.dos.zone/vcsky/",
+    "status": 403,
+    "reason": "Forbidden",
+    "headers": {
+      "Server": "nginx",
+      "Date": "Sat, 24 Oct 2026 19:45:17 GMT",
+      "Content-Type": "application/xml",
+      "Content-Length": "258",
+      "Connection": "close",
+      "Via": "1.1 Caddy",
+      "X-Amz-Request-Id": "tx00000c57af0ae7eb638fe-006add0acd-88fcafa-default",
+      "X-CDN-Edge-Id": "2024",
+      "X-CDN-Edge-Cache": "MISS",
+      "X-CDN-Request-Id": "eea89e7f6e27828100bea08d2427c040"
+    },
+    "body_snippet": ""
+  },
+  {
+    "name": "folder_morgen_bin",
+    "url": "https://folder.morgen.qzz.io/revcdos.bin",
+    "status": 200,
+    "reason": "OK",
+    "headers": {
+      "Date": "Sat, 24 Oct 2026 19:45:18 GMT",
+      "Content-Type": "text/plain",
+      "Content-Length": "1084364719",
+      "Connection": "close",
+      "Server": "cloudflare",
+      "Last-Modified": "Sat, 27 Dec 2025 06:02:23 GMT",
+      "ETag": "\"694f766f-40a217af\"",
+      "Accept-Ranges": "bytes",
+      "Cache-Control": "max-age=14400",
+      "cf-cache-status": "BYPASS",
+      "Server-Timing": "cfCacheStatus;desc=\"BYPASS\"",
+      "Report-To": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=%2B1mIrGt4l%2B18Wi%2FWvBcZIXTr66I7Z3%2FnTTdDSqBzkx4I2DpCPAJ7qadW2%2FsKnh%2FCBLpJqI9pTMiaGFIQ9CB9CJFZ6PfwmkV9QH4XcOBbdyySr9B8KPu1r8l2fnCkYxTiLqWcHORZYtvOQK9XyFoyn10DRw%3D%3D\"}]}",
+      "Nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+      "CF-RAY": "a4fb7b264f540b82-SJC",
+      "alt-svc": "h3=\":443\"; ma=86400"
+    }
+  }
+]

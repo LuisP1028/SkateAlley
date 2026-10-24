@@ -1,0 +1,35 @@
+FROM python:3.11-slim
+
+USER root
+RUN apt-get update && apt-get install -y unzip && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Add Hugging Face User
+RUN useradd -m -u 1000 user
+USER user
+ENV HOME=/home/user \
+    PATH=/home/user/.local/bin:$PATH
+WORKDIR $HOME/app
+
+# Install dependencies
+COPY --chown=user requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy everything (including fix_cases.py)
+COPY --chown=user . .
+
+# UNZIP and use Python to fix cases
+RUN if [ -f "vcsky.zip" ]; then \
+    mkdir -p vcsky && \
+    unzip -o vcsky.zip -d vcsky && \
+    rm vcsky.zip && \
+    python fix_cases.py; \
+    fi
+
+EXPOSE 7860
+
+# CMD: Switch to --vcsky_cache. 
+# This is the "Professional" way to do it. It uses your 1GB local files 99.9% of the time, 
+# but if a single file like 'water.mp3' is still missing, it pulls it from the CDN.
+CMD ["python", "server.py", "--port", "7860", "--vcbr_local", "--vcsky_local", "--custom_saves"]
