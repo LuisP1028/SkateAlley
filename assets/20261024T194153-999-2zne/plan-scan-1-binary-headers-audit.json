@@ -1,0 +1,80 @@
+[
+  {
+    "name": "vc-sky-en-v6.wasm",
+    "url": "https://huggingface.co/spaces/th3w33knd/reVCDOS/resolve/main/vcbr/vc-sky-en-v6.wasm",
+    "final_url": "https://us.aws.cdn.hf.co/xet-bridge-us/69521dae41db1923089b05ca/e6815c1894d2326b4d1edcfef652124a2bec2db9424d5061abcccbe167428a2d?response-content-disposition=inline%3B+filename*%3DUTF-8%27%27vc-sky-en-v6.wasm%3B+filename%3D%22vc-sky-en-v6.wasm%22%3B&xip=SdFM615rtJM&X-Xet-Cas-Uid=public&response-content-type=application%2Fwasm&user_id=public&Expires=1792874718&Policy=eyJTdGF0ZW1lbnQiOlt7IlJlc291cmNlIjoiaHR0cHM6Ly91cy5hd3MuY2RuLmhmLmNvL3hldC1icmlkZ2UtdXMvNjk1MjFkYWU0MWRiMTkyMzA4OWIwNWNhL2U2ODE1YzE4OTRkMjMyNmI0ZDFlZGNmZWY2NTIxMjRhMmJlYzJkYjk0MjRkNTA2MWFiY2NjYmUxNjc0MjhhMmRcXD9yZXNwb25zZS1jb250ZW50LWRpc3Bvc2l0aW9uPWlubGluZSUzQitmaWxlbmFtZSUyQSUzRFVURi04JTI3JTI3dmMtc2t5LWVuLXY2Lndhc20lM0IrZmlsZW5hbWUlM0QlMjJ2Yy1za3ktZW4tdjYud2FzbSUyMiUzQiZ4aXA9U2RGTTYxNXJ0Sk0mWC1YZXQtQ2FzLVVpZD1wdWJsaWMmcmVzcG9uc2UtY29udGVudC10eXBlPWFwcGxpY2F0aW9uJTJGd2FzbSZ1c2VyX2lkPXB1YmxpYyIsIkNvbmRpdGlvbiI6eyJEYXRlTGVzc1RoYW4iOnsiRXBvY2hUaW1lIjoxNzkyODc0NzE4fX19XX0_&Signature=MEUCIH3dQSN2Dl-zAPvSLixOCfDNBMxspS4sYUIYfNz0wm08AiEAscb-2l3oexujyFEFqy%7ETrGf9IRBr1-d7RzjDMK1h7Tk_&Key-Pair-Id=01KXEF4KZ1B6FV465MAWR4M21F&Hash-Algorithm=SHA256",
+    "status": 200,
+    "content_length": 7625877,
+    "content_type": "application/wasm",
+    "etag": "\"e6815c1894d2326b4d1edcfef652124a2bec2db9424d5061abcccbe167428a2d\"",
+    "accept_ranges": "bytes",
+    "headers": {
+      "content-type": "application/wasm",
+      "accept-ranges": "bytes",
+      "content-disposition": "inline; filename*=UTF-8''vc-sky-en-v6.wasm; filename=\"vc-sky-en-v6.wasm\";",
+      "etag": "\"e6815c1894d2326b4d1edcfef652124a2bec2db9424d5061abcccbe167428a2d\"",
+      "content-security-policy": "default-src 'none'; media-src 'self'; sandbox allow-same-origin",
+      "access-control-allow-headers": "Content-Range, Content-Type, Content-Disposition, ETag",
+      "access-control-expose-headers": "*",
+      "content-length": "7625877",
+      "vary": "origin, access-control-request-method, access-control-request-headers",
+      "access-control-allow-origin": "*",
+      "x-request-id": "01M5QQ4DYMQ79H28RR263QWJKG",
+      "x-hf-cdn-pop": "aws-us-west-2",
+      "date": "Sat, 24 Oct 2026 19:45:18 GMT",
+      "connection": "close"
+    }
+  },
+  {
+    "name": "vc-sky-en-v6.data",
+    "url": "https://huggingface.co/spaces/th3w33knd/reVCDOS/resolve/main/vcbr/vc-sky-en-v6.data",
+    "final_url": "https://us.aws.cdn.hf.co/xet-bridge-us/69521dae41db1923089b05ca/22bdea4771fc6d92d97a2c503abc3a5e5da9f752438e6b25cb8b44d3162cb56c?X-Xet-Cas-Uid=public&xip=SdFM615rtJM&response-content-disposition=inline%3B+filename*%3DUTF-8%27%27vc-sky-en-v6.data%3B+filename%3D%22vc-sky-en-v6.data%22%3B&user_id=public&Expires=1792874718&Policy=eyJTdGF0ZW1lbnQiOlt7IlJlc291cmNlIjoiaHR0cHM6Ly91cy5hd3MuY2RuLmhmLmNvL3hldC1icmlkZ2UtdXMvNjk1MjFkYWU0MWRiMTkyMzA4OWIwNWNhLzIyYmRlYTQ3NzFmYzZkOTJkOTdhMmM1MDNhYmMzYTVlNWRhOWY3NTI0MzhlNmIyNWNiOGI0NGQzMTYyY2I1NmNcXD9YLVhldC1DYXMtVWlkPXB1YmxpYyZ4aXA9U2RGTTYxNXJ0Sk0mcmVzcG9uc2UtY29udGVudC1kaXNwb3NpdGlvbj1pbmxpbmUlM0IrZmlsZW5hbWUlMkElM0RVVEYtOCUyNyUyN3ZjLXNreS1lbi12Ni5kYXRhJTNCK2ZpbGVuYW1lJTNEJTIydmMtc2t5LWVuLXY2LmRhdGElMjIlM0ImdXNlcl9pZD1wdWJsaWMiLCJDb25kaXRpb24iOnsiRGF0ZUxlc3NUaGFuIjp7IkVwb2NoVGltZSI6MTc5Mjg3NDcxOH19fV19&Signature=MEQCIEfjrtplnHUMu%7EJ2k0Iy5cawtlAzGLeL6rdIK7-OMHtAAiBj4xUu6FQZL8csRHVv2ozs0zDo6zDSk94ksydGUhk%7E9w__&Key-Pair-Id=01KXEF4KZ1B6FV465MAWR4M21F&Hash-Algorithm=SHA256",
+    "status": 200,
+    "content_length": 135355111,
+    "content_type": "application/octet-stream",
+    "etag": "\"22bdea4771fc6d92d97a2c503abc3a5e5da9f752438e6b25cb8b44d3162cb56c\"",
+    "accept_ranges": "bytes",
+    "headers": {
+      "content-type": "application/octet-stream",
+      "accept-ranges": "bytes",
+      "content-disposition": "inline; filename*=UTF-8''vc-sky-en-v6.data; filename=\"vc-sky-en-v6.data\";",
+      "etag": "\"22bdea4771fc6d92d97a2c503abc3a5e5da9f752438e6b25cb8b44d3162cb56c\"",
+      "content-security-policy": "default-src 'none'; media-src 'self'; sandbox allow-same-origin",
+      "access-control-allow-headers": "Content-Range, Content-Type, Content-Disposition, ETag",
+      "access-control-expose-headers": "*",
+      "content-length": "135355111",
+      "vary": "origin, access-control-request-method, access-control-request-headers",
+      "access-control-allow-origin": "*",
+      "x-request-id": "01M5QQ4E9AFFS6RT8VC4A9RMXA",
+      "x-hf-cdn-pop": "aws-us-west-2",
+      "date": "Sat, 24 Oct 2026 19:45:19 GMT",
+      "connection": "close"
+    }
+  },
+  {
+    "name": "vcsky.zip",
+    "url": "https://huggingface.co/spaces/th3w33knd/reVCDOS/resolve/main/vcsky.zip",
+    "final_url": "https://us.aws.cdn.hf.co/xet-bridge-us/69521dae41db1923089b05ca/2adc4bdbc8189b5a66730493d53513d9093b75754b021d31d8b7043e845f48a1?X-Xet-Cas-Uid=public&response-content-type=application%2Fzip&response-content-disposition=inline%3B+filename*%3DUTF-8%27%27vcsky.zip%3B+filename%3D%22vcsky.zip%22%3B&user_id=public&xip=SdFM615rtJM&Expires=1792874719&Policy=eyJTdGF0ZW1lbnQiOlt7IlJlc291cmNlIjoiaHR0cHM6Ly91cy5hd3MuY2RuLmhmLmNvL3hldC1icmlkZ2UtdXMvNjk1MjFkYWU0MWRiMTkyMzA4OWIwNWNhLzJhZGM0YmRiYzgxODliNWE2NjczMDQ5M2Q1MzUxM2Q5MDkzYjc1NzU0YjAyMWQzMWQ4YjcwNDNlODQ1ZjQ4YTFcXD9YLVhldC1DYXMtVWlkPXB1YmxpYyZyZXNwb25zZS1jb250ZW50LXR5cGU9YXBwbGljYXRpb24lMkZ6aXAmcmVzcG9uc2UtY29udGVudC1kaXNwb3NpdGlvbj1pbmxpbmUlM0IrZmlsZW5hbWUlMkElM0RVVEYtOCUyNyUyN3Zjc2t5LnppcCUzQitmaWxlbmFtZSUzRCUyMnZjc2t5LnppcCUyMiUzQiZ1c2VyX2lkPXB1YmxpYyZ4aXA9U2RGTTYxNXJ0Sk0iLCJDb25kaXRpb24iOnsiRGF0ZUxlc3NUaGFuIjp7IkVwb2NoVGltZSI6MTc5Mjg3NDcxOX19fV19&Signature=MEQCIDMbmOLnGeD1AfsR0%7EhZvD7-ak9byHV9I-ZYuyfRNMrvAiAY7vte6rO-UMGvD2DgNtXOMIzjRSJEX4PiJ2e7Kxj6Tg__&Key-Pair-Id=01KXEF4KZ1B6FV465MAWR4M21F&Hash-Algorithm=SHA256",
+    "status": 200,
+    "content_length": 618960890,
+    "content_type": "application/zip",
+    "etag": "\"2adc4bdbc8189b5a66730493d53513d9093b75754b021d31d8b7043e845f48a1\"",
+    "accept_ranges": "bytes",
+    "headers": {
+      "content-type": "application/zip",
+      "accept-ranges": "bytes",
+      "content-disposition": "inline; filename*=UTF-8''vcsky.zip; filename=\"vcsky.zip\";",
+      "etag": "\"2adc4bdbc8189b5a66730493d53513d9093b75754b021d31d8b7043e845f48a1\"",
+      "content-security-policy": "default-src 'none'; media-src 'self'; sandbox allow-same-origin",
+      "access-control-allow-headers": "Content-Range, Content-Type, Content-Disposition, ETag",
+      "access-control-expose-headers": "*",
+      "content-length": "618960890",
+      "vary": "origin, access-control-request-method, access-control-request-headers",
+      "access-control-allow-origin": "*",
+      "x-request-id": "01M5QQ4EMAWGNSV2H35VJZCBPV",
+      "x-hf-cdn-pop": "aws-us-west-2",
+      "date": "Sat, 24 Oct 2026 19:45:19 GMT",
+      "connection": "close"
+    }
+  }
+]
