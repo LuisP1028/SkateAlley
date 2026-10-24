@@ -160,7 +160,7 @@ import {
   processMp3ChassisBitmap,
   drawTechnoVectorText,
   measureTechnoVectorText,
-} from './doom_tracks_mp3_hud.js?v=073';
+} from './doom_tracks_mp3_hud.js?v=085';
 
 // ============================================================================
 // Constants & Deterministic Configuration (functional_specification_013 & 014)
@@ -15804,7 +15804,7 @@ async function initSandbox() {
   const mp3Player = createDoomTracksMp3HUD({
     audio: sandbox.audio,
     assetSrc: 'assets/mp3.jpeg',
-    glbSrc: 'assets/audiodevice_decimated.glb',
+    glbSrc: 'assets/audiodevice_decimated.glb?v=087',
     manifestUrl: 'assets/tracks/manifest.json',
     initiallyVisible: true,
   });

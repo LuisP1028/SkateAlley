@@ -52,8 +52,7 @@ DOOM_HEAD_COLOR.glb
 LUIS_HEAD_COLOR.glb
 Luis_BODY_COLOR.glb
 audiodevice.glb
-audiodevice_decimated.glb
-assets/audiodevice_decimated.glb
+assets/audiodevice_textures/
 audiodevice.jpeg
 audiodeviceback.jpeg
 mathpod_popup_focused_stage2.png

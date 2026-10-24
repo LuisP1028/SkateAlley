@@ -1,16 +1,17 @@
 /**
  * doom_tracks_mp3_hud.js
  *
- * Interactive "DOOM TRACKS" (SYS-990-AMBER // AUDIO SYSTEM v2) Cyber-Industrial MP3 Deck Component
- * Governed by functional_specification_035.md and assets/mp3.jpeg (2752 x 1536).
+ * Interactive 3D "DOOM TRACKS" (SYS-990-AMBER // AUDIO SYSTEM v2) Cyber-Industrial MP3 Deck Component
+ * Governed by functional_specification_035.md, functional_specification_038.md,
+ * assets/audiodevice_decimated.glb (5,200 tris), and assets/mp3.jpeg (2752 x 1536).
  *
  * Key Invariants:
- * 1. Exact visual fidelity to assets/mp3.jpeg (2752 x 1536):
- *    - Border-connected exterior white background removal around the chamfered octagonal chassis.
- *    - Top-center nameplate "TECHNO-AUDIO" occluded with seamless gradient inpainting and
- *      replaced with "DOOM TRACKS" in identical extended techno-industrial #ffa51d typography
- *      while preserving the upper (y = 150) and lower (y = 216) horizontal accent rules.
- * 2. 100% live 60 FPS Amber OLED display screen (x: 26.67%..73.33%, y: 22.92%..47.14%):
+ * 1. Decimated 3D Asset (assets/audiodevice_decimated.glb, 5,200 triangles <= 6,000 budget):
+ *    - Repainted via Orthographic UV Registration + Voronoi De-Haloed Multi-Channel PBR & Emissive
+ *      Synthesis from audiodevice.jpeg (front) and audiodeviceback.jpeg (rear "PLATODOOM-INC").
+ *    - Top-center nameplate "TECHNO-AUDIO" occluded and replaced with "DOOM TRACKS" in extended
+ *      techno-industrial #ffa51d typography.
+ * 2. 100% live 60 FPS Amber OLED display screen mounted directly into the 3D recessed cavity:
  *    - Dynamic transport status icon & banner (▶ PLAYING, ❚❚ PAUSED, ■ STOPPED).
  *    - Scrolling marquee track title inside fixed « ... » delimiters.
  *    - Interactive seek/progress bar proportional to currentTime / duration.
@@ -20,14 +21,21 @@
  *    - Live MM:SS digital clock readout under TIME ELAPSED.
  *    - Interactive 10-segment rising VOLUME bar meter synced with window.__sandbox.audio.
  *    - Reactive 8x5 dot-matrix frequency grid + bitrate (128 KBPS) + MP3 / STEREO telemetry.
- * 3. Interactive Hardware Buttons & Switches (Zero End-User Upload UI, Static Rotary Dials):
+ * 3. Interactive 3D Hardware Buttons & Switches (Zero Rim Highlights, Physical -Z Depression):
  *    - 7 bottom transport buttons: PLAY, PAUSE, STOP, REPEAT/CYCLE, PREV, NEXT, PLAYBACK (tracklist selector).
  *    - 2 mid-deck slide switches: SHUFFLE, LOOP / VISUALS.
- *    - 4 rotary dials remain purely decorative (pointer-events: none).
+ *    - Pressing any button/switch physically depresses its 3D geometry by -0.008m along -Z with
+ *      ZERO amber emissive rim highlights on hover, press, or active states.
+ *    - Dragging the 3D chassis in FULL_TAKEOVER mode tilts/rotates the 3D device for full front/side/rear inspection.
  */
+
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 export const MP3_NATIVE_WIDTH = 2752;
 export const MP3_NATIVE_HEIGHT = 1536;
+export const MP3_3D_ASSET_URL = 'assets/audiodevice_decimated.glb';
+export const MP3_BUTTON_DEPRESSION_METERS = -0.008;
 
 export const MP3_CHASSIS_CROP = Object.freeze({
   x: 396,
@@ -41,6 +49,14 @@ export const MP3_SCREEN_ONLY_CROP = Object.freeze({
   y: 338,
   w: 1308,
   h: 396,
+});
+
+export const MP3_3D_SCREEN_MOUNT = Object.freeze({
+  x: 0.004,
+  y: 0.277,
+  z: 0.0895,
+  width: 1.364,
+  height: 0.464,
 });
 
 export const MP3_PALETTE = Object.freeze({
@@ -99,6 +115,7 @@ export const MP3_CONTROL_HIT_ZONES = Object.freeze([
     label: 'PLAY',
     px: { x1: 698, y1: 1042, x2: 863, y2: 1245 },
     capPx: { x1: 710, y1: 1042, x2: 855, y2: 1196 },
+    bounds3d: { x1: -0.695, x2: -0.518, y1: -0.495, y2: -0.285, zMin: 0.088, zCap: 0.104 },
   }),
   Object.freeze({
     id: 'BTN_PAUSE',
@@ -106,6 +123,7 @@ export const MP3_CONTROL_HIT_ZONES = Object.freeze([
     label: 'PAUSE',
     px: { x1: 888, y1: 1042, x2: 1049, y2: 1245 },
     capPx: { x1: 896, y1: 1042, x2: 1042, y2: 1196 },
+    bounds3d: { x1: -0.508, x2: -0.332, y1: -0.495, y2: -0.285, zMin: 0.088, zCap: 0.104 },
   }),
   Object.freeze({
     id: 'BTN_STOP',
@@ -113,6 +131,7 @@ export const MP3_CONTROL_HIT_ZONES = Object.freeze([
     label: 'STOP',
     px: { x1: 1058, y1: 1042, x2: 1217, y2: 1245 },
     capPx: { x1: 1066, y1: 1042, x2: 1210, y2: 1196 },
+    bounds3d: { x1: -0.330, x2: -0.158, y1: -0.495, y2: -0.285, zMin: 0.088, zCap: 0.104 },
   }),
   Object.freeze({
     id: 'BTN_REPEAT',
@@ -120,6 +139,7 @@ export const MP3_CONTROL_HIT_ZONES = Object.freeze([
     label: 'REPEAT / CYCLE',
     px: { x1: 1238, y1: 1042, x2: 1396, y2: 1245 },
     capPx: { x1: 1244, y1: 1042, x2: 1390, y2: 1196 },
+    bounds3d: { x1: -0.148, x2: 0.042, y1: -0.495, y2: -0.285, zMin: 0.088, zCap: 0.104 },
   }),
   Object.freeze({
     id: 'BTN_PREV',
@@ -127,6 +147,7 @@ export const MP3_CONTROL_HIT_ZONES = Object.freeze([
     label: 'PREV',
     px: { x1: 1445, y1: 1042, x2: 1609, y2: 1245 },
     capPx: { x1: 1452, y1: 1042, x2: 1602, y2: 1196 },
+    bounds3d: { x1: 0.068, x2: 0.256, y1: -0.495, y2: -0.285, zMin: 0.088, zCap: 0.104 },
   }),
   Object.freeze({
     id: 'BTN_NEXT',
@@ -134,6 +155,7 @@ export const MP3_CONTROL_HIT_ZONES = Object.freeze([
     label: 'NEXT',
     px: { x1: 1634, y1: 1042, x2: 1799, y2: 1245 },
     capPx: { x1: 1642, y1: 1042, x2: 1792, y2: 1196 },
+    bounds3d: { x1: 0.262, x2: 0.460, y1: -0.495, y2: -0.285, zMin: 0.088, zCap: 0.104 },
   }),
   Object.freeze({
     id: 'BTN_PLAYBACK',
@@ -141,6 +163,7 @@ export const MP3_CONTROL_HIT_ZONES = Object.freeze([
     label: 'PLAYBACK (TRACKLIST)',
     px: { x1: 1854, y1: 1042, x2: 2021, y2: 1245 },
     capPx: { x1: 1862, y1: 1042, x2: 2014, y2: 1196 },
+    bounds3d: { x1: 0.482, x2: 0.675, y1: -0.495, y2: -0.285, zMin: 0.088, zCap: 0.104 },
   }),
   Object.freeze({
     id: 'SW_SHUFFLE',
@@ -148,6 +171,7 @@ export const MP3_CONTROL_HIT_ZONES = Object.freeze([
     label: 'SHUFFLE',
     px: { x1: 710, y1: 825, x2: 868, y2: 898 },
     capPx: { x1: 719, y1: 855, x2: 859, y2: 894 },
+    bounds3d: { x1: -0.700, x2: -0.485, y1: -0.195, y2: -0.045, zMin: 0.085, zCap: 0.100 },
   }),
   Object.freeze({
     id: 'SW_LOOP_VIS',
@@ -155,6 +179,7 @@ export const MP3_CONTROL_HIT_ZONES = Object.freeze([
     label: 'LOOP / VISUALS',
     px: { x1: 1888, y1: 825, x2: 2046, y2: 898 },
     capPx: { x1: 1897, y1: 855, x2: 2037, y2: 894 },
+    bounds3d: { x1: 0.505, x2: 0.695, y1: -0.195, y2: -0.045, zMin: 0.085, zCap: 0.100 },
   }),
 ]);
 
@@ -1016,10 +1041,22 @@ function easeInOutCubic(t) {
 export function createDoomTracksMp3HUD(options = {}) {
   const sandboxAudio = options.audio || null;
   const assetSrc = options.assetSrc || 'assets/mp3.jpeg';
+  const glbSrc = options.glbSrc || MP3_3D_ASSET_URL;
   const manifestUrl = options.manifestUrl || 'assets/tracks/manifest.json';
+
+  const initialDepressions = {};
+  for (const ctrl of MP3_CONTROL_HIT_ZONES) {
+    initialDepressions[ctrl.id] = 0;
+  }
 
   const state = {
     initialized: false,
+    glbLoaded: false,
+    glbUrl: glbSrc,
+    triangleCount: 0,
+    vertexCount: 0,
+    oledScreenMounted: false,
+    mounted3D: false,
     visible: options.initiallyVisible !== undefined ? Boolean(options.initiallyVisible) : true,
     displayMode: 'SCREEN_ONLY', // 'SCREEN_ONLY' | 'EXPANDING' | 'FULL_TAKEOVER' | 'COLLAPSING'
     morphProgress: 0.0, // 0.0 = compact SCREEN_ONLY in bottom-right corner, 1.0 = centered FULL_TAKEOVER
@@ -1045,9 +1082,16 @@ export function createDoomTracksMp3HUD(options = {}) {
     footerNoticeText: '',
     footerNoticeTimer: 0,
     activePressedButtonId: null,
+    buttonPressTimer: 0,
+    buttonDepressions: initialDepressions,
     hoveredControlId: null,
     isScrubbingProgress: false,
     isScrubbingVolume: false,
+    tiltYaw: 0,
+    tiltPitch: 0,
+    targetTiltYaw: 0,
+    targetTiltPitch: 0,
+    isDraggingTilt: false,
     lastFrameTimeMs: performance.now(),
     lastRenderDurationMs: 0,
     errorCount: 0,
@@ -1071,8 +1115,34 @@ export function createDoomTracksMp3HUD(options = {}) {
   let playRequestSeq = 0;
   let lastSeekWallTimeMs = 0;
 
-  // Offscreen processed chassis assets
+  // Offscreen processed chassis assets & live 60 FPS OLED screen canvas
   let processedAssets = null;
+  let oledScreenCanvas = null;
+  let oledScreenCtx = null;
+  let oledScreenTexture = null;
+
+  // Three.js 3D Decimated AudioDevice Scene Graph
+  let scene3d = null;
+  let camera3d = null;
+  let renderer3d = null;
+  let pivotGroup = null;
+  let landscapeGroup = null;
+  let audiodeviceMesh = null;
+  let baseVertexZ = null;
+  const buttonVertexIndices = new Map();
+  const buttonHitMeshes = new Map();
+  let oledScreenMesh = null;
+  let ledLeftMesh = null;
+  let ledRightMesh = null;
+  const raycaster = new THREE.Raycaster();
+  const ndcPointer = new THREE.Vector2();
+  const projVecA = new THREE.Vector3();
+  const projVecB = new THREE.Vector3();
+  let dragStartClientX = 0;
+  let dragStartClientY = 0;
+  let dragStartYaw = 0;
+  let dragStartPitch = 0;
+  let dragMovedDistancePx = 0;
 
   // DOM Elements
   let backdropEl = null;
@@ -1465,124 +1535,247 @@ export function createDoomTracksMp3HUD(options = {}) {
       h: MP3_SCREEN_ONLY_CROP.h * s1,
     };
 
-    // 3. Isotropic interpolation of the OLED screen trajectory + simultaneous unfolding of the outer hardware crop
-    const curScreenX = screenRect0.x + (screenRect1.x - screenRect0.x) * t;
-    const curScreenY = screenRect0.y + (screenRect1.y - screenRect0.y) * t;
-    const curScreenW = screenRect0.w + (screenRect1.w - screenRect0.w) * t;
-    const curScale = curScreenW / MP3_SCREEN_ONLY_CROP.w;
+    // 3. Isotropic interpolation of the 2D screen -> 3D mounted AudioDevice stage
+    const is3DMountActive = p > 0.001 || state.targetMorphProgress > 0.5;
+    if (!is3DMountActive) {
+      // Strictly 2D SCREEN_ONLY mode in bottom-right corner (NOT 3D by default)
+      const curScale = screenRect0.w / MP3_SCREEN_ONLY_CROP.w;
+      const deckW = MP3_CHASSIS_CROP.w * curScale;
+      const deckH = MP3_CHASSIS_CROP.h * curScale;
+      const deckLeft = -(MP3_SCREEN_ONLY_CROP.x - MP3_CHASSIS_CROP.x) * curScale;
+      const deckTop = -(MP3_SCREEN_ONLY_CROP.y - MP3_CHASSIS_CROP.y) * curScale;
 
-    const curCropX = MP3_SCREEN_ONLY_CROP.x + (MP3_CHASSIS_CROP.x - MP3_SCREEN_ONLY_CROP.x) * t;
-    const curCropY = MP3_SCREEN_ONLY_CROP.y + (MP3_CHASSIS_CROP.y - MP3_SCREEN_ONLY_CROP.y) * t;
-    const curCropW = MP3_SCREEN_ONLY_CROP.w + (MP3_CHASSIS_CROP.w - MP3_SCREEN_ONLY_CROP.w) * t;
-    const curCropH = MP3_SCREEN_ONLY_CROP.h + (MP3_CHASSIS_CROP.h - MP3_SCREEN_ONLY_CROP.h) * t;
+      rootEl.style.left = `${screenRect0.x.toFixed(2)}px`;
+      rootEl.style.top = `${screenRect0.y.toFixed(2)}px`;
+      rootEl.style.width = `${screenRect0.w.toFixed(2)}px`;
+      rootEl.style.height = `${screenRect0.h.toFixed(2)}px`;
+      rootEl.dataset.displayMode = state.displayMode;
+      rootEl.classList.remove('expanded');
+      rootEl.classList.add('screen-only');
 
-    const curViewX = curScreenX - (MP3_SCREEN_ONLY_CROP.x - curCropX) * curScale;
-    const curViewY = curScreenY - (MP3_SCREEN_ONLY_CROP.y - curCropY) * curScale;
-    const curViewW = curCropW * curScale;
-    const curViewH = curCropH * curScale;
+      deckClipEl.style.overflow = 'hidden';
+      deckClipEl.style.borderRadius = '10px';
+      deckClipEl.style.borderColor = 'rgba(255, 165, 29, 0.45)';
 
-    const deckW = MP3_CHASSIS_CROP.w * curScale;
-    const deckH = MP3_CHASSIS_CROP.h * curScale;
-    const deckLeft = -(curCropX - MP3_CHASSIS_CROP.x) * curScale;
-    const deckTop = -(curCropY - MP3_CHASSIS_CROP.y) * curScale;
+      deckFrameEl.style.width = `${deckW.toFixed(2)}px`;
+      deckFrameEl.style.height = `${deckH.toFixed(2)}px`;
+      deckFrameEl.style.left = `${deckLeft.toFixed(2)}px`;
+      deckFrameEl.style.top = `${deckTop.toFixed(2)}px`;
+      deckFrameEl.style.cursor = 'pointer';
+    } else {
+      // 3D Mounted AudioDevice stage: unclipped 3D object emerging from the 2D screen into centered 3D space
+      const curViewX = screenRect0.x + (x1 - screenRect0.x) * t;
+      const curViewY = screenRect0.y + (y1 - screenRect0.y) * t;
+      const curViewW = screenRect0.w + (w1 - screenRect0.w) * t;
+      const curViewH = screenRect0.h + (h1 - screenRect0.h) * t;
 
-    rootEl.style.left = `${curViewX.toFixed(2)}px`;
-    rootEl.style.top = `${curViewY.toFixed(2)}px`;
-    rootEl.style.width = `${curViewW.toFixed(2)}px`;
-    rootEl.style.height = `${curViewH.toFixed(2)}px`;
-    rootEl.dataset.displayMode = state.displayMode;
-    rootEl.classList.toggle('expanded', state.targetMorphProgress > 0.5);
-    rootEl.classList.toggle('screen-only', p < 0.05);
+      rootEl.style.left = `${curViewX.toFixed(2)}px`;
+      rootEl.style.top = `${curViewY.toFixed(2)}px`;
+      rootEl.style.width = `${curViewW.toFixed(2)}px`;
+      rootEl.style.height = `${curViewH.toFixed(2)}px`;
+      rootEl.dataset.displayMode = state.displayMode;
+      rootEl.classList.toggle('expanded', state.targetMorphProgress > 0.5);
+      rootEl.classList.remove('screen-only');
 
-    const clipRadiusPx = Math.round(10 * (1.0 - t));
-    const borderAlpha = Number((0.45 * (1.0 - t)).toFixed(3));
-    deckClipEl.style.borderRadius = `${clipRadiusPx}px`;
-    deckClipEl.style.borderColor = `rgba(255, 165, 29, ${borderAlpha})`;
+      deckClipEl.style.overflow = 'visible';
+      deckClipEl.style.borderRadius = '0px';
+      deckClipEl.style.borderColor = 'rgba(255, 165, 29, 0)';
 
-    deckFrameEl.style.width = `${deckW.toFixed(2)}px`;
-    deckFrameEl.style.height = `${deckH.toFixed(2)}px`;
-    deckFrameEl.style.left = `${deckLeft.toFixed(2)}px`;
-    deckFrameEl.style.top = `${deckTop.toFixed(2)}px`;
-    deckFrameEl.style.cursor = state.targetMorphProgress < 0.5 ? 'pointer' : 'default';
+      deckFrameEl.style.width = `${curViewW.toFixed(2)}px`;
+      deckFrameEl.style.height = `${curViewH.toFixed(2)}px`;
+      deckFrameEl.style.left = '0px';
+      deckFrameEl.style.top = '0px';
+      deckFrameEl.style.cursor = state.isDraggingTilt ? 'grabbing' : 'grab';
+    }
 
     if (backdropEl) {
       const backdropVisible = state.visible && p > 0.005;
-      backdropEl.style.opacity = backdropVisible ? t.toFixed(3) : '0';
+      backdropEl.style.opacity = backdropVisible ? (t * 0.72).toFixed(3) : '0';
       backdropEl.style.pointerEvents =
         state.visible && state.targetMorphProgress > 0.5 ? 'auto' : 'none';
       backdropEl.classList.toggle('active', backdropVisible);
     }
 
-    const buttonsInteractive = p > 0.85 && state.targetMorphProgress > 0.5;
+    const buttonsInteractive = p > 0.85 && state.targetMorphProgress > 0.5 && Math.cos(state.tiltYaw) > 0.15;
     for (const btn of buttonEls.values()) {
       btn.style.pointerEvents = buttonsInteractive ? 'auto' : 'none';
       btn.style.visibility = buttonsInteractive ? 'visible' : 'hidden';
     }
   }
 
-  function renderFrame(nowMs = performance.now()) {
-    if (!state.visible || state.minimized || !processedAssets || !displayCtx) return;
+  function build3DSceneGraph(gltfScene) {
+    oledScreenCanvas = document.createElement('canvas');
+    oledScreenCanvas.width = MP3_SCREEN_ONLY_CROP.w;
+    oledScreenCanvas.height = MP3_SCREEN_ONLY_CROP.h;
+    oledScreenCtx = oledScreenCanvas.getContext('2d');
 
-    const t0 = performance.now();
-    const dt = Math.min(0.1, Math.max(0.0, (nowMs - state.lastFrameTimeMs) * 0.001));
-    state.lastFrameTimeMs = nowMs;
+    oledScreenTexture = new THREE.CanvasTexture(oledScreenCanvas);
+    oledScreenTexture.colorSpace = THREE.SRGBColorSpace;
+    oledScreenTexture.minFilter = THREE.LinearFilter;
+    oledScreenTexture.magFilter = THREE.LinearFilter;
+    oledScreenTexture.anisotropy = 4;
 
-    // Advance animated morph between SCREEN_ONLY (0.0) and FULL_TAKEOVER (1.0)
-    if (state.morphProgress !== state.targetMorphProgress) {
-      const step = dt > 0 ? dt / MORPH_DURATION_SEC : 1 / (60 * MORPH_DURATION_SEC);
-      if (state.morphProgress < state.targetMorphProgress) {
-        state.morphProgress = Math.min(state.targetMorphProgress, state.morphProgress + step);
-        state.displayMode = state.morphProgress >= 1.0 ? 'FULL_TAKEOVER' : 'EXPANDING';
-      } else {
-        state.morphProgress = Math.max(state.targetMorphProgress, state.morphProgress - step);
-        state.displayMode = state.morphProgress <= 0.0 ? 'SCREEN_ONLY' : 'COLLAPSING';
+    scene3d = new THREE.Scene();
+
+    const aspect = MP3_CHASSIS_CROP.w / MP3_CHASSIS_CROP.h;
+    camera3d = new THREE.PerspectiveCamera(28, aspect, 0.1, 20);
+    camera3d.position.set(0.004, 0.035, 2.84);
+    camera3d.lookAt(0.004, 0.035, 0.0);
+
+    // High-clarity studio lighting rig so the decimated PBR asset is bright, crisp, and tactile
+    const ambLight = new THREE.AmbientLight(0xfff4e2, 1.65);
+    scene3d.add(ambLight);
+
+    const hemiLight = new THREE.HemisphereLight(0xffe8c8, 0x3d2a18, 1.25);
+    scene3d.add(hemiLight);
+
+    const keyLight = new THREE.DirectionalLight(0xfff0dd, 2.35);
+    keyLight.position.set(1.8, 2.2, 3.4);
+    scene3d.add(keyLight);
+
+    const fillLight = new THREE.DirectionalLight(0xffb86b, 1.25);
+    fillLight.position.set(-2.2, -1.3, 2.6);
+    scene3d.add(fillLight);
+
+    const rimLight = new THREE.DirectionalLight(0xffa51d, 1.15);
+    rimLight.position.set(0.0, 1.8, -3.0);
+    scene3d.add(rimLight);
+
+    pivotGroup = new THREE.Group();
+    scene3d.add(pivotGroup);
+
+    // Do NOT mount landscapeGroup into pivotGroup by default (starts as 2D screen in SCREEN_ONLY mode;
+    // mounted as a 3D object only when clicking the 2D screen to expand into FULL_TAKEOVER)
+    landscapeGroup = new THREE.Group();
+    state.mounted3D = false;
+
+    audiodeviceMesh = null;
+    gltfScene.traverse((child) => {
+      if (child.isMesh && !audiodeviceMesh) {
+        audiodeviceMesh = child;
       }
-      state.expanded = state.morphProgress > 0.5;
-      applyMorphLayout();
+    });
+
+    if (!audiodeviceMesh) {
+      throw new Error(`No mesh found in 3D MP3 asset ${glbSrc}`);
     }
 
-    syncEffectiveVolumeFromSandbox();
+    audiodeviceMesh.rotation.set(0, 0, -Math.PI / 2);
+    landscapeGroup.add(audiodeviceMesh);
 
-    if (state.playbackState === 'PLAYING' && !state.isScrubbingProgress) {
-      const timeSinceSeekMs = nowMs - lastSeekWallTimeMs;
-      // Advance currentTime smoothly and reconcile with audioEl.currentTime when not recently seeked on non-Range HTTP server
-      state.currentTime += dt;
-      if (
-        !audioEl.paused &&
-        timeSinceSeekMs > 800 &&
-        Math.abs(audioEl.currentTime - state.currentTime) < 1.2
-      ) {
-        state.currentTime = audioEl.currentTime;
+    const geom = audiodeviceMesh.geometry;
+    const posAttr = geom.attributes.position;
+    state.vertexCount = posAttr ? posAttr.count : 0;
+    state.triangleCount = geom.index
+      ? Math.round(geom.index.count / 3)
+      : Math.round(state.vertexCount / 3);
+
+    if (posAttr) {
+      baseVertexZ = new Float32Array(posAttr.count);
+      const bucketMap = new Map();
+      for (const ctrl of MP3_CONTROL_HIT_ZONES) {
+        bucketMap.set(ctrl.id, []);
       }
-      if (state.currentTime >= state.duration) {
-        if (state.repeatMode === 'ONE') {
-          state.currentTime = 0;
-        } else {
-          const isLast = state.currentTrackIndex >= state.tracks.length - 1;
-          if (state.repeatMode === 'OFF' && isLast && !state.shuffle) {
-            stopCurrentTrack();
-            return;
+
+      for (let i = 0; i < posAttr.count; i++) {
+        const xLoc = posAttr.getX(i);
+        const yLoc = posAttr.getY(i);
+        const zLoc = posAttr.getZ(i);
+        baseVertexZ[i] = zLoc;
+
+        // Landscape coordinates (rotation.z = -pi/2): X_land = yLoc, Y_land = -xLoc, Z_land = zLoc
+        const xLand = yLoc;
+        const yLand = -xLoc;
+        const zLand = zLoc;
+
+        for (const ctrl of MP3_CONTROL_HIT_ZONES) {
+          const b = ctrl.bounds3d;
+          if (xLand >= b.x1 && xLand <= b.x2 && yLand >= b.y1 && yLand <= b.y2 && zLand >= b.zMin) {
+            bucketMap.get(ctrl.id).push(i);
           }
-          nextTrack();
-          return;
         }
       }
-      state.cdRotationRad = (state.cdRotationRad + dt * 1.65) % (Math.PI * 2);
-      state.cassetteRotationRad = (state.cassetteRotationRad + dt * 2.2) % (Math.PI * 2);
+
+      for (const ctrl of MP3_CONTROL_HIT_ZONES) {
+        buttonVertexIndices.set(ctrl.id, new Int32Array(bucketMap.get(ctrl.id)));
+      }
     }
 
-    if (state.footerNoticeTimer > 0) {
-      state.footerNoticeTimer = Math.max(0, state.footerNoticeTimer - dt);
+    // Mount the live 60 FPS Amber OLED Screen quad directly inside the 3D recessed screen cavity
+    const screenGeo = new THREE.PlaneGeometry(MP3_3D_SCREEN_MOUNT.width, MP3_3D_SCREEN_MOUNT.height);
+    const screenMat = new THREE.MeshBasicMaterial({
+      map: oledScreenTexture,
+      toneMapped: false,
+    });
+    oledScreenMesh = new THREE.Mesh(screenGeo, screenMat);
+    oledScreenMesh.name = 'AudioDevice_OLED_Screen';
+    oledScreenMesh.position.set(
+      MP3_3D_SCREEN_MOUNT.x,
+      MP3_3D_SCREEN_MOUNT.y,
+      MP3_3D_SCREEN_MOUNT.z
+    );
+    landscapeGroup.add(oledScreenMesh);
+    state.oledScreenMounted = true;
+
+    // 2 3D Status LED indicator planes seated flush on the mid-chassis LED pills
+    const ledGeo = new THREE.PlaneGeometry(0.072, 0.014);
+    ledLeftMesh = new THREE.Mesh(
+      ledGeo,
+      new THREE.MeshBasicMaterial({ color: 0xffcf40, toneMapped: false, transparent: true, opacity: 0.85 })
+    );
+    ledLeftMesh.position.set(0.341, -0.009, 0.0995);
+    ledLeftMesh.visible = false;
+    landscapeGroup.add(ledLeftMesh);
+
+    ledRightMesh = new THREE.Mesh(
+      ledGeo,
+      new THREE.MeshBasicMaterial({ color: 0xffa51d, toneMapped: false, transparent: true, opacity: 0.85 })
+    );
+    ledRightMesh.position.set(0.464, -0.009, 0.0995);
+    ledRightMesh.visible = false;
+    landscapeGroup.add(ledRightMesh);
+
+    // 9 3D interactive hardware button/switch hit-box meshes in landscapeGroup
+    const hitMat = new THREE.MeshBasicMaterial({
+      transparent: true,
+      opacity: 0.0,
+      depthWrite: false,
+    });
+    for (const ctrl of MP3_CONTROL_HIT_ZONES) {
+      const b = ctrl.bounds3d;
+      const bw = b.x2 - b.x1;
+      const bh = b.y2 - b.y1;
+      const hitMesh = new THREE.Mesh(new THREE.BoxGeometry(bw, bh, 0.028), hitMat);
+      hitMesh.name = `HitBox_${ctrl.id}`;
+      hitMesh.position.set((b.x1 + b.x2) * 0.5, (b.y1 + b.y2) * 0.5, b.zCap);
+      hitMesh.userData.controlId = ctrl.id;
+      landscapeGroup.add(hitMesh);
+      buttonHitMeshes.set(ctrl.id, hitMesh);
     }
 
-    const ctx = displayCtx;
-    const crop = MP3_CHASSIS_CROP;
+    renderer3d = new THREE.WebGLRenderer({
+      alpha: true,
+      antialias: true,
+      powerPreference: 'high-performance',
+      preserveDrawingBuffer: false,
+    });
+    renderer3d.outputColorSpace = THREE.SRGBColorSpace;
+    renderer3d.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer3d.toneMappingExposure = 1.22;
+    renderer3d.setPixelRatio(1);
+    renderer3d.setSize(MP3_CHASSIS_CROP.w, MP3_CHASSIS_CROP.h, false);
+  }
 
-    ctx.clearRect(0, 0, crop.w, crop.h);
+  function renderOledScreen2D(nowMs, dt) {
+    if (!oledScreenCtx || !processedAssets) return;
+
+    const ctx = oledScreenCtx;
+    const scr = MP3_SCREEN_ONLY_CROP;
+    ctx.clearRect(0, 0, scr.w, scr.h);
     ctx.save();
-    ctx.translate(-crop.x, -crop.y);
+    ctx.translate(-scr.x, -scr.y);
 
-    // 1. Draw cached transparent chassis with "DOOM TRACKS" header and seamlessly inpainted screen zones
+    // 1. Draw clean inpainted OLED screen substrate from processedAssets.baseCanvas
     ctx.drawImage(processedAssets.baseCanvas, 0, 0);
 
     const activeTrack = state.tracks[state.currentTrackIndex] || DOOM_TRACKS_DEFAULT_CATALOG[0];
@@ -1835,7 +2028,6 @@ export function createDoomTracksMp3HUD(options = {}) {
     ctx.restore();
 
     // 10. Sub-region I: Reactive 8x5 Dot-Matrix Spectrum Grid (x: 1762..1894, y: 574..637)
-    // Note: "128 KBPS" at x: 1912..1995, y: 577..637 is preserved directly from mp3.jpeg!
     if (state.playbackState === 'PLAYING') {
       ctx.save();
       ctx.fillStyle = MP3_PALETTE.primaryAmber;
@@ -1872,70 +2064,206 @@ export function createDoomTracksMp3HUD(options = {}) {
       ctx.restore();
     }
 
-    // 11. Interactive Hardware Switch & Button Visual Feedback on Chassis
-    // Left LED (SHUFFLE indicator) at (1665, 738)..(1758, 772)
-    if (state.shuffle) {
-      ctx.save();
-      ctx.fillStyle = '#ffcf40';
-      ctx.shadowColor = MP3_PALETTE.primaryAmber;
-      ctx.shadowBlur = 12;
-      ctx.beginPath();
-      ctx.roundRect(1672, 745, 78, 17, 8);
-      ctx.fill();
-      ctx.restore();
+    ctx.restore();
+
+    if (oledScreenTexture) {
+      oledScreenTexture.needsUpdate = true;
     }
-    // Right LED (VISUALS indicator) at (1785, 738)..(1880, 772)
-    if (state.visualsMode !== 'WAVE') {
-      ctx.save();
-      ctx.fillStyle = MP3_PALETTE.primaryAmber;
-      ctx.shadowColor = MP3_PALETTE.coreNeonAmber;
-      ctx.shadowBlur = 12;
-      ctx.beginPath();
-      ctx.roundRect(1793, 745, 78, 17, 8);
-      ctx.fill();
-      ctx.restore();
-    }
+  }
 
-    // Active / Pressed / Hovered button bevel highlight & mechanical depression shift
-    for (const ctrl of MP3_CONTROL_HIT_ZONES) {
-      const isPressed = state.activePressedButtonId === ctrl.id;
-      const isHovered = state.hoveredControlId === ctrl.id;
-      const isActiveMode =
-        (ctrl.id === 'BTN_PLAY' && state.playbackState === 'PLAYING') ||
-        (ctrl.id === 'BTN_PAUSE' && state.playbackState === 'PAUSED') ||
-        (ctrl.id === 'BTN_REPEAT' && state.repeatMode !== 'ALL') ||
-        (ctrl.id === 'BTN_PLAYBACK' && state.showTracklistOnScreen) ||
-        (ctrl.id === 'SW_SHUFFLE' && state.shuffle) ||
-        (ctrl.id === 'SW_LOOP_VIS' && state.visualsMode !== 'WAVE');
+  function update3DSceneAndButtonProjections(dt) {
+    if (!scene3d || !camera3d || !pivotGroup || !audiodeviceMesh) return;
 
-      const { x1, y1, x2, y2 } = ctrl.capPx;
-      const bw = x2 - x1;
-      const bh = y2 - y1;
-
-      if (isPressed && processedAssets.buttonCapSprites[ctrl.id]) {
-        ctx.save();
-        ctx.drawImage(processedAssets.buttonCapSprites[ctrl.id], x1, y1 + 3);
-        ctx.strokeStyle = MP3_PALETTE.primaryAmber;
-        ctx.lineWidth = 3.5;
-        ctx.strokeRect(x1 + 2, y1 + 2, bw - 4, bh - 4);
-        ctx.restore();
-      } else if (isActiveMode || isHovered) {
-        ctx.save();
-        ctx.strokeStyle = isActiveMode ? MP3_PALETTE.primaryAmber : MP3_PALETTE.warmSecondaryAmber;
-        ctx.shadowColor = MP3_PALETTE.coreNeonAmber;
-        ctx.shadowBlur = isActiveMode ? 10 : 5;
-        ctx.lineWidth = isActiveMode ? 3.2 : 2.0;
-        ctx.strokeRect(x1 + 2, y1 + 2, bw - 4, bh - 4);
-        ctx.restore();
+    // 1. Advance transient button press timer if active
+    if (state.buttonPressTimer > 0) {
+      state.buttonPressTimer = Math.max(0, state.buttonPressTimer - dt);
+      if (state.buttonPressTimer <= 0 && !state.isPointerHoldingButton) {
+        state.activePressedButtonId = null;
       }
     }
 
-    ctx.restore();
+    // 2. Smoothly damp 3D chassis tilt/orbit angles
+    if (state.targetMorphProgress < 0.5) {
+      state.targetTiltYaw = 0;
+      state.targetTiltPitch = 0;
+    }
+    const damp = dt > 0 ? Math.min(1.0, dt * 11.5) : 1.0;
+    state.tiltYaw += (state.targetTiltYaw - state.tiltYaw) * damp;
+    state.tiltPitch += (state.targetTiltPitch - state.tiltPitch) * damp;
+
+    const idleActive = state.targetMorphProgress > 0.5 && !state.isDraggingTilt && Math.hypot(state.targetTiltYaw, state.targetTiltPitch) > 0.02;
+    const idleYaw = idleActive ? Math.sin(state.lastFrameTimeMs * 0.0021) * 0.028 : 0.0;
+    const idlePitch = idleActive ? Math.cos(state.lastFrameTimeMs * 0.0016) * 0.018 : 0.0;
+
+    const effYaw = state.tiltYaw + idleYaw * state.morphProgress;
+    const effPitch = state.tiltPitch + idlePitch * state.morphProgress;
+    pivotGroup.rotation.set(effPitch, effYaw, 0);
+
+    const scale3d = 0.45 + 0.55 * easeInOutCubic(state.morphProgress);
+    pivotGroup.scale.setScalar(scale3d);
+
+    // Pull camera back slightly in FULL_TAKEOVER and when tilted so 3D octagonal corners never clip
+    const tiltMag = Math.min(1.0, Math.hypot(Math.sin(effYaw), effPitch) * 1.15);
+    const camY = 0.012 * (1.0 - state.morphProgress);
+    const camZ = 3.08 + 0.28 * tiltMag;
+    camera3d.position.set(0.004, camY, camZ);
+    camera3d.lookAt(0.004, camY, 0.0);
+    camera3d.updateMatrixWorld(true);
+    pivotGroup.updateMatrixWorld(true);
+
+    // 3. Update 3D Status LEDs on mid-chassis
+    if (ledLeftMesh) {
+      ledLeftMesh.visible = Boolean(state.shuffle);
+    }
+    if (ledRightMesh) {
+      ledRightMesh.visible = state.visualsMode !== 'WAVE';
+    }
+
+    // 4. Physical 3D -Z button depression (-0.008m along -Z; ZERO rim highlights on hover/press/active)
+    const posAttr = audiodeviceMesh.geometry.attributes.position;
+    let verticesChanged = false;
+    for (const ctrl of MP3_CONTROL_HIT_ZONES) {
+      const isPressed = state.activePressedButtonId === ctrl.id;
+      const targetDeltaZ = isPressed ? MP3_BUTTON_DEPRESSION_METERS : 0.0;
+      if (state.buttonDepressions[ctrl.id] !== targetDeltaZ) {
+        state.buttonDepressions[ctrl.id] = targetDeltaZ;
+        verticesChanged = true;
+      }
+      const hitMesh = buttonHitMeshes.get(ctrl.id);
+      if (hitMesh) {
+        hitMesh.position.z = ctrl.bounds3d.zCap + targetDeltaZ;
+      }
+    }
+
+    if (verticesChanged && posAttr && baseVertexZ) {
+      for (const ctrl of MP3_CONTROL_HIT_ZONES) {
+        const deltaZ = state.buttonDepressions[ctrl.id];
+        const indices = buttonVertexIndices.get(ctrl.id);
+        if (!indices) continue;
+        for (let k = 0; k < indices.length; k++) {
+          const vIdx = indices[k];
+          posAttr.setZ(vIdx, baseVertexZ[vIdx] + deltaZ);
+        }
+      }
+      posAttr.needsUpdate = true;
+    }
+
+    // 5. Project 3D button bounding boxes onto deckFrameEl so DOM <button> overlays track 3D tilt
+    const frontFacing = Math.cos(effYaw) > 0.15;
+    const buttonsInteractive = state.morphProgress > 0.85 && state.targetMorphProgress > 0.5 && frontFacing;
+    for (const ctrl of MP3_CONTROL_HIT_ZONES) {
+      const btn = buttonEls.get(ctrl.id);
+      if (!btn) continue;
+      btn.style.pointerEvents = buttonsInteractive ? 'auto' : 'none';
+      btn.style.visibility = buttonsInteractive ? 'visible' : 'hidden';
+      if (!buttonsInteractive) continue;
+
+      const b = ctrl.bounds3d;
+      projVecA.set(b.x1, b.y1, b.zCap).applyMatrix4(landscapeGroup.matrixWorld).project(camera3d);
+      projVecB.set(b.x2, b.y2, b.zCap).applyMatrix4(landscapeGroup.matrixWorld).project(camera3d);
+
+      const u1 = (Math.min(projVecA.x, projVecB.x) * 0.5 + 0.5) * 100;
+      const u2 = (Math.max(projVecA.x, projVecB.x) * 0.5 + 0.5) * 100;
+      const v1 = (-Math.max(projVecA.y, projVecB.y) * 0.5 + 0.5) * 100;
+      const v2 = (-Math.min(projVecA.y, projVecB.y) * 0.5 + 0.5) * 100;
+
+      btn.style.left = `${Math.max(0, u1).toFixed(3)}%`;
+      btn.style.top = `${Math.max(0, v1).toFixed(3)}%`;
+      btn.style.width = `${Math.max(1, u2 - u1).toFixed(3)}%`;
+      btn.style.height = `${Math.max(1, v2 - v1).toFixed(3)}%`;
+    }
+  }
+
+  function renderFrame(nowMs = performance.now()) {
+    if (!state.visible || state.minimized || !processedAssets || !displayCtx) return;
+
+    const t0 = performance.now();
+    const dt = Math.min(0.1, Math.max(0.0, (nowMs - state.lastFrameTimeMs) * 0.001));
+    state.lastFrameTimeMs = nowMs;
+
+    // Advance animated morph between SCREEN_ONLY (0.0) and FULL_TAKEOVER (1.0)
+    if (state.morphProgress !== state.targetMorphProgress) {
+      const step = dt > 0 ? dt / MORPH_DURATION_SEC : 1 / (60 * MORPH_DURATION_SEC);
+      if (state.morphProgress < state.targetMorphProgress) {
+        state.morphProgress = Math.min(state.targetMorphProgress, state.morphProgress + step);
+        state.displayMode = state.morphProgress >= 1.0 ? 'FULL_TAKEOVER' : 'EXPANDING';
+      } else {
+        state.morphProgress = Math.max(state.targetMorphProgress, state.morphProgress - step);
+        state.displayMode = state.morphProgress <= 0.0 ? 'SCREEN_ONLY' : 'COLLAPSING';
+      }
+      state.expanded = state.morphProgress > 0.5;
+      applyMorphLayout();
+    }
+
+    syncEffectiveVolumeFromSandbox();
+
+    if (state.playbackState === 'PLAYING' && !state.isScrubbingProgress) {
+      const timeSinceSeekMs = nowMs - lastSeekWallTimeMs;
+      state.currentTime += dt;
+      if (
+        !audioEl.paused &&
+        timeSinceSeekMs > 800 &&
+        Math.abs(audioEl.currentTime - state.currentTime) < 1.2
+      ) {
+        state.currentTime = audioEl.currentTime;
+      }
+      if (state.currentTime >= state.duration) {
+        if (state.repeatMode === 'ONE') {
+          state.currentTime = 0;
+        } else {
+          const isLast = state.currentTrackIndex >= state.tracks.length - 1;
+          if (state.repeatMode === 'OFF' && isLast && !state.shuffle) {
+            stopCurrentTrack();
+            return;
+          }
+          nextTrack();
+          return;
+        }
+      }
+      state.cdRotationRad = (state.cdRotationRad + dt * 1.65) % (Math.PI * 2);
+      state.cassetteRotationRad = (state.cassetteRotationRad + dt * 2.2) % (Math.PI * 2);
+    }
+
+    if (state.footerNoticeTimer > 0) {
+      state.footerNoticeTimer = Math.max(0, state.footerNoticeTimer - dt);
+    }
+
+    // 1. Render live 60 FPS Amber OLED display onto oledScreenCanvas & upload to 3D CanvasTexture
+    renderOledScreen2D(nowMs, dt);
+
+    const crop = MP3_CHASSIS_CROP;
+    displayCtx.clearRect(0, 0, crop.w, crop.h);
+
+    const shouldMount3D = state.morphProgress > 0.0 || state.targetMorphProgress > 0.0;
+    if (pivotGroup && landscapeGroup) {
+      if (shouldMount3D && !state.mounted3D) {
+        pivotGroup.add(landscapeGroup);
+        state.mounted3D = true;
+      } else if (!shouldMount3D && state.mounted3D) {
+        pivotGroup.remove(landscapeGroup);
+        state.mounted3D = false;
+      }
+    }
+
+    if (state.mounted3D && renderer3d && scene3d && camera3d && state.glbLoaded) {
+      // Mounted as a 3D object when expanded / expanding from the 2D screen
+      update3DSceneAndButtonProjections(dt);
+      renderer3d.render(scene3d, camera3d);
+      displayCtx.drawImage(renderer3d.domElement, 0, 0, crop.w, crop.h);
+    } else if (oledScreenCanvas) {
+      // Default SCREEN_ONLY mode: strictly 2D screen (NOT 3D by default)
+      displayCtx.drawImage(
+        oledScreenCanvas,
+        MP3_SCREEN_ONLY_CROP.x - crop.x,
+        MP3_SCREEN_ONLY_CROP.y - crop.y
+      );
+    }
+
     state.lastRenderDurationMs = Number((performance.now() - t0).toFixed(3));
   }
 
   // ============================================================================
-  // DOM Construction, Hit-Zone Wiring & Event Isolation (§5)
+  // DOM Construction, 3D Raycast Hit-Testing & Event Isolation (§5)
   // ============================================================================
 
   function updateButtonAriaStates() {
@@ -1952,7 +2280,13 @@ export function createDoomTracksMp3HUD(options = {}) {
     }
   }
 
+  function triggerPhysicalButtonPulse(controlId, durationSec = 0.14) {
+    state.activePressedButtonId = controlId;
+    state.buttonPressTimer = durationSec;
+  }
+
   function handleControlAction(controlId) {
+    triggerPhysicalButtonPulse(controlId, 0.14);
     triggerTactileClick('onSelect');
     switch (controlId) {
       case 'BTN_PLAY':
@@ -1988,33 +2322,116 @@ export function createDoomTracksMp3HUD(options = {}) {
     renderFrame(performance.now());
   }
 
-  function clientPointToNativeCoords(clientX, clientY) {
-    if (!displayCanvas) return null;
+  function raycast3DAtClientPoint(clientX, clientY) {
+    if (!displayCanvas || !camera3d || !landscapeGroup) return null;
     const rect = displayCanvas.getBoundingClientRect();
     if (rect.width <= 0 || rect.height <= 0) return null;
-    const normX = (clientX - rect.left) / rect.width;
-    const normY = (clientY - rect.top) / rect.height;
-    return {
-      x: MP3_CHASSIS_CROP.x + normX * MP3_CHASSIS_CROP.w,
-      y: MP3_CHASSIS_CROP.y + normY * MP3_CHASSIS_CROP.h,
-    };
+
+    ndcPointer.x = ((clientX - rect.left) / rect.width) * 2.0 - 1.0;
+    ndcPointer.y = -((clientY - rect.top) / rect.height) * 2.0 + 1.0;
+    raycaster.setFromCamera(ndcPointer, camera3d);
+
+    // 1. Test 9 3D hardware button/switch hit boxes first (when front-facing)
+    if (Math.cos(state.tiltYaw) > 0.15) {
+      const hitBoxes = Array.from(buttonHitMeshes.values());
+      const btnHits = raycaster.intersectObjects(hitBoxes, false);
+      if (btnHits.length > 0 && btnHits[0].object.userData.controlId) {
+        return {
+          type: 'BUTTON',
+          controlId: btnHits[0].object.userData.controlId,
+          hit: btnHits[0],
+        };
+      }
+    }
+
+    // 2. Test 3D mounted OLED screen quad for UV scrubbing/clicking
+    if (oledScreenMesh && Math.cos(state.tiltYaw) > 0.15) {
+      const scrHits = raycaster.intersectObject(oledScreenMesh, false);
+      if (scrHits.length > 0 && scrHits[0].uv) {
+        const uv = scrHits[0].uv;
+        const nativeX = MP3_SCREEN_ONLY_CROP.x + uv.x * MP3_SCREEN_ONLY_CROP.w;
+        const nativeY = MP3_SCREEN_ONLY_CROP.y + (1.0 - uv.y) * MP3_SCREEN_ONLY_CROP.h;
+        return {
+          type: 'SCREEN',
+          nativeX,
+          nativeY,
+          uv,
+          hit: scrHits[0],
+        };
+      }
+    }
+
+    // 3. Test 3D decimated AudioDevice chassis mesh
+    if (audiodeviceMesh) {
+      const meshHits = raycaster.intersectObject(audiodeviceMesh, true);
+      if (meshHits.length > 0) {
+        return {
+          type: 'CHASSIS',
+          hit: meshHits[0],
+        };
+      }
+    }
+
+    return null;
   }
 
-  function isPointInsideChassis(nativeX, nativeY) {
-    const ix = Math.round(nativeX);
-    const iy = Math.round(nativeY);
-    if (
-      ix < MP3_CHASSIS_CROP.x ||
-      ix >= MP3_CHASSIS_CROP.x + MP3_CHASSIS_CROP.w ||
-      iy < MP3_CHASSIS_CROP.y ||
-      iy >= MP3_CHASSIS_CROP.y + MP3_CHASSIS_CROP.h
-    ) {
-      return false;
+  function handleScreenRegionDown(nativeX, nativeY, pointerId) {
+    // 1. Check Progress Bar hit zone
+    const pb = MP3_SCREEN_HIT_ZONES.progressBar;
+    if (nativeX >= pb.x1 && nativeX <= pb.x2 && nativeY >= pb.y1 && nativeY <= pb.y2) {
+      state.isScrubbingProgress = true;
+      const frac = (nativeX - 1375) / 616;
+      seekToFraction(frac);
+      if (pointerId !== undefined && displayCanvas && displayCanvas.setPointerCapture) {
+        try {
+          displayCanvas.setPointerCapture(pointerId);
+        } catch (_e) {
+          // Ignore synthetic pointer events
+        }
+      }
+      renderFrame(performance.now());
+      return true;
     }
-    if (processedAssets && processedAssets.exteriorMask) {
-      return processedAssets.exteriorMask[iy * MP3_NATIVE_WIDTH + ix] === 0;
+
+    // 2. Check Volume Meter hit zone
+    const vm = MP3_SCREEN_HIT_ZONES.volumeMeter;
+    if (nativeX >= vm.x1 && nativeX <= vm.x2 && nativeY >= vm.y1 && nativeY <= vm.y2) {
+      state.isScrubbingVolume = true;
+      const volFrac = (nativeX - 1512) / 155;
+      setVolume(volFrac);
+      if (pointerId !== undefined && displayCanvas && displayCanvas.setPointerCapture) {
+        try {
+          displayCanvas.setPointerCapture(pointerId);
+        } catch (_e) {
+          // Ignore synthetic pointer events
+        }
+      }
+      renderFrame(performance.now());
+      return true;
     }
-    return true;
+
+    // 3. Check Digital Timer toggle (elapsed vs remaining)
+    const tm = MP3_SCREEN_HIT_ZONES.timerReadout;
+    if (nativeX >= tm.x1 && nativeX <= tm.x2 && nativeY >= tm.y1 && nativeY <= tm.y2) {
+      state.showRemainingTime = !state.showRemainingTime;
+      showFooterNotice(state.showRemainingTime ? 'TIME REMAIN' : 'TIME ELAPSED', 1.2);
+      renderFrame(performance.now());
+      return true;
+    }
+
+    // 4. Check Track Title banner click when in tracklist selector mode
+    const tb = MP3_SCREEN_HIT_ZONES.titleBanner;
+    if (nativeX >= tb.x1 && nativeX <= tb.x2 && nativeY >= tb.y1 && nativeY <= tb.y2) {
+      if (state.showTracklistOnScreen) {
+        nextTrack();
+      } else {
+        togglePlaybackTracklist();
+      }
+      renderFrame(performance.now());
+      return true;
+    }
+
+    return false;
   }
 
   function buildDOM() {
@@ -2081,11 +2498,17 @@ export function createDoomTracksMp3HUD(options = {}) {
         margin: 0;
         cursor: pointer;
         outline: none;
+        box-shadow: none;
         border-radius: 6px;
         z-index: 3;
       }
-      .doom-mp3-hit-btn:focus-visible {
-        box-shadow: 0 0 0 2px #ffa51d;
+      .doom-mp3-hit-btn:focus,
+      .doom-mp3-hit-btn:focus-visible,
+      .doom-mp3-hit-btn:hover,
+      .doom-mp3-hit-btn:active {
+        outline: none;
+        box-shadow: none;
+        border: none;
       }
     `;
     document.head.appendChild(styleEl);
@@ -2108,8 +2531,8 @@ export function createDoomTracksMp3HUD(options = {}) {
 
     rootEl = document.createElement('section');
     rootEl.id = 'doom-tracks-mp3-hud';
-    rootEl.setAttribute('aria-label', 'DOOM TRACKS SYS-990-AMBER MP3 Player');
-    rootEl.title = 'Click screen to expand DOOM TRACKS MP3 Player';
+    rootEl.setAttribute('aria-label', 'DOOM TRACKS SYS-990-AMBER 3D MP3 Player');
+    rootEl.title = 'Click screen to expand DOOM TRACKS 3D MP3 Player';
     if (!state.visible) {
       rootEl.classList.add('hidden');
     }
@@ -2128,7 +2551,7 @@ export function createDoomTracksMp3HUD(options = {}) {
     displayCtx = displayCanvas.getContext('2d');
     deckFrameEl.appendChild(displayCanvas);
 
-    // Create transparent accessible <button> overlays for the 7 transport buttons & 2 switches
+    // Create transparent accessible <button> overlays for the 7 transport buttons & 2 switches (zero rim highlights)
     for (const ctrl of MP3_CONTROL_HIT_ZONES) {
       const btn = document.createElement('button');
       btn.type = 'button';
@@ -2157,20 +2580,20 @@ export function createDoomTracksMp3HUD(options = {}) {
         if (state.hoveredControlId === ctrl.id) {
           state.hoveredControlId = null;
         }
-        if (state.activePressedButtonId === ctrl.id) {
-          state.activePressedButtonId = null;
-        }
+        state.isPointerHoldingButton = false;
       });
       btn.addEventListener('pointerdown', (e) => {
         if (state.targetMorphProgress < 0.5) return;
         e.stopPropagation();
+        state.isPointerHoldingButton = true;
         state.activePressedButtonId = ctrl.id;
+        state.buttonPressTimer = 0.18;
         renderFrame(performance.now());
       });
       btn.addEventListener('pointerup', (e) => {
         if (state.targetMorphProgress < 0.5) return;
         e.stopPropagation();
-        state.activePressedButtonId = null;
+        state.isPointerHoldingButton = false;
       });
       btn.addEventListener('click', (e) => {
         if (state.targetMorphProgress < 0.5) {
@@ -2179,7 +2602,7 @@ export function createDoomTracksMp3HUD(options = {}) {
           return;
         }
         e.stopPropagation();
-        state.activePressedButtonId = null;
+        state.isPointerHoldingButton = false;
         handleControlAction(ctrl.id);
       });
 
@@ -2187,65 +2610,47 @@ export function createDoomTracksMp3HUD(options = {}) {
       buttonEls.set(ctrl.id, btn);
     }
 
-    // Screen & Chassis pointer interaction:
-    // - In SCREEN_ONLY mode (targetMorphProgress === 0): clicking anywhere on the screen expands the full MP3 takeover.
-    // - In FULL_TAKEOVER mode (targetMorphProgress === 1): clicking outside the octagonal chassis collapses back to SCREEN_ONLY;
-    //   clicking interactive screen regions scrubs progress/volume or toggles timer/tracklist.
+    // 3D Raycasted Screen, Button & Chassis Tilt Interaction on displayCanvas
     displayCanvas.addEventListener('pointerdown', (e) => {
       e.stopPropagation();
       if (state.targetMorphProgress < 0.5) {
         return;
       }
 
-      const pt = clientPointToNativeCoords(e.clientX, e.clientY);
-      if (!pt) return;
-
-      // If user clicked in the transparent exterior corners outside the octagonal MP3 chassis, animate back down!
-      if (!isPointInsideChassis(pt.x, pt.y)) {
+      const hitResult = raycast3DAtClientPoint(e.clientX, e.clientY);
+      if (!hitResult) {
+        // Clicked outside the 3D decimated MP3 player chassis -> collapse to SCREEN_ONLY
         collapseToScreenOnly();
         return;
       }
 
-      // 1. Check Progress Bar hit zone
-      const pb = MP3_SCREEN_HIT_ZONES.progressBar;
-      if (pt.x >= pb.x1 && pt.x <= pb.x2 && pt.y >= pb.y1 && pt.y <= pb.y2) {
-        state.isScrubbingProgress = true;
-        const frac = (pt.x - 1375) / 616;
-        seekToFraction(frac);
-        displayCanvas.setPointerCapture(e.pointerId);
+      if (hitResult.type === 'BUTTON') {
+        state.isPointerHoldingButton = true;
+        state.activePressedButtonId = hitResult.controlId;
+        state.buttonPressTimer = 0.18;
         renderFrame(performance.now());
         return;
       }
 
-      // 2. Check Volume Meter hit zone
-      const vm = MP3_SCREEN_HIT_ZONES.volumeMeter;
-      if (pt.x >= vm.x1 && pt.x <= vm.x2 && pt.y >= vm.y1 && pt.y <= vm.y2) {
-        state.isScrubbingVolume = true;
-        const volFrac = (pt.x - 1512) / 155;
-        setVolume(volFrac);
-        displayCanvas.setPointerCapture(e.pointerId);
-        renderFrame(performance.now());
-        return;
+      if (hitResult.type === 'SCREEN') {
+        const handled = handleScreenRegionDown(hitResult.nativeX, hitResult.nativeY, e.pointerId);
+        if (handled) return;
       }
 
-      // 3. Check Digital Timer toggle (elapsed vs remaining)
-      const tm = MP3_SCREEN_HIT_ZONES.timerReadout;
-      if (pt.x >= tm.x1 && pt.x <= tm.x2 && pt.y >= tm.y1 && pt.y <= tm.y2) {
-        state.showRemainingTime = !state.showRemainingTime;
-        showFooterNotice(state.showRemainingTime ? 'TIME REMAIN' : 'TIME ELAPSED', 1.2);
-        renderFrame(performance.now());
-        return;
-      }
-
-      // 4. Check Track Title banner click when in tracklist selector mode
-      const tb = MP3_SCREEN_HIT_ZONES.titleBanner;
-      if (pt.x >= tb.x1 && pt.x <= tb.x2 && pt.y >= tb.y1 && pt.y <= tb.y2) {
-        if (state.showTracklistOnScreen) {
-          nextTrack();
-        } else {
-          togglePlaybackTracklist();
+      // Otherwise user pressed on the 3D chassis body (or non-interactive screen background):
+      // initiate 3D chassis tilt/orbit drag so user can inspect the 3D asset & rear PLATODOOM-INC backplate
+      state.isDraggingTilt = true;
+      dragStartClientX = e.clientX;
+      dragStartClientY = e.clientY;
+      dragStartYaw = state.targetTiltYaw;
+      dragStartPitch = state.targetTiltPitch;
+      dragMovedDistancePx = 0;
+      if (e.pointerId !== undefined && displayCanvas.setPointerCapture) {
+        try {
+          displayCanvas.setPointerCapture(e.pointerId);
+        } catch (_err) {
+          // Ignore synthetic pointer capture errors
         }
-        renderFrame(performance.now());
       }
     });
 
@@ -2253,38 +2658,72 @@ export function createDoomTracksMp3HUD(options = {}) {
       e.stopPropagation();
       if (state.targetMorphProgress < 0.5) {
         expandToFullTakeover();
+        return;
+      }
+      if (dragMovedDistancePx > 6) {
+        return;
+      }
+      const hitResult = raycast3DAtClientPoint(e.clientX, e.clientY);
+      if (hitResult && hitResult.type === 'BUTTON') {
+        state.isPointerHoldingButton = false;
+        handleControlAction(hitResult.controlId);
+      }
+    });
+
+    displayCanvas.addEventListener('dblclick', (e) => {
+      e.stopPropagation();
+      if (state.targetMorphProgress > 0.5) {
+        // Toggle 180 deg between Front ("DOOM TRACKS") and Rear ("PLATODOOM-INC") 3D showcase poses
+        if (Math.cos(state.targetTiltYaw) > 0) {
+          state.targetTiltYaw = Math.PI - 0.28;
+          state.targetTiltPitch = 0.10;
+        } else {
+          state.targetTiltYaw = -0.28;
+          state.targetTiltPitch = 0.14;
+        }
+        renderFrame(performance.now());
       }
     });
 
     displayCanvas.addEventListener('pointermove', (e) => {
       if (state.isScrubbingProgress) {
         e.stopPropagation();
-        const pt = clientPointToNativeCoords(e.clientX, e.clientY);
-        if (pt) {
-          seekToFraction((pt.x - 1375) / 616);
+        const hitResult = raycast3DAtClientPoint(e.clientX, e.clientY);
+        if (hitResult && hitResult.type === 'SCREEN') {
+          seekToFraction((hitResult.nativeX - 1375) / 616);
           renderFrame(performance.now());
         }
       } else if (state.isScrubbingVolume) {
         e.stopPropagation();
-        const pt = clientPointToNativeCoords(e.clientX, e.clientY);
-        if (pt) {
-          setVolume((pt.x - 1512) / 155);
+        const hitResult = raycast3DAtClientPoint(e.clientX, e.clientY);
+        if (hitResult && hitResult.type === 'SCREEN') {
+          setVolume((hitResult.nativeX - 1512) / 155);
           renderFrame(performance.now());
         }
+      } else if (state.isDraggingTilt) {
+        e.stopPropagation();
+        const dx = e.clientX - dragStartClientX;
+        const dy = e.clientY - dragStartClientY;
+        dragMovedDistancePx = Math.hypot(dx, dy);
+        state.targetTiltYaw = dragStartYaw + dx * 0.0065;
+        state.targetTiltPitch = Math.max(-0.65, Math.min(0.65, dragStartPitch + dy * 0.0055));
+        renderFrame(performance.now());
       }
     });
 
-    const endScrub = (e) => {
-      if (state.isScrubbingProgress || state.isScrubbingVolume) {
+    const endPointerInteraction = (e) => {
+      if (state.isScrubbingProgress || state.isScrubbingVolume || state.isDraggingTilt || state.isPointerHoldingButton) {
         e.stopPropagation();
         state.isScrubbingProgress = false;
         state.isScrubbingVolume = false;
+        state.isDraggingTilt = false;
+        state.isPointerHoldingButton = false;
       }
     };
-    displayCanvas.addEventListener('pointerup', endScrub);
-    displayCanvas.addEventListener('pointercancel', endScrub);
+    displayCanvas.addEventListener('pointerup', endPointerInteraction);
+    displayCanvas.addEventListener('pointercancel', endPointerInteraction);
 
-    // Isolate pointer/wheel events from triggering 3D camera orbit or scroll-walk (§5)
+    // Isolate pointer/wheel events from triggering 3D world camera orbit or scroll-walk (§5)
     for (const evtName of ['mousedown', 'mouseup', 'click', 'dblclick', 'wheel', 'contextmenu']) {
       rootEl.addEventListener(evtName, (e) => {
         e.stopPropagation();
@@ -2294,6 +2733,9 @@ export function createDoomTracksMp3HUD(options = {}) {
     if (typeof window !== 'undefined') {
       window.addEventListener('resize', () => {
         applyMorphLayout();
+        if (state.visible) {
+          renderFrame(performance.now());
+        }
       });
       window.addEventListener('keydown', (e) => {
         if (e.code === 'Escape' && state.visible && state.targetMorphProgress > 0.5) {
@@ -2344,6 +2786,27 @@ export function createDoomTracksMp3HUD(options = {}) {
     state.targetMorphProgress = target;
     state.expanded = Boolean(expandedBool);
 
+    if (expandedBool) {
+      if (changed) {
+        state.targetTiltYaw = -0.28;
+        state.targetTiltPitch = 0.14;
+        if (immediate) {
+          state.tiltYaw = state.targetTiltYaw;
+          state.tiltPitch = state.targetTiltPitch;
+        } else {
+          state.tiltYaw = 0.68;
+          state.tiltPitch = -0.26;
+        }
+      }
+    } else {
+      state.targetTiltYaw = 0;
+      state.targetTiltPitch = 0;
+      if (immediate) {
+        state.tiltYaw = 0;
+        state.tiltPitch = 0;
+      }
+    }
+
     if (immediate) {
       state.morphProgress = target;
       state.displayMode = target >= 1.0 ? 'FULL_TAKEOVER' : 'SCREEN_ONLY';
@@ -2355,8 +2818,8 @@ export function createDoomTracksMp3HUD(options = {}) {
 
     if (rootEl) {
       rootEl.title = state.expanded
-        ? 'DOOM TRACKS MP3 Player (Click outside to minimize)'
-        : 'Click screen to expand DOOM TRACKS MP3 Player';
+        ? 'DOOM TRACKS 3D MP3 Player (Drag to rotate 360°, double-click to flip Front/Back, click outside to minimize)'
+        : 'Click screen to mount 3D DOOM TRACKS MP3 Player';
     }
 
     if (changed) {
@@ -2375,6 +2838,21 @@ export function createDoomTracksMp3HUD(options = {}) {
     return setExpanded(state.targetMorphProgress < 0.5);
   }
 
+  function setTilt(yawRad = 0, pitchRad = 0, immediate = false) {
+    state.targetTiltYaw = Number(yawRad) || 0;
+    state.targetTiltPitch = Math.max(-0.65, Math.min(0.65, Number(pitchRad) || 0));
+    if (immediate) {
+      state.tiltYaw = state.targetTiltYaw;
+      state.tiltPitch = state.targetTiltPitch;
+    }
+    renderFrame(performance.now());
+    return { tiltYaw: state.tiltYaw, tiltPitch: state.tiltPitch };
+  }
+
+  function resetTilt(immediate = false) {
+    return setTilt(0, 0, immediate);
+  }
+
   function setTrackCatalog(tracksArray) {
     if (!Array.isArray(tracksArray) || tracksArray.length === 0) return state.tracks;
     state.tracks = tracksArray.map((t, idx) => ({
@@ -2389,7 +2867,7 @@ export function createDoomTracksMp3HUD(options = {}) {
     return state.tracks;
   }
 
-  // Load assets/mp3.jpeg and optional assets/tracks/manifest.json
+  // Load assets/mp3.jpeg (for OLED screen sprites), assets/audiodevice_decimated.glb (3D mesh), and manifest.json
   async function init() {
     buildDOM();
 
@@ -2415,15 +2893,12 @@ export function createDoomTracksMp3HUD(options = {}) {
 
     loadTrackAtIndex(0, false);
 
-    await new Promise((resolve, reject) => {
+    const bitmapPromise = new Promise((resolve, reject) => {
       const img = new Image();
       img.crossOrigin = 'anonymous';
       img.onload = () => {
         try {
           processedAssets = processMp3ChassisBitmap(img);
-          state.initialized = true;
-          applyMorphLayout();
-          renderFrame(performance.now());
           resolve();
         } catch (err) {
           reject(err);
@@ -2434,6 +2909,31 @@ export function createDoomTracksMp3HUD(options = {}) {
       };
       img.src = assetSrc;
     });
+
+    const glbLoader = new GLTFLoader();
+    const glbPromise = new Promise((resolve, reject) => {
+      glbLoader.load(
+        glbSrc,
+        (gltf) => {
+          try {
+            build3DSceneGraph(gltf.scene);
+            state.glbLoaded = true;
+            resolve();
+          } catch (err) {
+            reject(err);
+          }
+        },
+        undefined,
+        (err) => {
+          reject(new Error(`Failed to load decimated 3D MP3 asset at ${glbSrc}: ${err && err.message ? err.message : err}`));
+        }
+      );
+    });
+
+    await Promise.all([bitmapPromise, glbPromise]);
+    state.initialized = true;
+    applyMorphLayout();
+    renderFrame(performance.now());
 
     return api;
   }
@@ -2468,6 +2968,30 @@ export function createDoomTracksMp3HUD(options = {}) {
     get tracks() {
       return state.tracks;
     },
+    get triangleCount() {
+      return state.triangleCount;
+    },
+    get glbLoaded() {
+      return state.glbLoaded;
+    },
+    get oledScreenMounted() {
+      return state.oledScreenMounted;
+    },
+    get mounted3D() {
+      return state.mounted3D;
+    },
+    get scene3d() {
+      return scene3d;
+    },
+    get camera3d() {
+      return camera3d;
+    },
+    get pivotGroup() {
+      return pivotGroup;
+    },
+    get audiodeviceMesh() {
+      return audiodeviceMesh;
+    },
     isExpanded: () => state.targetMorphProgress > 0.5,
     expand: expandToFullTakeover,
     collapse: collapseToScreenOnly,
@@ -2489,6 +3013,9 @@ export function createDoomTracksMp3HUD(options = {}) {
     toggleVisible,
     setExpanded,
     toggleExpanded,
+    setTilt,
+    resetTilt,
+    triggerControl: handleControlAction,
     update: (nowMs = performance.now()) => renderFrame(nowMs),
   };
 
