@@ -1,0 +1,24 @@
+{
+  "encrypted_artifact": {
+    "magic": "~PSP",
+    "byte_size": 4836160,
+    "header_elf_size": 4835824,
+    "header_psp_size": 4836160,
+    "kirk_tag_offset_0xd0": "0xC0CB167C",
+    "kirk_tag_dec": 3234535036,
+    "sha1": "584141a993156e290fcc0adff2d1df0509e3ae13"
+  },
+  "decrypted_artifact": {
+    "magic": "7f454c46",
+    "magic_str": "\\x7fELF",
+    "e_type": "0xFFA0",
+    "e_type_name": "ET_SCE_PRX",
+    "byte_size": 4836160,
+    "sha1_full_buffer": "b9a0e3292738a833f4f8077e3959c3a0652c42cd",
+    "sha1_truncated_elf_size": "24b7f09db51a86a72fe3860f672617294b07fb2b",
+    "trailing_bytes_count": 336,
+    "expected_sha1": "b9a0e3292738a833f4f8077e3959c3a0652c42cd",
+    "matches_tkdr_recomp_expectation": true
+  },
+  "cryptographic_invariant": "tkdr-recomp EBOOT_SHA1 requires the full max(elf_size, psp_size) buffer (4,836,160 bytes) dumped by PPSSPP. Truncating to elf_size (4,835,824 bytes) yields sha1 24b7f09db51a86a72fe3860f672617294b07fb2b which halts execution."
+}

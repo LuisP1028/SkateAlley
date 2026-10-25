@@ -1,0 +1,19 @@
+{
+  "zip_archive": {
+    "path": "/Users/diesel/Desktop/SkateAlley/Tekken - Dark Resurrection (US) (2006) (Versus Fighting) (ISO) (PSP).zip",
+    "file_size": 1117233020,
+    "entry_name": "Tekken - Dark Resurrection (US) (2006) (Versus Fighting) (ISO) (PSP).iso",
+    "entry_uncompressed_size": 1750237184,
+    "entry_crc32": "0x3ffd7a9d",
+    "entry_compress_type": 14
+  },
+  "iso_volume_structure": {
+    "sector_size": 2048,
+    "total_sectors": 854608,
+    "sector_16_pvd_offset": 32768,
+    "sector_16_magic": "\u0001CD001\u0001\u0000",
+    "sector_28_eboot_offset": 57344,
+    "sector_28_magic": "~PSP",
+    "expected_iso_sha1": "8193a65dee49685db49284408c89bdb35324bc32"
+  }
+}
