@@ -18,6 +18,10 @@ tkdr/tkdr.js CHANGED ticket-001
 tkdr/tkdr.wasm CHANGED ticket-001
 tkdr/tools/serve.py CHANGED ticket-004
 tkdr/tools/web_config.py CHANGED ticket-001
+tkdr/game.iso CHANGED ticket-002
+tkdr/eboot.bin CHANGED ticket-002
+tkdr/ULUS10139_EBOOT.BIN CHANGED ticket-002
+tkdr/game.zip CHANGED ticket-002
 functional_specification_057.md READ_ONLY_CONTEXT plan
 LANGUAGE.md READ_ONLY_CONTEXT plan-scan-1
 .sandcastle/mcp.md READ_ONLY_CONTEXT plan-scan-1
