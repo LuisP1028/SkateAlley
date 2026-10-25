@@ -1,0 +1,9 @@
+functional_specification_057.md
+wayfinder/20261025T195121-592-2unz/map.md
+wayfinder/20261025T195121-592-2unz/master_component_to_edit_matrix.md
+wayfinder/20261025T195121-592-2unz/tickets/ticket-001.md
+wayfinder/20261025T195121-592-2unz/tickets/ticket-002.md
+wayfinder/20261025T195121-592-2unz/tickets/ticket-003.md
+wayfinder/20261025T195121-592-2unz/tickets/ticket-004.md
+assets/20261025T195121-592-2unz/plan-tkdr-runtime-and-crypto-manifest.json
+assets/20261025T195121-592-2unz/plan-upstream-shell-reference.html

@@ -1,0 +1,99 @@
+{
+  "spec": "functional_specification_057.md",
+  "runId": "20261025T195121-592-2unz",
+  "gameTitle": "Tekken: Dark Resurrection (ULUS-10139 v1.00)",
+  "standaloneRoute": "/tkdr/",
+  "threeJsAlleyIntegration": "PROHIBITED (Zero modifications to root index.html or sandbox.js)",
+  "upstreamRepository": {
+    "url": "https://github.com/gasparegas/tkdr-recomp",
+    "localClonePath": "/Users/diesel/.gemini/antigravity-cli/brain/9b118eda-fbcd-4e95-838e-a83a5769b3a9/scratch/tkdr-recomp",
+    "mainCommit": "6b6196b539628bddad821bf850d203d8855e140e",
+    "deployCommit": "786460f1c0c4360938d5d4e1dbaac2a23e8601bd",
+    "deployFiles": {
+      "site/_headers": { "gitBlob": "41c6f326429a07056cc9bd20e733a9c6739507cf", "bytes": 167 },
+      "site/disc.mjs": { "gitBlob": "d533f173ec878e2cb57faf4f99aa4633d9385847", "bytes": 13046 },
+      "site/index.html": { "gitBlob": "9b3e57e08fbb5fec11d5fd76cf4f995ff2909e13", "bytes": 32079 },
+      "site/tkdr.html": { "gitBlob": "9b3e57e08fbb5fec11d5fd76cf4f995ff2909e13", "bytes": 32079 },
+      "site/tkdr.js": { "gitBlob": "5d68915055e9ebe5ccbfdd0d5b754cff77897e8d", "bytes": 230442 },
+      "site/tkdr.wasm": { "gitBlob": "c05f5016e0547574dbbe2c331b4ffd9d0d04676a", "bytes": 2672263 },
+      "site/recomp/analyze.mjs": { "gitBlob": "31e90d00529c0c8c6feb92751755ef5da394bcdd", "bytes": 6668 },
+      "site/recomp/elf.mjs": { "gitBlob": "38c13d3f99c20fabb582abd114b4661ee6bf9bcf", "bytes": 5733 },
+      "site/recomp/index.mjs": { "gitBlob": "5fcaf104689a20114148558316edf03a612c49f4", "bytes": 1853 },
+      "site/recomp/mips.mjs": { "gitBlob": "bb136284bf73ec3f827ab266f25578464dc9abb1", "bytes": 5727 },
+      "site/recomp/nids.json": { "gitBlob": "153560bfad6923d7fdc749d952224dd73d7fa061", "bytes": 11954 },
+      "site/recomp/wasm.mjs": { "gitBlob": "64dc12bb36525f073bf50605961708ef48d33415", "bytes": 8261 },
+      "site/recomp/wasmgen.mjs": { "gitBlob": "eb2fbe556ba1997b47a5ad75ad64bb2d61c4798f", "bytes": 28386 },
+      "site/recomp/worker.mjs": { "gitBlob": "247432c012e693db6857fbc2a9b8c53ff3ccc14d", "bytes": 562 },
+      "tools/web_config.py": { "gitBlob": "e559a739305c680eb505752b491db2966173cab6", "bytes": 1027 }
+    }
+  },
+  "gameArtifacts": {
+    "sourceZip": {
+      "path": "/Users/diesel/Desktop/SkateAlley/Tekken - Dark Resurrection (US) (2006) (Versus Fighting) (ISO) (PSP).zip",
+      "bytes": 1117233020,
+      "entries": [
+        {
+          "name": "Tekken - Dark Resurrection (US) (2006) (Versus Fighting) (ISO) (PSP).iso",
+          "uncompressedBytes": 1750237184,
+          "method": 8
+        }
+      ]
+    },
+    "uncompressedIso": {
+      "stagedPath": "tkdr/game.iso",
+      "sharedWorkspacePath": "/Users/diesel/Desktop/SkateAlley/tkdr/game.iso",
+      "bytes": 1750237184,
+      "crc32": "0x3ffd7a9d",
+      "sha1": "8193a65dee49685db49284408c89bdb35324bc32",
+      "pvdSector16Offset": 32768,
+      "pvdSector16Length": 2048,
+      "pvdPrefixHex": "01434430303101005053502047414d45"
+    },
+    "encryptedEboot": {
+      "isoPath": "PSP_GAME/SYSDIR/EBOOT.BIN",
+      "lbaSector": 28,
+      "byteOffset": 57344,
+      "bytes": 4836160,
+      "magic": "~PSP",
+      "kirkTagAt0xD0": "0xC0CB167C",
+      "elfSize": 4835824,
+      "pspSize": 4836160
+    },
+    "decryptedEboot": {
+      "stagedPaths": ["tkdr/eboot.bin", "tkdr/ULUS10139_EBOOT.BIN"],
+      "preStagedVerifiedSource": "/Users/diesel/.gemini/antigravity-cli/brain/9b118eda-fbcd-4e95-838e-a83a5769b3a9/scratch/kirk/ULUS10139_EBOOT.BIN",
+      "kirkDecrypterBinary": "/Users/diesel/.gemini/antigravity-cli/brain/9b118eda-fbcd-4e95-838e-a83a5769b3a9/scratch/kirk/dec_eboot",
+      "bytes": 4836160,
+      "decryptedElfPrefixBytes": 4835824,
+      "retainedPspTailBytes": 336,
+      "magic": "\\x7fELF",
+      "elfType": "0xFFA0 (ET_SCE_PRX)",
+      "sha1": "b9a0e3292738a833f4f8077e3959c3a0652c42cd"
+    }
+  },
+  "inBrowserRecompiler": {
+    "baseAddress": "0x08804000",
+    "entryAddress": "0x089F34A8",
+    "mipsInstructions": 641720,
+    "recompiledFunctions": 13809,
+    "wasmCodeBytes": 23544922,
+    "imageBytes": 20629396,
+    "gameTxtLines": 281,
+    "hleStubCount": 280
+  },
+  "runtimeTelemetrySchema": {
+    "globalSymbol": "window.__TKDR_STATUS__",
+    "fields": {
+      "crossOriginIsolated": "boolean",
+      "runtimeReady": "boolean",
+      "isoReady": "boolean",
+      "ebootSha1": "string (b9a0e3292738a833f4f8077e3959c3a0652c42cd)",
+      "recompiledFunctions": "number (13809)",
+      "wasmCodeBytes": "number (23544922)",
+      "started": "boolean",
+      "frames": "number (Module._web_frames())",
+      "guestTimeSec": "number (Module._web_time())",
+      "errors": "Array<string>"
+    }
+  }
+}
