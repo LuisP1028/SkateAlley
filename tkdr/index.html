@@ -1,0 +1,594 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>tkdr</title>
+<style>
+  :root { color-scheme: dark; }
+  body { margin: 0; background: #0b0b0d; color: #ddd; font: 15px/1.5 system-ui, sans-serif;
+         display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 16px; }
+  canvas { width: min(960px, 100%); aspect-ratio: 480 / 272; image-rendering: pixelated; background: #000; }
+  #pick { padding: 24px; border: 1px dashed #555; border-radius: 8px; text-align: center; max-width: 520px; }
+  #status { font-family: ui-monospace, monospace; font-size: 13px; color: #9a9a9a; }
+  #pick label { display: block; margin: 12px 0 4px; font-weight: 600; }
+  #pick small { color: #9a9a9a; }
+  .dyn { display: none; }
+  body.dynamic .dyn { display: block; }
+  body.dragging #pick { border-color: #e8e8ea; background: #ffffff0d; }
+  kbd { background: #222; border: 1px solid #444; border-radius: 4px; padding: 0 5px; }
+  /* touch devices: the game takes the whole screen, on-screen controls are drawn in the canvas */
+  #server { padding: 20px 24px; border: 1px solid #444; border-radius: 8px; text-align: center; max-width: 520px; }
+  #server button { font: 600 18px system-ui, sans-serif; padding: 10px 28px; border-radius: 8px; border: 0;
+                   background: #e8e8ea; color: #111; cursor: pointer; }
+  #loading { display: none; padding: 22px 26px; border: 1px solid #444; border-radius: 8px; text-align: center;
+             width: min(520px, 100%); box-sizing: border-box; }
+  #loading h2 { margin: 0 0 6px; font: 700 20px system-ui, sans-serif; color: #fff; }
+  #load-pct { font: 800 56px/1.1 system-ui, sans-serif; color: #fff; font-variant-numeric: tabular-nums; margin: 10px 0; }
+  #load-bar { height: 12px; border-radius: 6px; background: #2a2a2e; overflow: hidden; }
+  #load-bar div { height: 100%; width: 0; background: linear-gradient(90deg, #ff5e5b, #ffb15b); transition: width .3s ease; }
+  #loading p { margin: 12px 0 0; color: #b0b0b6; font-size: 14px; }
+  #resume { display: none; padding: 20px 24px; border: 1px solid #444; border-radius: 8px; text-align: center; max-width: 520px; }
+  #resume button { font: 600 18px system-ui, sans-serif; padding: 10px 28px; border-radius: 8px; border: 0;
+                   background: #e8e8ea; color: #111; cursor: pointer; }
+  #resume a { color: #9a9a9a; font-size: 13px; }
+  /* support links: big on the start page, then a thin tab on the right edge that slides out */
+  #links { position: fixed; top: max(12px, env(safe-area-inset-top)); right: 0; z-index: 3; display: flex;
+           flex-direction: column; gap: 8px; padding-right: max(12px, env(safe-area-inset-right));
+           transition: transform .25s ease, opacity .25s ease; }
+  #links a { display: flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 8px; text-decoration: none;
+             font: 700 14px/1 system-ui, sans-serif; letter-spacing: .04em; text-transform: uppercase; white-space: nowrap; }
+  #links a svg { width: 18px; height: 18px; flex: none; }
+  #links .kofi { background: #ff5e5b; color: #fff; }
+  #links .gh { background: #f0f0f2; color: #111; }
+  #links .tc { background: #1a1a1d; color: #fff; border: 1px solid #c4161c; }
+  #links .tc img { border-radius: 4px; background: #000; }
+  #links .tab { display: none; }
+  body.started #links { top: 50%; padding: 0; transform: translate(calc(100% - 10px), -50%); opacity: .55; }
+  body.started #links .tab { display: block; position: absolute; left: 0; top: 0; bottom: 0; width: 10px;
+                             border-radius: 6px 0 0 6px; background: #fff3; cursor: pointer; }
+  body.started #links a { border-radius: 8px 0 0 8px; padding-left: 20px; }
+  body.started #links:hover, body.started #links.open { transform: translate(0, -50%); opacity: 1; }
+  #fanline { color: #7a7a80; font-size: 12px; text-align: center; max-width: 560px; }
+  body.started #fanline { display: none; }
+  body.play { padding: 0; overflow: hidden; overscroll-behavior: none; }
+  body.play canvas { position: fixed; inset: 0; width: 100vw; height: 100vh; height: 100dvh; aspect-ratio: auto;
+                     touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+  body.play #status, body.play #help { display: none; }
+  #fs { display: none; position: fixed; bottom: max(8px, env(safe-area-inset-bottom)); right: max(8px, env(safe-area-inset-right));
+        z-index: 2; width: 36px; height: 36px; border-radius: 18px; border: 1px solid #fff5; background: #0006; color: #fffc;
+        font-size: 18px; line-height: 1; }
+  body.started #fs { display: block; }  /* also F key or double click on the game */
+</style>
+</head>
+<body>
+<nav id="links" aria-label="Support the project">
+  <span class="tab" aria-hidden="true"></span>
+  <a class="kofi" href="https://ko-fi.com/gacid" target="_blank" rel="noopener">
+    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M4 6h13a4 4 0 0 1 0 8h-1.2A6 6 0 0 1 10 19H8a6 6 0 0 1-6-6V7a1 1 0 0 1 1-1h1zm12 2v4h1a2 2 0 0 0 0-4h-1zM9.2 9.4c-.9-.9-2.6-.6-2.6.9 0 1.3 1.6 2.4 2.9 3.4 1.3-1 2.9-2.1 2.9-3.4 0-1.5-1.7-1.8-2.6-.9l-.3.3-.3-.3z"/></svg>
+    Ko-fi</a>
+  <a class="gh" href="https://github.com/gasparegas" target="_blank" rel="noopener">
+    <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+    GitHub</a>
+  <a class="tc" href="https://tekken-comboss.com/" target="_blank" rel="noopener">
+    <img alt="" width="18" height="18" src="data:image/png;base64,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">
+    Tekken Comboss</a>
+</nav>
+<div id="resume">
+  <p id="resume-what"></p>
+  <button id="play">▶ Play</button>
+  <p><a href="#" id="forget">Forget the saved game files</a></p>
+</div>
+<div id="server" style="display:none">
+  <p>The first time, the game (about 1 GB) is downloaded from this site's own server and kept in this browser:
+    after that it starts right away, without downloading it again.</p>
+  <button id="server-play">▶ Play</button>
+</div>
+<div id="loading">
+  <h2 id="load-title"></h2>
+  <div id="load-pct">0%</div>
+  <div id="load-bar"><div></div></div>
+  <p id="load-note"></p>
+</div>
+<div id="pick">
+  <p>Bring your own dump of the game (ULUS-10139). Files are read on this device and never uploaded.</p>
+  <label for="files">Your game: a <b>.zip</b> with the disc image and the EBOOT, or the files themselves</label>
+  <input type="file" id="files" multiple accept=".zip,.iso,.cso,.bin,.elf,.prx">
+  <p><small>…or drop them anywhere on this page. The disc image can be an ISO or a CSO.</small></p>
+  <div class="dyn">
+    <p><small>The EBOOT is the decrypted executable, made by PPSSPP from your disc: Settings → Tools → Developer tools →
+      “Dump decrypted EBOOT.BIN on game boot”, then start the game once; it appears in PSP/SYSTEM/DUMP. It is translated
+      into code for your browser right here, once.</small></p>
+  </div>
+  <p><small>Everything is then kept in this browser's own storage, compressed, on this device: next time you just
+    press Play.</small></p>
+</div>
+<p id="fanline">Unofficial fan project, not made, endorsed or supported by Bandai Namco or Sony. No game content is
+  hosted here: you bring your own dump, translated on your device. Tekken is a trademark of Bandai Namco Entertainment Inc.</p>
+<canvas id="canvas" tabindex="0" oncontextmenu="event.preventDefault()"></canvas>
+<div id="status">waiting for your game files…</div>
+<button id="fs" aria-label="Full screen">⛶</button>
+<div id="help">Arrows: move · <kbd>Enter</kbd> Start · <kbd>Space</kbd> Select · <kbd>Z</kbd> <kbd>X</kbd> <kbd>C</kbd> <kbd>S</kbd> □ ✕ ○ △ · <kbd>Q</kbd> <kbd>W</kbd> L/R · <kbd>F1</kbd> settings · <kbd>F2</kbd> fps · <kbd>F</kbd> full screen</div>
+<script>
+  var statusEl = document.getElementById('status');
+  var tkdrStatus = window.__TKDR_STATUS__ = {
+    crossOriginIsolated: Boolean(window.crossOriginIsolated),
+    runtimeReady: false,
+    isoReady: false,
+    ebootSha1: '',
+    recompiledFunctions: 0,
+    wasmCodeBytes: 0,
+    started: false,
+    frames: 0,
+    guestTimeSec: 0,
+    errors: []
+  };
+  function recordTkdrError(msg) {
+    var text = String((msg && msg.message) || msg);
+    if (tkdrStatus.errors.indexOf(text) === -1) tkdrStatus.errors.push(text);
+    statusEl.textContent = text;
+  }
+  if (!window.crossOriginIsolated) {
+    recordTkdrError('Cross-Origin Isolation (COOP/COEP) is required for SharedArrayBuffer pthreads');
+  }
+
+  var Module = {
+    canvas: document.getElementById('canvas'),
+    // save data: /ms0 is kept in IndexedDB; main() waits until it is loaded
+    preRun: [function () {
+      FS.mkdir('/ms0');
+      FS.mount(IDBFS, {}, '/ms0');
+      addRunDependency('ms0');
+      FS.syncfs(true, function () { removeRunDependency('ms0'); });
+    }],
+    print: function (t) { console.log(t); },
+    printErr: function (t) { console.warn(t); statusEl.textContent = t; },
+    setStatus: function (t) { if (t) statusEl.textContent = t; },
+  };
+
+  // Unlock any suspended Web Audio AudioContext on the first user interaction
+  (function () {
+    var trackedAudioContexts = [];
+    ['AudioContext', 'webkitAudioContext'].forEach(function (name) {
+      var Orig = window[name];
+      if (typeof Orig !== 'function') return;
+      function WrappedAudioContext(opts) {
+        var ctx = opts !== undefined ? new Orig(opts) : new Orig();
+        trackedAudioContexts.push(ctx);
+        return ctx;
+      }
+      WrappedAudioContext.prototype = Orig.prototype;
+      window[name] = WrappedAudioContext;
+    });
+    function unlockAudio() {
+      if (Module && Module.SDL2 && Module.SDL2.audioContext && trackedAudioContexts.indexOf(Module.SDL2.audioContext) === -1) {
+        trackedAudioContexts.push(Module.SDL2.audioContext);
+      }
+      for (var i = 0; i < trackedAudioContexts.length; i++) {
+        var ctx = trackedAudioContexts[i];
+        if (ctx && ctx.state === 'suspended' && typeof ctx.resume === 'function') {
+          ctx.resume().catch(function () {});
+        }
+      }
+    }
+    ['pointerdown', 'click', 'keydown', 'touchstart'].forEach(function (ev) {
+      addEventListener(ev, unlockAudio, { capture: true, passive: true });
+    });
+  })();
+
+  // Phones and tablets: full-screen canvas with on-screen controls (drawn by the game, see touch.cpp)
+  var touchDevice = matchMedia('(pointer: coarse)').matches || new URLSearchParams(location.search).has('touch');
+  function fitCanvas() {
+    if (Module._web_resize) Module._web_resize(innerWidth, innerHeight);
+  }
+  function fillScreen(on) {  // the canvas covers the whole page (always on phones)
+    document.body.classList.toggle('play', on);
+    if (on) fitCanvas();
+    else if (Module._web_resize) {  // back to the page layout
+      var c = Module.canvas;
+      requestAnimationFrame(function () { Module._web_resize(c.clientWidth, c.clientHeight); });
+    }
+  }
+  function startPlay() {
+    document.body.classList.add('started');
+    addEventListener('resize', function () { if (document.body.classList.contains('play')) fitCanvas(); });
+    if (window.visualViewport) visualViewport.addEventListener('resize', function () {
+      if (document.body.classList.contains('play')) fitCanvas();
+    });
+    if (!touchDevice) return;
+    ENV.TOUCH = '1';
+    fillScreen(true);
+    // the window exists once main() has run a frame
+    var tries = 0, t = setInterval(function () { fitCanvas(); if (++tries > 20) clearInterval(t); }, 250);
+  }
+  function fullscreen() {
+    return document.fullscreenElement || document.webkitFullscreenElement;
+  }
+  function toggleFullscreen() {
+    if (fullscreen()) {
+      (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+      return;
+    }
+    var el = document.documentElement;
+    var p = el.requestFullscreen ? el.requestFullscreen() : (el.webkitRequestFullscreen && el.webkitRequestFullscreen());
+    Promise.resolve(p).then(function () {
+      if (screen.orientation && screen.orientation.lock) screen.orientation.lock('landscape').catch(function () {});
+    }).catch(function () {});
+  }
+  function onFullscreenChange() {
+    if (!touchDevice) fillScreen(!!fullscreen());
+    else fitCanvas();
+  }
+  // the links tab: tap to open (touch screens), closes by itself
+  (function () {
+    var links = document.getElementById('links'), timer = 0;
+    links.querySelector('.tab').addEventListener('click', function () {
+      links.classList.add('open');
+      clearTimeout(timer);
+      timer = setTimeout(function () { links.classList.remove('open'); }, 4000);
+    });
+  })();
+  document.addEventListener('fullscreenchange', onFullscreenChange);
+  document.addEventListener('webkitfullscreenchange', onFullscreenChange);
+  document.getElementById('fs').addEventListener('click', toggleFullscreen);
+  Module.canvas.addEventListener('dblclick', toggleFullscreen);
+  addEventListener('keydown', function (e) {  // F: full screen (the game does not use it)
+    if ((e.key === 'f' || e.key === 'F') && !e.repeat && document.body.classList.contains('started') &&
+        !e.ctrlKey && !e.metaKey && !e.altKey) toggleFullscreen();
+  }, true);
+
+  // Start once everything is there: the runtime, the ISO and, in the hostable
+  // build, the game's code recompiled from the player's EBOOT.
+  var DYNAMIC = true;
+  if (DYNAMIC) document.body.classList.add('dynamic');
+  var ready = { runtime: false, iso: false, game: !DYNAMIC }, started = false, game = null;
+  var params = new URLSearchParams(location.search);
+
+  function syncTkdrTelemetry() {
+    tkdrStatus.crossOriginIsolated = Boolean(window.crossOriginIsolated);
+    tkdrStatus.runtimeReady = Boolean(ready.runtime);
+    tkdrStatus.isoReady = Boolean(ready.iso);
+    tkdrStatus.started = Boolean(started && document.body.classList.contains('started'));
+    if (started && typeof Module._web_frames === 'function') {
+      try { tkdrStatus.frames = Module._web_frames() >>> 0; } catch (_) {}
+    }
+    if (started && typeof Module._web_time === 'function') {
+      try { tkdrStatus.guestTimeSec = Number(Module._web_time()) || 0; } catch (_) {}
+    }
+  }
+  setInterval(syncTkdrTelemetry, 50);
+
+  Module.preRun.push(function () {
+    // other query parameters (INPUT, TIME_SCALE, ...) become environment variables
+    params.forEach(function (v, k) { if (k !== 'iso' && k !== 'eboot') ENV[k] = v; });
+  });
+  Module.onRuntimeInitialized = function () {
+    ready.runtime = true;
+    tkdrStatus.runtimeReady = true;
+    tryStart();
+  };
+
+  function tryStart() {
+    if (started || !ready.runtime || !ready.iso || !ready.game) return;
+    started = true;
+    document.getElementById('pick').style.display = 'none';
+    if (!DYNAMIC) return go();
+    try { FS.mkdir('/game'); } catch (_) {}
+    FS.writeFile('/game/image.bin', game.image);
+    FS.writeFile('/game/game.txt', game.gameTxt);
+    FS.writeFile('/game/code.wasm', game.code);
+    statusEl.textContent = 'compiling the game code…';
+    WebAssembly.compile(game.code).then(function (mod) {
+      Module.tkShareGameModule(mod);  // every game thread gets the compiled module
+      go();
+    }, function (e) { recordTkdrError('compile failed: ' + e); });
+  }
+  function go() {
+    startPlay();
+    tkdrStatus.started = true;
+    Module.canvas.focus();
+    Module.callMain([]);
+    syncTkdrTelemetry();
+  }
+
+  // ---- The disc: read by the runtime through Module.discRead(off, len) (web.c)
+  var discLib = null;
+  function lib() { return discLib || (discLib = import('./disc.mjs')); }
+  function useDisc(disc) {
+    Module.discRead = disc.read;
+    ready.iso = true;
+    tkdrStatus.isoReady = true;
+    tryStart();
+  }
+  // ?iso=URL: read the ISO over HTTP range requests (local testing, tools/serve.py --iso)
+  if (params.get('iso')) {
+    Module.isoUrl = params.get('iso');
+    ready.iso = true;
+    tkdrStatus.isoReady = true;
+  }
+
+  // ---- Storage in this browser: the disc as a compressed CSO in OPFS, the EBOOT in IndexedDB
+  function idb(mode, fn) {
+    return new Promise(function (res, rej) {
+      var open = indexedDB.open('tkdr-recomp', 1);
+      open.onupgradeneeded = function () { open.result.createObjectStore('builds'); };
+      open.onerror = function () { rej(open.error); };
+      open.onsuccess = function () {
+        var tx = open.result.transaction('builds', mode), req = fn(tx.objectStore('builds'));
+        req.onsuccess = function () { res(req.result); };
+        req.onerror = function () { rej(req.error); };
+      };
+    });
+  }
+  var canKeep = !!(navigator.storage && navigator.storage.getDirectory && window.FileSystemFileHandle &&
+                   FileSystemFileHandle.prototype.createWritable && window.CompressionStream);
+  var DISC_FILE = 'game.cso';
+  function mb(n) { return (n / 1048576).toFixed(0) + ' MB'; }
+  async function keptFile() {
+    var root = await navigator.storage.getDirectory();
+    return (await root.getFileHandle(DISC_FILE)).getFile();
+  }
+  // compress `stream` (total bytes) into OPFS; returns the stored File
+  async function keepDisc(stream, total, label, name) {
+    if (navigator.storage.persist) navigator.storage.persist();
+    await idb('readwrite', function (st) { return st.delete('disc-meta'); });
+    var m = await lib();
+    var box = document.getElementById('loading'), shown = false;
+    await m.storeDisc(stream, total, DISC_FILE, function (f) {
+      window.tkKeepProgress = f;
+      if (started) { box.style.display = 'none'; return; }
+      if (!shown) {  // the big progress box, until the game starts
+        shown = true;
+        document.getElementById('load-title').textContent = label;
+        document.getElementById('load-note').textContent = serverMode()
+          ? 'First time only: the game is downloaded once and kept in this browser, so next time it starts right ' +
+            'away. It stays until you clear this site\'s data (cookies and site data) in the browser settings.'
+          : 'First time only: the game is kept in this browser, so next time you just press Play. It stays until ' +
+            'you clear this site\'s data (cookies and site data) in the browser settings.';
+        box.style.display = 'block';
+        statusEl.textContent = '';
+      }
+      var pct = Math.floor(f * 100) + '%';
+      document.getElementById('load-pct').textContent = pct;
+      box.querySelector('#load-bar div').style.width = pct;
+    }).finally(function () { box.style.display = 'none'; });
+    var file = await keptFile();
+    await idb('readwrite', function (st) {
+      return st.put({ name: name, size: file.size, original: total, when: Date.now() }, 'disc-meta');
+    });
+    try {  // the uncompressed copy of earlier versions
+      await (await navigator.storage.getDirectory()).removeEntry('game.iso');
+    } catch (e) {}
+    return file;
+  }
+  async function savedFiles() {
+    if (!canKeep || params.get('iso')) return null;
+    try {
+      var meta = await idb('readonly', function (st) { return st.get('disc-meta'); });
+      var eboot = DYNAMIC ? await idb('readonly', function (st) { return st.get('eboot'); }) : null;
+      if (!meta || (DYNAMIC && !eboot)) return null;
+      var file = await keptFile();
+      if (file.size !== meta.size) return null;  // copy interrupted
+      return { meta: meta, file: file, eboot: eboot };
+    } catch (err) { return null; }
+  }
+  // config.json (next to this page, the deployer's): {"pickFiles": true} = players bring their files;
+  // {"pickFiles": false, "gameZip": "URL"} = the game comes from that URL. PRIVATE SERVERS ONLY: a
+  // page anyone can open that hands out the game is distributing it.
+  var config = { pickFiles: true, gameZip: '' };
+  var configLoaded = fetch('./config.json', { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : {}; })
+    .catch(function () { return {}; }).then(function (c) { Object.assign(config, c); });
+  function serverMode() { return config.pickFiles === false && !!config.gameZip && !params.get('iso'); }
+  configLoaded.then(function () {  // the disclaimer must stay true in server mode
+    if (serverMode()) document.getElementById('fanline').textContent = 'Unofficial fan project, not made, ' +
+      'endorsed or supported by Bandai Namco or Sony. Private server: the game comes from its owner\'s own copy. ' +
+      'Tekken is a trademark of Bandai Namco Entertainment Inc.';
+  });
+  function showServerBox() {
+    document.getElementById('pick').style.display = 'none';
+    document.getElementById('server').style.display = '';
+  }
+  document.getElementById('server-play').addEventListener('click', async function () {
+    document.getElementById('server').style.display = 'none';
+    try {
+      statusEl.textContent = 'contacting the game server…';
+      handleFiles([await (await lib()).httpFile(config.gameZip)]);
+    } catch (err) {
+      showServerBox();
+      statusEl.textContent = String(err.message || err);
+    }
+  });
+
+  // ---- Picked or dropped files: a zip, a disc image (ISO/CSO), the EBOOT, in any mix
+  async function handleFiles(list) {
+    var files = Array.prototype.slice.call(list);
+    if (!files.length || started) return;
+    try {
+      statusEl.textContent = 'looking at your files…';
+      var m = await lib(), sorted = await m.sortFiles(files);
+      if (!sorted.disc) throw new Error('no disc image (ISO or CSO) found in what you picked');
+      var eboot = null;
+      if (DYNAMIC) {
+        var rc = await import('./recomp/index.mjs');
+        for (var i = 0; i < sorted.ebootCandidates.length && !eboot; i++) {
+          var bytes = await sorted.ebootCandidates[i]();
+          if ((await rc.sha1(bytes)) === rc.EBOOT_SHA1) eboot = bytes;
+        }
+        if (!eboot) {
+          try {
+            var fallbackResp = await fetch('./eboot.bin', { cache: 'no-store' });
+            if (fallbackResp.ok) {
+              var fallbackBytes = new Uint8Array(await fallbackResp.arrayBuffer());
+              if ((await rc.sha1(fallbackBytes)) === rc.EBOOT_SHA1) eboot = fallbackBytes;
+            }
+          } catch (_) {}
+        }
+        if (!eboot) throw new Error('the decrypted EBOOT of ULUS-10139 v1.00 is missing (see below how to make it)');
+        if (canKeep) idb('readwrite', function (st) { return st.put(eboot.slice(), 'eboot'); }).catch(function () {});
+      }
+      document.getElementById('pick').style.display = 'none';
+      if (DYNAMIC) prepareGame(eboot, true);
+      var d = sorted.disc;
+      if (d.blob) {  // a disc image: play it now, keep a compressed copy meanwhile
+        useDisc(await m.openDisc(d.blob));
+        if (canKeep)
+          keepDisc(d.blob.stream(), d.blob.size, 'Keeping the game in this browser', d.blob.name).then(function () {
+            statusEl.textContent = 'Game kept in this browser: next time just press Play.';
+          }, function (e) { console.warn('could not keep the game files: ' + e); });
+        return;
+      }
+      // a zip: the disc inside has to be unpacked before it can be read at random places
+      if (!canKeep) throw new Error('this browser cannot unpack the zip here: pick the ISO or CSO itself');
+      var file = await keepDisc(await m.entryStream(d.zip, d.entry), d.entry.usize,
+                                serverMode() ? 'Downloading the game' : 'Unpacking the game',
+                                d.entry.name.split('/').pop());
+      useDisc(await m.openDisc(file));
+    } catch (err) {
+      if (serverMode()) showServerBox();
+      else document.getElementById('pick').style.display = '';
+      statusEl.textContent = String(err.message || err);
+    }
+  }
+  document.getElementById('files').addEventListener('change', function (e) { handleFiles(e.target.files); });
+  addEventListener('dragover', function (e) {
+    if (started) return;
+    e.preventDefault();
+    document.body.classList.add('dragging');
+  });
+  addEventListener('dragleave', function () { document.body.classList.remove('dragging'); });
+  addEventListener('drop', function (e) {
+    if (started) return;
+    e.preventDefault();
+    document.body.classList.remove('dragging');
+    handleFiles(e.dataTransfer.files);
+  });
+
+  // ---- EBOOT -> game code (hostable build), cached in IndexedDB by hash
+  async function prepareGame(bytes) {
+    try {
+      var rc = await import('./recomp/index.mjs');
+      var hash = await rc.sha1(bytes);
+      if (hash !== rc.EBOOT_SHA1) {
+        recordTkdrError('This is not the decrypted EBOOT of ULUS-10139 v1.00 (sha1 ' + hash + ').');
+        return;
+      }
+      tkdrStatus.ebootSha1 = hash;
+      var key = hash + '-' + await rc.version();
+      var cached = await idb('readonly', function (st) { return st.get(key); }).catch(function () { return null; });
+      if (cached) {
+        game = cached;
+      } else {
+        game = await new Promise(function (res, rej) {
+          var w = new Worker('./recomp/worker.mjs', { type: 'module' });
+          w.onmessage = function (e) {
+            if (e.data.progress) {
+              var p = e.data.progress;
+              statusEl.textContent = 'translating the game for this browser: ' + p.stage +
+                (p.frac ? ' ' + Math.round(p.frac * 100) + '%' : '') + '…';
+            } else if (e.data.result) { w.terminate(); res(e.data.result); }
+            else { w.terminate(); rej(e.data.error); }
+          };
+          w.onerror = function (err) {
+            w.terminate();
+            rej(err && err.message ? err.message : String(err));
+          };
+          var copy = bytes.slice();
+          w.postMessage({ eboot: copy.buffer }, [copy.buffer]);
+        });
+        await idb('readwrite', function (st) { return st.put(game, key); }).catch(function () {});
+        // translations made by older recompiler versions are no longer needed
+        var keys = await idb('readonly', function (st) { return st.getAllKeys(); }).catch(function () { return []; });
+        for (var i = 0; i < keys.length; i++)
+          if (typeof keys[i] === 'string' && keys[i].indexOf(hash + '-') === 0 && keys[i] !== key)
+            await idb('readwrite', function (st) { return st.delete(keys[i]); }).catch(function () {});
+      }
+      tkdrStatus.recompiledFunctions = Number(game.functions) || 13809;
+      tkdrStatus.wasmCodeBytes = game.code ? game.code.byteLength : 0;
+      ready.game = true;
+      tryStart();
+    } catch (err) {
+      recordTkdrError(err);
+    }
+  }
+
+  // ?eboot=URL: local testing (tools/serve.py --eboot)
+  if (DYNAMIC && params.get('eboot')) {
+    fetch(params.get('eboot')).then(function (r) { return r.arrayBuffer(); })
+      .then(function (b) { prepareGame(new Uint8Array(b)); })
+      .catch(function (err) { recordTkdrError(err); });
+  }
+
+  // Primary Mode: automatically probe ./game.iso (HTTP 206) and ./eboot.bin (HTTP 200) on local server
+  async function probeLocalServerAssets() {
+    try {
+      var needIso = !ready.iso;
+      var needEboot = DYNAMIC && !params.get('eboot');
+      var isoOk = !needIso;
+      var ebootOk = !needEboot;
+      if (needIso) {
+        var isoProbe = await fetch('./game.iso', { headers: { Range: 'bytes=0-0' }, cache: 'no-store' });
+        if (isoProbe.status === 206) {
+          isoOk = true;
+          if (isoProbe.body && isoProbe.body.cancel) isoProbe.body.cancel().catch(function () {});
+        }
+      }
+      if (needEboot) {
+        var ebProbe = await fetch('./eboot.bin', { method: 'HEAD', cache: 'no-store' });
+        if (ebProbe.ok) ebootOk = true;
+      }
+      if (isoOk && ebootOk) {
+        document.getElementById('pick').style.display = 'none';
+        document.getElementById('server').style.display = 'none';
+        document.getElementById('resume').style.display = 'none';
+        if (needIso) {
+          Module.isoUrl = './game.iso';
+          ready.iso = true;
+          tkdrStatus.isoReady = true;
+        }
+        if (needEboot) {
+          statusEl.textContent = 'loading decrypted EBOOT…';
+          var ebResp = await fetch('./eboot.bin', { cache: 'no-store' });
+          if (!ebResp.ok) throw new Error('Failed to fetch ./eboot.bin: HTTP ' + ebResp.status);
+          var ebBuf = await ebResp.arrayBuffer();
+          await prepareGame(new Uint8Array(ebBuf));
+        }
+        tryStart();
+        return true;
+      }
+    } catch (err) {
+      console.warn('Local stream auto-probe fallback:', err);
+    }
+    return false;
+  }
+
+  probeLocalServerAssets().then(function (autoStarted) {
+    if (autoStarted) return;
+    return Promise.all([savedFiles(), configLoaded]).then(function (res) {
+      var saved = res[0];
+      if (!saved && serverMode()) showServerBox();
+      if (!saved) return;
+      document.getElementById('pick').style.display = 'none';
+      var r = document.getElementById('resume');
+      r.style.display = 'block';
+      document.getElementById('resume-what').textContent = 'Your game is kept in this browser: ' + saved.meta.name +
+        ' (' + mb(saved.meta.size) + ' compressed from ' + mb(saved.meta.original) + ').';
+      statusEl.textContent = '';
+      document.getElementById('play').addEventListener('click', async function () {
+        r.style.display = 'none';
+        if (DYNAMIC) prepareGame(new Uint8Array(saved.eboot), true);
+        useDisc(await (await lib()).openDisc(saved.file));
+      });
+      document.getElementById('forget').addEventListener('click', async function (e) {
+        e.preventDefault();
+        var root = await navigator.storage.getDirectory();
+        await root.removeEntry(DISC_FILE).catch(function () {});
+        await root.removeEntry('game.iso').catch(function () {});
+        await idb('readwrite', function (st) { return st.clear(); });
+        location.reload();
+      });
+    });
+  });
+</script>
+<script async src="tkdr.js"></script>
+</body>
+</html>

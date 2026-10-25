@@ -215,11 +215,19 @@ def parse_two_starters_from_text(raw_text):
 mimetypes.init()
 NZP_GAME_PK3_EXPECTED_SIZE = 94276834
 REVCDOS_DATA_EXPECTED_SIZE = 135355111
+TKDR_ISO_EXPECTED_SIZE = 1750237184
+TKDR_EBOOT_EXPECTED_SIZE = 4836160
 EXTRA_MIME_TYPES = {
     ".wasm": "application/wasm",
     ".pk3": "application/octet-stream",
     ".fmf": "application/octet-stream",
     ".data": "application/octet-stream",
+    ".iso": "application/octet-stream",
+    ".cso": "application/octet-stream",
+    ".bin": "application/octet-stream",
+    ".elf": "application/octet-stream",
+    ".prx": "application/octet-stream",
+    ".zip": "application/zip",
     ".img": "application/octet-stream",
     ".dir": "application/octet-stream",
     ".dff": "application/octet-stream",
@@ -452,6 +460,115 @@ def ensure_revcdos_luis_player(base_dir=None):
 
 ensure_revcdos_luis_player(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 ensure_revcdos_luis_player(os.getcwd())
+
+
+def _link_or_copy_file(src, dst):
+    if not os.path.isfile(src):
+        return False
+    os.makedirs(os.path.dirname(dst), exist_ok=True)
+    try:
+        if os.path.isfile(dst):
+            if os.path.samefile(src, dst):
+                return True
+            if os.path.getsize(src) == os.path.getsize(dst) and int(os.path.getmtime(src)) == int(os.path.getmtime(dst)):
+                return True
+            os.unlink(dst)
+    except OSError:
+        pass
+    try:
+        os.link(src, dst)
+        return True
+    except OSError:
+        try:
+            shutil.copy2(src, dst)
+            return True
+        except OSError:
+            return False
+
+
+def ensure_tkdr_assets(base_dir=None):
+    """Materialize tkdr/game.iso, tkdr/eboot.bin, tkdr/ULUS10139_EBOOT.BIN, and tkdr/game.zip
+    between /Users/diesel/Desktop/SkateAlley/tkdr/ and the active worktree.
+    """
+    root = os.path.abspath(base_dir or os.getcwd())
+    target_tkdr = os.path.join(root, "tkdr")
+    candidate_sources = [
+        "/Users/diesel/Desktop/SkateAlley/tkdr",
+        os.path.abspath(os.path.join(root, "..", "..", "..", "tkdr")),
+    ]
+
+    def _has_valid_binaries(d):
+        iso_p = os.path.join(d, "game.iso")
+        eb_p = os.path.join(d, "eboot.bin")
+        try:
+            return (
+                os.path.isfile(iso_p)
+                and os.path.getsize(iso_p) == TKDR_ISO_EXPECTED_SIZE
+                and os.path.isfile(eb_p)
+                and os.path.getsize(eb_p) == TKDR_EBOOT_EXPECTED_SIZE
+            )
+        except OSError:
+            return False
+
+    src_tkdr = None
+    for cand in candidate_sources:
+        if _has_valid_binaries(cand):
+            src_tkdr = cand
+            break
+
+    if not _has_valid_binaries(target_tkdr) and not src_tkdr:
+        try:
+            scripts_dir = os.path.dirname(os.path.abspath(__file__))
+            if scripts_dir not in sys.path:
+                sys.path.insert(0, scripts_dir)
+            from provision_tkdr import provision_tkdr
+            provision_tkdr(worktree_root=root, verify_sha1=False)
+            return _has_valid_binaries(target_tkdr)
+        except Exception:
+            return False
+
+    if src_tkdr and os.path.abspath(src_tkdr) != os.path.abspath(target_tkdr):
+        os.makedirs(target_tkdr, exist_ok=True)
+        for name in ("game.iso", "eboot.bin", "ULUS10139_EBOOT.BIN", "game.zip"):
+            src_f = os.path.join(src_tkdr, name)
+            dst_f = os.path.join(target_tkdr, name)
+            if os.path.isfile(src_f):
+                _link_or_copy_file(src_f, dst_f)
+            elif os.path.isfile(dst_f):
+                _link_or_copy_file(dst_f, src_f)
+
+        # Ensure tracked web files are also synced between worktree and shared cache
+        for rel in (
+            "index.html",
+            "tkdr.html",
+            "tkdr.js",
+            "tkdr.wasm",
+            "disc.mjs",
+            "config.json",
+            "_headers",
+            "recomp/analyze.mjs",
+            "recomp/elf.mjs",
+            "recomp/index.mjs",
+            "recomp/mips.mjs",
+            "recomp/nids.json",
+            "recomp/wasm.mjs",
+            "recomp/wasmgen.mjs",
+            "recomp/worker.mjs",
+            "tools/serve.py",
+            "tools/web_config.py",
+        ):
+            wt_f = os.path.join(target_tkdr, rel)
+            sh_f = os.path.join(src_tkdr, rel)
+            if os.path.isfile(wt_f) and not os.path.isfile(sh_f):
+                _link_or_copy_file(wt_f, sh_f)
+            elif os.path.isfile(sh_f) and not os.path.isfile(wt_f):
+                _link_or_copy_file(sh_f, wt_f)
+
+    return _has_valid_binaries(target_tkdr)
+
+
+ensure_tkdr_assets(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+ensure_tkdr_assets(os.getcwd())
 
 
 # ============================================================================
@@ -1136,6 +1253,16 @@ class SkateAlleyRequestHandler(SimpleHTTPRequestHandler):
         self.send_header("Accept-Ranges", "bytes")
         self.send_header("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
         self.send_header("Pragma", "no-cache")
+        req_path = getattr(self, "path", "").split("?", 1)[0].split("#", 1)[0]
+        is_tkdr_route = (
+            req_path == "/tkdr"
+            or req_path.startswith("/tkdr/")
+            or os.path.basename(os.getcwd()) == "tkdr"
+        )
+        if is_tkdr_route:
+            self.send_header("Cross-Origin-Opener-Policy", "same-origin")
+            self.send_header("Cross-Origin-Embedder-Policy", "require-corp")
+            self.send_header("Cross-Origin-Resource-Policy", "same-origin")
         super().end_headers()
 
     def do_OPTIONS(self):
@@ -1481,6 +1608,16 @@ class SkateAlleyRequestHandler(SimpleHTTPRequestHandler):
             and os.path.isfile(os.path.join(os.getcwd(), "revcdos", "vcbr", "vc-sky-en-v6.wasm"))
             and os.path.isdir(os.path.join(os.getcwd(), "revcdos", "vcsky", "fetched"))
         )
+        tkdr_iso_path = os.path.join(os.getcwd(), "tkdr", "game.iso")
+        tkdr_eboot_path = os.path.join(os.getcwd(), "tkdr", "eboot.bin")
+        tkdr_ready = (
+            os.path.isfile(os.path.join(os.getcwd(), "tkdr", "index.html"))
+            and os.path.isfile(os.path.join(os.getcwd(), "tkdr", "tkdr.wasm"))
+            and os.path.isfile(tkdr_iso_path)
+            and os.path.getsize(tkdr_iso_path) == TKDR_ISO_EXPECTED_SIZE
+            and os.path.isfile(tkdr_eboot_path)
+            and os.path.getsize(tkdr_eboot_path) == TKDR_EBOOT_EXPECTED_SIZE
+        )
         sticker_db = get_sticker_db_health()
         components = [
             "freeman_alley_3d_portfolio",
@@ -1493,6 +1630,8 @@ class SkateAlleyRequestHandler(SimpleHTTPRequestHandler):
             components.append("nzportable_webapp")
         if revcdos_ready:
             components.append("revcdos_webapp")
+        if tkdr_ready:
+            components.append("tkdr_webapp")
         payload = json.dumps({
             "ok": True,
             "status": "ok",
@@ -1506,6 +1645,7 @@ class SkateAlleyRequestHandler(SimpleHTTPRequestHandler):
             "persisted_sticker_count": int(sticker_db.get("count", 0)),
             "nzportable_webapp": nzportable_ready,
             "revcdos_webapp": revcdos_ready,
+            "tkdr_webapp": tkdr_ready,
             "services": list(components),
             "components": components,
         }).encode("utf-8")
@@ -1545,18 +1685,22 @@ class SkateAlleyRequestHandler(SimpleHTTPRequestHandler):
         ctype = self.guess_type(path)
 
         try:
-            data = b""
-            if not head_only:
-                with open(path, "rb") as f:
-                    f.seek(start)
-                    data = f.read(length)
             self.send_response(206)
             self.send_header("Content-Type", ctype)
             self.send_header("Content-Range", f"bytes {start}-{end}/{file_size}")
-            self.send_header("Content-Length", str(length if head_only else len(data)))
+            self.send_header("Content-Length", str(length))
             self.end_headers()
             if not head_only:
-                self.wfile.write(data)
+                chunk_size = 1024 * 1024
+                with open(path, "rb") as f:
+                    f.seek(start)
+                    remaining = length
+                    while remaining > 0:
+                        chunk = f.read(min(chunk_size, remaining))
+                        if not chunk:
+                            break
+                        self.wfile.write(chunk)
+                        remaining -= len(chunk)
         except (BrokenPipeError, ConnectionResetError):
             pass
         return True
@@ -1592,6 +1736,7 @@ def main():
     ensure_revcdos_data(os.getcwd())
     ensure_revcdos_vcsky(os.getcwd())
     ensure_revcdos_luis_player(os.getcwd())
+    ensure_tkdr_assets(os.getcwd())
     try:
         ensure_sticker_schema()
         print("[skatealley-app-local] PostgreSQL skatealley_placed_stickers schema verified.", flush=True)

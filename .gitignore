@@ -51,6 +51,13 @@ nzportable/nzp/game.pk3
 revcdos/vcbr/vc-sky-en-v6.data
 revcdos/vcbr/vc-sky-ru-v6.data
 revcdos/vcsky/
+tkdr/*.iso
+tkdr/*.cso
+tkdr/*.bin
+tkdr/*.elf
+tkdr/*.zip
+tkdr/*.data
+tkdr/*.prx
 *.zip
 PLATODOOM_HEAD.glb
 PLATODOOM_RAW.glb
