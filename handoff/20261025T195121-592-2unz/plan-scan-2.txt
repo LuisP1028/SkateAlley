@@ -1,0 +1,14 @@
+.gitignore
+scripts/serve_skatealley.py
+package.json
+tests/revcdos_e2e_browser.test.mjs
+tests/nzportable_e2e_browser.test.mjs
+tests/test_revcdos_spec043.py
+wayfinder/20261025T195121-592-2unz/plan-scan-2-report.md
+assets/20261025T195121-592-2unz/plan-scan-2-eboot-sha1-verification.json
+assets/20261025T195121-592-2unz/plan-scan-2-recomp-worker-spec.json
+assets/20261025T195121-592-2unz/plan-scan-2-tkdr-config.json
+assets/20261025T195121-592-2unz/plan-scan-2-tkdr-deploy-tree.json
+assets/20261025T195121-592-2unz/plan-scan-2-tkdr-nids.json
+assets/20261025T195121-592-2unz/plan-scan-2-tkdr-web-headers.txt
+assets/20261025T195121-592-2unz/plan-scan-2-upstream-serve-py.txt

@@ -1,0 +1,40 @@
+{
+  "worker_file": "recomp/worker.mjs",
+  "worker_input_message": {
+    "eboot": "ArrayBuffer (ULUS10139_EBOOT.BIN bytes, length 4836160)"
+  },
+  "worker_progress_messages": {
+    "progress": {
+      "stage": "string (\"analysing\" | \"generating\" | \"done\")",
+      "frac": "number (0.0 to 1.0)"
+    }
+  },
+  "worker_result_message": {
+    "result": {
+      "image": "Uint8Array (20629396 bytes, guest memory layout at base 0x08804000)",
+      "gameTxt": "string (281 lines, base, mem length, entry 0x089F34A8, 280 HLE stubs)",
+      "code": "Uint8Array (23544922 bytes, WebAssembly module bytecode)",
+      "functions": 13809
+    }
+  },
+  "indexeddb_cache": {
+    "database_name": "tkdr-recomp",
+    "key_format": "<EBOOT_SHA1>-<recompiler_version>",
+    "key_example": "b9a0e3292738a833f4f8077e3959c3a0652c42cd-e789a71b86e0"
+  },
+  "telemetry_contract": {
+    "object": "window.__TKDR_STATUS__",
+    "fields": {
+      "crossOriginIsolated": "boolean",
+      "runtimeReady": "boolean",
+      "isoReady": "boolean",
+      "ebootSha1": "string",
+      "recompiledFunctions": "number",
+      "wasmCodeBytes": "number",
+      "started": "boolean",
+      "frames": "number",
+      "guestTimeSec": "number",
+      "errors": "Array<string>"
+    }
+  }
+}

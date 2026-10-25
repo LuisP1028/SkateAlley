@@ -1,0 +1,39 @@
+{
+  "source_zip": {
+    "path": "/Users/diesel/Desktop/SkateAlley/Tekken - Dark Resurrection (US) (2006) (Versus Fighting) (ISO) (PSP).zip",
+    "size": 1117233020,
+    "entry": {
+      "filename": "Tekken - Dark Resurrection (US) (2006) (Versus Fighting) (ISO) (PSP).iso",
+      "uncompressed_size": 1750237184,
+      "crc32": "0x3ffd7a9d"
+    }
+  },
+  "iso_spec": {
+    "expected_size": 1750237184,
+    "expected_sha1": "8193a65dee49685db49284408c89bdb35324bc32",
+    "sector_28_offset": 57344,
+    "sector_28_length": 4836160
+  },
+  "enc_eboot": {
+    "path": "/Users/diesel/.gemini/antigravity-cli/brain/9b118eda-fbcd-4e95-838e-a83a5769b3a9/scratch/kirk/enc_eboot.bin",
+    "size": 4836160,
+    "sha1": "584141a993156e290fcc0adff2d1df0509e3ae13"
+  },
+  "dec_eboot_elf": {
+    "path": "/Users/diesel/.gemini/antigravity-cli/brain/9b118eda-fbcd-4e95-838e-a83a5769b3a9/scratch/kirk/dec_eboot.elf",
+    "size": 4835824,
+    "sha1": "24b7f09db51a86a72fe3860f672617294b07fb2b"
+  },
+  "ulus10139_eboot_bin": {
+    "path": "/Users/diesel/.gemini/antigravity-cli/brain/9b118eda-fbcd-4e95-838e-a83a5769b3a9/scratch/kirk/ULUS10139_EBOOT.BIN",
+    "size": 4836160,
+    "sha1": "b9a0e3292738a833f4f8077e3959c3a0652c42cd"
+  },
+  "recompiler_expectations": {
+    "eboot_sha1": "b9a0e3292738a833f4f8077e3959c3a0652c42cd",
+    "functions_count": 13809,
+    "code_wasm_bytes": 23544922,
+    "image_bin_bytes": 20629396,
+    "game_txt_lines": 281
+  }
+}
