@@ -8,6 +8,13 @@ window.__REVCDOS_STATUS__ = {
     lastFetchedUrl: null,
     lastError: null,
     cacheHit: false,
+    luisPlayerMounted: false,
+    luisPlayerDffBytes: 0,
+    luisPlayerDirSectors: 0,
+    luisPlayerVerts: 0,
+    luisPlayerBones: 0,
+    customMenuLogoMounted: false,
+    fronten1TxdBytes: 0,
 };
 
 if (typeof Element !== "undefined" && Element.prototype) {
@@ -47,6 +54,34 @@ var progressElement = document.getElementById("progress");
 var spinnerElement = document.getElementById('spinner');
 var data_content;
 var wasm_content;
+
+const sprayOverlayEl = document.getElementById('spray-paint-loader-overlay');
+const sprayCanvasEl = document.getElementById('spray-paint-loader-canvas');
+const sprayCreditEl = document.getElementById('spray-paint-credit-subtitle');
+window.__revcdosSprayLoader = null;
+const sprayLoaderReadyPromise = (async () => {
+    if (!sprayCanvasEl) return null;
+    try {
+        const { createSprayPaintLoader } = await import('../spray_paint_loader.js');
+        const loader = createSprayPaintLoader({
+            canvas: sprayCanvasEl,
+            logoSource: '../platodoomarcade.jpeg',
+            profile: 'platodoomarcade',
+            creditText: 'Decompilation Credit: DOS.Zone Team',
+            creditElement: sprayCreditEl,
+            mode: 'deterministic',
+            audioEnabled: true,
+            minCatchUpRate: 1.4,
+        });
+        window.__revcdosSprayLoader = loader;
+        loader.play();
+        loader.setProgress(0.08);
+        return loader;
+    } catch (err) {
+        console.warn('[revcdos] SprayPaintLoader init warning:', err);
+        return null;
+    }
+})();
 
 const params = new URLSearchParams(window.location.search);
 
@@ -507,70 +542,29 @@ async function startGame(e) {
     if (disclaimerEl) disclaimerEl.style.display = 'none';
     const developedByEl = document.querySelector('.developed-by');
     if (developedByEl) developedByEl.style.display = 'none';
-
-    const intro = document.querySelector('.intro');
-    const introContainer = document.querySelector('.intro-container');
-    const loaderContainer = document.querySelector('.loader-container');
     const clickToPlayEl = document.querySelector('.click-to-play');
     if (clickToPlayEl) clickToPlayEl.style.display = 'none';
-    if (loaderContainer) loaderContainer.style.display = "flex";
-    if (introContainer) introContainer.hidden = false;
-    if (intro) {
-        try {
-            const playPromise = intro.play();
-            if (playPromise && typeof playPromise.catch === "function") {
-                playPromise.catch(() => {});
-            }
-        } catch (_) {}
+    if (sprayOverlayEl) {
+        sprayOverlayEl.style.display = 'flex';
+        sprayOverlayEl.style.opacity = '1';
     }
 
     try {
+        await sprayLoaderReadyPromise;
         const dataBuffer = await loadData();
         if (spinnerElement) spinnerElement.hidden = true;
-        setStatus(t("clickToContinue"));
-        if (introContainer) {
-            introContainer.hidden = false;
-            introContainer.style.cursor = 'pointer';
+        if (window.__revcdosSprayLoader) {
+            window.__revcdosSprayLoader.setProgress(0.96);
         }
-
-        let gameLaunched = false;
-        let autoTimer = null;
-        const continueToGame = () => {
-            if (gameLaunched) return;
-            gameLaunched = true;
-            if (autoTimer) {
-                clearTimeout(autoTimer);
-                autoTimer = null;
-            }
-            window.removeEventListener('click', continueToGame);
-            window.removeEventListener('pointerup', continueToGame);
-            window.removeEventListener('keydown', continueToGame);
-            if (intro) {
-                try { intro.pause(); } catch (_) {}
-            }
-            if (introContainer) {
-                introContainer.style.display = 'none';
-            }
-            loadGame(dataBuffer);
-        };
-
-        window.addEventListener('click', continueToGame, { once: true });
-        window.addEventListener('pointerup', continueToGame, { once: true });
-        window.addEventListener('keydown', continueToGame, { once: true });
-
-        if (
-            params.get('autostart') === '1' ||
-            params.get('autostart') === 'true' ||
-            params.get('skip_intro') === '1'
-        ) {
-            continueToGame();
-        } else {
-            autoTimer = setTimeout(continueToGame, 1500);
-        }
+        loadGame(dataBuffer);
     } catch (err) {
         startInProgress = false;
         window.__REVCDOS_STATUS__.lastError = String(err?.message || err);
         setStatus(`Error: ${err?.message || err}`);
+        if (statusElement) {
+            statusElement.style.display = 'block';
+            statusElement.style.color = '#ff7b72';
+        }
         if (spinnerElement) spinnerElement.hidden = true;
     }
 }
@@ -586,6 +580,9 @@ function setStatus(text) {
         const [current, total] = match.slice(2, 4).map(Number);
         const percent = (current / total * 100).toFixed(0);
         if (statusElement) statusElement.textContent = t("downloading") + ` ${percent}%`;
+        if (window.__revcdosSprayLoader && total > 0) {
+            window.__revcdosSprayLoader.setProgress(Math.max(0.08, Math.min(0.92, (current / total) * 0.92)));
+        }
         if (progressElement) {
             progressElement.value = current;
             progressElement.max = total;
@@ -603,16 +600,165 @@ function setStatus(text) {
     }
 }
 
+async function fetchLuisPlayerOverrideAssets() {
+    if (params.get("stock_player") === "1") {
+        window.__REVCDOS_STATUS__.luisPlayerMounted = false;
+        return null;
+    }
+    const tryFetchAll = async (prefix) => {
+        const [dffResp, txdResp, bmpResp] = await Promise.all([
+            fetch(`${prefix}vcbr/luis_player/player.dff`),
+            fetch(`${prefix}vcbr/luis_player/player.txd`),
+            fetch(`${prefix}vcbr/luis_player/player.bmp`),
+        ]);
+        if (!dffResp.ok || !txdResp.ok || !bmpResp.ok) {
+            throw new Error(`HTTP ${dffResp.status}/${txdResp.status}/${bmpResp.status} fetching luis_player assets`);
+        }
+        const [dffAb, txdAb, bmpAb] = await Promise.all([
+            dffResp.arrayBuffer(),
+            txdResp.arrayBuffer(),
+            bmpResp.arrayBuffer(),
+        ]);
+        return {
+            dff: new Uint8Array(dffAb),
+            txd: new Uint8Array(txdAb),
+            bmp: new Uint8Array(bmpAb),
+        };
+    };
+
+    let assets = null;
+    try {
+        assets = await tryFetchAll("");
+    } catch (localErr) {
+        const tunnelOrigin = await resolveTunnelOriginFromConfig();
+        if (tunnelOrigin) {
+            assets = await tryFetchAll(`${tunnelOrigin}/revcdos/`);
+        } else {
+            throw localErr;
+        }
+    }
+
+    const dv = new DataView(assets.dff.buffer, assets.dff.byteOffset, assets.dff.byteLength);
+    const numVerts = assets.dff.byteLength >= 3209 ? dv.getUint32(3201, true) : 0;
+    return {
+        dff: assets.dff,
+        txd: assets.txd,
+        bmp: assets.bmp,
+        numVerts,
+        numBones: 24,
+    };
+}
+
+async function fetchFronten1OverrideTxd() {
+    const tryFetch = async (prefix) => {
+        const resp = await fetch(`${prefix}vcbr/luis_player/fronten1.txd`);
+        if (!resp.ok) {
+            throw new Error(`HTTP ${resp.status} fetching fronten1.txd`);
+        }
+        return new Uint8Array(await resp.arrayBuffer());
+    };
+    try {
+        return await tryFetch("");
+    } catch (localErr) {
+        const tunnelOrigin = await resolveTunnelOriginFromConfig();
+        if (tunnelOrigin) {
+            return await tryFetch(`${tunnelOrigin}/revcdos/`);
+        }
+        throw localErr;
+    }
+}
+
 async function loadGame(data) {
     const pkgBuffer = data.buffer.byteLength === data.byteLength
         ? data.buffer
         : data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength);
 
+    let luisAssets = null;
+    if (params.get("stock_player") !== "1") {
+        try {
+            luisAssets = await fetchLuisPlayerOverrideAssets();
+        } catch (err) {
+            console.error("Failed to fetch LUIS player override assets:", err);
+            window.__REVCDOS_STATUS__.lastError = String(err?.message || err);
+        }
+    }
+
+    let fronten1Txd = null;
+    try {
+        fronten1Txd = await fetchFronten1OverrideTxd();
+    } catch (err) {
+        console.warn("Failed to fetch custom fronten1.txd menu logo override:", err);
+    }
+
     var Module = {
+        __luisPlayerAssets: luisAssets,
+        __fronten1Txd: fronten1Txd,
+        applyLuisPlayerOverrides: () => {
+            if (!Module.FS) {
+                return false;
+            }
+            const writeOverride = (targetPath, bytes) => {
+                try {
+                    Module.FS.unlink(targetPath);
+                } catch (_) {}
+                Module.FS.createDataFile(targetPath, null, new Uint8Array(bytes), true, true, true);
+            };
+            if (fronten1Txd && fronten1Txd.byteLength > 0) {
+                writeOverride("/vc-assets/local/models/fronten1.txd", fronten1Txd);
+                window.__REVCDOS_STATUS__.customMenuLogoMounted = true;
+                window.__REVCDOS_STATUS__.fronten1TxdBytes = fronten1Txd.byteLength;
+            }
+            if (!luisAssets || params.get("stock_player") === "1") {
+                return false;
+            }
+            writeOverride("/vc-assets/local/models/gta3.img/player.dff", luisAssets.dff);
+            writeOverride("/vc-assets/local/models/gta3.img/player.txd", luisAssets.txd);
+            writeOverride("/vc-assets/local/models/gta3.img/csplay.dff", luisAssets.dff);
+            writeOverride("/vc-assets/local/models/gta3.img/csplay.txd", luisAssets.txd);
+            writeOverride("/vc-assets/local/models/generic/player.bmp", luisAssets.bmp);
+
+            const dffSectors = Math.ceil(luisAssets.dff.byteLength / 2048);
+            const txdSectors = Math.ceil(luisAssets.txd.byteLength / 2048);
+            const dirPath = "/vc-assets/local/models/gta3.dir";
+            const dirLookup = Module.FS.lookupPath(dirPath);
+            if (dirLookup && dirLookup.node && dirLookup.node.contents) {
+                const dirBytes = new Uint8Array(dirLookup.node.contents);
+                const dv = new DataView(dirBytes.buffer, dirBytes.byteOffset, dirBytes.byteLength);
+                for (let off = 0; off + 32 <= dirBytes.byteLength; off += 32) {
+                    let nameEnd = off + 8;
+                    while (nameEnd < off + 32 && dirBytes[nameEnd] !== 0) {
+                        nameEnd++;
+                    }
+                    const entryName = textDecoder.decode(dirBytes.subarray(off + 8, nameEnd)).toLowerCase();
+                    if (
+                        entryName === "player.dff" ||
+                        entryName === "csplay.dff" ||
+                        /^player[2-9]\.dff$/.test(entryName) ||
+                        /^csplay([2-9]|10|11)\.dff$/.test(entryName)
+                    ) {
+                        dv.setUint32(off + 4, dffSectors, true);
+                    } else if (
+                        entryName === "player.txd" ||
+                        entryName === "csplay.txd" ||
+                        /^player[2-9]\.txd$/.test(entryName) ||
+                        /^csplay([2-9]|10|11)\.txd$/.test(entryName)
+                    ) {
+                        dv.setUint32(off + 4, txdSectors, true);
+                    }
+                }
+                writeOverride(dirPath, dirBytes);
+            }
+
+            window.__REVCDOS_STATUS__.luisPlayerMounted = true;
+            window.__REVCDOS_STATUS__.luisPlayerDffBytes = luisAssets.dff.byteLength;
+            window.__REVCDOS_STATUS__.luisPlayerDirSectors = dffSectors;
+            window.__REVCDOS_STATUS__.luisPlayerVerts = luisAssets.numVerts;
+            window.__REVCDOS_STATUS__.luisPlayerBones = luisAssets.numBones;
+            return true;
+        },
         mainCalled: () => {
-            window.__REVCDOS_STATUS__.wasmReady = true;
-            window.__REVCDOS_STATUS__.mainCalled = true;
             try {
+                Module.applyLuisPlayerOverrides?.();
                 try {
                     Module.FS.unlink("/vc-assets/local/revc.ini");
                 } catch (_) {}
@@ -620,6 +766,29 @@ async function loadGame(data) {
             } catch (e) {
                 console.error('mainCalled error:', e);
             }
+            window.__REVCDOS_STATUS__.wasmReady = true;
+            window.__REVCDOS_STATUS__.mainCalled = true;
+            (async () => {
+                const loader = window.__revcdosSprayLoader;
+                if (loader) {
+                    loader.setProgress(1.0);
+                    const waitStart = performance.now();
+                    while (loader.getState().renderedProgress < 0.999 && (performance.now() - waitStart) < 420) {
+                        await new Promise((r) => setTimeout(r, 24));
+                    }
+                    loader.setProgress(1.0, { immediate: true });
+                    await new Promise((r) => setTimeout(r, 120));
+                }
+                if (sprayOverlayEl) {
+                    sprayOverlayEl.style.opacity = '0';
+                    setTimeout(() => {
+                        sprayOverlayEl.style.display = 'none';
+                        if (window.__revcdosSprayLoader) {
+                            window.__revcdosSprayLoader.destroy();
+                        }
+                    }, 320);
+                }
+            })();
         },
         syncRevcIni: () => {
             try {
@@ -701,6 +870,7 @@ async function loadGame(data) {
         'fullscreen',
         'cheats',
         'max_fps',
+        'stock_player',
     ]);
     Module.arguments = [];
     for (const [k, v] of params.entries()) {
@@ -1160,10 +1330,10 @@ if (configurableMode) {
     }
 }
 
-if (params.get('autostart') === '1' || params.get('autostart') === 'true') {
+if (params.get('autostart') !== '0' && params.get('autostart') !== 'false') {
     setTimeout(() => {
         if (haveOriginalGame) {
             startGame();
         }
-    }, 50);
+    }, 30);
 }

@@ -2,17 +2,48 @@
 // the wasm module as globals (crates/skate-game/src/web.rs), then starts it.
 // The map is one of the pack's own, a community map fetched from
 // skatemods.com (?smap=<id>), any .skate URL (?mapurl=) or a local file.
+import { createSprayPaintLoader } from '../spray_paint_loader.js';
+
 const statusEl = document.getElementById('status');
 const barEl = document.getElementById('progress');
-const overlay = document.getElementById('overlay');
+const overlay = document.getElementById('spray-paint-loader-overlay') || document.getElementById('overlay');
+const sprayCanvas = document.getElementById('spray-paint-loader-canvas');
+const creditSubtitleEl = document.getElementById('spray-paint-credit-subtitle');
+const mapbarEl = document.getElementById('mapbar');
 const picker = document.getElementById('map');
 
+let sprayLoader = null;
+if (sprayCanvas) {
+  try {
+    sprayLoader = createSprayPaintLoader({
+      canvas: sprayCanvas,
+      logoSource: '../platodoomarcade.jpeg',
+      profile: 'platodoomarcade',
+      creditText: 'Decompilation Credit: AndrewNakas',
+      creditElement: creditSubtitleEl,
+      mode: 'deterministic',
+      audioEnabled: true,
+      minCatchUpRate: 0.65,
+    });
+    globalThis.__skateSprayLoader = sprayLoader;
+    sprayLoader.play();
+    sprayLoader.setProgress(0.08);
+  } catch (err) {
+    console.warn('[Skate] SprayPaintLoader init warning:', err);
+  }
+}
+
 function status(text, error = false) {
-  statusEl.textContent = text;
-  statusEl.classList.toggle('error', error);
+  if (statusEl) {
+    statusEl.textContent = text;
+    statusEl.classList.toggle('error', error);
+  }
+  if (error && sprayLoader) {
+    sprayLoader.setProgress(1.0);
+  }
 }
 globalThis.skateFatal = (message) => {
-  overlay.style.display = 'flex';
+  if (overlay) overlay.style.display = 'flex';
   status(message, true);
 };
 // Browsers (iOS above all) start Web Audio suspended until a user gesture, and
@@ -434,7 +465,9 @@ async function main() {
   const shown = external ? external.label : map ? map.name : 'test world';
   const tick = (n) => {
     done += n;
-    barEl.style.width = `${Math.min(100, 100 * done / total).toFixed(1)}%`;
+    const pct = Math.min(1, done / Math.max(1, total));
+    if (barEl) barEl.style.width = `${(100 * pct).toFixed(1)}%`;
+    if (sprayLoader) sprayLoader.setProgress(Math.max(0.08, Math.min(0.92, pct * 0.92)));
     status(`Loading ${shown}... ${(done / 1e6).toFixed(0)} / ${(total / 1e6).toFixed(0)} MB`);
   };
   const key = (name, hash) => (hash ? `cache/${name}.${hash}` : null);
@@ -461,7 +494,8 @@ async function main() {
     note.id = 'lastcrash';
     note.style.cssText = 'color:#ffa657;font-size:12px;margin-top:8px';
     note.textContent = describeCrumb(previousCrumb);
-    document.getElementById('panel').append(note);
+    const panelEl = document.getElementById('panel');
+    if (panelEl) panelEl.append(note);
     console.log(`SKATE_LAST_SESSION ${note.textContent}`);
   }
   const engineParts = (engine && engine.parts && engine.parts.length) ? engine.parts : ['skate3rust_bg.wasm'];
@@ -504,6 +538,7 @@ async function main() {
   const extra = params.get('args');
   if (extra) globalThis.SKATE_ARGS = JSON.parse(extra);
 
+  if (sprayLoader) sprayLoader.setProgress(0.96);
   status('Starting engine (decoding map, compiling shaders)...');
   const { default: init } = await import('./skate3rust.js');
   try {
@@ -518,8 +553,23 @@ async function main() {
     }
   }
   // main() has loaded everything synchronously; the render loop is running.
-  if (!statusEl.classList.contains('error')) {
-    overlay.style.display = 'none';
+  if (!statusEl || !statusEl.classList.contains('error')) {
+    if (sprayLoader) {
+      sprayLoader.setProgress(1.0);
+      const waitStart = performance.now();
+      while (sprayLoader.getState().renderedProgress < 0.999 && (performance.now() - waitStart) < 1200) {
+        await new Promise((r) => setTimeout(r, 32));
+      }
+      await new Promise((r) => setTimeout(r, 250));
+    }
+    if (overlay) {
+      overlay.style.opacity = '0';
+      setTimeout(() => {
+        overlay.style.display = 'none';
+        if (sprayLoader) sprayLoader.destroy();
+      }, 360);
+    }
+    if (mapbarEl) mapbarEl.classList.add('visible');
     document.getElementById('bevy').focus();
   }
 }

@@ -46,6 +46,13 @@
         "e8358e64daaee2b3985b90f034a27138adcb7f84310bb2058143e2173df765c8",
         "3375f8725e139fbed7ab3848451fc6f312979b1f8268304ea47894de6dc450d0"
       ]
+    },
+    "nzp/luis_zombies.pk3": {
+      "path": "nzp/luis_zombies.pk3",
+      "url": "./nzp/luis_zombies.pk3",
+      "size": 3235452,
+      "hash": "5808444a6a73d708",
+      "sha256": "5808444a6a73d708122f8a94637b10b35a0ac25bcf327a248eb07aaa772197f3"
     }
   }
 }

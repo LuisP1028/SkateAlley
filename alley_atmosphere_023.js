@@ -1676,8 +1676,8 @@ export function buildOverheadHangingCablesSubsystem({
   const cables = [];
   const cablesById = {};
 
-  const curveSegments = 16; // >= 12 segments
-  const radialSegments = 6;
+  const curveSegments = 8;
+  const radialSegments = 3;
 
   // Consolidate all 20 cable assemblies + wall termination hardware into 1 batched geometry
   const geometriesToMerge = [];
@@ -1755,7 +1755,7 @@ export function buildOverheadHangingCablesSubsystem({
         feederPoints.push(new THREE.Vector3(pt.x, pt.staticY + dy, pt.z + dz));
       }
       const feederCurve = new THREE.CatmullRomCurve3(feederPoints);
-      const feederTube = new THREE.TubeGeometry(feederCurve, curveSegments, 0.008, 5, false);
+      const feederTube = new THREE.TubeGeometry(feederCurve, curveSegments, 0.008, 3, false);
       tagCableSubGeometry(feederTube, {
         xL, xR, swayFreqHz: item.swayFreqHz, swayAmpY: item.swayAmpY, swayAmpZ: item.swayAmpZ, phase: item.phase,
         baseColorHex: 0x14110f, rimBoost: 1.0,
@@ -1773,7 +1773,7 @@ export function buildOverheadHangingCablesSubsystem({
         signalPoints.push(new THREE.Vector3(pt.x, pt.staticY + dy, pt.z + dz));
       }
       const signalCurve = new THREE.CatmullRomCurve3(signalPoints);
-      const signalTube = new THREE.TubeGeometry(signalCurve, curveSegments, 0.006, 5, false);
+      const signalTube = new THREE.TubeGeometry(signalCurve, curveSegments, 0.006, 3, false);
       tagCableSubGeometry(signalTube, {
         xL, xR, swayFreqHz: item.swayFreqHz, swayAmpY: item.swayAmpY, swayAmpZ: item.swayAmpZ, phase: item.phase,
         baseColorHex: 0x1c1612, rimBoost: 1.0,
@@ -1823,7 +1823,7 @@ export function buildOverheadHangingCablesSubsystem({
         messengerPoints.push(new THREE.Vector3(x, y, z));
       }
       const messengerCurve = new THREE.CatmullRomCurve3(messengerPoints);
-      const messengerTube = new THREE.TubeGeometry(messengerCurve, curveSegments, 0.007, 5, false);
+      const messengerTube = new THREE.TubeGeometry(messengerCurve, curveSegments, 0.007, 3, false);
       tagCableSubGeometry(messengerTube, {
         xL, xR, swayFreqHz: item.swayFreqHz, swayAmpY: item.swayAmpY, swayAmpZ: item.swayAmpZ, phase: item.phase,
         baseColorHex: 0x1c1a18, rimBoost: 1.0,
@@ -1865,14 +1865,14 @@ export function buildOverheadHangingCablesSubsystem({
         const pt = evaluateOverheadCableCatenaryPoint({ ...item, xL, xR }, cu, 0.0);
         const loopPoints = [];
         const centerY = pt.staticY - loopRadius;
-        for (let k = 0; k <= 14; k++) {
-          const phi = (k / 14) * 2.0 * Math.PI;
+        for (let k = 0; k <= 8; k++) {
+          const phi = (k / 8) * 2.0 * Math.PI;
           const ly = centerY + loopRadius * Math.cos(phi);
           const lz = pt.z + loopRadius * Math.sin(phi);
           loopPoints.push(new THREE.Vector3(pt.x, ly, lz));
         }
         const loopCurve = new THREE.CatmullRomCurve3(loopPoints, true);
-        const loopTube = new THREE.TubeGeometry(loopCurve, 14, 0.008, 5, true);
+        const loopTube = new THREE.TubeGeometry(loopCurve, 8, 0.008, 3, true);
         tagCableSubGeometry(loopTube, {
           xL, xR, fixedSpanU: cu, swayFreqHz: item.swayFreqHz, swayAmpY: item.swayAmpY, swayAmpZ: item.swayAmpZ, phase: item.phase,
           baseColorHex: 0x171310, rimBoost: 1.35,
@@ -1882,7 +1882,7 @@ export function buildOverheadHangingCablesSubsystem({
 
       // Inline Splice Canister at u = 0.50
       const midPoint = evaluateOverheadCableCatenaryPoint({ ...item, xL, xR }, 0.50, 0.0);
-      const canister = new THREE.CylinderGeometry(0.028, 0.028, 0.26, 8);
+      const canister = new THREE.CylinderGeometry(0.028, 0.028, 0.26, 5);
       canister.rotateZ(Math.PI / 2);
       canister.translate(midPoint.x, midPoint.staticY, midPoint.z);
       tagCableSubGeometry(canister, {
@@ -1913,7 +1913,7 @@ export function buildOverheadHangingCablesSubsystem({
       const turns = item.helixTurns || 8;
       const strandPointsA = [];
       const strandPointsB = [];
-      const helixSegments = 32;
+      const helixSegments = 14;
       for (let s = 0; s <= helixSegments; s++) {
         const u = s / helixSegments;
         const pt = evaluateOverheadCableCatenaryPoint({ ...item, xL, xR }, u, 0.0);
@@ -1925,7 +1925,7 @@ export function buildOverheadHangingCablesSubsystem({
         strandPointsB.push(new THREE.Vector3(pt.x, pt.staticY - dyA, pt.z - dzA));
       }
       const curveA = new THREE.CatmullRomCurve3(strandPointsA);
-      const tubeA = new THREE.TubeGeometry(curveA, helixSegments, item.radius, 5, false);
+      const tubeA = new THREE.TubeGeometry(curveA, helixSegments, item.radius, 3, false);
       tagCableSubGeometry(tubeA, {
         xL, xR, swayFreqHz: item.swayFreqHz, swayAmpY: item.swayAmpY, swayAmpZ: item.swayAmpZ, phase: item.phase,
         baseColorHex: 0x16120e, rimBoost: 1.35,
@@ -1933,7 +1933,7 @@ export function buildOverheadHangingCablesSubsystem({
       geometriesToMerge.push(tubeA);
 
       const curveB = new THREE.CatmullRomCurve3(strandPointsB);
-      const tubeB = new THREE.TubeGeometry(curveB, helixSegments, item.radius, 5, false);
+      const tubeB = new THREE.TubeGeometry(curveB, helixSegments, item.radius, 3, false);
       tagCableSubGeometry(tubeB, {
         xL, xR, swayFreqHz: item.swayFreqHz, swayAmpY: item.swayAmpY, swayAmpZ: item.swayAmpZ, phase: item.phase,
         baseColorHex: 0x16120e, rimBoost: 1.35,
@@ -1944,7 +1944,7 @@ export function buildOverheadHangingCablesSubsystem({
       const nodeUList = [0.22, 0.50, 0.78];
       for (const nu of nodeUList) {
         const pt = evaluateOverheadCableCatenaryPoint({ ...item, xL, xR }, nu, 0.0);
-        const node = new THREE.CylinderGeometry(0.025, 0.025, 0.10, 8);
+        const node = new THREE.CylinderGeometry(0.025, 0.025, 0.10, 5);
         node.rotateZ(Math.PI / 2);
         node.translate(pt.x, pt.staticY, pt.z);
         tagCableSubGeometry(node, {

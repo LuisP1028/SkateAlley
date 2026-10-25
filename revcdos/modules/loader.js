@@ -136,6 +136,13 @@
                     Module["FS_createDataFile"](name, null, data, true, true, true);
                     Module["removeRunDependency"](`fp ${name}`)
                 }
+                if (typeof Module["applyLuisPlayerOverrides"] === "function") {
+                    try {
+                        Module["applyLuisPlayerOverrides"]();
+                    } catch (e) {
+                        console.error("applyLuisPlayerOverrides error:", e);
+                    }
+                }
                 Module["removeRunDependency"]("datafile_/home/caiiiycuk/vc/vc-sky/index.data")
             }
             Module["addRunDependency"]("datafile_/home/caiiiycuk/vc/vc-sky/index.data");

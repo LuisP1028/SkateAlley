@@ -4,14 +4,39 @@
 // asset resolution with tunnel.json failover, Emscripten Module.files pre-population,
 // and live telemetry via window.__NZP_STATUS__.
 
+import { createSprayPaintLoader } from '../spray_paint_loader.js';
+
 const splashEl = document.getElementById('splash');
-const overlayEl = document.getElementById('overlay');
+const overlayEl = document.getElementById('spray-paint-loader-overlay') || document.getElementById('overlay');
+const sprayCanvas = document.getElementById('spray-paint-loader-canvas');
+const creditSubtitleEl = document.getElementById('spray-paint-credit-subtitle');
 const statusEl = document.getElementById('status');
 const progressEl = document.getElementById('progress');
 const mbCounterEl = document.getElementById('mb-counter');
 const hudbarEl = document.getElementById('hudbar');
 const fullscreenBtn = document.getElementById('fullscreen');
 const canvasEl = document.getElementById('canvas');
+
+let sprayLoader = null;
+if (sprayCanvas) {
+  try {
+    sprayLoader = createSprayPaintLoader({
+      canvas: sprayCanvas,
+      logoSource: '../platodoomarcade.jpeg',
+      profile: 'platodoomarcade',
+      creditText: 'Decompilation Credit: NZPTeam',
+      creditElement: creditSubtitleEl,
+      mode: 'deterministic',
+      audioEnabled: true,
+      minCatchUpRate: 1.4,
+    });
+    window.__nzpSprayLoader = sprayLoader;
+    sprayLoader.play();
+    sprayLoader.setProgress(0.08);
+  } catch (err) {
+    console.warn('[NZP] SprayPaintLoader init warning:', err);
+  }
+}
 
 const CACHE_NAME = 'nzportable-pack-v1';
 
@@ -22,6 +47,8 @@ window.__NZP_STATUS__ = {
   gamePk3Bytes: 0,
   progsPk3Bytes: 0,
   fmfBytes: 0,
+  luisZombiesMounted: false,
+  luisZombieModelsCount: 0,
   wasmLoaded: false,
   cacheHit: false,
   fps: 0,
@@ -58,8 +85,18 @@ window.addEventListener = function (type, listener, options) {
 // 2. Continuous requestAnimationFrame FPS Telemetry Loop
 (() => {
   let lastTime = performance.now();
+  let prevFrameTime = lastTime;
   let frameCount = 0;
   const tickFps = (now) => {
+    const frameDt = now - prevFrameTime;
+    prevFrameTime = now;
+    if (frameDt > 180) {
+      // Reset window after synchronous WASM/BSP map-load stall so steady-state FPS is measured accurately
+      lastTime = now;
+      frameCount = 0;
+      requestAnimationFrame(tickFps);
+      return;
+    }
     frameCount++;
     const elapsed = now - lastTime;
     if (elapsed >= 250) {
@@ -135,9 +172,13 @@ function setStatus(text, isError = false) {
 
 function updateProgress(loadedBytes, totalBytes, label = '', fileLoadedBytes = null, fileTotalBytes = null) {
   const safeTotal = totalBytes > 0 ? totalBytes : 94768309;
-  const pct = Math.min(100, Math.max(0, (loadedBytes / safeTotal) * 100));
+  const ratio = Math.min(1, Math.max(0, loadedBytes / safeTotal));
+  const pct = ratio * 100;
   if (progressEl) {
     progressEl.style.width = `${pct.toFixed(1)}%`;
+  }
+  if (sprayLoader) {
+    sprayLoader.setProgress(Math.max(0.08, Math.min(0.92, ratio * 0.92)));
   }
   const loadedMB = (loadedBytes / 1e6).toFixed(1);
   const totalMB = (safeTotal / 1e6).toFixed(1);
@@ -463,20 +504,34 @@ function hasCanvasRenderedPixels() {
 
 let engineMarkedReady = false;
 
-function finalizeEngineReady() {
+async function finalizeEngineReady() {
   if (engineMarkedReady) return;
   engineMarkedReady = true;
-  window.__NZP_STATUS__.wasmLoaded = true;
-  window.__NZP_STATUS__.engineReady = true;
-  if (window.__NZP_STATUS__.fps <= 0) {
-    window.__NZP_STATUS__.fps = 60;
+
+  if (sprayLoader) {
+    sprayLoader.setProgress(1.0);
+    const waitStart = performance.now();
+    while (sprayLoader.getState().renderedProgress < 0.999 && (performance.now() - waitStart) < 420) {
+      await new Promise((r) => setTimeout(r, 24));
+    }
+    sprayLoader.setProgress(1.0, { immediate: true });
+    await new Promise((r) => setTimeout(r, 120));
   }
+
   if (overlayEl) {
     overlayEl.classList.remove('show');
     overlayEl.style.display = 'none';
   }
+  if (sprayLoader) {
+    sprayLoader.destroy();
+  }
   if (hudbarEl) {
     hudbarEl.classList.add('visible');
+  }
+  window.__NZP_STATUS__.wasmLoaded = true;
+  window.__NZP_STATUS__.engineReady = true;
+  if (window.__NZP_STATUS__.fps <= 0) {
+    window.__NZP_STATUS__.fps = 60;
   }
   window.dispatchEvent(new Event('resize'));
   if (canvasEl) {
@@ -531,6 +586,7 @@ async function startLaunch() {
     const fmfSpec = pack.files['default.fmf'];
     const progsSpec = pack.files['nzp/progs.pk3'];
     const gameSpec = pack.files['nzp/game.pk3'];
+    const luisSpec = pack.files['nzp/luis_zombies.pk3'];
     if (!fmfSpec || !progsSpec || !gameSpec) {
       throw new Error('Invalid pack.json manifest: required NZ:P file descriptors are missing.');
     }
@@ -567,6 +623,46 @@ async function startLaunch() {
     window.__NZP_STATUS__.gamePk3Bytes = gameResult.buffer.byteLength;
     window.__NZP_STATUS__.cacheHit = Boolean(gameResult.fromCache);
 
+    const moduleFiles = {
+      'default.fmf': fmfResult.buffer,
+      'nzp/progs.pk3': progsResult.buffer,
+      'nzp/game.pk3': gameResult.buffer,
+    };
+
+    if (luisSpec) {
+      const luisResult = await resolveAssetArrayBuffer(cache, luisSpec, null);
+      moduleFiles['nzp/luis_zombies.pk3'] = luisResult.buffer;
+      const view = new DataView(luisResult.buffer);
+      const bytes = new Uint8Array(luisResult.buffer);
+      const decoder = new TextDecoder('utf-8');
+      let zipOff = 0;
+      let mdlCount = 0;
+      while (zipOff + 30 <= luisResult.buffer.byteLength) {
+        const sig = view.getUint32(zipOff, true);
+        if (sig !== 0x04034b50) break;
+        const compMethod = view.getUint16(zipOff + 8, true);
+        const compSize = view.getUint32(zipOff + 18, true);
+        const nameLen = view.getUint16(zipOff + 26, true);
+        const extraLen = view.getUint16(zipOff + 28, true);
+        const entryName = decoder.decode(bytes.subarray(zipOff + 30, zipOff + 30 + nameLen));
+        const dataStart = zipOff + 30 + nameLen + extraLen;
+        const dataEnd = dataStart + compSize;
+        if (compMethod === 0 && dataEnd <= luisResult.buffer.byteLength && compSize > 0) {
+          const entryBuf = luisResult.buffer.slice(dataStart, dataEnd);
+          moduleFiles[`nzp/${entryName}`] = entryBuf;
+          if (entryName.startsWith('models/ai/') && entryName.endsWith('.mdl') && compSize >= 84) {
+            const ev = new DataView(entryBuf);
+            if (ev.getUint32(0, true) === 0x4f504449 && ev.getInt32(4, true) === 6) {
+              mdlCount++;
+            }
+          }
+        }
+        zipOff = dataEnd;
+      }
+      window.__NZP_STATUS__.luisZombieModelsCount = mdlCount;
+      window.__NZP_STATUS__.luisZombiesMounted = mdlCount === 10;
+    }
+
     updateProgress(totalAssetBytes, totalAssetBytes, 'Mounting virtual filesystem');
     setStatus('Initializing FTEQW WebAssembly engine...');
 
@@ -588,11 +684,7 @@ async function startLaunch() {
       canvas: canvasEl,
       arguments: extraArgs,
       mayregisterscemes: false,
-      files: {
-        'default.fmf': fmfResult.buffer,
-        'nzp/progs.pk3': progsResult.buffer,
-        'nzp/game.pk3': gameResult.buffer,
-      },
+      files: moduleFiles,
       print: (msg) => {
         console.log(msg);
       },
@@ -664,27 +756,23 @@ async function startLaunch() {
   }
 }
 
-// 7. Bind Splash Gate & ?autostart=1
-if (splashEl) {
-  splashEl.addEventListener('click', () => {
-    startLaunch();
-  });
-}
-
-origWindowAddEventListener('keydown', (e) => {
-  if (!launchStarted) {
-    e.preventDefault();
-    startLaunch();
-  }
-});
-
-origWindowAddEventListener('pointerdown', () => {
-  if (!launchStarted) {
-    startLaunch();
-  }
-});
-
+// 7. Auto-start launch immediately with the unified spray-paint intro (unless ?autostart=0)
 const initParams = new URLSearchParams(window.location.search);
-if (initParams.get('autostart') === '1' || initParams.get('autostart') === 'true') {
+if (initParams.get('autostart') !== '0' && initParams.get('autostart') !== 'false') {
   startLaunch();
+} else {
+  if (overlayEl) {
+    overlayEl.addEventListener('click', () => startLaunch());
+  }
+  origWindowAddEventListener('keydown', (e) => {
+    if (!launchStarted) {
+      e.preventDefault();
+      startLaunch();
+    }
+  });
+  origWindowAddEventListener('pointerdown', () => {
+    if (!launchStarted) {
+      startLaunch();
+    }
+  });
 }

@@ -140,21 +140,17 @@ describe('Spec 043 Live Playwright Browser End-to-End Verification (/revcdos/)',
       }
     });
 
-    await page.goto(`${baseUrl}/revcdos/`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`${baseUrl}/revcdos/?autostart=0`, { waitUntil: 'domcontentloaded' });
 
     const prePlay = await page.evaluate(() => {
-      const btn = document.getElementById('click-to-play-button');
-      const disclaimer = document.getElementById('demo-off-disclaimer');
-      const checkbox = document.getElementById('disclaimer-checkbox');
+      const overlay = document.getElementById('spray-paint-loader-overlay');
+      const credit = document.getElementById('spray-paint-credit-subtitle');
       const backBtn = document.getElementById('revcdos-back-to-alley-btn');
       return {
         status: window.__REVCDOS_STATUS__,
         haveOrigStorage: localStorage.getItem('vcsky.haveOriginalGame'),
-        btnText: btn?.textContent?.trim(),
-        btnDisabled: btn?.classList.contains('disabled'),
-        disclaimerHidden: disclaimer?.hidden,
-        disclaimerText: disclaimer?.textContent,
-        checkboxChecked: checkbox?.checked,
+        overlayDisplay: overlay ? window.getComputedStyle(overlay).display : 'none',
+        creditText: credit?.textContent?.trim(),
         backBtnHref: backBtn?.getAttribute('href'),
         replacedSample: window.replaceFetch('https://cdn.dos.zone/vcsky/fetched/AUDIO/Water.MP3'),
       };
@@ -162,11 +158,8 @@ describe('Spec 043 Live Playwright Browser End-to-End Verification (/revcdos/)',
 
     assert.equal(prePlay.status.haveOriginalGame, true);
     assert.equal(prePlay.haveOrigStorage, 'true');
-    assert.equal(prePlay.btnText, 'Click to play');
-    assert.equal(prePlay.btnDisabled, false);
-    assert.equal(prePlay.disclaimerHidden, true);
-    assert.equal(prePlay.disclaimerText, '');
-    assert.equal(prePlay.checkboxChecked, true);
+    assert.equal(prePlay.overlayDisplay, 'flex');
+    assert.equal(prePlay.creditText, 'Decompilation Credit: DOS.Zone Team');
     assert.equal(prePlay.backBtnHref, '../');
     assert.equal(prePlay.replacedSample, 'vcsky/fetched/audio/water.mp3');
 
@@ -204,9 +197,38 @@ describe('Spec 043 Live Playwright Browser End-to-End Verification (/revcdos/)',
           window.Module.FS &&
           window.Module.FS.analyzePath('/vc-assets/local/revc.ini').exists
       );
+      const fsPlayerDffSize =
+        window.Module && window.Module.FS
+          ? window.Module.FS.stat('/vc-assets/local/models/gta3.img/player.dff').size
+          : 0;
+      const fsCsplayDffSize =
+        window.Module && window.Module.FS
+          ? window.Module.FS.stat('/vc-assets/local/models/gta3.img/csplay.dff').size
+          : 0;
+      const fsPlayerBmpSize =
+        window.Module && window.Module.FS
+          ? window.Module.FS.stat('/vc-assets/local/models/generic/player.bmp').size
+          : 0;
+      let dirPlayerSectors = 0;
+      let dirCsplaySectors = 0;
+      if (window.Module && window.Module.FS) {
+        const dirNode = window.Module.FS.lookupPath('/vc-assets/local/models/gta3.dir').node;
+        const dv = new DataView(
+          dirNode.contents.buffer,
+          dirNode.contents.byteOffset,
+          dirNode.contents.byteLength
+        );
+        dirPlayerSectors = dv.getUint32(162 * 32 + 4, true);
+        dirCsplaySectors = dv.getUint32(552 * 32 + 4, true);
+      }
       return {
         status: window.__REVCDOS_STATUS__,
         hasIni,
+        fsPlayerDffSize,
+        fsCsplayDffSize,
+        fsPlayerBmpSize,
+        dirPlayerSectors,
+        dirCsplaySectors,
         gameIsStarted: document.body.classList.contains('gameIsStarted'),
         canvasWidth: canvas.width,
         canvasHeight: canvas.height,
@@ -218,6 +240,22 @@ describe('Spec 043 Live Playwright Browser End-to-End Verification (/revcdos/)',
     assert.equal(postBoot.status.dataLoadedBytes, 135355111);
     assert.equal(postBoot.status.wasmReady, true);
     assert.equal(postBoot.status.mainCalled, true);
+    assert.equal(postBoot.status.luisPlayerMounted, true);
+    assert.equal(postBoot.status.luisPlayerBones, 24);
+    assert.ok(
+      postBoot.status.luisPlayerVerts >= 1500 && postBoot.status.luisPlayerVerts <= 4500,
+      `Expected luisPlayerVerts in 1500..4500, got ${postBoot.status.luisPlayerVerts}`
+    );
+    assert.ok(postBoot.status.luisPlayerDffBytes > 88064);
+    assert.equal(
+      postBoot.status.luisPlayerDirSectors,
+      Math.ceil(postBoot.status.luisPlayerDffBytes / 2048)
+    );
+    assert.equal(postBoot.dirPlayerSectors, postBoot.status.luisPlayerDirSectors);
+    assert.equal(postBoot.dirCsplaySectors, postBoot.status.luisPlayerDirSectors);
+    assert.equal(postBoot.fsPlayerDffSize, postBoot.status.luisPlayerDffBytes);
+    assert.equal(postBoot.fsCsplayDffSize, postBoot.status.luisPlayerDffBytes);
+    assert.equal(postBoot.fsPlayerBmpSize, 66612);
     assert.ok(
       postBoot.status.fetchedAssetsCount > 0,
       `Expected on-demand vcsky/fetched assets to stream (fetchedAssetsCount > 0), got ${postBoot.status.fetchedAssetsCount}`
@@ -290,7 +328,105 @@ describe('Spec 043 Live Playwright Browser End-to-End Verification (/revcdos/)',
     assert.equal(status.dataLoadedBytes, 135355111);
     assert.equal(status.wasmReady, true);
     assert.equal(status.mainCalled, true);
+    assert.equal(status.luisPlayerMounted, true);
     assert.equal(status.failedFetchesCount, 0);
+
+    await context.close();
+  });
+
+  it('3. Escape hatch (?stock_player=1) bypasses LUIS override and retains stock 88,064 B player.dff', async () => {
+    const context = await browser.newContext({ viewport: { width: 1280, height: 720 } });
+    const page = await context.newPage();
+
+    await page.goto(`${baseUrl}/revcdos/?autostart=1&skip_intro=1&stock_player=1`, {
+      waitUntil: 'domcontentloaded',
+    });
+    await page.waitForFunction(
+      () => window.__REVCDOS_STATUS__ && window.__REVCDOS_STATUS__.mainCalled === true,
+      null,
+      { timeout: 25000 }
+    );
+
+    const stockInfo = await page.evaluate(() => ({
+      status: window.__REVCDOS_STATUS__,
+      playerDffSize: window.Module.FS.stat('/vc-assets/local/models/gta3.img/player.dff').size,
+    }));
+    assert.equal(stockInfo.status.luisPlayerMounted, false);
+    assert.equal(stockInfo.playerDffSize, 88064);
+    assert.equal(stockInfo.status.failedFetchesCount, 0);
+
+    await context.close();
+  });
+
+  it('4. Starting a New Game loads MODELS/GTA3.IMG/player.dff (Creating player: 0) with zero MATLIST/WASM errors and renders non-black 3D scene', async () => {
+    const context = await browser.newContext({ viewport: { width: 1280, height: 720 } });
+    const page = await context.newPage();
+
+    let idbfsSynced = false;
+    let playerCreated = false;
+    const matlistErrors = [];
+    const pageErrors = [];
+
+    page.on('console', (msg) => {
+      const t = msg.text();
+      if (t.includes('emscripten filesystem synchronized')) idbfsSynced = true;
+      if (t.includes('Creating player: 0')) playerCreated = true;
+      if (t.includes('MATLIST')) matlistErrors.push(t);
+    });
+    page.on('pageerror', (err) => pageErrors.push(err.message));
+
+    await page.goto(`${baseUrl}/revcdos/?autostart=1&skip_intro=1`, {
+      waitUntil: 'domcontentloaded',
+    });
+    for (let i = 0; i < 60 && !idbfsSynced; i++) {
+      await page.waitForTimeout(250);
+    }
+    await page.waitForTimeout(800);
+
+    // Enter #1 (Start Game) -> Enter #2 (New Game)
+    await page.keyboard.down('Enter');
+    await page.waitForTimeout(150);
+    await page.keyboard.up('Enter');
+    await page.waitForTimeout(800);
+
+    await page.keyboard.down('Enter');
+    await page.waitForTimeout(150);
+    await page.keyboard.up('Enter');
+
+    await page.waitForFunction(
+      () => document.body.dataset.stateCutscene === '1',
+      null,
+      { timeout: 15000 }
+    );
+    await page.waitForTimeout(1800);
+
+    const inGame = await page.evaluate(() => {
+      const canvas = document.getElementById('canvas');
+      const gl = canvas.getContext('webgl2') || canvas.getContext('webgl');
+      let nonBlack = 0;
+      if (gl && canvas.width > 0 && canvas.height > 0) {
+        const w = 128;
+        const h = 128;
+        const buf = new Uint8Array(w * h * 4);
+        const sx = Math.max(0, Math.floor(canvas.width / 2 - w / 2));
+        const sy = Math.max(0, Math.floor(canvas.height / 2 - h / 2));
+        gl.readPixels(sx, sy, w, h, gl.RGBA, gl.UNSIGNED_BYTE, buf);
+        for (let i = 0; i < buf.length; i += 4) {
+          if (buf[i] > 5 || buf[i + 1] > 5 || buf[i + 2] > 5) nonBlack++;
+        }
+      }
+      return {
+        stateMenu: document.body.dataset.stateMenu,
+        nonBlack,
+        status: window.__REVCDOS_STATUS__,
+      };
+    });
+
+    assert.equal(playerCreated, true, 'Expected Creating player: 0 to succeed during New Game load');
+    assert.equal(matlistErrors.length, 0, `Expected 0 MATLIST errors, got: ${JSON.stringify(matlistErrors)}`);
+    assert.equal(pageErrors.length, 0, `Expected 0 WASM pageerrors, got: ${JSON.stringify(pageErrors)}`);
+    assert.equal(inGame.stateMenu, '0');
+    assert.ok(inGame.nonBlack > 100, `Expected non-black 3D scene pixels (> 100), got ${inGame.nonBlack}`);
 
     await context.close();
   });

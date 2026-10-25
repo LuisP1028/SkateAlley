@@ -437,6 +437,12 @@ export function resolveStickerAssetSpec(idOrCodeOrPathOrIndex) {
   if (idOrCodeOrPathOrIndex === undefined || idOrCodeOrPathOrIndex === null) {
     throw new Error('resolveStickerAssetSpec: Asset identifier is required (INV-FAILFAST-01).');
   }
+  if (typeof idOrCodeOrPathOrIndex === 'object') {
+    const key = idOrCodeOrPathOrIndex.id || idOrCodeOrPathOrIndex.stickerId || idOrCodeOrPathOrIndex.code;
+    if (key && STICKER_ASSET_BY_ID[key]) {
+      return STICKER_ASSET_BY_ID[key];
+    }
+  }
   const spec = STICKER_ASSET_BY_ID[idOrCodeOrPathOrIndex];
   if (!spec) {
     throw new Error(`resolveStickerAssetSpec: Unknown sticker asset identifier '${idOrCodeOrPathOrIndex}' (INV-FAILFAST-01).`);
@@ -1106,8 +1112,8 @@ export function createHolographicStickerInstance(assetIdOrSpec, options = {}) {
       group.rotation.set(0, dp.yawRad, 0);
 
       material.polygonOffset = true;
-      material.polygonOffsetFactor = -2;
-      material.polygonOffsetUnits = -2;
+      material.polygonOffsetFactor = -4;
+      material.polygonOffsetUnits = -4;
       material.depthWrite = false;
       mesh.renderOrder = 12;
     } else {
@@ -1168,7 +1174,9 @@ export function createHolographicStickerInstance(assetIdOrSpec, options = {}) {
     if (transformSpec.position) {
       group.position.copy(transformSpec.position);
     }
-    if (transformSpec.rotation) {
+    if (transformSpec.quaternion) {
+      group.quaternion.copy(transformSpec.quaternion);
+    } else if (transformSpec.rotation) {
       group.rotation.copy(transformSpec.rotation);
     }
     if (transformSpec.tiltPitchRad !== undefined) {
@@ -1176,6 +1184,10 @@ export function createHolographicStickerInstance(assetIdOrSpec, options = {}) {
     }
     if (transformSpec.tiltYawRad !== undefined) {
       group.rotation.y = transformSpec.tiltYawRad;
+    }
+    if (transformSpec.scale !== undefined) {
+      const s = Number(transformSpec.scale) || 1.0;
+      group.scale.set(s, s, 1.0);
     }
   }
 
@@ -1258,7 +1270,9 @@ export function createHolographicStickerInstance(assetIdOrSpec, options = {}) {
   return {
     spec,
     geomSpec,
+    geometrySpec: geomSpec,
     group,
+    rootGroup: group,
     mesh,
     material,
     geometry,
@@ -1274,7 +1288,1006 @@ export function createHolographicStickerInstance(assetIdOrSpec, options = {}) {
 }
 
 // ============================================================================
-// 5. Holographic Stickers System Controller (Ticket-006)
+// 5. Aligned Interior/Exterior Wall & Floor Bounding Surfaces + Surface Math (Spec 047 & Spec 048)
+// ============================================================================
+
+export const STICKER_DEFAULT_SIZE_BOUNDS = Object.freeze({
+  minSize: 0.25,
+  maxSize: 1.0,
+  defaultSize: 0.65,
+  absMinLimit: 0.25,
+  absMaxLimit: 1.0,
+  normalOffsetMeters: 0.022,
+  minSurfaceClearanceMeters: 0.022,
+});
+
+export function normalizeStickerSizeBounds(_minSize, _maxSize) {
+  return {
+    minSize: STICKER_DEFAULT_SIZE_BOUNDS.minSize,
+    maxSize: STICKER_DEFAULT_SIZE_BOUNDS.maxSize,
+  };
+}
+
+export function clampStickerSize(size, minSize = STICKER_DEFAULT_SIZE_BOUNDS.minSize, maxSize = STICKER_DEFAULT_SIZE_BOUNDS.maxSize) {
+  const bounds = normalizeStickerSizeBounds(minSize, maxSize);
+  const raw = Number.isFinite(Number(size)) ? Number(size) : STICKER_DEFAULT_SIZE_BOUNDS.defaultSize;
+  return Number(Math.max(bounds.minSize, Math.min(bounds.maxSize, raw)).toFixed(4));
+}
+
+export function normalizeStickerRotationRad(rad) {
+  let r = Number.isFinite(Number(rad)) ? Number(rad) : 0.0;
+  while (r > Math.PI) r -= Math.PI * 2.0;
+  while (r < -Math.PI) r += Math.PI * 2.0;
+  return Number(r.toFixed(4));
+}
+
+export const CALIBRATED_LEFT_WALL_KNOTS = Object.freeze([
+  [0.0, -1.58],
+  [4.0, -1.73],
+  [8.0, -1.89],
+  [12.0, -2.04],
+  [16.0, -2.19],
+  [20.0, -2.34],
+  [24.0, -2.49],
+  [25.8, -2.53],
+  [26.5, -1.78],
+  [28.0, -1.75],
+  [32.0, -1.65],
+  [36.0, -1.64],
+  [40.0, -1.53],
+  [42.5, -1.47],
+  [58.0, -1.68],
+  [71.2, -1.50],
+]);
+
+export const CALIBRATED_RIGHT_WALL_KNOTS = Object.freeze([
+  [0.0, 2.23],
+  [4.0, 2.13],
+  [8.0, 2.04],
+  [12.0, 1.94],
+  [16.0, 1.81],
+  [20.0, 1.76],
+  [24.0, 1.65],
+  [28.0, 1.57],
+  [30.0, 1.48],
+  [34.0, 1.47],
+  [38.0, 1.48],
+  [40.0, 1.56],
+  [42.5, 1.77],
+  [43.8, 1.87],
+  [44.0, 3.45],
+  [60.75, 3.05],
+  [62.25, 5.40],
+  [65.75, 2.80],
+  [71.2, 2.50],
+]);
+
+export const CALIBRATED_EXTERIOR_LEFT_Z_KNOTS = Object.freeze([
+  [-9.40, -0.86],
+  [-4.00, -0.66],
+  [-1.58, -0.55],
+]);
+
+export const CALIBRATED_EXTERIOR_RIGHT_Z_KNOTS = Object.freeze([
+  [2.23, -0.45],
+  [6.90, -0.37],
+  [10.20, -0.17],
+]);
+
+export const CALIBRATED_FLOOR_CONTOUR_KNOTS = Object.freeze([
+  [-10.5, 0.380],
+  [-8.0, 0.362],
+  [-6.0, 0.185],
+  [-4.0, 0.231],
+  [-2.0, 0.221],
+  [0.0, 0.230],
+  [2.0, 0.234],
+  [4.0, 0.191],
+  [6.0, 0.150],
+  [8.0, 0.124],
+  [10.0, 0.108],
+  [12.0, 0.075],
+  [14.0, 0.049],
+  [16.0, 0.017],
+  [18.0, 0.010],
+  [20.0, -0.035],
+  [22.0, -0.062],
+  [24.0, -0.086],
+  [26.0, -0.095],
+  [28.0, -0.054],
+  [30.0, -0.038],
+  [32.0, 0.003],
+  [34.0, 0.026],
+  [36.0, 0.045],
+  [38.0, 0.067],
+  [40.0, 0.053],
+  [42.5, 0.040],
+  [44.0, 0.040],
+  [71.2, 0.020],
+]);
+
+function evaluatePiecewiseLinearKnots(knots, s) {
+  const sv = Number(s) || 0.0;
+  if (sv <= knots[0][0]) return knots[0][1];
+  const lastIdx = knots.length - 1;
+  if (sv >= knots[lastIdx][0]) return knots[lastIdx][1];
+  for (let i = 0; i < lastIdx; i++) {
+    const s0 = knots[i][0];
+    const s1 = knots[i + 1][0];
+    if (sv >= s0 && sv <= s1) {
+      const span = s1 - s0;
+      if (span <= 1e-9) return knots[i + 1][1];
+      const t = (sv - s0) / span;
+      return knots[i][1] + (knots[i + 1][1] - knots[i][1]) * t;
+    }
+  }
+  return knots[lastIdx][1];
+}
+
+/**
+ * Evaluates the calibrated Freeman Alley wall X profile for Left ('L') and Right ('R') interior walls (Spec 048 §4.1).
+ */
+export function resolveStickerWallProfileX(side, z) {
+  const isLeft = side === 'left' || side === 'L';
+  const knots = isLeft ? CALIBRATED_LEFT_WALL_KNOTS : CALIBRATED_RIGHT_WALL_KNOTS;
+  return Number(evaluatePiecewiseLinearKnots(knots, z).toFixed(4));
+}
+
+/**
+ * Evaluates the calibrated Exterior Street Facade Z profile for Left ('L') and Right ('R') building facades (Spec 048 §4.1).
+ */
+export function resolveStickerExteriorWallProfileZ(side, x) {
+  const isLeft = side === 'left' || side === 'L';
+  const knots = isLeft ? CALIBRATED_EXTERIOR_LEFT_Z_KNOTS : CALIBRATED_EXTERIOR_RIGHT_Z_KNOTS;
+  return Number(evaluatePiecewiseLinearKnots(knots, x).toFixed(4));
+}
+
+/**
+ * Evaluates the calibrated upper-envelope floor elevation Y across both the exterior street/sidewalk (Z in [-10.5m, 0.0m])
+ * and the interior alleyway corridor (Z in [0.0m, 71.2m]) (Spec 048 §4.2).
+ */
+export function resolveStickerFloorContourY(z) {
+  return Number(evaluatePiecewiseLinearKnots(CALIBRATED_FLOOR_CONTOUR_KNOTS, z).toFixed(4));
+}
+
+/**
+ * Computes an orthonormal tangent basis [T(theta), U(theta), N] and quaternion for a sticker mounted
+ * on a surface with outward unit normal N, rotated in-plane by `rotationRad` around N.
+ */
+export function computeStickerSurfaceBasis(normalInput, rotationRad = 0.0) {
+  const nxRaw = normalInput?.x ?? (Array.isArray(normalInput) ? normalInput[0] : 0.0);
+  const nyRaw = normalInput?.y ?? (Array.isArray(normalInput) ? normalInput[1] : 0.0);
+  const nzRaw = normalInput?.z ?? (Array.isArray(normalInput) ? normalInput[2] : 1.0);
+  const len = Math.hypot(nxRaw, nyRaw, nzRaw) || 1.0;
+  const N = new THREE.Vector3(nxRaw / len, nyRaw / len, nzRaw / len);
+
+  const worldUp = new THREE.Vector3(0, 1, 0);
+  const U0 = new THREE.Vector3();
+  const T0 = new THREE.Vector3();
+
+  if (Math.abs(N.y) < 0.85) {
+    // Wall surface: project world +Y onto the wall tangent plane so rotationRad = 0 is upright
+    U0.copy(worldUp).addScaledVector(N, -worldUp.dot(N)).normalize();
+    T0.crossVectors(U0, N).normalize();
+  } else {
+    // Floor / horizontal surface: align U0 along +Z so sticker faces reader looking into alley (+Z)
+    const refForward = new THREE.Vector3(0, 0, N.y >= 0 ? 1 : -1);
+    U0.copy(refForward).addScaledVector(N, -refForward.dot(N)).normalize();
+    T0.crossVectors(U0, N).normalize();
+  }
+
+  const theta = normalizeStickerRotationRad(rotationRad);
+  const cosT = Math.cos(theta);
+  const sinT = Math.sin(theta);
+
+  // Rotate (T0, U0) in the tangent plane around N
+  const T = new THREE.Vector3()
+    .addScaledVector(T0, cosT)
+    .addScaledVector(U0, sinT)
+    .normalize();
+  const U = new THREE.Vector3()
+    .addScaledVector(T0, -sinT)
+    .addScaledVector(U0, cosT)
+    .normalize();
+
+  const rotMatrix = new THREE.Matrix4().makeBasis(T, U, N);
+  const quaternion = new THREE.Quaternion().setFromRotationMatrix(rotMatrix);
+  const euler = new THREE.Euler().setFromQuaternion(quaternion, 'YXZ');
+
+  return {
+    normal: N,
+    tangentRight: T,
+    tangentUp: U,
+    rotationRad: theta,
+    quaternion,
+    euler,
+  };
+}
+
+/**
+ * Builds a quad strip mesh from ordered bottom/top vertex pairs with explicit outward normals.
+ */
+function createQuadStripColliderMesh(name, surfaceZone, segments, material) {
+  const positions = [];
+  const normals = [];
+  const uvs = [];
+  const indices = [];
+  let vertCursor = 0;
+  const edgeA = new THREE.Vector3();
+  const edgeB = new THREE.Vector3();
+  const faceCross = new THREE.Vector3();
+
+  for (let i = 0; i < segments.length; i++) {
+    const seg = segments[i];
+    // Each seg has p00 (start bottom), p10 (end bottom), p11 (end top), p01 (start top), and outward normal n
+    const { p00, p10, p11, p01, normal } = seg;
+    positions.push(
+      p00.x, p00.y, p00.z,
+      p10.x, p10.y, p10.z,
+      p11.x, p11.y, p11.z,
+      p01.x, p01.y, p01.z
+    );
+    for (let k = 0; k < 4; k++) {
+      normals.push(normal.x, normal.y, normal.z);
+    }
+    uvs.push(0, 0, 1, 0, 1, 1, 0, 1);
+    // Ensure triangle winding matches explicit outward normal
+    edgeA.subVectors(p10, p00);
+    edgeB.subVectors(p11, p00);
+    faceCross.crossVectors(edgeA, edgeB);
+    if (faceCross.dot(normal) >= 0) {
+      indices.push(
+        vertCursor, vertCursor + 1, vertCursor + 2,
+        vertCursor, vertCursor + 2, vertCursor + 3
+      );
+    } else {
+      indices.push(
+        vertCursor, vertCursor + 2, vertCursor + 1,
+        vertCursor, vertCursor + 3, vertCursor + 2
+      );
+    }
+    vertCursor += 4;
+  }
+
+  const geom = new THREE.BufferGeometry();
+  geom.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  geom.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
+  geom.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+  geom.setIndex(indices);
+  geom.computeBoundingBox();
+  geom.computeBoundingSphere();
+
+  const mesh = new THREE.Mesh(geom, material);
+  mesh.name = name;
+  mesh.userData.isStickerBoundingSurface = true;
+  mesh.userData.surfaceZone = surfaceZone;
+  mesh.userData.colliderName = name;
+  return mesh;
+}
+
+/**
+ * Constructs calibrated interior & exterior wall and floor bounding surfaces (Spec 047 §5.3 & Spec 048 §4–§5)
+ * covering:
+ *  - Left Interior Alley Wall (Z in [0, 71.2m])
+ *  - Right Interior Alley Wall (Z in [0, 71.2m], including alcoves)
+ *  - Exterior Left Return & Street Facade Walls right outside the alleyway (Z in [-8.5m, 0m], X in [-9.4m, -1.58m])
+ *  - Exterior Right Return & Street Facade Walls right outside the alleyway (Z in [-8.5m, 0m], X in [2.23m, 10.2m])
+ *  - Interior Alley End Boundary (Z = 71.2m)
+ *  - Contoured Upper-Envelope Interior & Exterior Floor (Z in [-10.5m, 71.2m])
+ */
+export function buildStickerBoundingSurfaces(options = {}) {
+  const group = new THREE.Group();
+  group.name = 'StickerBoundingSurfacesGroup';
+  const wallTopY = Number(options.wallTopY) || 6.80;
+
+  const surfaceMat = new THREE.MeshBasicMaterial({
+    color: 0x00d5ff,
+    wireframe: true,
+    transparent: true,
+    opacity: options.debugVisible ? 0.22 : 0.0,
+    depthWrite: false,
+    side: THREE.DoubleSide,
+  });
+  surfaceMat.visible = Boolean(options.debugVisible);
+
+  // 1. Left Interior Alley Wall (Z = 0.0 -> 71.2m, outward normal pointing +X into corridor)
+  const leftWallSegs = [];
+  for (let i = 0; i < CALIBRATED_LEFT_WALL_KNOTS.length - 1; i++) {
+    const z0 = CALIBRATED_LEFT_WALL_KNOTS[i][0];
+    const x0 = CALIBRATED_LEFT_WALL_KNOTS[i][1];
+    const z1 = CALIBRATED_LEFT_WALL_KNOTS[i + 1][0];
+    const x1 = CALIBRATED_LEFT_WALL_KNOTS[i + 1][1];
+    const y0 = resolveStickerFloorContourY(z0) - 0.08;
+    const y1 = resolveStickerFloorContourY(z1) - 0.08;
+    const dx = x1 - x0;
+    const dz = z1 - z0;
+    // Outward plumb normal into corridor (+X, Ny = 0)
+    const n = new THREE.Vector3(dz, 0, -dx).normalize();
+    if (n.x < 0) n.negate();
+    n.y = 0.0;
+    n.normalize();
+    leftWallSegs.push({
+      p00: new THREE.Vector3(x0, y0, z0),
+      p10: new THREE.Vector3(x1, y1, z1),
+      p11: new THREE.Vector3(x1, wallTopY, z1),
+      p01: new THREE.Vector3(x0, wallTopY, z0),
+      normal: n,
+    });
+  }
+  const meshWallL = createQuadStripColliderMesh('COLLIDER_STICKER_WALL_L', 'alley_wall_left', leftWallSegs, surfaceMat);
+
+  // 2. Right Interior Alley Wall (Z = 0.0 -> 71.2m, outward normal pointing -X into corridor)
+  const rightWallSegs = [];
+  for (let i = 0; i < CALIBRATED_RIGHT_WALL_KNOTS.length - 1; i++) {
+    const z0 = CALIBRATED_RIGHT_WALL_KNOTS[i][0];
+    const x0 = CALIBRATED_RIGHT_WALL_KNOTS[i][1];
+    const z1 = CALIBRATED_RIGHT_WALL_KNOTS[i + 1][0];
+    const x1 = CALIBRATED_RIGHT_WALL_KNOTS[i + 1][1];
+    const y0 = resolveStickerFloorContourY(z0) - 0.08;
+    const y1 = resolveStickerFloorContourY(z1) - 0.08;
+    const dx = pB_dx(x0, x1);
+    const dz = z1 - z0;
+    // Outward plumb normal pointing toward corridor (-X, Ny = 0)
+    const n = new THREE.Vector3(-dz, 0, dx).normalize();
+    if (n.x > 0 && Math.abs(n.x) > Math.abs(n.z)) n.negate();
+    n.y = 0.0;
+    n.normalize();
+    rightWallSegs.push({
+      p00: new THREE.Vector3(x0, y0, z0),
+      p10: new THREE.Vector3(x1, y1, z1),
+      p11: new THREE.Vector3(x1, wallTopY, z1),
+      p01: new THREE.Vector3(x0, wallTopY, z0),
+      normal: n,
+    });
+  }
+  function pB_dx(a, b) {
+    return b - a;
+  }
+  const meshWallR = createQuadStripColliderMesh('COLLIDER_STICKER_WALL_R', 'alley_wall_right', rightWallSegs, surfaceMat);
+
+  // 3. Exterior Left Return & Street Facade Walls Right Outside the Alleyway (Z <= 0, Spec 048 §4.1)
+  const nExtL1 = new THREE.Vector3(-0.55 - -0.66, 0, -(-1.58 - -4.00)).normalize();
+  if (nExtL1.z > 0) nExtL1.negate();
+  nExtL1.y = 0.0;
+  nExtL1.normalize();
+
+  const nExtL2 = new THREE.Vector3(-0.66 - -0.86, 0, -(-4.00 - -9.40)).normalize();
+  if (nExtL2.z > 0) nExtL2.negate();
+  nExtL2.y = 0.0;
+  nExtL2.normalize();
+
+  const extLeftSegs = [
+    // Entrance threshold left return wall: X = -1.58m, Z in [-0.55m, 0.00m], facing +X (1, 0, 0)
+    {
+      p00: new THREE.Vector3(-1.58, -0.08, -0.55),
+      p10: new THREE.Vector3(-1.58, -0.08, 0.00),
+      p11: new THREE.Vector3(-1.58, wallTopY, 0.00),
+      p01: new THREE.Vector3(-1.58, wallTopY, -0.55),
+      normal: new THREE.Vector3(1, 0, 0),
+    },
+    // Street-facing left building facade inner span: X in [-4.00m, -1.58m], Z in [-0.66m, -0.55m], facing -Z
+    {
+      p00: new THREE.Vector3(-4.00, -0.08, -0.66),
+      p10: new THREE.Vector3(-1.58, -0.08, -0.55),
+      p11: new THREE.Vector3(-1.58, wallTopY, -0.55),
+      p01: new THREE.Vector3(-4.00, wallTopY, -0.66),
+      normal: nExtL1,
+    },
+    // Street-facing left building facade outer span: X in [-9.40m, -4.00m], Z in [-0.86m, -0.66m], facing -Z
+    {
+      p00: new THREE.Vector3(-9.40, -0.08, -0.86),
+      p10: new THREE.Vector3(-4.00, -0.08, -0.66),
+      p11: new THREE.Vector3(-4.00, wallTopY, -0.66),
+      p01: new THREE.Vector3(-9.40, wallTopY, -0.86),
+      normal: nExtL2,
+    },
+    // Outer Left Street Flank Wall at X = -9.40m, Z in [-8.50m, -0.86m], facing +X (1, 0, 0)
+    {
+      p00: new THREE.Vector3(-9.40, -0.08, -8.50),
+      p10: new THREE.Vector3(-9.40, -0.08, -0.86),
+      p11: new THREE.Vector3(-9.40, wallTopY, -0.86),
+      p01: new THREE.Vector3(-9.40, wallTopY, -8.50),
+      normal: new THREE.Vector3(1, 0, 0),
+    },
+  ];
+  const meshExtL = createQuadStripColliderMesh('COLLIDER_STICKER_EXTERIOR_L', 'exterior_wall_left', extLeftSegs, surfaceMat);
+
+  // 4. Exterior Right Return & Street Facade Walls Right Outside the Alleyway (Z <= 0, Spec 048 §4.1)
+  const nExtR1 = new THREE.Vector3(-0.37 - -0.45, 0, -(6.90 - 2.23)).normalize();
+  if (nExtR1.z > 0) nExtR1.negate();
+  nExtR1.y = 0.0;
+  nExtR1.normalize();
+
+  const nExtR2 = new THREE.Vector3(-0.17 - -0.37, 0, -(10.20 - 6.90)).normalize();
+  if (nExtR2.z > 0) nExtR2.negate();
+  nExtR2.y = 0.0;
+  nExtR2.normalize();
+
+  const extRightSegs = [
+    // Entrance threshold right return wall: X = +2.23m, Z in [-0.45m, 0.00m], facing -X (-1, 0, 0)
+    {
+      p00: new THREE.Vector3(2.23, -0.08, 0.00),
+      p10: new THREE.Vector3(2.23, -0.08, -0.45),
+      p11: new THREE.Vector3(2.23, wallTopY, -0.45),
+      p01: new THREE.Vector3(2.23, wallTopY, 0.00),
+      normal: new THREE.Vector3(-1, 0, 0),
+    },
+    // Street-facing right storefront inner span: X in [+2.23m, +6.90m], Z in [-0.45m, -0.37m], facing -Z
+    {
+      p00: new THREE.Vector3(2.23, -0.08, -0.45),
+      p10: new THREE.Vector3(6.90, -0.08, -0.37),
+      p11: new THREE.Vector3(6.90, wallTopY, -0.37),
+      p01: new THREE.Vector3(2.23, wallTopY, -0.45),
+      normal: nExtR1,
+    },
+    // Street-facing right storefront outer span: X in [+6.90m, +10.20m], Z in [-0.37m, -0.17m], facing -Z
+    {
+      p00: new THREE.Vector3(6.90, -0.08, -0.37),
+      p10: new THREE.Vector3(10.20, -0.08, -0.17),
+      p11: new THREE.Vector3(10.20, wallTopY, -0.17),
+      p01: new THREE.Vector3(6.90, wallTopY, -0.37),
+      normal: nExtR2,
+    },
+    // Outer Right Street Flank Wall at X = +10.20m, Z in [-8.50m, -0.17m], facing -X (-1, 0, 0)
+    {
+      p00: new THREE.Vector3(10.20, -0.08, -0.17),
+      p10: new THREE.Vector3(10.20, -0.08, -8.50),
+      p11: new THREE.Vector3(10.20, wallTopY, -8.50),
+      p01: new THREE.Vector3(10.20, wallTopY, -0.17),
+      normal: new THREE.Vector3(-1, 0, 0),
+    },
+  ];
+  const meshExtR = createQuadStripColliderMesh('COLLIDER_STICKER_EXTERIOR_R', 'exterior_wall_right', extRightSegs, surfaceMat);
+
+  // 5. Exterior Street Start Boundary (Z = -10.50m, non-raycastable so it never blocks street camera views) & Interior Alley End Wall (Z = 71.20m)
+  const meshBoundStart = createQuadStripColliderMesh(
+    'COLLIDER_STICKER_BOUND_START',
+    'exterior_wall_start',
+    [
+      {
+        p00: new THREE.Vector3(10.20, -0.08, -10.50),
+        p10: new THREE.Vector3(-9.40, -0.08, -10.50),
+        p11: new THREE.Vector3(-9.40, wallTopY, -10.50),
+        p01: new THREE.Vector3(10.20, wallTopY, -10.50),
+        normal: new THREE.Vector3(0, 0, 1),
+      },
+    ],
+    surfaceMat
+  );
+  meshBoundStart.raycast = () => {};
+
+  const meshBoundEnd = createQuadStripColliderMesh(
+    'COLLIDER_STICKER_BOUND_END',
+    'alley_wall_end',
+    [
+      {
+        p00: new THREE.Vector3(-1.50, -0.08, 71.20),
+        p10: new THREE.Vector3(2.50, -0.08, 71.20),
+        p11: new THREE.Vector3(2.50, wallTopY, 71.20),
+        p01: new THREE.Vector3(-1.50, wallTopY, 71.20),
+        normal: new THREE.Vector3(0, 0, -1),
+      },
+    ],
+    surfaceMat
+  );
+
+  // 6. Contoured Upper-Envelope Exterior & Interior Floor (Z in [-10.50m, 71.20m], Spec 048 §4.2)
+  const floorZKnots = CALIBRATED_FLOOR_CONTOUR_KNOTS.map((k) => k[0]);
+  const floorSegs = [];
+  for (let i = 0; i < floorZKnots.length - 1; i++) {
+    const z0 = floorZKnots[i];
+    const z1 = floorZKnots[i + 1];
+    const isExterior = z0 < 0.0 && z1 <= 0.0;
+    const xL0 = isExterior ? -9.40 : resolveStickerWallProfileX('L', z0) - 0.08;
+    const xR0 = isExterior ? 10.20 : Math.max(resolveStickerWallProfileX('R', z0), z0 >= 44.0 ? 5.45 : -Infinity) + 0.08;
+    const xL1 = isExterior ? -9.40 : resolveStickerWallProfileX('L', z1) - 0.08;
+    const xR1 = isExterior ? 10.20 : Math.max(resolveStickerWallProfileX('R', z1), z1 >= 44.0 ? 5.45 : -Infinity) + 0.08;
+    const y0 = resolveStickerFloorContourY(z0);
+    const y1 = resolveStickerFloorContourY(z1);
+    const dy = y1 - y0;
+    const dz = z1 - z0;
+    const floorNormal = new THREE.Vector3(0, dz, -dy).normalize();
+    if (floorNormal.y < 0) floorNormal.negate();
+    floorNormal.x = 0.0;
+    floorNormal.normalize();
+
+    floorSegs.push({
+      p00: new THREE.Vector3(xL0, y0, z0),
+      p10: new THREE.Vector3(xR0, y0, z0),
+      p11: new THREE.Vector3(xR1, y1, z1),
+      p01: new THREE.Vector3(xL1, y1, z1),
+      normal: floorNormal,
+    });
+  }
+  const meshFloor = createQuadStripColliderMesh('COLLIDER_STICKER_FLOOR', 'floor', floorSegs, surfaceMat);
+
+  const meshes = {
+    COLLIDER_STICKER_WALL_L: meshWallL,
+    COLLIDER_STICKER_WALL_R: meshWallR,
+    COLLIDER_STICKER_EXTERIOR_L: meshExtL,
+    COLLIDER_STICKER_EXTERIOR_R: meshExtR,
+    COLLIDER_STICKER_BOUND_START: meshBoundStart,
+    COLLIDER_STICKER_BOUND_END: meshBoundEnd,
+    COLLIDER_STICKER_FLOOR: meshFloor,
+  };
+  // Exclude COLLIDER_STICKER_BOUND_START from raycastTargets so exterior camera rays are never blocked (Spec 048 §4.3)
+  const raycastTargets = [
+    meshWallL,
+    meshWallR,
+    meshExtL,
+    meshExtR,
+    meshBoundEnd,
+    meshFloor,
+  ];
+  for (const m of Object.values(meshes)) {
+    group.add(m);
+  }
+  group.updateMatrixWorld(true);
+
+  // ============================================================================
+  // 2D Visual Surface Relief Envelope Grids (Spec 048 §4.1–§4.4)
+  // Built once in O(N) at initialization; queried in O(1) (9 lookups) at runtime.
+  // ============================================================================
+  const GRID_DZ = 0.25;
+  const GRID_DY = 0.25;
+  const GRID_DX = 0.25;
+
+  const WALL_Z_MIN = 0.0;
+  const WALL_Z_MAX = 71.5;
+  const WALL_NZ = Math.floor((WALL_Z_MAX - WALL_Z_MIN) / GRID_DZ) + 1;
+  const WALL_Y_MIN = 0.0;
+  const WALL_Y_MAX = 7.0;
+  const WALL_NY = Math.floor((WALL_Y_MAX - WALL_Y_MIN) / GRID_DY) + 1;
+
+  const leftWallMaxX = new Float32Array(WALL_NZ * WALL_NY);
+  const rightWallMinX = new Float32Array(WALL_NZ * WALL_NY);
+
+  const EXT_L_X_MIN = -9.50;
+  const EXT_L_X_MAX = -1.50;
+  const EXT_L_NX = Math.floor((EXT_L_X_MAX - EXT_L_X_MIN) / GRID_DX) + 1;
+  const extLeftMinZ = new Float32Array(EXT_L_NX * WALL_NY);
+
+  const EXT_R_X_MIN = 2.00;
+  const EXT_R_X_MAX = 10.50;
+  const EXT_R_NX = Math.floor((EXT_R_X_MAX - EXT_R_X_MIN) / GRID_DX) + 1;
+  const extRightMinZ = new Float32Array(EXT_R_NX * WALL_NY);
+
+  const FLOOR_Z_MIN = -10.5;
+  const FLOOR_Z_MAX = 71.5;
+  const FLOOR_NZ = Math.floor((FLOOR_Z_MAX - FLOOR_Z_MIN) / GRID_DZ) + 1;
+  const floorMaxY = new Float32Array(FLOOR_NZ);
+
+  function resetReliefEnvelopeToAnalyticalBaseline() {
+    for (let iz = 0; iz < WALL_NZ; iz++) {
+      const z = WALL_Z_MIN + iz * GRID_DZ;
+      const baseXL = resolveStickerWallProfileX('L', z);
+      const baseXR = resolveStickerWallProfileX('R', z);
+      for (let iy = 0; iy < WALL_NY; iy++) {
+        const idx = iz * WALL_NY + iy;
+        leftWallMaxX[idx] = baseXL;
+        rightWallMinX[idx] = baseXR;
+      }
+    }
+    for (let ix = 0; ix < EXT_L_NX; ix++) {
+      const x = EXT_L_X_MIN + ix * GRID_DX;
+      const baseZ = resolveStickerExteriorWallProfileZ('L', x);
+      for (let iy = 0; iy < WALL_NY; iy++) {
+        extLeftMinZ[ix * WALL_NY + iy] = baseZ;
+      }
+    }
+    for (let ix = 0; ix < EXT_R_NX; ix++) {
+      const x = EXT_R_X_MIN + ix * GRID_DX;
+      const baseZ = resolveStickerExteriorWallProfileZ('R', x);
+      for (let iy = 0; iy < WALL_NY; iy++) {
+        extRightMinZ[ix * WALL_NY + iy] = baseZ;
+      }
+    }
+    for (let iz = 0; iz < FLOOR_NZ; iz++) {
+      const z = FLOOR_Z_MIN + iz * GRID_DZ;
+      floorMaxY[iz] = resolveStickerFloorContourY(z);
+    }
+  }
+  resetReliefEnvelopeToAnalyticalBaseline();
+
+  function splatPointIntoEnvelope(x, y, z, absNx, absNy, absNz) {
+    // 1. Interior Left & Right Walls
+    if (z >= -0.05 && z <= WALL_Z_MAX && y >= 0.15 && y <= WALL_Y_MAX && absNy < 0.85) {
+      const izCenter = Math.round((Math.max(0.0, z) - WALL_Z_MIN) / GRID_DZ);
+      const iyCenter = Math.round((y - WALL_Y_MIN) / GRID_DY);
+      const baseXL = resolveStickerWallProfileX('L', Math.max(0.0, z));
+      const baseXR = resolveStickerWallProfileX('R', Math.max(0.0, z));
+
+      // Left Wall filter: exclude perpendicular entrance gate at Z <= 0.65m (X > -1.45m)
+      const validLeftGate = z > 0.65 || x <= -1.45;
+      if (validLeftGate && x >= baseXL - 0.35 && x <= baseXL + 0.42 && x < -1.15) {
+        for (let dz = -1; dz <= 1; dz++) {
+          const iz = izCenter + dz;
+          if (iz < 0 || iz >= WALL_NZ) continue;
+          for (let dy = -1; dy <= 1; dy++) {
+            const iy = iyCenter + dy;
+            if (iy < 0 || iy >= WALL_NY) continue;
+            const idx = iz * WALL_NY + iy;
+            if (x > leftWallMaxX[idx]) leftWallMaxX[idx] = x;
+          }
+        }
+      }
+
+      // Right Wall filter
+      if (x >= baseXR - 0.42 && x <= baseXR + 0.35 && x > 1.15) {
+        for (let dz = -1; dz <= 1; dz++) {
+          const iz = izCenter + dz;
+          if (iz < 0 || iz >= WALL_NZ) continue;
+          for (let dy = -1; dy <= 1; dy++) {
+            const iy = iyCenter + dy;
+            if (iy < 0 || iy >= WALL_NY) continue;
+            const idx = iz * WALL_NY + iy;
+            if (x < rightWallMinX[idx]) rightWallMinX[idx] = x;
+          }
+        }
+      }
+    }
+
+    // 2. Exterior Left & Right Street-Facing Building Facades (Z in [-1.15m, +0.10m])
+    if (z >= -1.15 && z <= 0.10 && y >= 0.25 && y <= WALL_Y_MAX && absNy < 0.85) {
+      const iyCenter = Math.round((y - WALL_Y_MIN) / GRID_DY);
+      if (x >= EXT_L_X_MIN && x <= -1.55) {
+        const baseZL = resolveStickerExteriorWallProfileZ('L', x);
+        if (z >= baseZL - 0.28 && z <= baseZL + 0.28) {
+          const ixCenter = Math.round((x - EXT_L_X_MIN) / GRID_DX);
+          for (let dx = -1; dx <= 1; dx++) {
+            const ix = ixCenter + dx;
+            if (ix < 0 || ix >= EXT_L_NX) continue;
+            for (let dy = -1; dy <= 1; dy++) {
+              const iy = iyCenter + dy;
+              if (iy < 0 || iy >= WALL_NY) continue;
+              const idx = ix * WALL_NY + iy;
+              if (z < extLeftMinZ[idx]) extLeftMinZ[idx] = z;
+            }
+          }
+        }
+      } else if (x >= 2.20 && x <= EXT_R_X_MAX) {
+        const baseZR = resolveStickerExteriorWallProfileZ('R', x);
+        if (z >= baseZR - 0.28 && z <= baseZR + 0.28) {
+          const ixCenter = Math.round((x - EXT_R_X_MIN) / GRID_DX);
+          for (let dx = -1; dx <= 1; dx++) {
+            const ix = ixCenter + dx;
+            if (ix < 0 || ix >= EXT_R_NX) continue;
+            for (let dy = -1; dy <= 1; dy++) {
+              const iy = iyCenter + dy;
+              if (iy < 0 || iy >= WALL_NY) continue;
+              const idx = ix * WALL_NY + iy;
+              if (z < extRightMinZ[idx]) extRightMinZ[idx] = z;
+            }
+          }
+        }
+      }
+    }
+
+    // 3. Floor (interior & exterior)
+    if (z >= FLOOR_Z_MIN && z <= FLOOR_Z_MAX && absNy >= 0.65) {
+      const baseY = resolveStickerFloorContourY(z);
+      const inCorridorX =
+        z < 0.0
+          ? x >= -9.0 && x <= 9.8
+          : x >= resolveStickerWallProfileX('L', z) + 0.25 && x <= resolveStickerWallProfileX('R', z) - 0.25;
+      if (inCorridorX && y >= baseY - 0.15 && y <= baseY + 0.08) {
+        const izCenter = Math.round((z - FLOOR_Z_MIN) / GRID_DZ);
+        for (let dz = -1; dz <= 1; dz++) {
+          const iz = izCenter + dz;
+          if (iz >= 0 && iz < FLOOR_NZ) {
+            if (y > floorMaxY[iz]) floorMaxY[iz] = y;
+          }
+        }
+      }
+    }
+  }
+
+  let envelopeExtracted = false;
+  function extractVisualSurfaceEnvelope(visualAlleyMesh, reflectorMesh = null) {
+    resetReliefEnvelopeToAnalyticalBaseline();
+    if (!visualAlleyMesh && !reflectorMesh) {
+      return false;
+    }
+
+    const v0 = new THREE.Vector3();
+    const v1 = new THREE.Vector3();
+    const v2 = new THREE.Vector3();
+    const e1 = new THREE.Vector3();
+    const e2 = new THREE.Vector3();
+    const faceN = new THREE.Vector3();
+
+    if (visualAlleyMesh) {
+      visualAlleyMesh.updateMatrixWorld(true);
+      visualAlleyMesh.traverse((child) => {
+        if (!child.isMesh || !child.geometry || !child.geometry.attributes.position) return;
+        const posAttr = child.geometry.attributes.position;
+        const indexAttr = child.geometry.index;
+        const matWorld = child.matrixWorld;
+        const triCount = indexAttr ? Math.floor(indexAttr.count / 3) : Math.floor(posAttr.count / 3);
+
+        for (let t = 0; t < triCount; t++) {
+          const i0 = indexAttr ? indexAttr.getX(t * 3) : t * 3;
+          const i1 = indexAttr ? indexAttr.getX(t * 3 + 1) : t * 3 + 1;
+          const i2 = indexAttr ? indexAttr.getX(t * 3 + 2) : t * 3 + 2;
+
+          v0.fromBufferAttribute(posAttr, i0).applyMatrix4(matWorld);
+          v1.fromBufferAttribute(posAttr, i1).applyMatrix4(matWorld);
+          v2.fromBufferAttribute(posAttr, i2).applyMatrix4(matWorld);
+
+          e1.subVectors(v1, v0);
+          e2.subVectors(v2, v0);
+          faceN.crossVectors(e1, e2);
+          const nLen = faceN.length();
+          if (nLen <= 1e-8) continue;
+          const absNx = Math.abs(faceN.x) / nLen;
+          const absNy = Math.abs(faceN.y) / nLen;
+          const absNz = Math.abs(faceN.z) / nLen;
+
+          const maxEdge = Math.max(e1.length(), e2.length(), v1.distanceTo(v2));
+          const steps = Math.min(8, Math.max(1, Math.ceil(maxEdge / 0.14)));
+
+          for (let su = 0; su <= steps; su++) {
+            const u = su / steps;
+            for (let sv = 0; sv <= steps - su; sv++) {
+              const v = sv / steps;
+              const w = 1.0 - u - v;
+              const px = w * v0.x + u * v1.x + v * v2.x;
+              const py = w * v0.y + u * v1.y + v * v2.y;
+              const pz = w * v0.z + u * v1.z + v * v2.z;
+              splatPointIntoEnvelope(px, py, pz, absNx, absNy, absNz);
+            }
+          }
+        }
+      });
+    }
+
+    if (reflectorMesh && reflectorMesh.geometry && reflectorMesh.geometry.attributes.position) {
+      reflectorMesh.updateMatrixWorld(true);
+      const rPos = reflectorMesh.geometry.attributes.position;
+      const rMat = reflectorMesh.matrixWorld;
+      for (let i = 0; i < rPos.count; i++) {
+        v0.fromBufferAttribute(rPos, i).applyMatrix4(rMat);
+        const izCenter = Math.round((v0.z - FLOOR_Z_MIN) / GRID_DZ);
+        for (let dz = -1; dz <= 1; dz++) {
+          const iz = izCenter + dz;
+          if (iz >= 0 && iz < FLOOR_NZ) {
+            if (v0.y > floorMaxY[iz]) floorMaxY[iz] = v0.y;
+          }
+        }
+      }
+    }
+
+    envelopeExtracted = true;
+    return true;
+  }
+
+  if (options.visualMesh || options.reflectorMesh) {
+    extractVisualSurfaceEnvelope(options.visualMesh, options.reflectorMesh);
+  }
+
+  function sampleLeftWallEnvelopeX(z, y) {
+    const base = resolveStickerWallProfileX('L', z);
+    const iz = Math.max(0, Math.min(WALL_NZ - 1, Math.round((Math.max(0.0, z) - WALL_Z_MIN) / GRID_DZ)));
+    const iy = Math.max(0, Math.min(WALL_NY - 1, Math.round((Math.max(0.0, y) - WALL_Y_MIN) / GRID_DY)));
+    return Math.max(base, leftWallMaxX[iz * WALL_NY + iy]);
+  }
+
+  function sampleRightWallEnvelopeX(z, y) {
+    const base = resolveStickerWallProfileX('R', z);
+    const iz = Math.max(0, Math.min(WALL_NZ - 1, Math.round((Math.max(0.0, z) - WALL_Z_MIN) / GRID_DZ)));
+    const iy = Math.max(0, Math.min(WALL_NY - 1, Math.round((Math.max(0.0, y) - WALL_Y_MIN) / GRID_DY)));
+    return Math.min(base, rightWallMinX[iz * WALL_NY + iy]);
+  }
+
+  function sampleExteriorLeftEnvelopeZ(x, y) {
+    const base = resolveStickerExteriorWallProfileZ('L', x);
+    const ix = Math.max(0, Math.min(EXT_L_NX - 1, Math.round((x - EXT_L_X_MIN) / GRID_DX)));
+    const iy = Math.max(0, Math.min(WALL_NY - 1, Math.round((Math.max(0.0, y) - WALL_Y_MIN) / GRID_DY)));
+    return Math.min(base, extLeftMinZ[ix * WALL_NY + iy]);
+  }
+
+  function sampleExteriorRightEnvelopeZ(x, y) {
+    const base = resolveStickerExteriorWallProfileZ('R', x);
+    const ix = Math.max(0, Math.min(EXT_R_NX - 1, Math.round((x - EXT_R_X_MIN) / GRID_DX)));
+    const iy = Math.max(0, Math.min(WALL_NY - 1, Math.round((Math.max(0.0, y) - WALL_Y_MIN) / GRID_DY)));
+    return Math.min(base, extRightMinZ[ix * WALL_NY + iy]);
+  }
+
+  function sampleFloorEnvelopeY(z) {
+    const base = resolveStickerFloorContourY(z);
+    const iz = Math.max(0, Math.min(FLOOR_NZ - 1, Math.round((z - FLOOR_Z_MIN) / GRID_DZ)));
+    return Math.max(base, floorMaxY[iz]);
+  }
+
+  /**
+   * Evaluates the 9-point footprint (center, 4 corners, 4 edge midpoints) of a sticker in O(1) time
+   * and advances its anchor along the outward surface normal N so that every sample point clears
+   * both the analytical surface and the visual mesh relief envelope by >= minClearanceMeters (Spec 048 §4.4).
+   */
+  function evaluateFootprintClearance(
+    anchorPos,
+    normal,
+    tangentRight,
+    tangentUp,
+    widthMeters,
+    heightMeters,
+    surfaceZone,
+    minClearanceMeters = STICKER_DEFAULT_SIZE_BOUNDS.minSurfaceClearanceMeters
+  ) {
+    const halfW = Math.max(0.01, (Number(widthMeters) || 0.5) * 0.5);
+    const halfH = Math.max(0.01, (Number(heightMeters) || 0.5) * 0.5);
+    const clearance = Number.isFinite(Number(minClearanceMeters))
+      ? Number(minClearanceMeters)
+      : STICKER_DEFAULT_SIZE_BOUNDS.minSurfaceClearanceMeters;
+
+    const nx = normal.x;
+    const ny = normal.y;
+    const nz = normal.z;
+    const zone = String(surfaceZone || '').toLowerCase();
+
+    const isFloor =
+      zone.includes('floor') || Math.abs(ny) >= 0.85;
+    const isExtLeft =
+      zone === 'exterior_wall_left' || ( !isFloor && anchorPos.z < -0.05 && anchorPos.x < 0 );
+    const isExtRight =
+      zone === 'exterior_wall_right' || ( !isFloor && anchorPos.z < -0.05 && anchorPos.x > 0 );
+    const isWallLeft =
+      !isFloor && !isExtLeft && !isExtRight && (zone === 'alley_wall_left' || nx > 0.35);
+    const isWallRight =
+      !isFloor && !isExtLeft && !isExtRight && !isWallLeft && (zone === 'alley_wall_right' || nx < -0.35);
+
+    let maxRequiredShift = 0.0;
+
+    for (let iu = -1; iu <= 1; iu++) {
+      const du = iu * halfW;
+      for (let iv = -1; iv <= 1; iv++) {
+        const dv = iv * halfH;
+        const qx = anchorPos.x + du * tangentRight.x + dv * tangentUp.x;
+        const qy = anchorPos.y + du * tangentRight.y + dv * tangentUp.y;
+        const qz = anchorPos.z + du * tangentRight.z + dv * tangentUp.z;
+
+        let reqShift = 0.0;
+        if (isFloor) {
+          const envY = sampleFloorEnvelopeY(qz);
+          const denom = Math.max(0.5, ny);
+          reqShift = (envY + clearance - qy) / denom;
+        } else if (isWallLeft) {
+          const envX = sampleLeftWallEnvelopeX(qz, qy);
+          const denom = Math.max(0.5, nx);
+          reqShift = (envX + clearance - qx) / denom;
+        } else if (isWallRight) {
+          const envX = sampleRightWallEnvelopeX(qz, qy);
+          const denom = Math.max(0.5, -nx);
+          reqShift = (qx - (envX - clearance)) / denom;
+        } else if (isExtLeft) {
+          if (Math.abs(nz) >= Math.abs(nx)) {
+            const envZ = sampleExteriorLeftEnvelopeZ(qx, qy);
+            const denom = Math.max(0.5, -nz);
+            reqShift = (qz - (envZ - clearance)) / denom;
+          } else {
+            const envX = qz >= -0.60 && qx > -5.0 ? -1.58 : -9.40;
+            const denom = Math.max(0.5, nx);
+            reqShift = (envX + clearance - qx) / denom;
+          }
+        } else if (isExtRight) {
+          if (Math.abs(nz) >= Math.abs(nx)) {
+            const envZ = sampleExteriorRightEnvelopeZ(qx, qy);
+            const denom = Math.max(0.5, -nz);
+            reqShift = (qz - (envZ - clearance)) / denom;
+          } else {
+            const envX = qz >= -0.50 && qx < 5.0 ? 2.23 : 10.20;
+            const denom = Math.max(0.5, -nx);
+            reqShift = (qx - (envX - clearance)) / denom;
+          }
+        }
+
+        if (reqShift > maxRequiredShift) {
+          maxRequiredShift = reqShift;
+        }
+      }
+    }
+
+    const adjustedPosition = anchorPos.clone().addScaledVector(normal, maxRequiredShift);
+    return {
+      adjustedPosition,
+      shiftMeters: Number(maxRequiredShift.toFixed(4)),
+      clearanceMeters: Number((clearance + Math.max(0, maxRequiredShift)).toFixed(4)),
+    };
+  }
+
+  function raycastSurface(raycaster, normalOffsetMeters = STICKER_DEFAULT_SIZE_BOUNDS.normalOffsetMeters) {
+    group.updateMatrixWorld(true);
+    const hits = raycaster.intersectObjects(raycastTargets, false);
+    if (!hits || hits.length === 0) {
+      return null;
+    }
+    const hit = hits[0];
+    const obj = hit.object;
+    const hitPoint = hit.point.clone();
+
+    // Retrieve the calibrated outward surface normal from the vertex normal attribute (or face normal)
+    const normal = new THREE.Vector3(0, 1, 0);
+    const normAttr = obj.geometry && obj.geometry.attributes && obj.geometry.attributes.normal;
+    if (normAttr && hit.face && typeof hit.face.a === 'number') {
+      normal.fromBufferAttribute(normAttr, hit.face.a).transformDirection(obj.matrixWorld).normalize();
+    } else if (hit.face && hit.face.normal) {
+      normal.copy(hit.face.normal).transformDirection(obj.matrixWorld).normalize();
+    }
+    // Enforce exact plumb wall normals (|Ny| <= 1e-6) and zero-roll floor normals (|Nx| <= 1e-6) (AC-01)
+    const rawZone = obj.userData.surfaceZone || 'alley_wall_left';
+    if (rawZone === 'floor') {
+      if (normal.y < 0) normal.negate();
+      normal.x = 0.0;
+      normal.normalize();
+    } else {
+      normal.y = 0.0;
+      normal.normalize();
+      if (rawZone === 'alley_wall_left' && normal.x < 0) {
+        normal.negate();
+      } else if (rawZone === 'alley_wall_right' && normal.x > 0 && Math.abs(normal.x) > Math.abs(normal.z)) {
+        normal.negate();
+      } else if ((rawZone === 'exterior_wall_left' || rawZone === 'exterior_wall_right') && Math.abs(normal.z) > Math.abs(normal.x) && normal.z > 0) {
+        normal.negate();
+      }
+    }
+
+    const resolvedZone =
+      rawZone === 'floor'
+        ? hitPoint.z < 0.0
+          ? 'exterior_floor'
+          : 'alley_floor'
+        : rawZone;
+
+    const ZONE_LABELS = {
+      alley_wall_left: 'Left Alley Wall (Interior)',
+      alley_wall_right: 'Right Alley Wall (Interior)',
+      exterior_wall_left: 'Left Exterior Facade',
+      exterior_wall_right: 'Right Exterior Facade',
+      alley_floor: 'Alley Floor (Interior)',
+      exterior_floor: 'Exterior Forecourt Floor',
+      bound_start: 'Alley Entrance Threshold',
+      bound_end: 'Far Alley Boundary Wall',
+    };
+    const surfaceLabel = ZONE_LABELS[resolvedZone] || obj.name;
+
+    const surfacePoint = hitPoint.clone().addScaledVector(normal, normalOffsetMeters);
+    return {
+      hitPoint,
+      surfacePoint,
+      normal,
+      surfaceZone: resolvedZone,
+      surfaceId: obj.name,
+      surfaceLabel,
+      colliderName: obj.name,
+      distance: hit.distance,
+    };
+  }
+
+  return {
+    group,
+    meshes,
+    raycastTargets,
+    surfaceMat,
+    raycastSurface,
+    extractVisualSurfaceEnvelope,
+    evaluateFootprintClearance,
+    sampleLeftWallEnvelopeX,
+    sampleRightWallEnvelopeX,
+    sampleExteriorLeftEnvelopeZ,
+    sampleExteriorRightEnvelopeZ,
+    sampleFloorEnvelopeY,
+    get isEnvelopeExtracted() {
+      return envelopeExtracted;
+    },
+    setDebugVisible(visible) {
+      surfaceMat.visible = Boolean(visible);
+      surfaceMat.opacity = visible ? 0.28 : 0.0;
+    },
+  };
+}
+
+// ============================================================================
+// 6. Holographic Stickers System Controller & Interactive Placement (Ticket-006 & Spec 047)
 // ============================================================================
 
 export function buildHolographicStickersSystem(options = {}) {
@@ -1282,30 +2295,896 @@ export function buildHolographicStickersSystem(options = {}) {
   rootGroup.name = 'HolographicStickersRootGroup';
   rootGroup.renderOrder = 12;
 
+  const spawnDefaultCatalog = options.spawnDefaultCatalog !== false;
   const stickers = [];
   const stickersById = {};
   let selectedStickerId = STICKER_ASSET_MANIFEST[0].id;
 
-  for (const assetSpec of STICKER_ASSET_MANIFEST) {
-    const instance = createHolographicStickerInstance(assetSpec, options);
-    rootGroup.add(instance.group);
-    stickers.push(instance);
-    stickersById[assetSpec.id] = instance;
-    stickersById[assetSpec.code] = instance;
-    stickersById[assetSpec.index] = instance;
+  if (spawnDefaultCatalog) {
+    for (const assetSpec of STICKER_ASSET_MANIFEST) {
+      const instance = createHolographicStickerInstance(assetSpec, options);
+      rootGroup.add(instance.group);
+      stickers.push(instance);
+      stickersById[assetSpec.id] = instance;
+      stickersById[assetSpec.code] = instance;
+      stickersById[assetSpec.index] = instance;
+    }
+  }
+
+  // Dedicated group for user-placed stickers and 3D calibration gizmo
+  const placedStickersGroup = new THREE.Group();
+  placedStickersGroup.name = 'PlacedHolographicStickersGroup';
+  placedStickersGroup.renderOrder = 12;
+  rootGroup.add(placedStickersGroup);
+
+  const previewGroup = new THREE.Group();
+  previewGroup.name = 'StickerPlacementPreviewGroup';
+  previewGroup.renderOrder = 14;
+  rootGroup.add(previewGroup);
+
+  // 3D Min/Max Size Calibration Tool Wireframe Reference Group (Spec 047 §5.2)
+  const calibrationGizmoGroup = new THREE.Group();
+  calibrationGizmoGroup.name = 'StickerSizeCalibrationGizmoGroup';
+  calibrationGizmoGroup.visible = false;
+  calibrationGizmoGroup.renderOrder = 15;
+  rootGroup.add(calibrationGizmoGroup);
+
+  function createCalibrationFrameLine(colorHex, renderOrder = 15) {
+    const pts = [
+      new THREE.Vector3(-0.5, -0.5, 0),
+      new THREE.Vector3(0.5, -0.5, 0),
+      new THREE.Vector3(0.5, 0.5, 0),
+      new THREE.Vector3(-0.5, 0.5, 0),
+      new THREE.Vector3(-0.5, -0.5, 0),
+    ];
+    const geom = new THREE.BufferGeometry().setFromPoints(pts);
+    const mat = new THREE.LineBasicMaterial({
+      color: colorHex,
+      depthTest: false,
+      transparent: true,
+      opacity: 0.95,
+    });
+    const line = new THREE.Line(geom, mat);
+    line.renderOrder = renderOrder;
+    return line;
+  }
+
+  const minBoundFrameLine = createCalibrationFrameLine(0x00d5ff, 15); // Cyan: Min Size
+  minBoundFrameLine.name = 'StickerCalibrationMinFrame';
+  const maxBoundFrameLine = createCalibrationFrameLine(0xf59e0b, 15); // Amber: Max Size
+  maxBoundFrameLine.name = 'StickerCalibrationMaxFrame';
+  const curBoundFrameLine = createCalibrationFrameLine(0x10b981, 16); // Emerald: Current Size
+  curBoundFrameLine.name = 'StickerCalibrationCurrentFrame';
+  calibrationGizmoGroup.add(minBoundFrameLine, maxBoundFrameLine, curBoundFrameLine);
+
+  const boundingSurfaces = options.boundingSurfaces || buildStickerBoundingSurfaces(options);
+  if (!options.boundingSurfaces) {
+    rootGroup.add(boundingSurfaces.group);
+  }
+
+  // Size Calibration Tool State
+  let minSize = clampStickerSize(
+    options.minSize ?? STICKER_DEFAULT_SIZE_BOUNDS.minSize,
+    STICKER_DEFAULT_SIZE_BOUNDS.absMinLimit,
+    STICKER_DEFAULT_SIZE_BOUNDS.absMaxLimit
+  );
+  let maxSize = clampStickerSize(
+    options.maxSize ?? STICKER_DEFAULT_SIZE_BOUNDS.maxSize,
+    minSize,
+    STICKER_DEFAULT_SIZE_BOUNDS.absMaxLimit
+  );
+  let currentSize = clampStickerSize(
+    options.defaultSize ?? STICKER_DEFAULT_SIZE_BOUNDS.defaultSize,
+    minSize,
+    maxSize
+  );
+  let currentRotationRad = 0.0;
+  let calibrationToolActive = false;
+
+  // Interactive Placement & Placed Stickers State
+  let placementActive = false;
+  let repositioningStickerId = null;
+  let previewInstance = null;
+  let lastValidPreviewHit = null;
+  let placedCounter = 0;
+  const placedStickers = [];
+  const placedStickersById = {};
+  const placedRaycastTargets = [];
+  let activePlacedStickerId = null;
+
+  function computeScaledDimensionsForAsset(assetIdOrSpec, sizeScalar) {
+    const spec = resolveStickerAssetSpec(assetIdOrSpec);
+    const unitGeom = computeStickerGeometrySpec(spec, { baseHeightMeters: 1.0 });
+    const clampedS = clampStickerSize(sizeScalar, minSize, maxSize);
+    const widthMeters = Number((unitGeom.planeWidthMeters * clampedS).toFixed(4));
+    const heightMeters = Number((unitGeom.planeHeightMeters * clampedS).toFixed(4));
+    return {
+      spec,
+      unitGeom,
+      size: clampedS,
+      widthMeters,
+      heightMeters,
+      croppedAspectRatio: unitGeom.croppedAspectRatio,
+    };
+  }
+
+  function syncCalibrationGizmoTransform() {
+    const targetRecord = activePlacedStickerId ? placedStickersById[activePlacedStickerId] : null;
+    const activeAssetId = targetRecord
+      ? targetRecord.assetId
+      : previewInstance
+        ? previewInstance.spec.id
+        : selectedStickerId;
+    const dimsMin = computeScaledDimensionsForAsset(activeAssetId, minSize);
+    const dimsMax = computeScaledDimensionsForAsset(activeAssetId, maxSize);
+    const activeSize = targetRecord ? targetRecord.size : currentSize;
+    const dimsCur = computeScaledDimensionsForAsset(activeAssetId, activeSize);
+
+    minBoundFrameLine.scale.set(dimsMin.widthMeters, dimsMin.heightMeters, 1.0);
+    maxBoundFrameLine.scale.set(dimsMax.widthMeters, dimsMax.heightMeters, 1.0);
+    curBoundFrameLine.scale.set(dimsCur.widthMeters, dimsCur.heightMeters, 1.0);
+
+    if (targetRecord && targetRecord.instance) {
+      calibrationGizmoGroup.position.copy(targetRecord.instance.group.position);
+      calibrationGizmoGroup.quaternion.copy(targetRecord.instance.group.quaternion);
+    } else if (previewInstance && previewInstance.group.visible) {
+      calibrationGizmoGroup.position.copy(previewInstance.group.position);
+      calibrationGizmoGroup.quaternion.copy(previewInstance.group.quaternion);
+    } else {
+      // Default calibration wall display on Left Alley Wall at Z = 4.2m
+      const defaultWallX = resolveStickerWallProfileX('L', 4.2) + STICKER_DEFAULT_SIZE_BOUNDS.normalOffsetMeters;
+      const basis = computeStickerSurfaceBasis(new THREE.Vector3(1, 0, 0), 0);
+      calibrationGizmoGroup.position.set(defaultWallX, 1.65, 4.2);
+      calibrationGizmoGroup.quaternion.copy(basis.quaternion);
+    }
+    calibrationGizmoGroup.updateMatrixWorld(true);
+  }
+
+  function applyPoseAndSizeToInstance(instance, anchorPosition, normal, rotationRad, sizeScalar, surfaceZone = null) {
+    const clampedS = clampStickerSize(sizeScalar, minSize, maxSize);
+    const croppedAspectRatio = instance.geomSpec ? instance.geomSpec.croppedAspectRatio : 1.0;
+    const widthMeters = Number((croppedAspectRatio * clampedS).toFixed(4));
+    const heightMeters = Number(clampedS.toFixed(4));
+    const dims = {
+      spec: instance.spec,
+      size: clampedS,
+      widthMeters,
+      heightMeters,
+      croppedAspectRatio,
+    };
+    // Instance geometry was built with baseHeightMeters = 1.15 by default; scale relative to geomSpec
+    const scaleFactorX = widthMeters / instance.geomSpec.planeWidthMeters;
+    const scaleFactorY = heightMeters / instance.geomSpec.planeHeightMeters;
+    const basis = computeStickerSurfaceBasis(normal, rotationRad);
+
+    const anchorVec =
+      anchorPosition instanceof THREE.Vector3
+        ? anchorPosition
+        : new THREE.Vector3(
+            Number(anchorPosition?.x) || 0.0,
+            Number(anchorPosition?.y) || 0.0,
+            Number(anchorPosition?.z) || 0.0
+          );
+
+    const clearance =
+      boundingSurfaces && typeof boundingSurfaces.evaluateFootprintClearance === 'function'
+        ? boundingSurfaces.evaluateFootprintClearance(
+            anchorVec,
+            basis.normal,
+            basis.tangentRight,
+            basis.tangentUp,
+            dims.widthMeters,
+            dims.heightMeters,
+            surfaceZone,
+            STICKER_DEFAULT_SIZE_BOUNDS.minSurfaceClearanceMeters
+          )
+        : {
+            adjustedPosition: anchorVec.clone(),
+            shiftMeters: 0.0,
+            clearanceMeters: STICKER_DEFAULT_SIZE_BOUNDS.minSurfaceClearanceMeters,
+          };
+
+    instance.group.position.copy(clearance.adjustedPosition);
+    instance.group.quaternion.copy(basis.quaternion);
+    instance.group.scale.set(scaleFactorX, scaleFactorY, 1.0);
+    instance.material.polygonOffset = true;
+    instance.material.polygonOffsetFactor = -4;
+    instance.material.polygonOffsetUnits = -4;
+    instance.material.depthWrite = false;
+    instance.mesh.renderOrder = 12;
+    instance.group.updateMatrixWorld(true);
+
+    return {
+      basis,
+      dims,
+      adjustedPosition: clearance.adjustedPosition,
+      shiftMeters: clearance.shiftMeters,
+      clearanceMeters: clearance.clearanceMeters,
+    };
+  }
+
+  function ensurePreviewInstance(assetIdOrSpec) {
+    const spec = resolveStickerAssetSpec(assetIdOrSpec || selectedStickerId);
+    if (previewInstance && previewInstance.spec.id !== spec.id) {
+      previewInstance.dispose();
+      previewInstance = null;
+    }
+    if (!previewInstance) {
+      previewInstance = createHolographicStickerInstance(spec, {
+        ...options,
+        floorY: options.floorY || 0.0,
+      });
+      previewInstance.mesh.raycast = () => {}; // Never self-intersect preview during raycast
+      previewGroup.add(previewInstance.group);
+    }
+    return previewInstance;
+  }
+
+  function beginPlacement(assetIdOrSpec = null, initOpts = {}) {
+    if (assetIdOrSpec) {
+      const spec = resolveStickerAssetSpec(assetIdOrSpec);
+      selectedStickerId = spec.id;
+    }
+    repositioningStickerId = initOpts.repositionStickerId || null;
+    if (initOpts.size !== undefined) {
+      currentSize = clampStickerSize(initOpts.size, minSize, maxSize);
+    } else {
+      currentSize = clampStickerSize(currentSize, minSize, maxSize);
+    }
+    if (initOpts.rotationRad !== undefined) {
+      currentRotationRad = normalizeStickerRotationRad(initOpts.rotationRad);
+    }
+
+    placementActive = true;
+    const prev = ensurePreviewInstance(selectedStickerId);
+    prev.group.visible = true;
+
+    // Position preview at initial wall point until first pointer move
+    const fallbackNormal = initOpts.normal || new THREE.Vector3(1, 0, 0);
+    const fallbackAnchor =
+      initOpts.anchorPosition ||
+      initOpts.position ||
+      new THREE.Vector3(
+        resolveStickerWallProfileX('L', 4.5),
+        1.62,
+        4.5
+      );
+    const initZone = initOpts.surfaceZone || 'alley_wall_left';
+    const { adjustedPosition } = applyPoseAndSizeToInstance(
+      prev,
+      fallbackAnchor,
+      fallbackNormal,
+      currentRotationRad,
+      currentSize,
+      initZone
+    );
+    lastValidPreviewHit = {
+      hitPoint: fallbackAnchor.clone(),
+      surfacePoint: adjustedPosition.clone(),
+      normal: fallbackNormal.clone(),
+      surfaceZone: initZone,
+      surfaceId: 'COLLIDER_STICKER_WALL_L',
+      surfaceLabel: initOpts.surfaceLabel || 'Left Alley Wall (Interior)',
+      colliderName: 'COLLIDER_STICKER_WALL_L',
+      distance: 2.5,
+    };
+    if (calibrationToolActive) {
+      syncCalibrationGizmoTransform();
+    }
+    return prev;
+  }
+
+  function updatePlacementPreviewFromRay(raycaster) {
+    if (!placementActive) return null;
+    const hit = boundingSurfaces.raycastSurface(
+      raycaster,
+      STICKER_DEFAULT_SIZE_BOUNDS.normalOffsetMeters
+    );
+    if (!hit) {
+      return null;
+    }
+    const prev = ensurePreviewInstance(selectedStickerId);
+    prev.group.visible = true;
+    const { adjustedPosition, clearanceMeters } = applyPoseAndSizeToInstance(
+      prev,
+      hit.hitPoint,
+      hit.normal,
+      currentRotationRad,
+      currentSize,
+      hit.surfaceZone
+    );
+    hit.surfacePoint.copy(adjustedPosition);
+    hit.clearanceMeters = clearanceMeters;
+    lastValidPreviewHit = hit;
+    if (calibrationToolActive) {
+      syncCalibrationGizmoTransform();
+    }
+    return hit;
+  }
+
+  function cancelPlacement() {
+    placementActive = false;
+    repositioningStickerId = null;
+    if (previewInstance) {
+      previewInstance.group.visible = false;
+    }
+    if (calibrationToolActive) {
+      syncCalibrationGizmoTransform();
+    }
+  }
+
+  function placeStickerAt(placeOpts = {}) {
+    const spec = resolveStickerAssetSpec(placeOpts.stickerId || placeOpts.assetId || selectedStickerId);
+    const normal = placeOpts.normal
+      ? new THREE.Vector3(placeOpts.normal.x, placeOpts.normal.y, placeOpts.normal.z).normalize()
+      : lastValidPreviewHit
+        ? lastValidPreviewHit.normal.clone()
+        : new THREE.Vector3(1, 0, 0);
+
+    // Enforce exact plumb wall normal (|Ny| <= 1e-6) or zero-roll floor normal (|Nx| <= 1e-6) (AC-01)
+    if (Math.abs(normal.y) >= 0.85) {
+      if (normal.y < 0) normal.negate();
+      normal.x = 0.0;
+      normal.normalize();
+    } else {
+      normal.y = 0.0;
+      normal.normalize();
+    }
+
+    const anchorPoint = placeOpts.anchorPosition
+      ? new THREE.Vector3(placeOpts.anchorPosition.x, placeOpts.anchorPosition.y, placeOpts.anchorPosition.z)
+      : placeOpts.position
+        ? new THREE.Vector3(placeOpts.position.x, placeOpts.position.y, placeOpts.position.z)
+        : lastValidPreviewHit
+          ? lastValidPreviewHit.hitPoint.clone()
+          : new THREE.Vector3(
+              resolveStickerWallProfileX('L', 4.5),
+              1.62,
+              4.5
+            );
+
+    const rotRad = normalizeStickerRotationRad(
+      placeOpts.rotationRad !== undefined
+        ? placeOpts.rotationRad
+        : placeOpts.rotationDeg !== undefined
+          ? THREE.MathUtils.degToRad(placeOpts.rotationDeg)
+          : currentRotationRad
+    );
+    const rawSizeInput =
+      placeOpts.sizeMeters !== undefined
+        ? placeOpts.sizeMeters
+        : placeOpts.size !== undefined
+          ? placeOpts.size
+          : currentSize;
+    const clampedS = clampStickerSize(rawSizeInput, minSize, maxSize);
+    const colliderName =
+      placeOpts.surfaceId ||
+      placeOpts.colliderName ||
+      (lastValidPreviewHit ? lastValidPreviewHit.colliderName : 'COLLIDER_STICKER_WALL_L');
+
+    let inferredZone = placeOpts.surfaceZone || (lastValidPreviewHit ? lastValidPreviewHit.surfaceZone : null);
+    if (!inferredZone || placeOpts.surfaceId || placeOpts.colliderName || placeOpts.position || placeOpts.normal) {
+      if (placeOpts.surfaceZone) {
+        inferredZone = placeOpts.surfaceZone;
+      } else if (colliderName === 'COLLIDER_STICKER_FLOOR' || Math.abs(normal.y) >= 0.85) {
+        inferredZone = anchorPoint.z < 0.0 ? 'exterior_floor' : 'alley_floor';
+      } else if (colliderName === 'COLLIDER_STICKER_EXTERIOR_L' || (anchorPoint.z < -0.05 && anchorPoint.x < 0)) {
+        inferredZone = 'exterior_wall_left';
+      } else if (colliderName === 'COLLIDER_STICKER_EXTERIOR_R' || (anchorPoint.z < -0.05 && anchorPoint.x > 0)) {
+        inferredZone = 'exterior_wall_right';
+      } else if (colliderName === 'COLLIDER_STICKER_WALL_R' || normal.x < -0.35) {
+        inferredZone = 'alley_wall_right';
+      } else {
+        inferredZone = 'alley_wall_left';
+      }
+    }
+    const surfaceZone = inferredZone;
+    const surfaceLabel =
+      placeOpts.surfaceLabel ||
+      (lastValidPreviewHit && lastValidPreviewHit.surfaceLabel
+        ? lastValidPreviewHit.surfaceLabel
+        : colliderName);
+
+    // If repositioning an existing placed sticker or re-hydrating/updating an existing placedId, update it in place
+    const existingTargetId =
+      placeOpts.placedId && placedStickersById[placeOpts.placedId]
+        ? placeOpts.placedId
+        : repositioningStickerId && placedStickersById[repositioningStickerId]
+          ? repositioningStickerId
+          : null;
+
+    if (existingTargetId && placedStickersById[existingTargetId]) {
+      const existing = placedStickersById[existingTargetId];
+      const { basis, dims, adjustedPosition, clearanceMeters } = applyPoseAndSizeToInstance(
+        existing.instance,
+        anchorPoint,
+        normal,
+        rotRad,
+        clampedS,
+        surfaceZone
+      );
+      existing.anchorPosition = {
+        x: Number(anchorPoint.x.toFixed(4)),
+        y: Number(anchorPoint.y.toFixed(4)),
+        z: Number(anchorPoint.z.toFixed(4)),
+      };
+      existing.position = {
+        x: Number(adjustedPosition.x.toFixed(4)),
+        y: Number(adjustedPosition.y.toFixed(4)),
+        z: Number(adjustedPosition.z.toFixed(4)),
+      };
+      existing.normal = {
+        x: Number(basis.normal.x.toFixed(6)),
+        y: Number(basis.normal.y.toFixed(6)),
+        z: Number(basis.normal.z.toFixed(6)),
+      };
+      existing.rotationRad = rotRad;
+      existing.rotationDeg = Number(THREE.MathUtils.radToDeg(rotRad).toFixed(2));
+      existing.size = clampedS;
+      existing.sizeMeters = clampedS;
+      existing.widthMeters = dims.widthMeters;
+      existing.heightMeters = dims.heightMeters;
+      existing.clearanceMeters = clearanceMeters;
+      existing.surfaceZone = surfaceZone;
+      existing.surfaceId = colliderName;
+      existing.surfaceLabel = surfaceLabel;
+      existing.colliderName = colliderName;
+      existing.wallSide =
+        placeOpts.wallSide || (basis.normal.x > 0.5 ? 'L' : basis.normal.x < -0.5 ? 'R' : 'FLOOR');
+      if (typeof placeOpts.tagger === 'string') {
+        existing.tagger = placeOpts.tagger.trim().slice(0, 64);
+      }
+      if (typeof placeOpts.message === 'string') {
+        existing.message = placeOpts.message.trim().slice(0, 280);
+      }
+      const nextUpdatedAt = Number(placeOpts.updatedAt);
+      existing.updatedAt =
+        Number.isFinite(nextUpdatedAt) && nextUpdatedAt > 0
+          ? Math.max(existing.updatedAt || 0, nextUpdatedAt)
+          : Math.max(Date.now(), (existing.updatedAt || 0) + 1);
+      existing.normalDotProduct = Number(
+        new THREE.Vector3(0, 0, 1)
+          .applyQuaternion(existing.instance.group.quaternion)
+          .dot(basis.normal)
+          .toFixed(6)
+      );
+
+      if (placeOpts.selectOnPlace !== false) {
+        activePlacedStickerId = existing.placedId;
+      }
+      if (repositioningStickerId === existingTargetId) {
+        cancelPlacement();
+      }
+      if (calibrationToolActive) {
+        syncCalibrationGizmoTransform();
+      }
+      return existing;
+    }
+
+    placedCounter += 1;
+    let placedId = placeOpts.placedId ? String(placeOpts.placedId).trim() : '';
+    if (placedId) {
+      const mNum = placedId.match(/^placed_sticker_(\d+)$/);
+      if (mNum) {
+        placedCounter = Math.max(placedCounter, Number(mNum[1]));
+      }
+    } else {
+      const randSuffix = Math.random().toString(36).slice(2, 8);
+      placedId = `placed_sticker_${Date.now()}_${randSuffix}_${placedCounter}`;
+    }
+    const instance = createHolographicStickerInstance(spec, {
+      ...options,
+      floorY: options.floorY || 0.0,
+    });
+    const { basis, dims, adjustedPosition, clearanceMeters } = applyPoseAndSizeToInstance(
+      instance,
+      anchorPoint,
+      normal,
+      rotRad,
+      clampedS,
+      surfaceZone
+    );
+
+    instance.group.name = `PlacedStickerGroup_${placedId}_${spec.id}`;
+    instance.mesh.name = `PlacedStickerMesh_${placedId}_${spec.id}`;
+    instance.mesh.userData.isPlacedSticker = true;
+    instance.mesh.userData.placedStickerId = placedId;
+    instance.mesh.userData.stickerAssetId = spec.id;
+
+    placedStickersGroup.add(instance.group);
+    placedRaycastTargets.push(instance.mesh);
+
+    const stickerWorldNormal = new THREE.Vector3(0, 0, 1)
+      .applyQuaternion(instance.group.quaternion)
+      .normalize();
+    const normalDotProduct = Number(stickerWorldNormal.dot(basis.normal).toFixed(6));
+
+    const nowMs = Date.now();
+    const parsedCreatedAt = Number(placeOpts.createdAt);
+    const parsedUpdatedAt = Number(placeOpts.updatedAt);
+
+    const record = {
+      placedId,
+      assetId: spec.id,
+      stickerId: spec.id,
+      code: spec.code,
+      label: spec.label || spec.id.replace(/_/g, ' ').toUpperCase(),
+      instance,
+      anchorPosition: {
+        x: Number(anchorPoint.x.toFixed(4)),
+        y: Number(anchorPoint.y.toFixed(4)),
+        z: Number(anchorPoint.z.toFixed(4)),
+      },
+      position: {
+        x: Number(adjustedPosition.x.toFixed(4)),
+        y: Number(adjustedPosition.y.toFixed(4)),
+        z: Number(adjustedPosition.z.toFixed(4)),
+      },
+      normal: {
+        x: Number(basis.normal.x.toFixed(6)),
+        y: Number(basis.normal.y.toFixed(6)),
+        z: Number(basis.normal.z.toFixed(6)),
+      },
+      normalDotProduct,
+      clearanceMeters,
+      rotationRad: rotRad,
+      rotationDeg: Number(THREE.MathUtils.radToDeg(rotRad).toFixed(2)),
+      size: clampedS,
+      sizeMeters: clampedS,
+      widthMeters: dims.widthMeters,
+      heightMeters: dims.heightMeters,
+      croppedAspectRatio: dims.croppedAspectRatio,
+      surfaceZone,
+      surfaceId: colliderName,
+      surfaceLabel,
+      surfaceCategory: placeOpts.surfaceCategory || surfaceZone,
+      wallSide: placeOpts.wallSide || (basis.normal.x > 0.5 ? 'L' : basis.normal.x < -0.5 ? 'R' : 'FLOOR'),
+      colliderName,
+      tagger: typeof placeOpts.tagger === 'string' ? placeOpts.tagger.trim().slice(0, 64) : '',
+      message: typeof placeOpts.message === 'string' ? placeOpts.message.trim().slice(0, 280) : '',
+      createdAt: Number.isFinite(parsedCreatedAt) && parsedCreatedAt > 0 ? parsedCreatedAt : nowMs,
+      updatedAt: Number.isFinite(parsedUpdatedAt) && parsedUpdatedAt > 0 ? parsedUpdatedAt : nowMs,
+    };
+
+    placedStickers.push(record);
+    placedStickersById[placedId] = record;
+    if (placeOpts.selectOnPlace !== false || !activePlacedStickerId) {
+      activePlacedStickerId = placedId;
+    }
+
+    if (placementActive && placeOpts.selectOnPlace !== false) {
+      cancelPlacement();
+    }
+    if (calibrationToolActive) {
+      syncCalibrationGizmoTransform();
+    }
+    return record;
+  }
+
+  function commitPlacement(commitOpts = {}) {
+    if (!placementActive && !commitOpts.force) return null;
+    return placeStickerAt(commitOpts);
+  }
+
+  function selectPlacedSticker(placedId) {
+    if (!placedId || !placedStickersById[placedId]) {
+      activePlacedStickerId = null;
+      return null;
+    }
+    activePlacedStickerId = placedId;
+    const rec = placedStickersById[placedId];
+    currentSize = rec.size;
+    currentRotationRad = rec.rotationRad;
+    selectedStickerId = rec.assetId;
+    if (calibrationToolActive) {
+      syncCalibrationGizmoTransform();
+    }
+    return rec;
+  }
+
+  function rotateActiveOrPlacedSticker(rotationRadOrDelta, opts = {}) {
+    const isDelta = typeof opts === 'boolean' ? opts : Boolean(opts && opts.isDelta);
+    const targetId = (opts && typeof opts === 'object' ? opts.placedId : null) || activePlacedStickerId;
+    const rec = targetId ? placedStickersById[targetId] : null;
+
+    if (placementActive || !rec) {
+      const baseRot = isDelta ? currentRotationRad + Number(rotationRadOrDelta || 0) : Number(rotationRadOrDelta || 0);
+      currentRotationRad = normalizeStickerRotationRad(baseRot);
+      if (previewInstance && lastValidPreviewHit) {
+        const { adjustedPosition, clearanceMeters } = applyPoseAndSizeToInstance(
+          previewInstance,
+          lastValidPreviewHit.hitPoint || lastValidPreviewHit.surfacePoint,
+          lastValidPreviewHit.normal,
+          currentRotationRad,
+          currentSize,
+          lastValidPreviewHit.surfaceZone
+        );
+        lastValidPreviewHit.surfacePoint.copy(adjustedPosition);
+        lastValidPreviewHit.clearanceMeters = clearanceMeters;
+      }
+      if (calibrationToolActive) {
+        syncCalibrationGizmoTransform();
+      }
+      return currentRotationRad;
+    }
+
+    const nextRot = normalizeStickerRotationRad(
+      isDelta ? rec.rotationRad + Number(rotationRadOrDelta || 0) : Number(rotationRadOrDelta || 0)
+    );
+    rec.rotationRad = nextRot;
+    rec.rotationDeg = Number(THREE.MathUtils.radToDeg(nextRot).toFixed(2));
+    currentRotationRad = nextRot;
+    const baseAnchor = rec.anchorPosition || rec.position;
+    const { adjustedPosition, clearanceMeters } = applyPoseAndSizeToInstance(
+      rec.instance,
+      new THREE.Vector3(baseAnchor.x, baseAnchor.y, baseAnchor.z),
+      new THREE.Vector3(rec.normal.x, rec.normal.y, rec.normal.z),
+      rec.rotationRad,
+      rec.size,
+      rec.surfaceZone
+    );
+    rec.position = {
+      x: Number(adjustedPosition.x.toFixed(4)),
+      y: Number(adjustedPosition.y.toFixed(4)),
+      z: Number(adjustedPosition.z.toFixed(4)),
+    };
+    rec.clearanceMeters = clearanceMeters;
+    rec.updatedAt = Math.max(Date.now(), (rec.updatedAt || 0) + 1);
+    if (calibrationToolActive) {
+      syncCalibrationGizmoTransform();
+    }
+    return rec.rotationRad;
+  }
+
+  function resizeActiveOrPlacedSticker(sizeOrDelta, opts = {}) {
+    const isDelta = typeof opts === 'boolean' ? opts : Boolean(opts && opts.isDelta);
+    const targetId = (opts && typeof opts === 'object' ? opts.placedId : null) || activePlacedStickerId;
+    const rec = targetId ? placedStickersById[targetId] : null;
+
+    if (placementActive || !rec) {
+      const rawNext = isDelta ? currentSize + Number(sizeOrDelta || 0) : Number(sizeOrDelta || currentSize);
+      currentSize = clampStickerSize(rawNext, minSize, maxSize);
+      if (previewInstance && lastValidPreviewHit) {
+        const { adjustedPosition, clearanceMeters } = applyPoseAndSizeToInstance(
+          previewInstance,
+          lastValidPreviewHit.hitPoint || lastValidPreviewHit.surfacePoint,
+          lastValidPreviewHit.normal,
+          currentRotationRad,
+          currentSize,
+          lastValidPreviewHit.surfaceZone
+        );
+        lastValidPreviewHit.surfacePoint.copy(adjustedPosition);
+        lastValidPreviewHit.clearanceMeters = clearanceMeters;
+      }
+      if (calibrationToolActive) {
+        syncCalibrationGizmoTransform();
+      }
+      return currentSize;
+    }
+
+    const rawNext = isDelta ? rec.size + Number(sizeOrDelta || 0) : Number(sizeOrDelta || rec.size);
+    const clampedS = clampStickerSize(rawNext, minSize, maxSize);
+    const baseAnchor = rec.anchorPosition || rec.position;
+    const { dims, adjustedPosition, clearanceMeters } = applyPoseAndSizeToInstance(
+      rec.instance,
+      new THREE.Vector3(baseAnchor.x, baseAnchor.y, baseAnchor.z),
+      new THREE.Vector3(rec.normal.x, rec.normal.y, rec.normal.z),
+      rec.rotationRad,
+      clampedS,
+      rec.surfaceZone
+    );
+    rec.position = {
+      x: Number(adjustedPosition.x.toFixed(4)),
+      y: Number(adjustedPosition.y.toFixed(4)),
+      z: Number(adjustedPosition.z.toFixed(4)),
+    };
+    rec.clearanceMeters = clearanceMeters;
+    rec.size = clampedS;
+    rec.sizeMeters = clampedS;
+    rec.widthMeters = dims.widthMeters;
+    rec.heightMeters = dims.heightMeters;
+    rec.updatedAt = Math.max(Date.now(), (rec.updatedAt || 0) + 1);
+    currentSize = clampedS;
+    if (calibrationToolActive) {
+      syncCalibrationGizmoTransform();
+    }
+    return rec.size;
+  }
+
+  function setSizeBounds(newMinSize, newMaxSize) {
+    let rawMin = newMinSize;
+    let rawMax = newMaxSize;
+    if (newMinSize && typeof newMinSize === 'object') {
+      rawMin = newMinSize.minSize;
+      rawMax = newMinSize.maxSize;
+    }
+    const normalized = normalizeStickerSizeBounds(
+      rawMin !== undefined ? rawMin : minSize,
+      rawMax !== undefined ? rawMax : maxSize
+    );
+    minSize = normalized.minSize;
+    maxSize = normalized.maxSize;
+    currentSize = clampStickerSize(currentSize, minSize, maxSize);
+
+    // Clamp preview and all placed stickers to new [minSize, maxSize]
+    if (previewInstance && lastValidPreviewHit) {
+      const { adjustedPosition, clearanceMeters } = applyPoseAndSizeToInstance(
+        previewInstance,
+        lastValidPreviewHit.hitPoint || lastValidPreviewHit.surfacePoint,
+        lastValidPreviewHit.normal,
+        currentRotationRad,
+        currentSize,
+        lastValidPreviewHit.surfaceZone
+      );
+      lastValidPreviewHit.surfacePoint.copy(adjustedPosition);
+      lastValidPreviewHit.clearanceMeters = clearanceMeters;
+    }
+    for (const rec of placedStickers) {
+      if (rec.size < minSize || rec.size > maxSize) {
+        const clampedS = clampStickerSize(rec.size, minSize, maxSize);
+        const baseAnchor = rec.anchorPosition || rec.position;
+        const { dims, adjustedPosition, clearanceMeters } = applyPoseAndSizeToInstance(
+          rec.instance,
+          new THREE.Vector3(baseAnchor.x, baseAnchor.y, baseAnchor.z),
+          new THREE.Vector3(rec.normal.x, rec.normal.y, rec.normal.z),
+          rec.rotationRad,
+          clampedS,
+          rec.surfaceZone
+        );
+        rec.position = {
+          x: Number(adjustedPosition.x.toFixed(4)),
+          y: Number(adjustedPosition.y.toFixed(4)),
+          z: Number(adjustedPosition.z.toFixed(4)),
+        };
+        rec.clearanceMeters = clearanceMeters;
+        rec.size = clampedS;
+        rec.sizeMeters = clampedS;
+        rec.widthMeters = dims.widthMeters;
+        rec.heightMeters = dims.heightMeters;
+      }
+    }
+    syncCalibrationGizmoTransform();
+    return { minSize, maxSize, currentSize, defaultSize: currentSize, calibrationToolActive };
+  }
+
+  function syncVisualEnvelope(visualMesh, reflectorMesh = null) {
+    if (!boundingSurfaces || typeof boundingSurfaces.extractVisualSurfaceEnvelope !== 'function') {
+      return false;
+    }
+    const ok = boundingSurfaces.extractVisualSurfaceEnvelope(visualMesh, reflectorMesh);
+    for (const rec of placedStickers) {
+      const baseAnchor = rec.anchorPosition || rec.position;
+      const { adjustedPosition, clearanceMeters } = applyPoseAndSizeToInstance(
+        rec.instance,
+        new THREE.Vector3(baseAnchor.x, baseAnchor.y, baseAnchor.z),
+        new THREE.Vector3(rec.normal.x, rec.normal.y, rec.normal.z),
+        rec.rotationRad,
+        rec.size,
+        rec.surfaceZone
+      );
+      rec.position = {
+        x: Number(adjustedPosition.x.toFixed(4)),
+        y: Number(adjustedPosition.y.toFixed(4)),
+        z: Number(adjustedPosition.z.toFixed(4)),
+      };
+      rec.clearanceMeters = clearanceMeters;
+    }
+    return ok;
+  }
+
+  function captureCurrentAsMinSize() {
+    const refSize =
+      activePlacedStickerId && placedStickersById[activePlacedStickerId]
+        ? placedStickersById[activePlacedStickerId].size
+        : currentSize;
+    const nextMax = Math.max(maxSize, Number((refSize + 0.05).toFixed(4)));
+    return setSizeBounds(refSize, nextMax);
+  }
+
+  function captureCurrentAsMaxSize() {
+    const refSize =
+      activePlacedStickerId && placedStickersById[activePlacedStickerId]
+        ? placedStickersById[activePlacedStickerId].size
+        : currentSize;
+    const nextMin = Math.min(minSize, Math.max(0.05, Number((refSize - 0.05).toFixed(4))));
+    return setSizeBounds(nextMin, refSize);
+  }
+
+  function toggleCalibrationTool(forceState = undefined) {
+    calibrationToolActive =
+      typeof forceState === 'boolean' ? forceState : !calibrationToolActive;
+    calibrationGizmoGroup.visible = calibrationToolActive;
+    if (calibrationToolActive) {
+      syncCalibrationGizmoTransform();
+    }
+    return calibrationToolActive;
+  }
+
+  function setStickerTagAndMessage(placedId, tagger, message) {
+    const targetId = placedId || activePlacedStickerId;
+    const rec = targetId ? placedStickersById[targetId] : null;
+    if (!rec) return null;
+    let rawTagger = tagger;
+    let rawMessage = message;
+    if (tagger && typeof tagger === 'object') {
+      rawTagger = tagger.tagger;
+      rawMessage = tagger.message;
+    }
+    const cleanTagger = String(rawTagger ?? '').trim().slice(0, 64);
+    const cleanMessage = String(rawMessage ?? '').trim().slice(0, 280);
+    rec.tagger = cleanTagger || 'ANONYMOUS';
+    rec.message = cleanMessage;
+    rec.updatedAt = Math.max(Date.now(), (rec.updatedAt || 0) + 1);
+    return rec;
+  }
+
+  function deletePlacedSticker(placedId) {
+    const targetId = placedId || activePlacedStickerId;
+    const rec = targetId ? placedStickersById[targetId] : null;
+    if (!rec) return false;
+    const idx = placedStickers.indexOf(rec);
+    if (idx !== -1) placedStickers.splice(idx, 1);
+    const rIdx = placedRaycastTargets.indexOf(rec.instance.mesh);
+    if (rIdx !== -1) placedRaycastTargets.splice(rIdx, 1);
+    delete placedStickersById[targetId];
+    rec.instance.dispose();
+    if (activePlacedStickerId === targetId) {
+      activePlacedStickerId = placedStickers.length > 0 ? placedStickers[placedStickers.length - 1].placedId : null;
+    }
+    if (calibrationToolActive) {
+      syncCalibrationGizmoTransform();
+    }
+    return true;
+  }
+
+  function beginRepositionPlacedSticker(placedId) {
+    const targetId = placedId || activePlacedStickerId;
+    const rec = targetId ? placedStickersById[targetId] : null;
+    if (!rec) return null;
+    const baseAnchor = rec.anchorPosition || rec.position;
+    return beginPlacement(rec.assetId, {
+      repositionStickerId: rec.placedId,
+      size: rec.size,
+      rotationRad: rec.rotationRad,
+      anchorPosition: new THREE.Vector3(baseAnchor.x, baseAnchor.y, baseAnchor.z),
+      position: new THREE.Vector3(rec.position.x, rec.position.y, rec.position.z),
+      normal: new THREE.Vector3(rec.normal.x, rec.normal.y, rec.normal.z),
+      surfaceZone: rec.surfaceZone,
+      surfaceLabel: rec.surfaceLabel,
+    });
+  }
+
+  function raycastPlacedStickers(raycaster) {
+    if (placedRaycastTargets.length === 0) return [];
+    const hits = raycaster.intersectObjects(placedRaycastTargets, false);
+    if (!hits || hits.length === 0) return [];
+    const results = [];
+    for (const h of hits) {
+      const hitId = h.object.userData.placedStickerId;
+      if (hitId && placedStickersById[hitId]) {
+        results.push({
+          placedSticker: placedStickersById[hitId],
+          hit: h,
+        });
+      }
+    }
+    return results;
   }
 
   function getSticker(idOrIndex) {
     if (idOrIndex === undefined || idOrIndex === null) {
-      return stickersById[selectedStickerId] || stickers[0];
+      return stickersById[selectedStickerId] || stickers[0] || null;
     }
     return stickersById[idOrIndex] || null;
   }
 
   function setSelectedSticker(idOrIndex) {
-    const s = getSticker(idOrIndex);
-    if (s) {
-      selectedStickerId = s.spec.id;
+    const spec = STICKER_ASSET_BY_ID[idOrIndex];
+    if (spec) {
+      selectedStickerId = spec.id;
+      if (placementActive) {
+        beginPlacement(spec.id);
+      }
       return true;
     }
     return false;
@@ -1342,6 +3221,9 @@ export function buildHolographicStickersSystem(options = {}) {
     for (const s of stickers) {
       s.setMaterialParams(partialParams);
     }
+    for (const p of placedStickers) {
+      p.instance.setMaterialParams(partialParams);
+    }
     return true;
   }
 
@@ -1355,6 +3237,12 @@ export function buildHolographicStickersSystem(options = {}) {
     const lightDir = isLightVector ? activeChar : new THREE.Vector3(0.4, 0.8, 0.4);
     for (const s of stickers) {
       s.update(dt, elapsedTime, camera, lightDir);
+    }
+    for (const p of placedStickers) {
+      p.instance.update(dt, elapsedTime, camera, lightDir);
+    }
+    if (previewInstance && previewInstance.group.visible) {
+      previewInstance.update(dt, elapsedTime, camera, lightDir);
     }
   }
 
@@ -1374,6 +3262,7 @@ export function buildHolographicStickersSystem(options = {}) {
       else floatingCount++;
     }
 
+    const activePlaced = activePlacedStickerId ? placedStickersById[activePlacedStickerId] : null;
     return {
       totalCount: stickers.length,
       activeCount,
@@ -1383,21 +3272,91 @@ export function buildHolographicStickersSystem(options = {}) {
       groupBCount,
       selectedStickerId,
       selectedTelemetry: stickersById[selectedStickerId] ? stickersById[selectedStickerId].getTelemetry() : null,
+      placementActive,
+      calibrationToolActive,
+      minSize,
+      maxSize,
+      currentSize,
+      currentRotationRad,
+      placedCount: placedStickers.length,
+      activePlacedStickerId,
+      activePlacedSticker: activePlaced
+        ? {
+            placedId: activePlaced.placedId,
+            assetId: activePlaced.assetId,
+            code: activePlaced.code,
+            anchorPosition: activePlaced.anchorPosition ? { ...activePlaced.anchorPosition } : { ...activePlaced.position },
+            position: { ...activePlaced.position },
+            normal: { ...activePlaced.normal },
+            normalDotProduct: activePlaced.normalDotProduct,
+            clearanceMeters: activePlaced.clearanceMeters,
+            rotationRad: activePlaced.rotationRad,
+            size: activePlaced.size,
+            widthMeters: activePlaced.widthMeters,
+            heightMeters: activePlaced.heightMeters,
+            croppedAspectRatio: activePlaced.croppedAspectRatio,
+            surfaceZone: activePlaced.surfaceZone,
+            tagger: activePlaced.tagger,
+            message: activePlaced.message,
+          }
+        : null,
     };
+  }
+
+  function exportSizeConfigJSON() {
+    return JSON.stringify(
+      {
+        minSize,
+        maxSize,
+        currentSize,
+        placedCount: placedStickers.length,
+        placedStickers: placedStickers.map((p) => ({
+          placedId: p.placedId,
+          assetId: p.assetId,
+          anchorPosition: p.anchorPosition || p.position,
+          position: p.position,
+          normal: p.normal,
+          clearanceMeters: p.clearanceMeters,
+          rotationRad: p.rotationRad,
+          size: p.size,
+          surfaceZone: p.surfaceZone,
+          tagger: p.tagger,
+          message: p.message,
+        })),
+      },
+      null,
+      2
+    );
   }
 
   function dispose() {
     for (const s of stickers) {
       s.dispose();
     }
+    for (const p of placedStickers) {
+      p.instance.dispose();
+    }
+    if (previewInstance) {
+      previewInstance.dispose();
+      previewInstance = null;
+    }
     stickers.length = 0;
+    placedStickers.length = 0;
+    placedRaycastTargets.length = 0;
     rootGroup.clear();
   }
 
   return {
     rootGroup,
+    placedStickersGroup,
+    previewGroup,
+    calibrationGizmoGroup,
+    boundingSurfaces,
     stickers,
     stickersById,
+    placedStickers,
+    placedStickersById,
+    placedRaycastTargets,
     totalCount: stickers.length,
     getSticker,
     setSelectedSticker,
@@ -1405,6 +3364,55 @@ export function buildHolographicStickersSystem(options = {}) {
     setStickerPlacementMode,
     setParams,
     setGlobalParams,
+    beginPlacement,
+    updatePlacementPreviewFromRay,
+    commitPlacement,
+    cancelPlacement,
+    placeStickerAt,
+    selectPlacedSticker,
+    getPlacedSticker: (placedId) => (placedId ? placedStickersById[placedId] || null : null),
+    rotateActiveOrPlacedSticker,
+    resizeActiveOrPlacedSticker,
+    setSizeBounds,
+    syncVisualEnvelope,
+    captureCurrentAsMinSize,
+    captureCurrentAsMaxSize,
+    toggleCalibrationTool,
+    setStickerTagAndMessage,
+    deletePlacedSticker,
+    beginRepositionPlacedSticker,
+    raycastPlacedStickers,
+    exportSizeConfigJSON,
+    getSizeBounds: () => ({
+      minSize,
+      maxSize,
+      currentSize,
+      defaultSize: currentSize,
+      calibrationToolActive,
+    }),
+    isPlacementActive: () => placementActive,
+    getActivePlacedSticker: () => (activePlacedStickerId ? placedStickersById[activePlacedStickerId] || null : null),
+    get selectedPlacedId() {
+      return activePlacedStickerId;
+    },
+    get placementState() {
+      return {
+        active: placementActive,
+        stickerId: selectedStickerId,
+        sizeMeters: currentSize,
+        rotationRad: currentRotationRad,
+        lastHit: lastValidPreviewHit,
+        repositioningStickerId,
+      };
+    },
+    get calibrationState() {
+      return {
+        active: calibrationToolActive,
+        minSize,
+        maxSize,
+        currentSize,
+      };
+    },
     update,
     getTelemetry,
     dispose,

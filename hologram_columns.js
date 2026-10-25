@@ -1,8 +1,53 @@
 import * as THREE from 'three';
 
 // ============================================================================
-// 1. Authoritative 17-Asset Manifest & Lookup Tables (anim/hologram_columns.md §2.2)
+// 1. Authoritative 17-Asset Manifest & Lookup Tables (anim/hologram_columns.md §2.2 & Spec 050 §5.3)
 // ============================================================================
+export const HOLO_VIDEO_FRAME_CYCLE_MAP = Object.freeze({
+  'anim/DAFFY.mp4': Object.freeze([
+    'anim/frames/daffy_frame_0.jpg',
+    'anim/frames/daffy_frame_1.jpg',
+    'anim/frames/daffy_frame_2.jpg',
+    'anim/frames/daffy_frame_3.jpg',
+  ]),
+  'anim/DOOMLAMBO.mp4': Object.freeze([
+    'anim/frames/doomlambo_frame_0.jpg',
+    'anim/frames/doomlambo_frame_1.jpg',
+    'anim/frames/doomlambo_frame_2.jpg',
+    'anim/frames/doomlambo_frame_3.jpg',
+  ]),
+  'anim/doomsnake.mp4': Object.freeze([
+    'anim/frames/doomsnake_frame_0.jpg',
+    'anim/frames/doomsnake_frame_1.jpg',
+    'anim/frames/doomsnake_frame_2.jpg',
+    'anim/frames/doomsnake_frame_3.jpg',
+  ]),
+  'anim/EYEDOOM.mp4': Object.freeze([
+    'anim/frames/eyedoom_frame_0.jpg',
+    'anim/frames/eyedoom_frame_1.jpg',
+    'anim/frames/eyedoom_frame_2.jpg',
+    'anim/frames/eyedoom_frame_3.jpg',
+  ]),
+  'anim/NOKIA.mp4': Object.freeze([
+    'anim/frames/nokia_frame_0.jpg',
+    'anim/frames/nokia_frame_1.jpg',
+    'anim/frames/nokia_frame_2.jpg',
+    'anim/frames/nokia_frame_3.jpg',
+  ]),
+  'anim/PINKPANTHER.mp4': Object.freeze([
+    'anim/frames/pinkpanther_frame_0.jpg',
+    'anim/frames/pinkpanther_frame_1.jpg',
+    'anim/frames/pinkpanther_frame_2.jpg',
+    'anim/frames/pinkpanther_frame_3.jpg',
+  ]),
+  'anim/TIGER.mp4': Object.freeze([
+    'anim/frames/tiger_frame_0.jpg',
+    'anim/frames/tiger_frame_1.jpg',
+    'anim/frames/tiger_frame_2.jpg',
+    'anim/frames/tiger_frame_3.jpg',
+  ]),
+});
+
 export const HOLO_CAROUSEL_DEFAULT_SLIDES = Object.freeze([
   Object.freeze({
     id: 'slide_01_deck_cover',
@@ -25,19 +70,20 @@ export const HOLO_CAROUSEL_DEFAULT_SLIDES = Object.freeze([
   }),
   Object.freeze({
     id: 'slide_02_doomlambo_vid',
-    label: '02 // DOOM LAMBO (VID 24FPS)',
-    title: '02 // DOOM LAMBO (VID 24FPS)',
-    kicker: 'VIDEO STREAM SLIDE // H.264',
-    subtitle: 'anim/DOOMLAMBO.mp4',
+    label: '02 // DOOM LAMBO (4-FRAME CYCLE)',
+    title: '02 // DOOM LAMBO (4-FRAME CYCLE)',
+    kicker: 'HOLOGRAM 4-FRAME CYCLE SLIDE',
+    subtitle: 'anim/frames/doomlambo_frame_0..3.jpg',
     mediaType: 'video',
     type: 'video',
     repoPath: 'anim/DOOMLAMBO.mp4',
+    framePaths: HOLO_VIDEO_FRAME_CYCLE_MAP['anim/DOOMLAMBO.mp4'],
     width: 860,
     height: 540,
     aspectRatio: 1.593,
-    fps: 24,
-    durationSec: 6.04,
-    frameCount: 145,
+    fps: 2.5,
+    durationSec: 1.6,
+    frameCount: 4,
     defaultTintPreset: 'cyan',
     bypassExteriorCutout: true,
     hasDarkSubjectFloor: false,
@@ -66,19 +112,20 @@ export const HOLO_CAROUSEL_DEFAULT_SLIDES = Object.freeze([
   }),
   Object.freeze({
     id: 'slide_04_pinkpanther_vid',
-    label: '04 // PINK PANTHER (VID 24FPS)',
-    title: '04 // PINK PANTHER (VID 24FPS)',
-    kicker: 'VIDEO STREAM SLIDE // H.264',
-    subtitle: 'anim/PINKPANTHER.mp4',
+    label: '04 // PINK PANTHER (4-FRAME CYCLE)',
+    title: '04 // PINK PANTHER (4-FRAME CYCLE)',
+    kicker: 'HOLOGRAM 4-FRAME CYCLE SLIDE',
+    subtitle: 'anim/frames/pinkpanther_frame_0..3.jpg',
     mediaType: 'video',
     type: 'video',
     repoPath: 'anim/PINKPANTHER.mp4',
+    framePaths: HOLO_VIDEO_FRAME_CYCLE_MAP['anim/PINKPANTHER.mp4'],
     width: 624,
     height: 480,
     aspectRatio: 1.3,
-    fps: 24,
-    durationSec: 6.04,
-    frameCount: 145,
+    fps: 2.5,
+    durationSec: 1.6,
+    frameCount: 4,
     defaultTintPreset: 'magenta',
     bypassExteriorCutout: true,
     hasDarkSubjectFloor: false,
@@ -159,22 +206,23 @@ export const HOLO_MEDIA_MANIFEST = Object.freeze([
     "canonicalPath": "/Users/diesel/desktop/SkateAlley/anim/frenchfrytag.jpeg",
     "framingMode": "full_frame_rectangular",
     "bypassExteriorCutout": true,
-    "hasDarkSubjectFloor": false,
-    "darkSubjectFloorMinAlpha": 0.14,
+    "hasDarkSubjectFloor": true,
+    "darkSubjectFloorMinAlpha": 0.36,
+    "emissiveIntensity": 1.55,
     "isHighKeyStudioBackdrop": false,
     "studioBackdropMode": "none",
     "defaultTintPreset": "magenta",
     "corridorPlacement": {
       "wallSide": "L",
-      "x": -2.2735,
-      "yRel": 4.787,
-      "z": 24.3562,
+      "x": -1.72,
+      "yRel": 2.85,
+      "z": 23.6,
       "pitchRad": 0,
-      "yawRad": 1.5172,
+      "yawRad": 1.68,
       "rollRad": 0,
-      "scale": 4.152,
-      "scaleX": 4.152,
-      "scaleY": 4.152,
+      "scale": 2.65,
+      "scaleX": 2.65,
+      "scaleY": 2.65,
       "scaleZ": 1
     },
     "subjectSummary": "Close-up array of pink monogrammed French fry cartons filled with golden fries, with each carton branded with the burgundy 'PLATO DOOM' throw-up and white 'PLATO' / 'O' interior lettering.",
@@ -182,8 +230,8 @@ export const HOLO_MEDIA_MANIFEST = Object.freeze([
     "height": 2228,
     "aspectRatio": 0.847,
     "exactAspectRatio": 0.8473967684021544,
-    "planeWidthMeters": 5.6745,
-    "planeHeightMeters": 6.6963,
+    "planeWidthMeters": 3.6218,
+    "planeHeightMeters": 4.274,
     "fileSizeBytes": 2456687,
     "sha256": "6e08970ab2303fe8139863b2cf1b1825125d100c4d2e056acedcceb2b0e6c01b",
     "meanLuminance": 0.5411,
@@ -200,21 +248,22 @@ export const HOLO_MEDIA_MANIFEST = Object.freeze([
     "framingMode": "full_frame_rectangular",
     "bypassExteriorCutout": true,
     "hasDarkSubjectFloor": true,
-    "darkSubjectFloorMinAlpha": 0.28,
+    "darkSubjectFloorMinAlpha": 0.52,
+    "emissiveIntensity": 1.65,
     "isHighKeyStudioBackdrop": false,
     "studioBackdropMode": "none",
     "defaultTintPreset": "amber",
     "corridorPlacement": {
       "wallSide": "R",
-      "x": 0.3991,
-      "yRel": 1.56,
-      "z": 11.1,
+      "x": 1.42,
+      "yRel": 2.15,
+      "z": 12.2,
       "pitchRad": 0,
-      "yawRad": -0.5325,
+      "yawRad": -1.78,
       "rollRad": 0,
-      "scale": 0.486,
-      "scaleX": 0.486,
-      "scaleY": 0.486,
+      "scale": 1.65,
+      "scaleX": 1.65,
+      "scaleY": 1.65,
       "scaleZ": 1
     },
     "subjectSummary": "Macro photograph of the rear slide and grip of a black pistol featuring a custom engraved rear slide plate and a tan/brown 'PLATO DOOM' throw-up along the textured polymer grip.",
@@ -222,8 +271,8 @@ export const HOLO_MEDIA_MANIFEST = Object.freeze([
     "height": 2048,
     "aspectRatio": 1.031,
     "exactAspectRatio": 1.03125,
-    "planeWidthMeters": 0.7217,
-    "planeHeightMeters": 0.6998,
+    "planeWidthMeters": 2.4503,
+    "planeHeightMeters": 2.376,
     "fileSizeBytes": 2281917,
     "sha256": "8785f87085f04a828dffd201617a2ee4271952f5c6c1ff4895002fe3b34fb623",
     "meanLuminance": 0.2337,
@@ -240,18 +289,19 @@ export const HOLO_MEDIA_MANIFEST = Object.freeze([
     "framingMode": "full_frame_rectangular",
     "bypassExteriorCutout": true,
     "hasDarkSubjectFloor": true,
-    "darkSubjectFloorMinAlpha": 0.26,
+    "darkSubjectFloorMinAlpha": 0.38,
+    "emissiveIntensity": 1.55,
     "isHighKeyStudioBackdrop": false,
     "studioBackdropMode": "none",
     "defaultTintPreset": "magenta",
     "corridorPlacement": {
       "wallSide": "L",
-      "x": -2.1224,
-      "yRel": 2.4071,
-      "z": 18.0769,
-      "pitchRad": 0.0535,
-      "yawRad": 1.6002,
-      "rollRad": 0.0017,
+      "x": -1.72,
+      "yRel": 2.45,
+      "z": 18.08,
+      "pitchRad": 0,
+      "yawRad": 1.68,
+      "rollRad": 0,
       "scale": 2.22,
       "scaleX": 2.22,
       "scaleY": 2.22,
@@ -424,11 +474,11 @@ export const HOLO_MEDIA_MANIFEST = Object.freeze([
     "defaultTintPreset": "amber",
     "corridorPlacement": {
       "wallSide": "R",
-      "x": 1.9483,
+      "x": 1.72,
       "yRel": 2.1031,
       "z": 4.8246,
       "pitchRad": 0,
-      "yawRad": -1.5806,
+      "yawRad": -1.68,
       "rollRad": 0,
       "scale": 2.576,
       "scaleX": 2.576,
@@ -687,10 +737,20 @@ export const HOLO_MEDIA_MANIFEST = Object.freeze([
     "darkPixelRatioBelow30": 0.864,
     "brightPixelRatioAbove200": 0.1154
   }
-].map(a => Object.freeze({
-  ...a,
-  corridorPlacement: Object.freeze({ ...a.corridorPlacement })
-})));
+].map(a => {
+  const framePaths = a.framePaths || HOLO_VIDEO_FRAME_CYCLE_MAP[a.repoPath] || null;
+  return Object.freeze({
+    ...a,
+    ...(framePaths ? {
+      framePaths,
+      fps: 2.5,
+      durationSec: 1.6,
+      exactDurationSec: 1.6,
+      frameCount: framePaths.length,
+    } : {}),
+    corridorPlacement: Object.freeze({ ...a.corridorPlacement })
+  });
+}));
 
 export const SSM_WHITEPAPER_HOLO_SPEC = Object.freeze({
   id: 'ssm_whitepaper_column',
@@ -784,6 +844,7 @@ export function resolveHoloMediaSpec(identifier) {
           : 'image';
       const label = identifier.label || identifier.title || identifier.id || 'HOLO SLIDE';
       const repoPath = identifier.repoPath || identifier.url || 'procedural://custom_slide';
+      const framePaths = identifier.framePaths || HOLO_VIDEO_FRAME_CYCLE_MAP[repoPath] || null;
       return {
         id: identifier.id || `slide_${Date.now()}`,
         code: identifier.code || 'HOLO-SLIDE',
@@ -796,6 +857,7 @@ export function resolveHoloMediaSpec(identifier) {
         type: normMediaType,
         repoPath,
         url: repoPath,
+        framePaths,
         pdfUrl: identifier.pdfUrl || repoPath,
         pageImagePaths: identifier.pageImagePaths || null,
         pageHeights: identifier.pageHeights || null,
@@ -812,9 +874,9 @@ export function resolveHoloMediaSpec(identifier) {
         darkSubjectFloorMinAlpha: identifier.darkSubjectFloorMinAlpha ?? 0.22,
         isHighKeyStudioBackdrop: Boolean(identifier.isHighKeyStudioBackdrop),
         studioBackdropMode: identifier.studioBackdropMode || 'none',
-        fps: identifier.fps || 24,
-        durationSec: identifier.durationSec || 6.04,
-        frameCount: identifier.frameCount || 145,
+        fps: framePaths ? 2.5 : (identifier.fps || 24),
+        durationSec: framePaths ? 1.6 : (identifier.durationSec || 6.04),
+        frameCount: framePaths ? framePaths.length : (identifier.frameCount || 145),
         corridorPlacement: identifier.corridorPlacement || {
           wallSide: 'L',
           x: -1.05,
@@ -1203,12 +1265,51 @@ export function createProceduralSlideCardTexture(slideSpec, slideIndex = 0, tota
   return tex;
 }
 
+const HOLO_FRAME_IMAGE_CACHE = new Map();
+
+function loadCachedHoloFrameImage(framePath, onLoadCallback) {
+  let entry = HOLO_FRAME_IMAGE_CACHE.get(framePath);
+  if (!entry) {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    entry = {
+      path: framePath,
+      image: img,
+      loaded: false,
+      listeners: [],
+    };
+    img.onload = () => {
+      entry.loaded = true;
+      for (const fn of entry.listeners) {
+        fn(img);
+      }
+      entry.listeners.length = 0;
+    };
+    img.src = resolveMediaUrl(framePath);
+    HOLO_FRAME_IMAGE_CACHE.set(framePath, entry);
+  }
+  if (entry.loaded) {
+    onLoadCallback(entry.image);
+  } else {
+    entry.listeners.push(onLoadCallback);
+  }
+  return entry;
+}
+
 export class HoloVideoStreamController {
   constructor(assetSpec, options = {}) {
     this.assetSpec = assetSpec;
-    this.durationSec = assetSpec.durationSec || 6.041667;
-    this.fps = assetSpec.fps || 24;
-    this.totalFrames = assetSpec.frameCount || 145;
+    this.type = 'video';
+    const resolvedFramePaths =
+      (Array.isArray(assetSpec.framePaths) && assetSpec.framePaths.length > 0
+        ? assetSpec.framePaths
+        : HOLO_VIDEO_FRAME_CYCLE_MAP[assetSpec.repoPath]) || null;
+
+    this.isFrameCycle = Boolean(resolvedFramePaths && resolvedFramePaths.length > 0);
+    this.framePaths = this.isFrameCycle ? Array.from(resolvedFramePaths) : null;
+    this.totalFrames = this.isFrameCycle ? this.framePaths.length : (assetSpec.frameCount || 145);
+    this.fps = this.isFrameCycle ? 2.5 : (assetSpec.fps || 24);
+    this.durationSec = this.isFrameCycle ? (this.totalFrames / this.fps) : (assetSpec.durationSec || 6.041667);
     this.playing = options.playing !== undefined ? Boolean(options.playing) : true;
     this.loop = options.loop !== undefined ? Boolean(options.loop) : true;
     this.playbackRate = options.playbackRate !== undefined ? Math.max(0.1, Math.min(4.0, options.playbackRate)) : 1.0;
@@ -1220,8 +1321,55 @@ export class HoloVideoStreamController {
 
     this.video = null;
     this.texture = null;
+    this.canvas = null;
+    this.ctx = null;
+    this.frameEntries = [];
+    this._lastDrawnFrameIndex = -1;
+    this._hasDrawnLoadedFrame = false;
 
-    if (typeof document !== 'undefined') {
+    if (this.isFrameCycle) {
+      if (typeof document !== 'undefined' && typeof Image !== 'undefined') {
+        const w = Math.max(16, Math.round(assetSpec.width || 560));
+        const h = Math.max(16, Math.round(assetSpec.height || 544));
+        const frameCanvas = document.createElement('canvas');
+        frameCanvas.width = w;
+        frameCanvas.height = h;
+        const pCtx = frameCanvas.getContext('2d');
+        if (pCtx) {
+          const tint = HOLO_SPECTRAL_TINT_PRESETS[assetSpec.defaultTintPreset] || HOLO_SPECTRAL_TINT_PRESETS.cyan;
+          pCtx.fillStyle = '#07121e';
+          pCtx.fillRect(0, 0, w, h);
+          pCtx.strokeStyle = tint.primaryHex || '#00d5ff';
+          pCtx.lineWidth = 4;
+          pCtx.strokeRect(4, 4, w - 8, h - 8);
+        }
+        this.canvas = frameCanvas;
+        this.ctx = pCtx;
+        this.texture = new THREE.CanvasTexture(frameCanvas);
+        this.texture.colorSpace = THREE.SRGBColorSpace;
+        this.texture.minFilter = THREE.LinearFilter;
+        this.texture.magFilter = THREE.LinearFilter;
+        this.texture.wrapS = THREE.ClampToEdgeWrapping;
+        this.texture.wrapT = THREE.ClampToEdgeWrapping;
+        this.texture.needsUpdate = true;
+
+        this.frameEntries = this.framePaths.map((fp, idx) =>
+          loadCachedHoloFrameImage(fp, (img) => {
+            if (idx === 0 && img.naturalWidth > 0 && img.naturalHeight > 0 && !Object.isFrozen(this.assetSpec)) {
+              this.assetSpec.width = img.naturalWidth;
+              this.assetSpec.height = img.naturalHeight;
+              this.assetSpec.aspectRatio = Number((img.naturalWidth / img.naturalHeight).toFixed(4));
+            }
+            if (idx === this.displayedFrameIndex || !this._hasDrawnLoadedFrame) {
+              this.syncDisplayedFrameTexture(true);
+            }
+          })
+        );
+        this.syncDisplayedFrameTexture(true);
+      } else {
+        this.texture = createDeterministicPlaceholderTexture(assetSpec);
+      }
+    } else if (typeof document !== 'undefined') {
       const v = document.createElement('video');
       v.src = resolveMediaUrl(assetSpec.repoPath);
       v.loop = this.loop;
@@ -1254,6 +1402,28 @@ export class HoloVideoStreamController {
       this.texture.magFilter = THREE.LinearFilter;
     } else {
       this.texture = createDeterministicPlaceholderTexture(assetSpec);
+    }
+  }
+
+  syncDisplayedFrameTexture(force = false) {
+    if (!this.isFrameCycle || !this.texture || !this.frameEntries || this.frameEntries.length === 0) {
+      return;
+    }
+    const idx = ((this.displayedFrameIndex % this.totalFrames) + this.totalFrames) % this.totalFrames;
+    let entry = this.frameEntries[idx];
+    if (!entry || !entry.loaded || !entry.image) {
+      entry = this.frameEntries.find((e) => e && e.loaded && e.image) || null;
+    }
+    if (entry && entry.loaded && entry.image) {
+      if (this.ctx && this.canvas) {
+        if (force || !this._hasDrawnLoadedFrame || this._lastDrawnFrameIndex !== idx) {
+          this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+          this.ctx.drawImage(entry.image, 0, 0, this.canvas.width, this.canvas.height);
+          this._lastDrawnFrameIndex = idx;
+          this._hasDrawnLoadedFrame = true;
+          this.texture.needsUpdate = true;
+        }
+      }
     }
   }
 
@@ -1297,16 +1467,18 @@ export class HoloVideoStreamController {
   scrubToTime(timeSec) {
     const clamped = Math.max(0.0, Math.min(this.durationSec, Number(timeSec) || 0.0));
     this.currentTimeSec = clamped;
-    this.currentFrame = Math.round(this.currentTimeSec * this.fps) % this.totalFrames;
+    this.currentFrame = Math.floor(this.currentTimeSec * this.fps) % this.totalFrames;
     this.displayedFrameIndex = this.currentFrame;
     if (this.video) {
       this.video.currentTime = clamped;
+    } else {
+      this.syncDisplayedFrameTexture();
     }
   }
 
   scrubToFrame(frameIndex) {
     const frame = ((Math.round(frameIndex) % this.totalFrames) + this.totalFrames) % this.totalFrames;
-    const timeSec = frame / this.fps;
+    const timeSec = (frame + 0.01) / this.fps;
     this.scrubToTime(timeSec);
   }
 
@@ -1332,17 +1504,20 @@ export class HoloVideoStreamController {
       this.stutterActive = true;
       this.stutterMode = glitchFrameStutterState.mode || 'freeze';
       if (this.stutterMode === 'freeze') {
-        this.displayedFrameIndex = glitchFrameStutterState.anchorFrame ?? this.currentFrame;
+        const anchor = glitchFrameStutterState.anchorFrame ?? this.currentFrame;
+        this.displayedFrameIndex = ((anchor % this.totalFrames) + this.totalFrames) % this.totalFrames;
       } else {
         const anchor = glitchFrameStutterState.anchorFrame ?? this.currentFrame;
         const jitter = glitchFrameStutterState.jitterOffset ?? 0;
-        this.displayedFrameIndex = ((anchor + jitter) % this.totalFrames + this.totalFrames) % this.totalFrames;
+        this.displayedFrameIndex = (((anchor + jitter) % this.totalFrames) + this.totalFrames) % this.totalFrames;
       }
     } else {
       this.stutterActive = false;
       this.stutterMode = 'none';
       this.displayedFrameIndex = this.currentFrame;
     }
+
+    this.syncDisplayedFrameTexture();
 
     return {
       currentTimeSec: this.currentTimeSec,
@@ -2314,7 +2489,7 @@ void main() {
       backFaceMult = 0.85;
     } else {
       baseUv.x = 1.0 - baseUv.x;
-      backFaceMult = (uSlideCount > 1) ? 0.92 : 0.42;
+      backFaceMult = (uSlideCount > 1) ? 0.92 : 0.88;
     }
   }
 
@@ -3807,7 +3982,7 @@ export function createHologramColumnInstance(assetSpec, options = {}) {
 // ============================================================================
 // 11. Hologram Columns System Factory (Ticket-005)
 // ============================================================================
-export const HOLO_COLUMNS_STORAGE_KEY = 'skatealley_holo_columns_transforms_v1';
+export const HOLO_COLUMNS_STORAGE_KEY = 'skatealley_holo_columns_transforms_v2';
 
 export function buildHologramColumnsSystem(options = {}) {
   const rootGroup = options.rootGroup || new THREE.Group();

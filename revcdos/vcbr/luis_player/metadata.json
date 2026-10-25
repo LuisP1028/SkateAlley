@@ -1,0 +1,50 @@
+{
+  "sourceGlb": "LUIS_TPOSE_STANDALONE_BACKUP.glb",
+  "sourceGlbBytes": 5285932,
+  "unriggedSourceSkinsCount": 0,
+  "numVertices": 3337,
+  "numTriangles": 3202,
+  "numBones": 24,
+  "activeBoneIndices": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23
+  ],
+  "activeBoneCount": 23,
+  "boundsMin": [
+    -0.8735,
+    -0.98,
+    -0.184
+  ],
+  "boundsMax": [
+    0.8735,
+    0.8548,
+    0.1376
+  ],
+  "weightSumMin": 0.9999998807907104,
+  "weightSumMax": 1.0000001192092896,
+  "playerDffBytes": 270336,
+  "playerTxdBytes": 45056,
+  "playerBmpBytes": 66612,
+  "mirroredFilesCount": 36
+}

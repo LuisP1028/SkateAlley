@@ -1,0 +1,102 @@
+{
+  "spec": "functional_specification_048",
+  "headerLogo": {
+    "id": "platodoom_header",
+    "sourcePath": "/Users/diesel/Desktop/1DOOMTAG.jpeg",
+    "outputPath": "assets/portal_games/platodoom_header.png",
+    "sha256": "7ed17b3deff1e09d1b67deef4fce714f7656ae5cbe3ab9fa1e5a31414dd83dc9",
+    "sourceWidth": 3514,
+    "sourceHeight": 1184,
+    "cropBBox": [
+      393,
+      140,
+      3329,
+      1128
+    ],
+    "croppedWidth": 2953,
+    "croppedHeight": 1005,
+    "outputWidth": 1120,
+    "outputHeight": 381,
+    "aspectRatio": 2.9396,
+    "preservedInteriorWhitePixels": 127625,
+    "cornerAlphaMax": 0
+  },
+  "games": [
+    {
+      "id": "skate3",
+      "sourcePath": "/Users/diesel/Desktop/SkateAlley/skate3xDOOM.jpeg",
+      "outputPath": "assets/portal_games/skate3_logo.png",
+      "sha256": "26942c9ef818314cc9580a450e1c958117fa5093a47a39c3c7a3da8a7880b951",
+      "sourceWidth": 2330,
+      "sourceHeight": 1824,
+      "cropBBox": [
+        182,
+        66,
+        2282,
+        1823
+      ],
+      "croppedWidth": 2101,
+      "croppedHeight": 1758,
+      "outputWidth": 960,
+      "outputHeight": 803,
+      "aspectRatio": 1.1955,
+      "cornerAlphaMax": 0,
+      "slot": 1,
+      "hotkey": "1",
+      "title": "SKATE 3 CLEANROOM",
+      "kicker": "SLOT 01 // EA BLACK BOX \u00d7 PLATODOOM",
+      "targetUrl": "./skate3_cleanroom/?char=luis"
+    },
+    {
+      "id": "gta",
+      "sourcePath": "/Users/diesel/Desktop/SkateAlley/GTA.jpeg",
+      "outputPath": "assets/portal_games/gta_logo.png",
+      "sha256": "14fe8384c97b018d917475f66b5706702699b4aa92e8dbc880fa2c102515fd08",
+      "sourceWidth": 2528,
+      "sourceHeight": 1684,
+      "cropBBox": [
+        636,
+        81,
+        2336,
+        1635
+      ],
+      "croppedWidth": 1701,
+      "croppedHeight": 1555,
+      "outputWidth": 960,
+      "outputHeight": 878,
+      "aspectRatio": 1.0934,
+      "cornerAlphaMax": 0,
+      "slot": 2,
+      "hotkey": "2",
+      "title": "GTA: VICE CITY",
+      "kicker": "SLOT 02 // REVC ENGINE \u00d7 PLATODOOM",
+      "targetUrl": "./revcdos/"
+    },
+    {
+      "id": "zombies",
+      "sourcePath": "/Users/diesel/Desktop/SkateAlley/zombies.jpg",
+      "outputPath": "assets/portal_games/zombies_logo.png",
+      "sha256": "cb4ab61e75ee255efbcce5b8769ddc8c8aab64d7ffa3bfbff0d7f2c225624835",
+      "sourceWidth": 1712,
+      "sourceHeight": 1152,
+      "cropBBox": [
+        8,
+        4,
+        1711,
+        1151
+      ],
+      "croppedWidth": 1704,
+      "croppedHeight": 1148,
+      "outputWidth": 960,
+      "outputHeight": 647,
+      "aspectRatio": 1.4838,
+      "platoDoomEmblemOpaqueRatio": 0.8856,
+      "cornerAlphaMax": 0,
+      "slot": 3,
+      "hotkey": "3",
+      "title": "CALL OF DUTY: ZOMBIES",
+      "kicker": "SLOT 03 // FTEQW WASM \u00d7 PLATODOOM",
+      "targetUrl": "./nzportable/"
+    }
+  ]
+}

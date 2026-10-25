@@ -326,8 +326,15 @@ class TestReVCDOSSpec043(unittest.TestCase):
             revc_html = f.read()
         inspector = DOMInspector()
         inspector.feed(revc_html)
-        for req_id in ("canvas", "click-to-play-button", "demo-off-disclaimer", "config-panel", "revcdos-back-to-alley-btn"):
+        for req_id in (
+            "canvas",
+            "spray-paint-loader-overlay",
+            "spray-paint-loader-canvas",
+            "spray-paint-credit-subtitle",
+            "revcdos-back-to-alley-btn",
+        ):
             self.assertIn(req_id, inspector.elements_by_id, f"Missing #{req_id} in revcdos/index.html")
+        self.assertIn("Decompilation Credit: DOS.Zone Team", revc_html)
 
     # -------------------------------------------------------------------------
     # Group 4: Unified HTTP Server (scripts/serve_skatealley.py) Live Integration

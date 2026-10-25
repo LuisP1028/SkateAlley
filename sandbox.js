@@ -17,7 +17,13 @@ import {
   WATERCOLOR_DEFAULT_PARAMS,
   WATERCOLOR_GALLERY_SPEC,
   WATERCOLOR_SKYBOX_SPEC,
-} from './watercolor_shader.js?v=080';
+  PORTAL_HEADER_LOGO_SPEC,
+  PORTAL_GAME_CATALOG,
+  PORTAL_GAME_BY_ID,
+  normalizePortalGameEntry,
+  resolvePortalGameSpec,
+  solvePortalGameGridLayout,
+} from './watercolor_shader.js?v=082';
 import {
   BINARY_TRAIL_PALETTE,
   RUNNING_EFFECTS_SPEC,
@@ -37,14 +43,18 @@ import {
   OVERHEAD_CABLE_SCHEDULE,
   evaluateOverheadCableCatenaryPoint,
   buildOverheadHangingCablesSubsystem,
-} from './alley_atmosphere_023.js?v=074';
+} from './alley_atmosphere_023.js?v=075';
 import {
   RadialMenu,
   createCyberRadialMenuHUD,
+  PRIMARY_CYBER_MENU_ITEMS,
+  STICKER_RADIAL_MENU_ITEMS,
+  LEGACY_CYBER_MENU_ITEMS,
   DEFAULT_CYBER_MENU_ITEMS,
   CENTRAL_HUB_EMBLEM,
   FULL_CIRCLE,
   START_ANGLE,
+  SUBMENU_FAN_IN_DURATION_MS,
   degToRad,
   radToDeg,
   polarToCartesian,
@@ -61,7 +71,7 @@ import {
   resolvePolarHitSector,
   harmonizeEmblemPixelBuffer,
   renderRadialMenuSVGMarkup,
-} from './radial_menu_hud.js?v=034';
+} from './radial_menu_hud.js?v=047';
 import {
   buildHologramColumnsSystem,
   HOLO_MEDIA_MANIFEST,
@@ -85,7 +95,7 @@ import {
   HologramColumnInstance,
   HoloVideoStreamController,
   HoloScrollableDocumentController,
-} from './hologram_columns.js?v=082';
+} from './hologram_columns.js?v=084';
 
 import {
   STICKER_ASSET_MANIFEST,
@@ -93,6 +103,15 @@ import {
   STICKER_BORDER_MODES,
   STICKER_PLACEMENT_MODES,
   STICKER_DEFAULT_MATERIAL_PARAMS,
+  STICKER_DEFAULT_SIZE_BOUNDS,
+  normalizeStickerSizeBounds,
+  clampStickerSize,
+  normalizeStickerRotationRad,
+  resolveStickerWallProfileX,
+  resolveStickerExteriorWallProfileZ,
+  resolveStickerFloorContourY,
+  computeStickerSurfaceBasis,
+  buildStickerBoundingSurfaces,
   resolveStickerAssetSpec,
   computeStickerGeometrySpec,
   evaluateStickerTriZoneClassification,
@@ -104,7 +123,7 @@ import {
   createHolographicStickerShaderMaterial,
   createHolographicStickerInstance,
   buildHolographicStickersSystem,
-} from './holographic_stickers.js';
+} from './holographic_stickers.js?v=054';
 import {
   HOLO_SIGN_MANIFEST,
   HOLO_SIGN_BY_ID,
@@ -169,21 +188,12 @@ import {
 // Constants & Deterministic Configuration (functional_specification_013 & 014)
 // ============================================================================
 const ASSET_PATHS = {
-  alley: './freeman_alley.glb',
+  alley: './freeman_alley.glb?v=051',
   alarmLight: './alarm_light.glb',
-  hologram: './hologram.glb',
-  alleyPipes: ALLEY_METAL_PIPES_ASSET_URL,
+  alleyPipes: './assets/pipes/alley_metal_pipes.glb?v=051',
   villainySign: './villainy_inc_textured.glb?v=045',
-  luisSign: './LUIS_AI_ENGINEER_SIGN.glb',
-  hoodie: './LUIS_HOLOSYS_RIGGED.glb?v=044',
-  hoodieHolo: './LUIS_HOLOSYS_RIGGED.glb?v=044',
-  hoodieClay: './LUIS_RIGGED_CLAY.glb?v=044',
-  hoodieColor: './character_hoodie.glb?v=044',
-  tunic: './PLATODOOM_HOLOSYS_RIGGED.glb?v=044',
-  tunicHolo: './PLATODOOM_HOLOSYS_RIGGED.glb?v=044',
-  tunicColor: './character_tunic.glb?v=044',
-  platodoom_skate3: './PLATODOOM_SKATE3_RIGGED.glb',
-  luis_skate3: './LUIS_SKATE3_RIGGED.glb',
+  hoodie: './character_hoodie.glb?v=050',
+  hoodieColor: './character_hoodie.glb?v=050',
 };
 
 // ============================================================================
@@ -397,65 +407,11 @@ const DIALOGUE_EXIT_CROSSFADE = 0.45;  // s — within [0.4s, 0.6s] Dialogue -> 
 const CHARACTER_BIND_HIP_HEIGHT = 0.920; // m — calibrated LUIS/PLATODOOM bind-pose Hips.position.y
 
 const GLB_VARIANT_CATALOG = {
-  luis_holo: {
-    key: 'luis_holo',
-    label: 'LUIS_HOLOSYS_RIGGED.glb (Iridescent Holo)',
-    url: ASSET_PATHS.hoodieHolo,
-    characterSlot: 'hoodie',
-    defaultHoloShader: true,
-    baseColor: 0x00d5ff,
-  },
-  luis_clay: {
-    key: 'luis_clay',
-    label: 'LUIS_RIGGED_CLAY.glb (Clay + Holo)',
-    url: ASSET_PATHS.hoodieClay,
-    characterSlot: 'hoodie',
-    defaultHoloShader: false,
-    baseColor: 0xd6d3d1,
-  },
   luis_color: {
     key: 'luis_color',
-    label: 'LUIS_RIGGED.glb (Full Color + Holo)',
+    label: 'character_hoodie.glb (Full Color + DOOM Head)',
     url: ASSET_PATHS.hoodieColor,
     characterSlot: 'hoodie',
-    defaultHoloShader: false,
-    baseColor: 0xe2e8f0,
-  },
-  platodoom_holo: {
-    key: 'platodoom_holo',
-    label: 'PLATODOOM_HOLOSYS_RIGGED.glb (Iridescent Holo)',
-    url: ASSET_PATHS.tunicHolo,
-    characterSlot: 'tunic',
-    defaultHoloShader: true,
-    baseColor: 0x00d5ff,
-  },
-  platodoom_color: {
-    key: 'platodoom_color',
-    label: 'PLATODOOM_RIGGED.glb (Full Color + Holo)',
-    url: ASSET_PATHS.tunicColor,
-    characterSlot: 'tunic',
-    defaultHoloShader: false,
-    baseColor: 0xf5efe6,
-  },
-  platodoom_skate3: {
-    key: 'platodoom_skate3',
-    label: 'PLATODOOM (Skate 3 35-Joint Master Rig)',
-    url: ASSET_PATHS.platodoom_skate3,
-    path: ASSET_PATHS.platodoom_skate3,
-    characterSlot: 'tunic',
-    character: 'platodoom',
-    rigProfile: 'SKATE3_RX2_RIG',
-    defaultHoloShader: false,
-    baseColor: 0xf5efe6,
-  },
-  luis_skate3: {
-    key: 'luis_skate3',
-    label: 'LUIS (Skate 3 35-Joint Master Rig)',
-    url: ASSET_PATHS.luis_skate3,
-    path: ASSET_PATHS.luis_skate3,
-    characterSlot: 'hoodie',
-    character: 'luis',
-    rigProfile: 'SKATE3_RX2_RIG',
     defaultHoloShader: false,
     baseColor: 0xe2e8f0,
   },
@@ -2196,25 +2152,40 @@ function createProjectScreenTexture(st) {
 }
 
 function instantiateMountHologramHierarchy(hologramGLTF, st, screenWidth, screenHeight, rolePrefix) {
-  const holoRoot = hologramGLTF.scene.clone(true);
+  const holoRoot = hologramGLTF && hologramGLTF.scene ? hologramGLTF.scene.clone(true) : new THREE.Group();
   holoRoot.name = `${st.mountName}_${rolePrefix}_HologramRoot`;
   holoRoot.scale.set(
     screenWidth / HOLOGRAM_NATIVE_WIDTH,
     screenHeight / HOLOGRAM_NATIVE_HEIGHT,
     1.0
   );
-  // Center hologram.glb's local Y in [0, 1] onto the mount's local Y origin (0.0)
+  // Center hologram local Y in [0, 1] onto the mount's local Y origin (0.0)
   holoRoot.position.set(0.0, -0.5 * screenHeight, 0.0);
 
-  const smokedGlassMesh = holoRoot.getObjectByName('HoloTerminal_SmokedGlassPanes');
-  const highBloomMesh = holoRoot.getObjectByName('HoloTerminal_HighBloomAccents');
-  const structuralFramesMesh = holoRoot.getObjectByName('HoloTerminal_StructuralFrames');
-  const bezelDetailsMesh = holoRoot.getObjectByName('HoloTerminal_BezelAndTierDetails');
+  let smokedGlassMesh = holoRoot.getObjectByName('HoloTerminal_SmokedGlassPanes');
+  let highBloomMesh = holoRoot.getObjectByName('HoloTerminal_HighBloomAccents');
+  let structuralFramesMesh = holoRoot.getObjectByName('HoloTerminal_StructuralFrames');
+  let bezelDetailsMesh = holoRoot.getObjectByName('HoloTerminal_BezelAndTierDetails');
 
-  if (!smokedGlassMesh || !highBloomMesh || !structuralFramesMesh || !bezelDetailsMesh) {
-    raiseFatalError(
-      `hologram.glb is missing one or more required sub-meshes (${REQUIRED_HOLOGRAM_SUBMESH_NAMES.join(', ')}) when staging '${st.mountName}'.`
-    );
+  if (!smokedGlassMesh) {
+    smokedGlassMesh = new THREE.Object3D();
+    smokedGlassMesh.name = 'HoloTerminal_SmokedGlassPanes';
+    holoRoot.add(smokedGlassMesh);
+  }
+  if (!highBloomMesh) {
+    highBloomMesh = new THREE.Object3D();
+    highBloomMesh.name = 'HoloTerminal_HighBloomAccents';
+    holoRoot.add(highBloomMesh);
+  }
+  if (!structuralFramesMesh) {
+    structuralFramesMesh = new THREE.Object3D();
+    structuralFramesMesh.name = 'HoloTerminal_StructuralFrames';
+    holoRoot.add(structuralFramesMesh);
+  }
+  if (!bezelDetailsMesh) {
+    bezelDetailsMesh = new THREE.Object3D();
+    bezelDetailsMesh.name = 'HoloTerminal_BezelAndTierDetails';
+    holoRoot.add(bezelDetailsMesh);
   }
 
   const isStandby = rolePrefix === 'Standby';
@@ -2319,17 +2290,7 @@ function instantiateMountHologramHierarchy(hologramGLTF, st, screenWidth, screen
   };
 }
 
-function buildWallScreenMounts(markers, hologramGLTF) {
-  if (!hologramGLTF || !hologramGLTF.scene) {
-    raiseFatalError("Missing required 'hologram.glb' scene asset for TV wall mounts.");
-  }
-  for (const reqName of REQUIRED_HOLOGRAM_SUBMESH_NAMES) {
-    const found = hologramGLTF.scene.getObjectByName(reqName);
-    if (!found || !found.isMesh) {
-      raiseFatalError(`Missing required sub-mesh '${reqName}' in hologram.glb.`);
-    }
-  }
-
+function buildWallScreenMounts(markers, hologramGLTF = null) {
   const wallMounts = [];
   const wallMountsByName = {};
   const raycastTargets = [];
@@ -2881,12 +2842,12 @@ function buildNeonWallCornerAccents(wallMounts) {
     segGroup.position.copy(midpoint);
     segGroup.quaternion.copy(orientationQuat);
 
-    const cylSegs = Math.max(1, Math.ceil(cylLength * 8));
+    const cylSegs = Math.max(1, Math.ceil(cylLength * 0.5));
     const coreGeom = new THREE.CylinderGeometry(
       NEON_CORE_RADIUS,
       NEON_CORE_RADIUS,
       cylLength,
-      12,
+      6,
       cylSegs,
       true
     );
@@ -2902,7 +2863,7 @@ function buildNeonWallCornerAccents(wallMounts) {
       NEON_HALO_RADIUS,
       NEON_HALO_RADIUS,
       cylLength,
-      12,
+      6,
       cylSegs,
       true
     );
@@ -3041,6 +3002,18 @@ function buildNeonWallCornerAccents(wallMounts) {
   batchedSegHalosMesh.frustumCulled = true;
   batchedSegHalosMesh.raycast = noOpRaycast;
 
+  for (const s of neonSegments) {
+    if (s.group) {
+      s.group.remove(s.haloMesh, s.coreMesh);
+    }
+    if (s.coreMesh && s.coreMesh.geometry) {
+      s.coreMesh.geometry.dispose();
+    }
+    if (s.haloMesh && s.haloMesh.geometry) {
+      s.haloMesh.geometry.dispose();
+    }
+  }
+
   baseCornersGroup.add(batchedSegHalosMesh, batchedSegCoresMesh);
 
   // Non-Flickering Spherical Floor-Border Corner Joints consolidated into 2 batch draw calls (Spec 018 §5.3 & Spec 020 §5.2)
@@ -3083,8 +3056,8 @@ function buildNeonWallCornerAccents(wallMounts) {
     return batched;
   }
 
-  const jointCoreGeom = new THREE.SphereGeometry(NEON_CORE_RADIUS * 1.06, 8, 6);
-  const jointHaloGeom = new THREE.SphereGeometry(NEON_HALO_RADIUS * 0.96, 8, 6);
+  const jointCoreGeom = new THREE.SphereGeometry(NEON_CORE_RADIUS * 1.06, 6, 4);
+  const jointHaloGeom = new THREE.SphereGeometry(NEON_HALO_RADIUS * 0.96, 6, 4);
   const neonCornerJoints = [];
   const jointWorldPts = [];
 
@@ -6791,22 +6764,7 @@ function buildPlanarFloorReflectionSubsystem(floorY) {
   const maxZ = 68.00;
 
   function sampleCorridorFloorY(z) {
-    if (z <= 0.0) {
-      return 0.28;
-    }
-    if (z <= 8.0) {
-      return 0.30 - (z / 8.0) * 0.06;
-    }
-    if (z <= 16.0) {
-      return 0.24 - ((z - 8.0) / 8.0) * 0.19;
-    }
-    if (z <= 32.0) {
-      return 0.055;
-    }
-    if (z <= 44.0) {
-      return 0.055 + ((z - 32.0) / 12.0) * 0.085;
-    }
-    return 0.14;
+    return resolveStickerFloorContourY(z) + 0.003;
   }
 
   const vCount = (segsX + 1) * (segsZ + 1);
@@ -6818,7 +6776,7 @@ function buildPlanarFloorReflectionSubsystem(floorY) {
   for (let iz = 0; iz <= segsZ; iz++) {
     const tz = iz / segsZ;
     const z = minZ + tz * (maxZ - minZ);
-    const y = Math.max(floorY + 0.008, sampleCorridorFloorY(z));
+    const y = sampleCorridorFloorY(z);
     for (let ix = 0; ix <= segsX; ix++) {
       const tx = ix / segsX;
       const x = minX + tx * (maxX - minX);
@@ -10479,11 +10437,15 @@ const doomChatState = {
   speakingTimerSec: 0.0,
 };
 
-const _doomCamLocalOffset = new THREE.Vector3(-0.56, 1.66, 1.62);
-const _doomLookLocalOffset = new THREE.Vector3(0.22, 1.56, 0.16);
+const _doomPairMidLocal = new THREE.Vector3(-0.27, 1.60, 0.38);
+const _doomApproachDirLocal = new THREE.Vector3(0.12, 0.0, 0.9928).normalize();
 const _doomTempWorldPos = new THREE.Vector3();
 const _doomTempLookPos = new THREE.Vector3();
 const _doomTempScreenVec = new THREE.Vector3();
+const _doomTempMidWorld = new THREE.Vector3();
+const _doomTempForward = new THREE.Vector3();
+const _doomTempRight = new THREE.Vector3();
+const _doomTempUp = new THREE.Vector3();
 
 function computeDoomChatCameraPose(targetChar) {
   const char = targetChar || (sandbox && sandbox.characters ? sandbox.characters.hoodie : null);
@@ -10496,25 +10458,111 @@ function computeDoomChatCameraPose(targetChar) {
   const cosY = Math.cos(char.yaw);
   const sinY = Math.sin(char.yaw);
 
-  // Rotate local camera offset (+0.18, 1.68, +1.68) by character yaw around Y axis
-  const camWorldXRaw =
-    char.position.x + _doomCamLocalOffset.x * cosY + _doomCamLocalOffset.z * sinY;
-  const camWorldY = char.position.y + _doomCamLocalOffset.y;
-  const camWorldZ =
-    char.position.z - _doomCamLocalOffset.x * sinY + _doomCamLocalOffset.z * cosY;
+  // Pair focus midpoint in world space between DOOM_Companion (-0.48, 1.66, +0.72) and LUIS (0.00, 1.66, 0.00)
+  const midWorldX =
+    char.position.x + _doomPairMidLocal.x * cosY + _doomPairMidLocal.z * sinY;
+  const midWorldY = char.position.y + _doomPairMidLocal.y;
+  const midWorldZ =
+    char.position.z - _doomPairMidLocal.x * sinY + _doomPairMidLocal.z * cosY;
+  _doomTempMidWorld.set(midWorldX, midWorldY, midWorldZ);
+
+  // Approach direction rotated by character yaw (three-quarter front-corridor sightline)
+  const dirWorldX =
+    _doomApproachDirLocal.x * cosY + _doomApproachDirLocal.z * sinY;
+  const dirWorldZ =
+    -_doomApproachDirLocal.x * sinY + _doomApproachDirLocal.z * cosY;
+
+  const vw =
+    typeof window !== 'undefined' && window.innerWidth > 0 ? window.innerWidth : 1280;
+  const vh =
+    typeof window !== 'undefined' && window.innerHeight > 0 ? window.innerHeight : 720;
+  const aspect =
+    camera && camera.aspect > 0.05 ? camera.aspect : vw / Math.max(1, vh);
+  const fovRad = ((camera && camera.fov) ? camera.fov : 52) * (Math.PI / 180);
+  const tanHalfFovY = Math.tan(fovRad * 0.5);
+  const tanHalfFovX = Math.max(0.12, aspect * tanHalfFovY);
+
+  const isPortraitOrMobile = vw <= 768 || aspect < 0.95;
+  const panelEl =
+    typeof document !== 'undefined' ? document.getElementById('doom-holo-chat-panel') : null;
+  const panelRect =
+    panelEl && doomChatState.isOpen ? panelEl.getBoundingClientRect() : null;
+
+  let xCenter = 0.0;
+  let yCenter = 0.0;
+  let halfSafeX = 0.80;
+  let halfSafeY = 0.68;
+
+  if (isPortraitOrMobile) {
+    // Portrait / Mobile Bottom-Sheet Layout: full horizontal width, upper unobstructed vertical band above the bottom card
+    xCenter = 0.02;
+    halfSafeX = 0.80;
+
+    let yMinNdc = 0.04;
+    if (panelRect && panelRect.height > 20 && panelRect.top > vh * 0.25) {
+      const safeBottomPx = Math.max(80, panelRect.top - 14);
+      yMinNdc = Math.max(-0.08, Math.min(0.26, 1.0 - 2.0 * (safeBottomPx / vh)));
+    }
+    const yMaxNdc = Math.max(yMinNdc + 0.42, 1.0 - 2.0 * (56 / Math.max(320, vh)));
+    yCenter = 0.5 * (yMinNdc + yMaxNdc) - 0.05;
+    halfSafeY = Math.max(0.28, 0.5 * (yMaxNdc - yMinNdc));
+  } else {
+    // Landscape / Desktop Right-Docked Layout: unobstructed left/center viewport beside the right panel
+    let panelWidthPx = Math.min(468, Math.max(280, vw - 48));
+    let panelRightMarginPx = 32;
+    if (panelRect && panelRect.width > 20 && panelRect.left > vw * 0.32) {
+      panelWidthPx = panelRect.width;
+      panelRightMarginPx = Math.max(12, vw - panelRect.right);
+    }
+    const panelLeftPx = Math.max(vw * 0.36, vw - panelWidthPx - panelRightMarginPx - 20);
+    const xMaxNdc = Math.max(-0.05, Math.min(0.46, 2.0 * (panelLeftPx / vw) - 1.0));
+    const xMinNdc = -0.84;
+    xCenter = 0.5 * (xMinNdc + xMaxNdc);
+    halfSafeX = Math.max(0.36, 0.5 * (xMaxNdc - xMinNdc));
+    yCenter = -0.04;
+    halfSafeY = 0.68;
+  }
+
+  // Solve camera distance so both DOOM_Companion (front-left) and LUIS (right) fit inside (halfSafeX, halfSafeY)
+  const distHoriz = 0.35 + 0.52 / (halfSafeX * tanHalfFovX);
+  const distVert = 0.24 + 0.34 / (halfSafeY * tanHalfFovY);
+  const shotDist = Math.max(1.48, Math.min(3.25, Math.max(distHoriz, distVert)));
+
+  const camWorldXRaw = midWorldX + dirWorldX * shotDist;
+  const camWorldY = midWorldY + 0.04;
+  const camWorldZ = midWorldZ + dirWorldZ * shotDist;
 
   const minWallX = resolveAlleyWallProfileX('left', camWorldZ) + 0.24;
   const maxWallX = resolveAlleyWallProfileX('right', camWorldZ) - 0.24;
   const camWorldX = Math.max(minWallX, Math.min(maxWallX, camWorldXRaw));
 
-  const lookWorldX =
-    char.position.x + _doomLookLocalOffset.x * cosY + _doomLookLocalOffset.z * sinY;
-  const lookWorldY = char.position.y + _doomLookLocalOffset.y;
-  const lookWorldZ =
-    char.position.z - _doomLookLocalOffset.x * sinY + _doomLookLocalOffset.z * cosY;
-
   _doomTempWorldPos.set(camWorldX, camWorldY, camWorldZ);
-  _doomTempLookPos.set(lookWorldX, lookWorldY, lookWorldZ);
+
+  // Compute baseline sightline from actual clamped camera position to pair midpoint
+  _doomTempForward.subVectors(_doomTempMidWorld, _doomTempWorldPos);
+  const actualDist = Math.max(0.5, _doomTempForward.length());
+  _doomTempForward.multiplyScalar(1.0 / actualDist);
+
+  // Camera right basis R0 = normalize(F0 x Y_world) = normalize(-F0.z, 0, F0.x)
+  _doomTempRight.set(-_doomTempForward.z, 0.0, _doomTempForward.x);
+  const rightLen = _doomTempRight.length();
+  if (rightLen > 1e-5) {
+    _doomTempRight.multiplyScalar(1.0 / rightLen);
+  } else {
+    _doomTempRight.set(1.0, 0.0, 0.0);
+  }
+
+  // Camera up basis U0 = R0 x F0
+  _doomTempUp.crossVectors(_doomTempRight, _doomTempForward).normalize();
+
+  // Offset lookAt so the pair midpoint projects onto the unobstructed safe-stage center (xCenter, yCenter) in NDC
+  const shiftRightM = xCenter * actualDist * tanHalfFovX;
+  const shiftUpM = yCenter * actualDist * tanHalfFovY;
+  _doomTempLookPos
+    .copy(_doomTempMidWorld)
+    .addScaledVector(_doomTempRight, -shiftRightM)
+    .addScaledVector(_doomTempUp, -shiftUpM);
+
   return {
     cameraPos: _doomTempWorldPos,
     lookAtPos: _doomTempLookPos,
@@ -10524,6 +10572,7 @@ function computeDoomChatCameraPose(targetChar) {
 function syncDoomHoloChatDOM() {
   if (typeof document === 'undefined') return;
   const overlayEl = document.getElementById('doom-holo-chat-overlay');
+  const panelEl = document.getElementById('doom-holo-chat-panel');
   const stageStartersEl = document.getElementById('doom-holo-stage-starters');
   const stageChatboxEl = document.getElementById('doom-holo-stage-chatbox');
   const backBtnEl = document.getElementById('doom-back-to-starters-btn');
@@ -10538,9 +10587,16 @@ function syncDoomHoloChatDOM() {
   const sendBtnEl = document.getElementById('doom-chat-send-btn');
   const hudBtnEl = document.getElementById('hud-open-doom-chat-btn');
 
+  if (document.body) {
+    document.body.classList.toggle('doom-chat-active', Boolean(doomChatState.isOpen));
+  }
+
   if (overlayEl) {
     overlayEl.classList.toggle('active', Boolean(doomChatState.isOpen));
     overlayEl.setAttribute('aria-hidden', String(!doomChatState.isOpen));
+  }
+  if (panelEl) {
+    panelEl.setAttribute('data-stage', doomChatState.stage || 'starters');
   }
 
   if (hudBtnEl) {
@@ -10693,12 +10749,29 @@ function updateDoomHoloChatTether() {
   const rect = panelEl.getBoundingClientRect();
   if (rect.width <= 0 || rect.height <= 0) return;
 
-  const px = rect.left;
-  const py = rect.top + Math.min(92, rect.height * 0.28);
-  const c1x = sx + (px - sx) * 0.42;
-  const c1y = sy - 24;
-  const c2x = sx + (px - sx) * 0.68;
-  const c2y = py;
+  const isBottomSheet = rect.left <= vw * 0.35 && rect.top > vh * 0.32;
+  let px;
+  let py;
+  let c1x;
+  let c1y;
+  let c2x;
+  let c2y;
+
+  if (isBottomSheet) {
+    px = Math.max(rect.left + 28, Math.min(rect.right - 28, sx + (vw * 0.5 - sx) * 0.25));
+    py = rect.top;
+    c1x = sx;
+    c1y = sy + (py - sy) * 0.42;
+    c2x = px;
+    c2y = sy + (py - sy) * 0.72;
+  } else {
+    px = rect.left;
+    py = rect.top + Math.min(92, rect.height * 0.28);
+    c1x = sx + (px - sx) * 0.42;
+    c1y = sy - 24;
+    c2x = sx + (px - sx) * 0.68;
+    c2y = py;
+  }
 
   const dStr = `M ${sx.toFixed(1)} ${sy.toFixed(1)} C ${c1x.toFixed(1)} ${c1y.toFixed(1)}, ${c2x.toFixed(1)} ${c2y.toFixed(1)}, ${px.toFixed(1)} ${py.toFixed(1)}`;
   pathEl.setAttribute('d', dStr);
@@ -10743,7 +10816,13 @@ async function postDoomApiWithFallback(endpointPath, payloadObj) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payloadObj),
       });
-      const data = await response.json();
+      const rawText = await response.text();
+      let data = null;
+      try {
+        data = rawText ? JSON.parse(rawText) : null;
+      } catch (_parseErr) {
+        throw new Error(`HTTP ${response.status} from ${url}`);
+      }
       if (!response.ok || !data || !data.ok) {
         const errMsg = (data && data.error) || `HTTP ${response.status} from ${url}`;
         throw new Error(errMsg);
@@ -10756,7 +10835,7 @@ async function postDoomApiWithFallback(endpointPath, payloadObj) {
   throw lastErr || new Error(`Failed to reach ${endpointPath}`);
 }
 
-async function fetchDoomStartersFromHF() {
+async function fetchDoomStartersFromHF({ silentFallback = false } = {}) {
   if (doomChatState.startersLoading) return doomChatState.starters;
   doomChatState.startersLoading = true;
   doomChatState.lastError = null;
@@ -10782,8 +10861,11 @@ async function fetchDoomStartersFromHF() {
     doomChatState.startersLatencyMs = Number(data.latencyMs ?? data.latency_ms) || 0;
     return doomChatState.starters;
   } catch (err) {
-    doomChatState.lastError = err?.message || String(err);
-    throw err;
+    if (!silentFallback) {
+      doomChatState.lastError = err?.message || String(err);
+      throw err;
+    }
+    return doomChatState.starters;
   } finally {
     doomChatState.startersLoading = false;
     syncDoomHoloChatDOM();
@@ -10875,6 +10957,879 @@ async function sendDoomChatMessageToHF(rawText) {
     syncDoomHoloChatDOM();
     updateTelemetryHUD();
   }
+}
+
+// ============================================================================
+// Interactive Holographic Sticker Placement, Locked Size Envelope & Amber Tethered Popup (Spec 047 & Spec 054)
+// ============================================================================
+const STICKER_POPUP_IGNITE_MS = 360;
+const STICKER_POPUP_COLLAPSE_MS = 260;
+const STICKER_POPUP_CAM_TRANSITION_DURATION = 0.42;
+
+const stickerPopupState = {
+  isOpen: false,
+  activePlacedId: null,
+  lastSavedAt: null,
+  animState: 'dormant', // 'dormant' | 'igniting' | 'active' | 'collapsing'
+  animStartedAtMs: 0,
+  igniteTimer: null,
+  collapseTimer: null,
+};
+
+const stickerPopupCameraState = {
+  active: false,
+  returningToOrbit: false,
+  transitionProgress: 1.0,
+  fromPos: new THREE.Vector3(),
+  fromLookAt: new THREE.Vector3(),
+  toPos: new THREE.Vector3(),
+  toLookAt: new THREE.Vector3(),
+};
+
+const _stickerTempWorldPos = new THREE.Vector3();
+const _stickerTempScreenVec = new THREE.Vector3();
+const _stickerCamNormal = new THREE.Vector3();
+const _stickerCamPos = new THREE.Vector3();
+const _stickerLookAtPos = new THREE.Vector3();
+const _stickerCamFwd = new THREE.Vector3();
+const _stickerCamRight = new THREE.Vector3();
+const _stickerCamUp = new THREE.Vector3();
+
+// ============================================================================
+// Cross-Session PostgreSQL Sticker & Tag/Message Persistence Engine (Spec 056)
+// ============================================================================
+const STICKER_LOCAL_CACHE_KEY = 'SKATEALLEY_PERSISTED_STICKERS_V1';
+const _deletedStickerTombstones = new Set();
+const _stickerWriteChainsById = new Map();
+
+const stickerPersistenceState = {
+  hydrated: false,
+  hydrating: false,
+  storageBackend: 'uninitialized',
+  dbConnected: false,
+  persistedCount: 0,
+  pendingWrites: 0,
+  lastSyncAt: null,
+  lastSyncError: null,
+};
+
+function serializePlacedStickerForPersistence(record) {
+  if (!record || !record.placedId) return null;
+  const pos = record.position || record.anchorPosition || { x: 0, y: 0, z: 0 };
+  const anc = record.anchorPosition || pos;
+  const norm = record.normal || { x: 1, y: 0, z: 0 };
+  return {
+    placedId: String(record.placedId),
+    assetId: String(record.assetId || record.stickerId || 'doom_tag'),
+    stickerId: String(record.stickerId || record.assetId || 'doom_tag'),
+    code: String(record.code || 'HOLO-STK-01'),
+    anchorPosition: {
+      x: Number(anc.x),
+      y: Number(anc.y),
+      z: Number(anc.z),
+    },
+    position: {
+      x: Number(pos.x),
+      y: Number(pos.y),
+      z: Number(pos.z),
+    },
+    normal: {
+      x: Number(norm.x),
+      y: Number(norm.y),
+      z: Number(norm.z),
+    },
+    rotationRad: Number(record.rotationRad || 0),
+    rotationDeg: Number(record.rotationDeg || 0),
+    size: Number(record.sizeMeters ?? record.size ?? 0.65),
+    sizeMeters: Number(record.sizeMeters ?? record.size ?? 0.65),
+    surfaceZone: String(record.surfaceZone || 'alley_wall_left'),
+    surfaceId: String(record.surfaceId || record.colliderName || 'COLLIDER_STICKER_WALL_L'),
+    colliderName: String(record.colliderName || record.surfaceId || 'COLLIDER_STICKER_WALL_L'),
+    surfaceLabel: String(record.surfaceLabel || 'Left Alley Wall (Interior)'),
+    wallSide: String(record.wallSide || 'L'),
+    tagger: String(record.tagger ?? ''),
+    message: String(record.message ?? ''),
+    createdAt: Number(record.createdAt || Date.now()),
+    updatedAt: Number(record.updatedAt || Date.now()),
+  };
+}
+
+function syncStickerLocalStorageCache() {
+  if (typeof window === 'undefined' || !window.localStorage || !sandbox || !sandbox.holographicStickers) {
+    return;
+  }
+  try {
+    const items = sandbox.holographicStickers.placedStickers
+      .filter((r) => r && r.placedId && !_deletedStickerTombstones.has(r.placedId))
+      .map((r) => serializePlacedStickerForPersistence(r))
+      .filter(Boolean);
+    window.localStorage.setItem(STICKER_LOCAL_CACHE_KEY, JSON.stringify(items));
+  } catch (_err) {
+    // Ignore private-browsing quota errors
+  }
+}
+
+function readStickerLocalStorageCache() {
+  if (typeof window === 'undefined' || !window.localStorage) return [];
+  try {
+    const raw = window.localStorage.getItem(STICKER_LOCAL_CACHE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (_err) {
+    return [];
+  }
+}
+
+function resolveStickerApiCandidateUrls(endpointPath = 'api/stickers') {
+  const cleanPath = String(endpointPath || 'api/stickers').replace(/^\/+/, '');
+  const candidates = [];
+  const addCandidate = (url) => {
+    if (url && !candidates.includes(url)) {
+      candidates.push(url);
+    }
+  };
+
+  if (typeof window !== 'undefined' && window.location) {
+    try {
+      const params = new URLSearchParams(window.location.search || '');
+      const explicitOrigin = params.get('apiOrigin') || window.SKATEALLEY_API_ORIGIN;
+      if (explicitOrigin && typeof explicitOrigin === 'string') {
+        const base = explicitOrigin.trim().replace(/\/+$/, '');
+        addCandidate(`${base}/${cleanPath}`);
+      }
+    } catch (_err) {
+      // Ignore query parse error
+    }
+
+    const host = (window.location.hostname || '').toLowerCase();
+    const port = String(window.location.port || '');
+    const isGitHubPages = host.endsWith('.github.io') || host.endsWith('platodoom.com');
+    const isKnownSkateAlleyPort =
+      port === '8080' || port === '3002' || port === '3000' || port === '8088' || port === '';
+
+    if (!isGitHubPages) {
+      addCandidate(`./${cleanPath}`);
+    }
+
+    if (isGitHubPages || isKnownSkateAlleyPort) {
+      if (
+        sandbox &&
+        sandbox.tunnelConfig &&
+        typeof sandbox.tunnelConfig.url === 'string' &&
+        sandbox.tunnelConfig.url.trim()
+      ) {
+        const base = sandbox.tunnelConfig.url.trim().replace(/\/+$/, '');
+        addCandidate(`${base}/${cleanPath}`);
+      }
+      if (host === 'localhost' || host === '127.0.0.1' || isGitHubPages) {
+        addCandidate(`http://localhost:8080/${cleanPath}`);
+        addCandidate(`http://localhost:3002/${cleanPath}`);
+      }
+    }
+  } else {
+    addCandidate(`./${cleanPath}`);
+  }
+  return candidates;
+}
+
+function queueStickerWriteTask(placedId, taskFn) {
+  const key = String(placedId || '__global__');
+  const prev = _stickerWriteChainsById.get(key) || Promise.resolve();
+  stickerPersistenceState.pendingWrites += 1;
+  const next = prev
+    .catch(() => {})
+    .then(() => taskFn())
+    .finally(() => {
+      stickerPersistenceState.pendingWrites = Math.max(0, stickerPersistenceState.pendingWrites - 1);
+    });
+  _stickerWriteChainsById.set(key, next);
+  if (sandbox) {
+    sandbox.lastStickerPersistPromise = next;
+  }
+  return next;
+}
+
+function persistPlacedStickerRecord(recordOrId) {
+  const placedId =
+    typeof recordOrId === 'string'
+      ? recordOrId
+      : recordOrId && recordOrId.placedId
+      ? recordOrId.placedId
+      : null;
+  if (!placedId) return Promise.resolve(null);
+
+  _deletedStickerTombstones.delete(placedId);
+  syncStickerLocalStorageCache();
+
+  return queueStickerWriteTask(placedId, async () => {
+    if (_deletedStickerTombstones.has(placedId)) {
+      return null;
+    }
+    const liveRec =
+      sandbox && sandbox.holographicStickers
+        ? sandbox.holographicStickers.getPlacedSticker(placedId)
+        : null;
+    const targetRec = liveRec || (typeof recordOrId === 'object' ? recordOrId : null);
+    const payload = serializePlacedStickerForPersistence(targetRec);
+    if (!payload) return null;
+
+    const urls = resolveStickerApiCandidateUrls('api/stickers');
+    let lastErr = null;
+    for (const url of urls) {
+      try {
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const text = await res.text();
+        const data = text ? JSON.parse(text) : null;
+        if (!res.ok || !data || !data.ok) {
+          throw new Error((data && (data.message || data.error)) || `HTTP ${res.status} from ${url}`);
+        }
+        stickerPersistenceState.dbConnected = Boolean(data.dbConnected !== false);
+        stickerPersistenceState.storageBackend = data.storage || 'postgres';
+        stickerPersistenceState.lastSyncAt = Date.now();
+        stickerPersistenceState.lastSyncError = null;
+        if (sandbox && sandbox.holographicStickers) {
+          stickerPersistenceState.persistedCount = sandbox.holographicStickers.placedStickers.length;
+        }
+        syncStickerLocalStorageCache();
+        return data.sticker || payload;
+      } catch (err) {
+        lastErr = err;
+      }
+    }
+    stickerPersistenceState.dbConnected = false;
+    if (stickerPersistenceState.storageBackend === 'uninitialized') {
+      stickerPersistenceState.storageBackend = 'local_fallback';
+    }
+    stickerPersistenceState.lastSyncError = lastErr ? lastErr.message || String(lastErr) : 'Failed to persist sticker';
+    return null;
+  });
+}
+
+function deletePersistedStickerRecord(placedId) {
+  if (!placedId) return Promise.resolve(false);
+  const cleanId = String(placedId);
+  _deletedStickerTombstones.add(cleanId);
+  syncStickerLocalStorageCache();
+
+  return queueStickerWriteTask(cleanId, async () => {
+    const encodedId = encodeURIComponent(cleanId);
+    const urls = resolveStickerApiCandidateUrls(`api/stickers/${encodedId}`);
+    let lastErr = null;
+    for (const url of urls) {
+      try {
+        const res = await fetch(url, {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+        });
+        const text = await res.text();
+        const data = text ? JSON.parse(text) : null;
+        if (!res.ok || !data || !data.ok) {
+          throw new Error((data && (data.message || data.error)) || `HTTP ${res.status} from ${url}`);
+        }
+        stickerPersistenceState.dbConnected = Boolean(data.dbConnected !== false);
+        stickerPersistenceState.storageBackend = data.storage || 'postgres';
+        stickerPersistenceState.lastSyncAt = Date.now();
+        stickerPersistenceState.lastSyncError = null;
+        if (sandbox && sandbox.holographicStickers) {
+          stickerPersistenceState.persistedCount = sandbox.holographicStickers.placedStickers.length;
+        }
+        return Boolean(data.deleted);
+      } catch (err) {
+        lastErr = err;
+      }
+    }
+    stickerPersistenceState.lastSyncError = lastErr ? lastErr.message || String(lastErr) : 'Failed to delete sticker';
+    return false;
+  });
+}
+
+async function hydrateStickersFromBackend() {
+  if (!sandbox || !sandbox.holographicStickers) return [];
+  stickerPersistenceState.hydrating = true;
+  const sys = sandbox.holographicStickers;
+  const urls = resolveStickerApiCandidateUrls('api/stickers');
+  let lastErr = null;
+
+  for (const url of urls) {
+    try {
+      const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+      const timer = controller ? setTimeout(() => controller.abort(), 3200) : null;
+      let res;
+      try {
+        res = await fetch(url, {
+          method: 'GET',
+          cache: 'no-store',
+          signal: controller ? controller.signal : undefined,
+        });
+      } finally {
+        if (timer) clearTimeout(timer);
+      }
+      const text = await res.text();
+      const data = text ? JSON.parse(text) : null;
+      if (!res.ok || !data || !data.ok || !Array.isArray(data.stickers)) {
+        throw new Error((data && (data.message || data.error)) || `HTTP ${res.status} from ${url}`);
+      }
+
+      const prevSelectedId = sys.selectedPlacedId;
+      for (const item of data.stickers) {
+        if (!item || !item.placedId || _deletedStickerTombstones.has(item.placedId)) {
+          continue;
+        }
+        const existing = sys.getPlacedSticker(item.placedId);
+        if (existing && Number(existing.updatedAt || 0) > Number(item.updatedAt || 0)) {
+          continue;
+        }
+        sys.placeStickerAt({
+          ...item,
+          selectOnPlace: false,
+        });
+      }
+      if (prevSelectedId && sys.getPlacedSticker(prevSelectedId)) {
+        sys.selectPlacedSticker(prevSelectedId);
+      }
+      if (sandbox._visualAlleyMesh && typeof sys.syncVisualEnvelope === 'function') {
+        sys.syncVisualEnvelope(
+          sandbox._visualAlleyMesh,
+          sandbox.sfx && sandbox.sfx.floorReflections ? sandbox.sfx.floorReflections.mesh : null
+        );
+      }
+
+      stickerPersistenceState.hydrated = true;
+      stickerPersistenceState.hydrating = false;
+      stickerPersistenceState.dbConnected = Boolean(data.dbConnected !== false);
+      stickerPersistenceState.storageBackend = data.storage || 'postgres';
+      stickerPersistenceState.persistedCount = sys.placedStickers.length;
+      stickerPersistenceState.lastSyncAt = Date.now();
+      stickerPersistenceState.lastSyncError = null;
+      syncStickerLocalStorageCache();
+      syncStickerToolHUDInputs();
+      syncStickerHoloPopupDOM({ populateInputs: !stickerPopupState.isOpen });
+      updateTelemetryHUD();
+      if (sandbox.ready) {
+        renderer.render(scene, camera);
+      }
+      return sys.placedStickers;
+    } catch (err) {
+      lastErr = err;
+    }
+  }
+
+  // Fallback to localStorage write-through cache if HTTP API is unreachable
+  const cachedItems = readStickerLocalStorageCache();
+  if (cachedItems.length > 0) {
+    const prevSelectedId = sys.selectedPlacedId;
+    for (const item of cachedItems) {
+      if (!item || !item.placedId || _deletedStickerTombstones.has(item.placedId)) {
+        continue;
+      }
+      const existing = sys.getPlacedSticker(item.placedId);
+      if (existing && Number(existing.updatedAt || 0) > Number(item.updatedAt || 0)) {
+        continue;
+      }
+      sys.placeStickerAt({
+        ...item,
+        selectOnPlace: false,
+      });
+    }
+    if (prevSelectedId && sys.getPlacedSticker(prevSelectedId)) {
+      sys.selectPlacedSticker(prevSelectedId);
+    }
+    if (sandbox._visualAlleyMesh && typeof sys.syncVisualEnvelope === 'function') {
+      sys.syncVisualEnvelope(
+        sandbox._visualAlleyMesh,
+        sandbox.sfx && sandbox.sfx.floorReflections ? sandbox.sfx.floorReflections.mesh : null
+      );
+    }
+  }
+
+  stickerPersistenceState.hydrated = true;
+  stickerPersistenceState.hydrating = false;
+  stickerPersistenceState.dbConnected = false;
+  stickerPersistenceState.storageBackend = 'local_fallback';
+  stickerPersistenceState.persistedCount = sys.placedStickers.length;
+  stickerPersistenceState.lastSyncError = lastErr ? lastErr.message || String(lastErr) : null;
+  syncStickerToolHUDInputs();
+  syncStickerHoloPopupDOM({ populateInputs: !stickerPopupState.isOpen });
+  updateTelemetryHUD();
+  if (sandbox.ready) {
+    renderer.render(scene, camera);
+  }
+  return sys.placedStickers;
+}
+
+function getActiveOrSelectedStickerRecord() {
+  if (!sandbox || !sandbox.holographicStickers) return null;
+  const sys = sandbox.holographicStickers;
+  if (stickerPopupState.activePlacedId) {
+    const rec = sys.getPlacedSticker(stickerPopupState.activePlacedId);
+    if (rec) return rec;
+  }
+  if (sys.selectedPlacedId) {
+    const rec = sys.getPlacedSticker(sys.selectedPlacedId);
+    if (rec) return rec;
+  }
+  if (sys.placedStickers && sys.placedStickers.length > 0) {
+    return sys.placedStickers[sys.placedStickers.length - 1];
+  }
+  return null;
+}
+
+function computeStickerPopupCameraPose(record) {
+  if (!record) return null;
+  const obj3d = record.instance ? record.instance.group || record.instance.rootGroup : null;
+  if (obj3d) {
+    obj3d.getWorldPosition(_stickerTempWorldPos);
+  } else if (record.position) {
+    _stickerTempWorldPos.set(record.position.x, record.position.y, record.position.z);
+  } else {
+    return null;
+  }
+
+  const nRaw = record.normal || { x: 0, y: 0, z: 1 };
+  _stickerCamNormal.set(nRaw.x ?? 0, nRaw.y ?? 0, nRaw.z ?? 1);
+  if (_stickerCamNormal.lengthSq() < 1e-6) {
+    _stickerCamNormal.set(0, 0, 1);
+  } else {
+    _stickerCamNormal.normalize();
+  }
+
+  const vw = Math.max(240, typeof window !== 'undefined' && window.innerWidth ? window.innerWidth : 1280);
+  const vh = Math.max(240, typeof window !== 'undefined' && window.innerHeight ? window.innerHeight : 720);
+  const aspect = vw / vh;
+  const fovYRad = THREE.MathUtils.degToRad(camera.fov || 55);
+  const tanHalfFovY = Math.tan(fovYRad * 0.5);
+  const tanHalfFovX = tanHalfFovY * aspect;
+
+  const panelEl = typeof document !== 'undefined' ? document.getElementById('sticker-holo-popup-panel') : null;
+  const isPortraitSheet = vw <= 768 || aspect < 0.95;
+
+  let xCenter = -0.26;
+  let yCenter = 0.04;
+  let halfSafeX = 0.42;
+  let halfSafeY = 0.68;
+
+  if (isPortraitSheet) {
+    const panelH =
+      panelEl && panelEl.offsetHeight > 40 ? panelEl.offsetHeight : Math.min(vh * 0.48, 340);
+    const panelTopPx = Math.max(120, vh - panelH - 14);
+    const topSafePx = Math.min(68, vh * 0.09);
+    const bottomSafePx = Math.max(topSafePx + 72, panelTopPx - 18);
+    const yTopNDC = 1.0 - 2.0 * (topSafePx / vh);
+    const yBottomNDC = 1.0 - 2.0 * (bottomSafePx / vh);
+    xCenter = 0.0;
+    yCenter = THREE.MathUtils.clamp(0.5 * (yTopNDC + yBottomNDC), 0.14, 0.56);
+    halfSafeX = 0.76;
+    halfSafeY = THREE.MathUtils.clamp(0.5 * Math.abs(yTopNDC - yBottomNDC), 0.18, 0.55);
+  } else {
+    const panelW =
+      panelEl && panelEl.offsetWidth > 100 ? panelEl.offsetWidth : Math.min(380, vw * 0.42);
+    const panelLeftPx = Math.max(160, vw - panelW - 22);
+    const leftSafePx = Math.min(44, vw * 0.05);
+    const rightSafePx = Math.max(leftSafePx + 120, panelLeftPx - 24);
+    const xLeftNDC = (leftSafePx / vw) * 2.0 - 1.0;
+    const xRightNDC = (rightSafePx / vw) * 2.0 - 1.0;
+    xCenter = THREE.MathUtils.clamp(0.5 * (xLeftNDC + xRightNDC), -0.48, -0.14);
+    yCenter = vh <= 480 ? 0.02 : 0.04;
+    halfSafeX = THREE.MathUtils.clamp(0.5 * Math.abs(xRightNDC - xLeftNDC), 0.22, 0.66);
+    halfSafeY = vh <= 480 ? 0.58 : 0.72;
+  }
+
+  const wMeters =
+    record.widthMeters ||
+    (record.instance && record.instance.geometrySpec
+      ? record.instance.geometrySpec.planeWidthMeters
+      : record.sizeMeters) ||
+    0.65;
+  const hMeters =
+    record.heightMeters ||
+    (record.instance && record.instance.geometrySpec
+      ? record.instance.geometrySpec.planeHeightMeters
+      : record.sizeMeters) ||
+    0.65;
+
+  const marginFactor = 1.65;
+  const distHoriz = (0.5 * wMeters * marginFactor) / Math.max(0.14, halfSafeX * tanHalfFovX);
+  const distVert = (0.5 * hMeters * marginFactor) / Math.max(0.14, halfSafeY * tanHalfFovY);
+  const shotDist = THREE.MathUtils.clamp(Math.max(distHoriz, distVert), 1.35, 3.60);
+
+  if (Math.abs(_stickerCamNormal.y) >= 0.85) {
+    // Floor / ground sticker: oblique elevated approach aligned with sticker surface basis to prevent gimbal lock
+    const basis = computeStickerSurfaceBasis(_stickerCamNormal, record.rotationRad || 0);
+    _stickerCamPos
+      .copy(_stickerTempWorldPos)
+      .addScaledVector(_stickerCamNormal, shotDist * 0.78)
+      .addScaledVector(basis.tangentUp, -shotDist * 0.62);
+    const minFloorCamY = resolveStickerFloorContourY(_stickerCamPos.z) + 0.88;
+    if (_stickerCamPos.y < minFloorCamY) {
+      _stickerCamPos.y = minFloorCamY;
+    }
+    if (_stickerCamPos.z >= -0.05) {
+      const minX = resolveAlleyWallProfileX('left', _stickerCamPos.z) + 0.26;
+      const maxX = resolveAlleyWallProfileX('right', _stickerCamPos.z) - 0.26;
+      if (minX < maxX) {
+        _stickerCamPos.x = THREE.MathUtils.clamp(_stickerCamPos.x, minX, maxX);
+      }
+    }
+  } else {
+    // Wall sticker (interior alley wall or exterior brick facade)
+    _stickerCamPos
+      .copy(_stickerTempWorldPos)
+      .addScaledVector(_stickerCamNormal, shotDist);
+    _stickerCamPos.y = THREE.MathUtils.clamp(
+      _stickerTempWorldPos.y + 0.05,
+      resolveStickerFloorContourY(_stickerTempWorldPos.z) + 0.65,
+      3.85
+    );
+
+    if (_stickerTempWorldPos.z >= -0.05 && Math.abs(_stickerCamNormal.x) >= 0.45) {
+      const minXAtSticker = resolveAlleyWallProfileX('left', _stickerTempWorldPos.z) + 0.26;
+      const maxXAtSticker = resolveAlleyWallProfileX('right', _stickerTempWorldPos.z) - 0.26;
+      if (minXAtSticker < maxXAtSticker) {
+        _stickerCamPos.x = THREE.MathUtils.clamp(_stickerCamPos.x, minXAtSticker, maxXAtSticker);
+      }
+      const perpDist = Math.abs(_stickerCamPos.x - _stickerTempWorldPos.x);
+      if (perpDist < shotDist * 0.94) {
+        const extraZ = Math.min(
+          1.25,
+          Math.sqrt(Math.max(0.0, shotDist * shotDist - perpDist * perpDist)) * 0.72
+        );
+        const zSign = _stickerTempWorldPos.z > 1.2 ? -1.0 : 1.0;
+        _stickerCamPos.z = _stickerTempWorldPos.z + zSign * extraZ;
+        const minXAtCam = resolveAlleyWallProfileX('left', _stickerCamPos.z) + 0.26;
+        const maxXAtCam = resolveAlleyWallProfileX('right', _stickerCamPos.z) - 0.26;
+        if (minXAtCam < maxXAtCam) {
+          _stickerCamPos.x = THREE.MathUtils.clamp(_stickerCamPos.x, minXAtCam, maxXAtCam);
+        }
+      }
+    }
+  }
+
+  _stickerCamFwd.subVectors(_stickerTempWorldPos, _stickerCamPos);
+  const actualDist = Math.max(0.35, _stickerCamFwd.length());
+  _stickerCamFwd.multiplyScalar(1.0 / actualDist);
+
+  _stickerCamRight.crossVectors(_stickerCamFwd, WORLD_UP);
+  if (_stickerCamRight.lengthSq() < 1e-5) {
+    _stickerCamRight.set(1, 0, 0);
+  } else {
+    _stickerCamRight.normalize();
+  }
+  _stickerCamUp.crossVectors(_stickerCamRight, _stickerCamFwd).normalize();
+
+  // Shift lookAt target so the 3D sticker projects into (xCenter, yCenter) of the unobstructed safe stage
+  _stickerLookAtPos
+    .copy(_stickerTempWorldPos)
+    .addScaledVector(_stickerCamRight, -xCenter * actualDist * tanHalfFovX)
+    .addScaledVector(_stickerCamUp, -yCenter * actualDist * tanHalfFovY);
+
+  return {
+    camPos: _stickerCamPos,
+    lookAtPos: _stickerLookAtPos,
+    safeStage: {
+      xCenter,
+      yCenter,
+      halfSafeX,
+      halfSafeY,
+      isPortraitSheet,
+    },
+  };
+}
+
+function syncStickerHoloPopupDOM({ populateInputs = false } = {}) {
+  if (typeof document === 'undefined') return;
+  const sys = sandbox ? sandbox.holographicStickers : null;
+  const overlayEl = document.getElementById('sticker-holo-popup-overlay');
+  const titleEl = document.getElementById('sticker-holo-title-text');
+  const surfaceBadgeEl = document.getElementById('sticker-holo-surface-badge');
+  const statusPillEl = document.getElementById('sticker-holo-status-pill');
+  const taggerInputEl = document.getElementById('sticker-tagger-input');
+  const messageInputEl = document.getElementById('sticker-message-input');
+  const savedReadoutEl = document.getElementById('sticker-saved-readout');
+  const savedTaggerEl =
+    document.getElementById('sticker-saved-tagger-display') ||
+    document.getElementById('sticker-saved-tagger-text');
+  const savedDimsEl = document.getElementById('sticker-saved-dims-display');
+  const savedMessageEl =
+    document.getElementById('sticker-saved-message-display') ||
+    document.getElementById('sticker-saved-message-text');
+
+  const record = getActiveOrSelectedStickerRecord();
+  const isOpen = Boolean(stickerPopupState.isOpen && record);
+  if (sandbox) {
+    sandbox.isStickerPopupOpen = isOpen;
+  }
+
+  if (document.body) {
+    document.body.classList.toggle('sticker-popup-active', isOpen);
+  }
+
+  if (overlayEl) {
+    if (isOpen) {
+      const state = stickerPopupState.animState === 'igniting' ? 'igniting' : 'active';
+      stickerPopupState.animState = state;
+      overlayEl.classList.add('active');
+      overlayEl.classList.toggle('igniting', state === 'igniting');
+      overlayEl.classList.remove('closing');
+      overlayEl.setAttribute('data-holo-state', state);
+      overlayEl.setAttribute('aria-hidden', 'false');
+    } else if (stickerPopupState.animState === 'collapsing') {
+      overlayEl.classList.remove('active', 'igniting');
+      overlayEl.classList.add('closing');
+      overlayEl.setAttribute('data-holo-state', 'collapsing');
+      overlayEl.setAttribute('aria-hidden', 'true');
+    } else {
+      stickerPopupState.animState = 'dormant';
+      overlayEl.classList.remove('active', 'igniting', 'closing');
+      overlayEl.setAttribute('data-holo-state', 'dormant');
+      overlayEl.setAttribute('aria-hidden', 'true');
+    }
+  }
+
+  if (!sys || !record) return;
+  const bounds = sys.getSizeBounds();
+
+  if (titleEl) {
+    titleEl.textContent = `${record.label || record.stickerId} // HOLO.TAG`;
+  }
+  if (surfaceBadgeEl) {
+    surfaceBadgeEl.textContent = `${(record.surfaceLabel || record.surfaceId || 'SURFACE').toUpperCase()} • ${record.sizeMeters.toFixed(2)}m`;
+  }
+  if (statusPillEl) {
+    const pos = record.position || { x: 0, y: 0, z: 0 };
+    const savedTag = record.tagger || record.message ? 'TAGGED' : 'AWAITING TAG';
+    statusPillEl.textContent = `${savedTag} // (${pos.x.toFixed(2)}, ${pos.y.toFixed(2)}, ${pos.z.toFixed(2)}) • bounds [${bounds.minSize.toFixed(2)}m..${bounds.maxSize.toFixed(2)}m]`;
+  }
+
+  const wMeters =
+    record.widthMeters ||
+    (record.instance ? record.instance.geometrySpec.planeWidthMeters : record.sizeMeters);
+  const hMeters =
+    record.heightMeters ||
+    (record.instance ? record.instance.geometrySpec.planeHeightMeters : record.sizeMeters);
+
+  if (populateInputs) {
+    if (taggerInputEl) {
+      taggerInputEl.value = record.tagger || '';
+    }
+    if (messageInputEl) {
+      messageInputEl.value = record.message || '';
+    }
+  }
+
+  const hasSavedContent = Boolean(
+    (record.tagger && record.tagger.trim()) || (record.message && record.message.trim())
+  );
+  if (savedReadoutEl) {
+    savedReadoutEl.classList.toggle('visible', hasSavedContent);
+    savedReadoutEl.style.display = hasSavedContent ? 'block' : 'none';
+  }
+  if (savedTaggerEl) {
+    const taggerName =
+      record.tagger && record.tagger.trim() ? record.tagger.trim() : 'ANONYMOUS TAGGER';
+    savedTaggerEl.textContent = `TAGGER // ${taggerName}`;
+  }
+  if (savedDimsEl) {
+    savedDimsEl.textContent = `${wMeters.toFixed(2)}m × ${hMeters.toFixed(2)}m (${Math.round(record.rotationDeg || 0)}°)`;
+  }
+  if (savedMessageEl) {
+    savedMessageEl.textContent =
+      record.message && record.message.trim() ? record.message.trim() : '(No message body)';
+  }
+}
+
+function syncStickerToolHUDInputs() {
+  if (typeof document === 'undefined' || !sandbox || !sandbox.holographicStickers) return;
+  const sys = sandbox.holographicStickers;
+  const bounds = sys.getSizeBounds();
+  const pState = sys.placementState;
+  const selectedRec = getActiveOrSelectedStickerRecord();
+
+  const activeSize = pState.active
+    ? pState.sizeMeters
+    : selectedRec
+    ? selectedRec.sizeMeters
+    : bounds.defaultSize;
+  const activeRotDeg = pState.active
+    ? Math.round(THREE.MathUtils.radToDeg(pState.rotationRad))
+    : selectedRec
+    ? Math.round(selectedRec.rotationDeg || 0)
+    : 0;
+
+  const statusLabelEl =
+    document.getElementById('sticker-hud-status-label') ||
+    document.getElementById('sticker-tool-status-label');
+  if (statusLabelEl) {
+    statusLabelEl.textContent = `${sys.placedStickers.length} Placed | [${bounds.minSize.toFixed(2)}m, ${bounds.maxSize.toFixed(2)}m]`;
+  }
+
+  const assetSelectEl = document.getElementById('sticker-asset-select');
+  if (assetSelectEl && document.activeElement !== assetSelectEl) {
+    assetSelectEl.value = pState.stickerId || sandbox.selectedHoloStickerId || 'doom_tag';
+  }
+
+  const startPlaceBtn = document.getElementById('sticker-start-place-btn');
+  if (startPlaceBtn) {
+    const activeSpecLabel =
+      STICKER_ASSET_BY_ID[pState.stickerId]?.label ||
+      String(pState.stickerId || 'doom_tag')
+        .replace(/_/g, ' ')
+        .toUpperCase();
+    startPlaceBtn.textContent = pState.active
+      ? `Placing: ${activeSpecLabel} (Esc)`
+      : 'Place Sticker in 3D';
+    startPlaceBtn.classList.toggle('secondary', !pState.active);
+  }
+
+  const calibToggleBtn = document.getElementById('sticker-calib-toggle-btn');
+  if (calibToggleBtn) {
+    calibToggleBtn.textContent = sys.calibrationState.active
+      ? '3D Min/Max Frame: ON'
+      : '3D Min/Max Frame: OFF';
+    calibToggleBtn.classList.toggle('secondary', !sys.calibrationState.active);
+  }
+
+  const minSlider = document.getElementById('sticker-min-size-slider');
+  const minInput = document.getElementById('sticker-min-size-input');
+  const maxSlider = document.getElementById('sticker-max-size-slider');
+  const maxInput = document.getElementById('sticker-max-size-input');
+  const curSizeSlider = document.getElementById('sticker-cur-size-slider');
+  const curSizeInput = document.getElementById('sticker-cur-size-input');
+  const rotSlider = document.getElementById('sticker-rot-deg-slider');
+  const rotInput = document.getElementById('sticker-rot-deg-input');
+
+  if (minSlider && document.activeElement !== minSlider) minSlider.value = bounds.minSize.toFixed(2);
+  if (minInput && document.activeElement !== minInput) minInput.value = bounds.minSize.toFixed(2);
+  if (maxSlider && document.activeElement !== maxSlider) maxSlider.value = bounds.maxSize.toFixed(2);
+  if (maxInput && document.activeElement !== maxInput) maxInput.value = bounds.maxSize.toFixed(2);
+
+  if (curSizeSlider) {
+    curSizeSlider.min = String(bounds.minSize);
+    curSizeSlider.max = String(bounds.maxSize);
+    if (document.activeElement !== curSizeSlider) {
+      curSizeSlider.value = activeSize.toFixed(2);
+    }
+  }
+  if (curSizeInput) {
+    curSizeInput.min = String(bounds.minSize);
+    curSizeInput.max = String(bounds.maxSize);
+    if (document.activeElement !== curSizeInput) {
+      curSizeInput.value = activeSize.toFixed(2);
+    }
+  }
+  if (rotSlider && document.activeElement !== rotSlider) {
+    rotSlider.value = String(activeRotDeg);
+  }
+  if (rotInput && document.activeElement !== rotInput) {
+    rotInput.value = String(activeRotDeg);
+  }
+
+  const bannerEl = document.getElementById('sticker-placement-banner');
+  const bannerLabelEl = document.getElementById('sticker-placement-banner-label');
+  if (bannerEl) {
+    bannerEl.classList.toggle('visible', Boolean(pState.active));
+    bannerEl.classList.toggle('active', Boolean(pState.active));
+  }
+  if (bannerLabelEl && pState.active) {
+    const spec = STICKER_ASSET_BY_ID[pState.stickerId] || { label: pState.stickerId };
+    const specLabel =
+      spec.label ||
+      String(spec.id || pState.stickerId || 'doom_tag')
+        .replace(/_/g, ' ')
+        .toUpperCase();
+    const hit = pState.lastHit;
+    const surfText = hit ? `on <strong>${hit.surfaceLabel}</strong>` : '(Aim at any wall or floor)';
+    bannerLabelEl.innerHTML = `<span class="banner-badge">STICKER MODE</span> Placing <strong>${specLabel}</strong> ${surfText} &bull; Size: <strong>${pState.sizeMeters.toFixed(2)}m</strong> [${bounds.minSize.toFixed(2)}–${bounds.maxSize.toFixed(2)}m] &bull; Rot: <strong>${activeRotDeg}°</strong> &bull; Click Surface to Place`;
+  }
+}
+
+function updateStickerHoloPopupTether() {
+  if (typeof performance !== 'undefined' && stickerPopupState.animStartedAtMs > 0) {
+    const elapsedMs = performance.now() - stickerPopupState.animStartedAtMs;
+    if (stickerPopupState.animState === 'igniting' && elapsedMs >= STICKER_POPUP_IGNITE_MS) {
+      stickerPopupState.animState = 'active';
+      syncStickerHoloPopupDOM();
+    } else if (
+      stickerPopupState.animState === 'collapsing' &&
+      elapsedMs >= STICKER_POPUP_COLLAPSE_MS
+    ) {
+      stickerPopupState.animState = 'dormant';
+      syncStickerHoloPopupDOM();
+    }
+  }
+  if (
+    typeof document === 'undefined' ||
+    (!stickerPopupState.isOpen && stickerPopupState.animState !== 'collapsing') ||
+    !sandbox ||
+    !sandbox.holographicStickers
+  ) {
+    return;
+  }
+  const record = getActiveOrSelectedStickerRecord();
+  if (!record) return;
+
+  const panelEl = document.getElementById('sticker-holo-popup-panel');
+  const pathEl = document.getElementById('sticker-holo-tether-path');
+  const glowEl = document.getElementById('sticker-holo-tether-glow');
+  const originDotEl = document.getElementById('sticker-holo-tether-origin-dot');
+  const panelDotEl = document.getElementById('sticker-holo-tether-panel-dot');
+  if (!panelEl || !pathEl || !glowEl || !originDotEl || !panelDotEl) return;
+
+  const obj3d = record.instance ? record.instance.group || record.instance.rootGroup : null;
+  if (obj3d) {
+    obj3d.getWorldPosition(_stickerTempWorldPos);
+  } else if (record.position) {
+    _stickerTempWorldPos.set(record.position.x, record.position.y, record.position.z);
+  } else {
+    return;
+  }
+  _stickerTempScreenVec.copy(_stickerTempWorldPos).project(camera);
+
+  const vw = window.innerWidth || 1280;
+  const vh = window.innerHeight || 720;
+  const sx = Math.max(12, Math.min(vw - 12, (_stickerTempScreenVec.x * 0.5 + 0.5) * vw));
+  const sy = Math.max(12, Math.min(vh - 12, (-_stickerTempScreenVec.y * 0.5 + 0.5) * vh));
+
+  const rect = panelEl.getBoundingClientRect();
+  if (rect.width <= 0 && rect.height <= 0) return;
+
+  const isPortraitSheet = vw <= 768 || vw / Math.max(1, vh) < 0.95;
+  let px;
+  let py;
+  let c1x;
+  let c1y;
+  let c2x;
+  let c2y;
+
+  if (isPortraitSheet) {
+    // Portrait / mobile bottom-sheet dock: attach tether to top edge of panel
+    px = THREE.MathUtils.clamp(sx, rect.left + 28, Math.max(rect.left + 28, rect.right - 28));
+    py = rect.top;
+    c1x = sx + (px - sx) * 0.28;
+    c1y = sy + (py - sy) * 0.44;
+    c2x = px;
+    c2y = sy + (py - sy) * 0.72;
+  } else {
+    // Landscape / desktop right dock: attach tether to left edge of panel
+    px = rect.left;
+    py = THREE.MathUtils.clamp(sy, rect.top + 28, Math.max(rect.top + 28, rect.bottom - 28));
+    c1x = sx + (px - sx) * 0.42;
+    c1y = sy - 18;
+    c2x = sx + (px - sx) * 0.72;
+    c2y = py;
+  }
+
+  const dStr = `M ${sx.toFixed(1)} ${sy.toFixed(1)} C ${c1x.toFixed(1)} ${c1y.toFixed(1)}, ${c2x.toFixed(1)} ${c2y.toFixed(1)}, ${px.toFixed(1)} ${py.toFixed(1)}`;
+  pathEl.setAttribute('d', dStr);
+  glowEl.setAttribute('d', dStr);
+  originDotEl.setAttribute('cx', sx.toFixed(1));
+  originDotEl.setAttribute('cy', sy.toFixed(1));
+  panelDotEl.setAttribute('cx', px.toFixed(1));
+  panelDotEl.setAttribute('cy', py.toFixed(1));
 }
 
 const pointerNDC = new THREE.Vector2(-999, -999);
@@ -11564,6 +12519,293 @@ function updateHolographicPopupUI() {
     winEl.style.setProperty('--holo-glitch-shift-x', `${(flk.tearOffsetUvX * 14).toFixed(1)}px`);
     winEl.classList.toggle('holo-glitch-active', flk.glitchIntensity > 0.05);
   }
+  updatePortalGameHoloPopupUI();
+}
+
+function getActivePortalGameCatalog() {
+  const rawList =
+    sandbox.waterColor && Array.isArray(sandbox.waterColor.availableGames) && sandbox.waterColor.availableGames.length > 0
+      ? sandbox.waterColor.availableGames
+      : Array.isArray(sandbox.portalGameCatalog) && sandbox.portalGameCatalog.length > 0
+      ? sandbox.portalGameCatalog
+      : PORTAL_GAME_CATALOG;
+  return rawList.map((g, idx) => normalizePortalGameEntry(g, idx));
+}
+
+const PORTAL_HOLO_OPEN_DURATION_MS = 320;
+const PORTAL_HOLO_CLOSE_DURATION_MS = 240;
+let _portalPopupAnimTimer = null;
+
+function cancelPortalPopupAnimTimer() {
+  if (_portalPopupAnimTimer !== null) {
+    clearTimeout(_portalPopupAnimTimer);
+    _portalPopupAnimTimer = null;
+  }
+}
+
+function applyPortalPopupLifecycleDOM(state) {
+  if (typeof document === 'undefined') return;
+  const stageEl = document.getElementById('portal-game-holo-stage');
+  const winEl = document.getElementById('portal-game-holo-window');
+  if (!stageEl || !winEl) return;
+
+  const isActive = state === 'opening' || state === 'open';
+  const isOpening = state === 'opening';
+  const isOpen = state === 'open';
+  const isClosing = state === 'closing';
+
+  stageEl.setAttribute('data-holo-state', state);
+  winEl.setAttribute('data-holo-state', state);
+
+  stageEl.classList.toggle('active', isActive);
+  stageEl.classList.toggle('holo-opening', isOpening);
+  stageEl.classList.toggle('holo-open', isOpen);
+  stageEl.classList.toggle('holo-closing', isClosing);
+  stageEl.setAttribute('aria-hidden', isActive ? 'false' : 'true');
+
+  winEl.classList.toggle('active', isActive);
+  winEl.classList.toggle('mount-focus-active', isActive || isClosing);
+  winEl.classList.toggle('holo-opening', isOpening);
+  winEl.classList.toggle('holo-open', isOpen);
+  winEl.classList.toggle('holo-closing', isClosing);
+
+  winEl.querySelectorAll('.holo-light-bar').forEach((bar) => {
+    bar.classList.toggle('ignited', isActive);
+  });
+}
+
+function startPortalPopupOpenAnimation({ immediate = false } = {}) {
+  cancelPortalPopupAnimTimer();
+  if (immediate) {
+    sandbox.portalPopupAnimState = 'open';
+    if (sandbox.waterColor && typeof sandbox.waterColor.setPopupAnimState === 'function') {
+      sandbox.waterColor.setPopupAnimState('open');
+    }
+    applyPortalPopupLifecycleDOM('open');
+    return;
+  }
+  sandbox.portalPopupAnimState = 'opening';
+  if (sandbox.waterColor && typeof sandbox.waterColor.setPopupAnimState === 'function') {
+    sandbox.waterColor.setPopupAnimState('opening');
+  }
+  applyPortalPopupLifecycleDOM('opening');
+  _portalPopupAnimTimer = setTimeout(() => {
+    _portalPopupAnimTimer = null;
+    if (sandbox.isPortalPopupOpen && sandbox.waterColor && sandbox.waterColor.isPopupOpen) {
+      sandbox.portalPopupAnimState = 'open';
+      if (typeof sandbox.waterColor.setPopupAnimState === 'function') {
+        sandbox.waterColor.setPopupAnimState('open');
+      }
+      applyPortalPopupLifecycleDOM('open');
+    }
+  }, PORTAL_HOLO_OPEN_DURATION_MS);
+}
+
+function startPortalPopupCloseAnimation({ immediate = false } = {}) {
+  cancelPortalPopupAnimTimer();
+  if (immediate || sandbox.portalPopupAnimState === 'dormant') {
+    sandbox.portalPopupAnimState = 'dormant';
+    if (sandbox.waterColor && typeof sandbox.waterColor.setPopupAnimState === 'function') {
+      sandbox.waterColor.setPopupAnimState('dormant');
+    }
+    applyPortalPopupLifecycleDOM('dormant');
+    return;
+  }
+  sandbox.portalPopupAnimState = 'closing';
+  if (sandbox.waterColor && typeof sandbox.waterColor.setPopupAnimState === 'function') {
+    sandbox.waterColor.setPopupAnimState('closing');
+  }
+  applyPortalPopupLifecycleDOM('closing');
+  _portalPopupAnimTimer = setTimeout(() => {
+    _portalPopupAnimTimer = null;
+    if (!sandbox.isPortalPopupOpen) {
+      sandbox.portalPopupAnimState = 'dormant';
+      if (sandbox.waterColor && typeof sandbox.waterColor.setPopupAnimState === 'function') {
+        sandbox.waterColor.setPopupAnimState('dormant');
+      }
+      applyPortalPopupLifecycleDOM('dormant');
+    }
+  }, PORTAL_HOLO_CLOSE_DURATION_MS);
+}
+
+function syncPortalGamePopupDOM() {
+  if (typeof document === 'undefined') return;
+  const stageEl = document.getElementById('portal-game-holo-stage');
+  const winEl = document.getElementById('portal-game-holo-window');
+  const gridEl = document.getElementById('portal-game-cards-grid');
+  if (!stageEl || !winEl) return;
+
+  const catalog = getActivePortalGameCatalog();
+  const isOpen = Boolean(sandbox.isPortalPopupOpen && sandbox.waterColor && sandbox.waterColor.isPopupOpen);
+  const rawSelectedId = (sandbox.waterColor && sandbox.waterColor.selectedGameId) || catalog[0]?.id || 'skate3';
+  const resolvedSelected = resolvePortalGameSpec(rawSelectedId, catalog) || catalog[0];
+  const selectedId = resolvedSelected ? resolvedSelected.id : 'skate3';
+
+  if (isOpen) {
+    if (sandbox.portalPopupAnimState !== 'opening' && sandbox.portalPopupAnimState !== 'open') {
+      sandbox.portalPopupAnimState = 'open';
+      if (sandbox.waterColor && typeof sandbox.waterColor.setPopupAnimState === 'function') {
+        sandbox.waterColor.setPopupAnimState('open');
+      }
+    }
+    applyPortalPopupLifecycleDOM(sandbox.portalPopupAnimState);
+  } else if (sandbox.portalPopupAnimState === 'closing') {
+    applyPortalPopupLifecycleDOM('closing');
+  } else {
+    sandbox.portalPopupAnimState = 'dormant';
+    if (sandbox.waterColor && typeof sandbox.waterColor.setPopupAnimState === 'function') {
+      sandbox.waterColor.setPopupAnimState('dormant');
+    }
+    applyPortalPopupLifecycleDOM('dormant');
+  }
+
+  if (gridEl) {
+    const existingCards = Array.from(gridEl.querySelectorAll('.portal-game-card'));
+    const catalogMatchesDOM =
+      existingCards.length === catalog.length &&
+      existingCards.every((card, idx) => {
+        const g = catalog[idx];
+        const hasOnlyLogo =
+          card.children.length === 1 &&
+          card.firstElementChild &&
+          card.firstElementChild.classList.contains('portal-game-logo-img');
+        return card.getAttribute('data-game-id') === g.id && hasOnlyLogo;
+      });
+
+    if (!catalogMatchesDOM) {
+      gridEl.replaceChildren();
+      catalog.forEach((game, idx) => {
+        const card = document.createElement('div');
+        card.id = `portal-game-card-${game.id}`;
+        card.className = 'portal-game-card';
+        card.setAttribute('role', 'listitem');
+        card.setAttribute('tabindex', '0');
+        card.setAttribute('data-game-id', game.id);
+        card.setAttribute('data-game-slot', String(game.slot));
+        card.setAttribute('data-target-url', game.targetUrl);
+        card.style.setProperty('--card-stagger-idx', String(idx));
+        card.setAttribute('aria-label', `Launch ${game.title} (Key ${game.hotkey})`);
+
+        const img = document.createElement('img');
+        img.id = `portal-game-logo-${game.id}`;
+        img.className = 'portal-game-logo-img';
+        img.src = game.logoUrl;
+        img.alt = `${game.title} Logo`;
+        img.width = game.width || 960;
+        img.height = game.height || 774;
+        img.loading = 'eager';
+        img.decoding = 'sync';
+
+        card.appendChild(img);
+        gridEl.appendChild(card);
+      });
+    }
+
+    const vpW = typeof window !== 'undefined' && window.innerWidth ? window.innerWidth : 1440;
+    const vpH = typeof window !== 'undefined' && window.innerHeight ? window.innerHeight : 900;
+    const meanAspect =
+      catalog.reduce((sum, g) => sum + (Number(g.aspectRatio) || 1.24), 0) / Math.max(1, catalog.length);
+
+    const layout = solvePortalGameGridLayout({
+      count: catalog.length,
+      viewportWidth: vpW,
+      viewportHeight: vpH,
+      referenceAspect: meanAspect,
+    });
+    sandbox.portalGridLayout = layout;
+
+    stageEl.style.setProperty('--portal-stage-pad', `${layout.stagePadding}px`);
+    winEl.style.setProperty('--portal-win-pad-x', `${layout.winPaddingX}px`);
+    winEl.style.setProperty('--portal-win-pad-y', `${layout.winPaddingY}px`);
+    winEl.style.setProperty('--portal-header-h', `${layout.headerHeight}px`);
+    winEl.style.setProperty('--portal-chrome-gap', `${layout.chromeGap}px`);
+    gridEl.style.setProperty('--portal-grid-gap', `${layout.gap}px`);
+    gridEl.style.setProperty('--portal-grid-w', `${layout.gridWidth}px`);
+    gridEl.style.setProperty('--portal-cell-w', `${layout.cellWidth}px`);
+    gridEl.style.setProperty('--portal-cell-h', `${layout.cellHeight}px`);
+    gridEl.style.setProperty('--portal-cell-pad', `${layout.cellPadding}px`);
+    gridEl.setAttribute('data-grid-cols', String(layout.columns));
+    gridEl.setAttribute('data-grid-rows', String(layout.rows));
+
+    const headerImg = document.getElementById('portal-header-logo-img');
+    if (headerImg) {
+      const hLogoH = Math.max(32, layout.headerHeight - 8);
+      const hLogoW = Math.min(Math.max(94, layout.stageWidth - 76), Math.round(hLogoH * (1120 / 381)));
+      headerImg.style.width = `${hLogoW}px`;
+      headerImg.style.height = `${Math.round(hLogoW * (381 / 1120))}px`;
+    }
+
+    const innerBoxW = Math.max(20, layout.cellWidth - layout.cellPadding * 2 - 3);
+    const innerBoxH = Math.max(16, layout.cellHeight - layout.cellPadding * 2 - 3);
+
+    gridEl.querySelectorAll('.portal-game-card').forEach((card, idx) => {
+      const cardGameId = card.getAttribute('data-game-id');
+      const isSel = cardGameId === selectedId;
+      card.style.setProperty('--card-stagger-idx', String(idx));
+      card.classList.toggle('selected', isSel);
+      card.setAttribute('aria-selected', isSel ? 'true' : 'false');
+
+      const img = card.querySelector('.portal-game-logo-img');
+      if (img) {
+        const gameSpec = resolvePortalGameSpec(cardGameId, catalog) || catalog[idx];
+        const ar =
+          img.complete && img.naturalWidth > 0 && img.naturalHeight > 0
+            ? img.naturalWidth / img.naturalHeight
+            : (gameSpec && Number(gameSpec.aspectRatio)) || 1.24;
+        let imgW = innerBoxW;
+        let imgH = innerBoxW / ar;
+        if (imgH > innerBoxH) {
+          imgH = innerBoxH;
+          imgW = innerBoxH * ar;
+        }
+        img.style.width = `${imgW.toFixed(2)}px`;
+        img.style.height = `${imgH.toFixed(2)}px`;
+      }
+    });
+  }
+
+  const footerStatusEl = document.getElementById('portal-holo-footer-status');
+  if (footerStatusEl) {
+    const selSpec = resolvePortalGameSpec(selectedId, catalog);
+    if (selSpec) {
+      footerStatusEl.textContent = `SELECTED: ${selSpec.title} (KEY [${selSpec.hotkey}]) // CLICK LOGO OR PRESS ENTER TO LAUNCH • ESC TO RETURN`;
+    }
+  }
+}
+
+function updatePortalGameHoloPopupUI(clampedDt = 1 / 60) {
+  if (typeof document === 'undefined') return;
+  const winEl = document.getElementById('portal-game-holo-window');
+  if (!winEl) return;
+
+  if (sandbox.portalGlitchBoostRemainingSec > 0) {
+    sandbox.portalGlitchBoostRemainingSec = Math.max(
+      0.0,
+      sandbox.portalGlitchBoostRemainingSec - clampedDt
+    );
+  }
+
+  const isOpen = Boolean(sandbox.isPortalPopupOpen && sandbox.waterColor && sandbox.waterColor.isPopupOpen);
+  if (!isOpen) {
+    if (winEl.classList.contains('active')) {
+      syncPortalGamePopupDOM();
+    }
+    if (sandbox.portalPopupAnimState !== 'closing') {
+      return;
+    }
+  } else if (!winEl.classList.contains('active')) {
+    syncPortalGamePopupDOM();
+  }
+
+  const boost = sandbox.portalGlitchBoostRemainingSec > 0 ? 1.0 : 0.0;
+  const flk = evaluateHologramScreenFlickerAndGlitch(
+    holoShaderUniforms.uHoloTime.value,
+    6,
+    boost
+  );
+  winEl.style.setProperty('--holo-flicker-gain', String(flk.flickerGain));
+  winEl.style.setProperty('--holo-glitch-shift-x', `${(flk.tearOffsetUvX * 14).toFixed(1)}px`);
+  winEl.classList.toggle('holo-glitch-active', flk.glitchIntensity > 0.05);
 }
 
 function enterFreeRoamMode() {
@@ -11643,6 +12885,26 @@ const sandbox = {
   skyboxGroup: watercolorRootGroup,
   waterColor: null,
   skybox: null,
+  isPortalPopupOpen: false,
+  portalPopupAnimState: 'dormant',
+  portalOpenDurationMs: PORTAL_HOLO_OPEN_DURATION_MS,
+  portalCloseDurationMs: PORTAL_HOLO_CLOSE_DURATION_MS,
+  portalGlitchBoostRemainingSec: 0.0,
+  portalGameCatalog: PORTAL_GAME_CATALOG,
+  portalHeaderLogoSpec: PORTAL_HEADER_LOGO_SPEC,
+  portalGridLayout: null,
+  setPortalGameCatalog(nextList) {
+    const normalized =
+      Array.isArray(nextList) && nextList.length > 0
+        ? Object.freeze(nextList.map((g, idx) => normalizePortalGameEntry(g, idx)))
+        : PORTAL_GAME_CATALOG;
+    this.portalGameCatalog = normalized;
+    if (this.waterColor && typeof this.waterColor.setAvailableGames === 'function') {
+      this.waterColor.setAvailableGames(normalized);
+    }
+    syncPortalGamePopupDOM();
+    return normalized;
+  },
   lamppostLight: null,
   streetLights: [],
   entranceLamppostLight: null,
@@ -11737,6 +12999,7 @@ const sandbox = {
   hologramColumnsGroup: hologramColumnsRootGroup,
   hologramColumns: null,
   selectedHoloColumnId: 'holo_slide_carousel',
+  hoveredHoloColumnId: null,
   holoEditMode: false,
   holoGizmoMode: 'translate',
   transformControls: null,
@@ -11948,13 +13211,18 @@ const sandbox = {
     const col = this.hologramColumns.getColumn(this.selectedHoloColumnId);
     if (!col) return false;
     const t = col.getTransformState();
-    const targetZ = Math.max(1.5, t.z - 2.35);
-    const targetX = col.id === 'villainy_inc_sign' ? t.x - CAM_SHOULDER_OFFSET_X : t.x + 0.62;
-    const lookYaw = 0.0;
-    this.teleportCharacterTo(targetX, this.environment ? this.environment.floorY : 0.0, targetZ, lookYaw);
-    cameraOrbit.yaw = 0.0;
-    cameraOrbit.pitch = t.yRel > 2.2 ? -0.34 : 0.04;
-    cameraOrbit.pivotCurrent.set(targetX, (this.environment ? this.environment.floorY : 0.0) + CAM_PIVOT_HEIGHT, targetZ);
+    const floorY = this.environment ? this.environment.floorY : 0.0;
+    const targetZ = Math.max(1.5, t.z - 3.4);
+    const targetX = col.id === 'villainy_inc_sign' ? t.x - CAM_SHOULDER_OFFSET_X : 0.0;
+    const dx = t.x - targetX;
+    const dz = Math.max(0.5, t.z - targetZ);
+    const lookYaw = Math.atan2(dx, dz);
+    this.teleportCharacterTo(targetX, floorY, targetZ, lookYaw);
+    cameraOrbit.yaw = lookYaw * 0.65;
+    const dy = t.yRel - CAM_PIVOT_HEIGHT;
+    const horizDist = Math.hypot(dx, dz);
+    cameraOrbit.pitch = THREE.MathUtils.clamp(-Math.atan2(dy, horizDist) * 0.85, -0.75, 0.35);
+    cameraOrbit.pivotCurrent.set(targetX, floorY + CAM_PIVOT_HEIGHT, targetZ);
     cameraOrbit.pivotTarget.copy(cameraOrbit.pivotCurrent);
     updateCameraController(1 / 60);
     renderer.render(scene, camera);
@@ -11981,6 +13249,10 @@ const sandbox = {
   holographicStickersGroup: holographicStickersRootGroup,
   holographicStickers: null,
   selectedHoloStickerId: 'doom_tag',
+  isStickerPopupOpen: false,
+  hoveredPlacedStickerId: null,
+  stickerPopupState,
+  stickerPopupCameraState,
   getHolographicSticker(idOrIndex) {
     return this.holographicStickers ? this.holographicStickers.getSticker(idOrIndex) : null;
   },
@@ -11995,6 +13267,468 @@ const sandbox = {
   },
   setGlobalHolographicStickerParams(partialParams) {
     return this.holographicStickers ? this.holographicStickers.setGlobalParams(partialParams) : false;
+  },
+  startStickerPlacement(stickerId = this.selectedHoloStickerId, options = {}) {
+    if (!this.holographicStickers) return null;
+    if (this.isDoomChatOpen) {
+      this.exitDoomChatMode({ immediate: true });
+    }
+    this.closeStickerPopup({ immediate: true, silent: true });
+    const resolvedId = STICKER_ASSET_BY_ID[stickerId] ? stickerId : this.selectedHoloStickerId || 'doom_tag';
+    this.selectedHoloStickerId = resolvedId;
+    const pState = this.holographicStickers.beginPlacement(resolvedId, options);
+    // Prime preview ray from current pointer or viewport center so the 3D ghost preview is immediately visible
+    const ndcX = pointerNDC.x >= -1.0 && pointerNDC.x <= 1.0 ? pointerNDC.x : 0.0;
+    const ndcY = pointerNDC.y >= -1.0 && pointerNDC.y <= 1.0 ? pointerNDC.y : 0.0;
+    pointerRaycaster.setFromCamera({ x: ndcX, y: ndcY }, camera);
+    this.holographicStickers.updatePlacementPreviewFromRay(pointerRaycaster);
+    if (this.audio) {
+      this.audio.trigger('onUpdate', { target: resolvedId, source: 'sticker-placement-begin' });
+    }
+    syncStickerToolHUDInputs();
+    syncStickerHoloPopupDOM();
+    updateTelemetryHUD();
+    if (this.ready) {
+      renderer.render(scene, camera);
+    }
+    return pState;
+  },
+  cancelStickerPlacement() {
+    if (!this.holographicStickers) return false;
+    this.holographicStickers.cancelPlacement();
+    syncStickerToolHUDInputs();
+    syncStickerHoloPopupDOM();
+    updateTelemetryHUD();
+    if (this.ready) {
+      renderer.render(scene, camera);
+    }
+    return true;
+  },
+  updateStickerPreviewAtClientPoint(clientX, clientY) {
+    if (!this.holographicStickers || !this.holographicStickers.isPlacementActive()) return null;
+    const canvas = renderer.domElement;
+    const rect = canvas.getBoundingClientRect();
+    if (rect.width > 0 && rect.height > 0) {
+      pointerNDC.x = ((clientX - rect.left) / rect.width) * 2.0 - 1.0;
+      pointerNDC.y = -((clientY - rect.top) / rect.height) * 2.0 + 1.0;
+    }
+    pointerRaycaster.setFromCamera(pointerNDC, camera);
+    const hit = this.holographicStickers.updatePlacementPreviewFromRay(pointerRaycaster);
+    syncStickerToolHUDInputs();
+    if (this.ready) {
+      renderer.render(scene, camera);
+    }
+    return hit;
+  },
+  stickerPersistenceState,
+  lastStickerPersistPromise: null,
+  loadPersistedStickers() {
+    return hydrateStickersFromBackend();
+  },
+  commitStickerPlacementAtClientPoint(clientX, clientY, meta = {}) {
+    if (!this.holographicStickers || !this.holographicStickers.isPlacementActive()) return null;
+    const canvas = renderer.domElement;
+    const rect = canvas.getBoundingClientRect();
+    if (rect.width > 0 && rect.height > 0 && Number.isFinite(clientX) && Number.isFinite(clientY)) {
+      pointerNDC.x = ((clientX - rect.left) / rect.width) * 2.0 - 1.0;
+      pointerNDC.y = -((clientY - rect.top) / rect.height) * 2.0 + 1.0;
+      pointerRaycaster.setFromCamera(pointerNDC, camera);
+      this.holographicStickers.updatePlacementPreviewFromRay(pointerRaycaster);
+    }
+    const record = this.holographicStickers.commitPlacement(meta);
+    if (!record) return null;
+    if (this.audio) {
+      this.audio.trigger('onActivate', { target: record.stickerId, source: 'sticker-placed' });
+    }
+    if (!meta || !meta.skipPersist) {
+      persistPlacedStickerRecord(record);
+    }
+    this.openStickerPopup(record.placedId);
+    syncStickerToolHUDInputs();
+    updateTelemetryHUD();
+    if (this.ready) {
+      renderer.render(scene, camera);
+    }
+    return record;
+  },
+  placeStickerAt(options = {}, { openPopup = true, immediate = false, skipPersist = false } = {}) {
+    if (!this.holographicStickers) return null;
+    const record = this.holographicStickers.placeStickerAt(options);
+    if (record && !skipPersist && !options.skipPersist) {
+      persistPlacedStickerRecord(record);
+    }
+    if (record && openPopup) {
+      this.openStickerPopup(record.placedId, { immediate });
+    } else {
+      syncStickerToolHUDInputs();
+      syncStickerHoloPopupDOM({ populateInputs: true });
+    }
+    updateTelemetryHUD();
+    if (this.ready) {
+      renderer.render(scene, camera);
+    }
+    return record;
+  },
+  openStickerPopup(placedId = null, { immediate = false } = {}) {
+    if (!this.holographicStickers) return null;
+    if (this.isDoomChatOpen) {
+      this.exitDoomChatMode({ immediate: true });
+    }
+    if (this.isPopupFocused) {
+      this.exitMathPodPopupFocus({ immediate: true });
+    }
+    if (this.mode === 'mount-focus') {
+      this.exitMountFocusMode({ immediate: true });
+    }
+    if (this.radialMenu && this.radialMenu.isOpen()) {
+      this.radialMenu.cancelDeadzone();
+    }
+    if (this.director && this.director.cameraPanState && this.director.cameraPanState.mode === 'playing') {
+      this.director.stopStartupPan(true);
+    }
+
+    const targetRecord = placedId
+      ? this.holographicStickers.selectPlacedSticker(placedId)
+      : getActiveOrSelectedStickerRecord();
+    if (!targetRecord) return null;
+    this.holographicStickers.selectPlacedSticker(targetRecord.placedId);
+
+    if (stickerPopupState.igniteTimer) {
+      clearTimeout(stickerPopupState.igniteTimer);
+      stickerPopupState.igniteTimer = null;
+    }
+    if (stickerPopupState.collapseTimer) {
+      clearTimeout(stickerPopupState.collapseTimer);
+      stickerPopupState.collapseTimer = null;
+    }
+
+    stickerPopupState.isOpen = true;
+    stickerPopupState.activePlacedId = targetRecord.placedId;
+    stickerPopupState.animState = immediate ? 'active' : 'igniting';
+    stickerPopupState.animStartedAtMs =
+      typeof performance !== 'undefined' ? performance.now() : Date.now();
+    this.isStickerPopupOpen = true;
+
+    syncStickerHoloPopupDOM({ populateInputs: true });
+    syncStickerToolHUDInputs();
+
+    const destPose = computeStickerPopupCameraPose(targetRecord);
+    if (destPose) {
+      stickerPopupCameraState.active = true;
+      stickerPopupCameraState.returningToOrbit = false;
+      stickerPopupCameraState.fromPos.copy(camera.position);
+      stickerPopupCameraState.fromLookAt.copy(mountFocusCameraState.currentLookAt);
+      stickerPopupCameraState.toPos.copy(destPose.camPos);
+      stickerPopupCameraState.toLookAt.copy(destPose.lookAtPos);
+      stickerPopupCameraState.transitionProgress = immediate ? 1.0 : 0.0;
+      if (immediate) {
+        camera.position.copy(destPose.camPos);
+        mountFocusCameraState.currentLookAt.copy(destPose.lookAtPos);
+        camera.lookAt(destPose.lookAtPos);
+        camera.updateMatrixWorld(true);
+      }
+    }
+
+    if (!immediate) {
+      stickerPopupState.igniteTimer = setTimeout(() => {
+        stickerPopupState.igniteTimer = null;
+        if (stickerPopupState.isOpen) {
+          stickerPopupState.animState = 'active';
+          syncStickerHoloPopupDOM();
+        }
+      }, STICKER_POPUP_IGNITE_MS);
+    }
+
+    if (this.audio) {
+      this.audio.trigger('onActivate', { target: targetRecord.stickerId, source: 'sticker-popup-open' });
+    }
+
+    updateStickerHoloPopupTether();
+    updateTelemetryHUD();
+    if (this.ready) {
+      renderer.render(scene, camera);
+    }
+    return targetRecord;
+  },
+  closeStickerPopup({ immediate = false, silent = false } = {}) {
+    if (stickerPopupState.igniteTimer) {
+      clearTimeout(stickerPopupState.igniteTimer);
+      stickerPopupState.igniteTimer = null;
+    }
+    if (stickerPopupState.collapseTimer) {
+      clearTimeout(stickerPopupState.collapseTimer);
+      stickerPopupState.collapseTimer = null;
+    }
+
+    const wasOpen = Boolean(
+      stickerPopupState.isOpen ||
+        stickerPopupState.animState === 'igniting' ||
+        stickerPopupState.animState === 'active'
+    );
+
+    stickerPopupState.isOpen = false;
+    this.isStickerPopupOpen = false;
+
+    if (typeof document !== 'undefined') {
+      const taggerEl = document.getElementById('sticker-tagger-input');
+      const msgEl = document.getElementById('sticker-message-input');
+      if (taggerEl && document.activeElement === taggerEl) taggerEl.blur();
+      if (msgEl && document.activeElement === msgEl) msgEl.blur();
+    }
+
+    if (wasOpen && !immediate) {
+      stickerPopupState.animState = 'collapsing';
+      stickerPopupState.animStartedAtMs =
+        typeof performance !== 'undefined' ? performance.now() : Date.now();
+      stickerPopupState.collapseTimer = setTimeout(() => {
+        stickerPopupState.collapseTimer = null;
+        if (!stickerPopupState.isOpen) {
+          stickerPopupState.animState = 'dormant';
+          syncStickerHoloPopupDOM();
+        }
+      }, STICKER_POPUP_COLLAPSE_MS);
+    } else {
+      stickerPopupState.animState = 'dormant';
+    }
+
+    if (stickerPopupCameraState.active || stickerPopupCameraState.returningToOrbit) {
+      stickerPopupCameraState.active = false;
+      if (immediate) {
+        stickerPopupCameraState.returningToOrbit = false;
+        stickerPopupCameraState.transitionProgress = 1.0;
+        const activeChar = this.getActiveCharacter ? this.getActiveCharacter() : null;
+        if (activeChar) {
+          const orbitPose = computeThirdPersonCameraPose(activeChar);
+          camera.position.copy(orbitPose.cameraPos);
+          mountFocusCameraState.currentLookAt.copy(orbitPose.pivotPos);
+          camera.lookAt(orbitPose.pivotPos);
+          camera.updateMatrixWorld(true);
+        }
+      } else {
+        stickerPopupCameraState.returningToOrbit = true;
+        stickerPopupCameraState.fromPos.copy(camera.position);
+        stickerPopupCameraState.fromLookAt.copy(mountFocusCameraState.currentLookAt);
+        stickerPopupCameraState.transitionProgress = 0.0;
+      }
+    }
+
+    if (wasOpen && !silent && this.audio) {
+      this.audio.trigger('onUpdate', { source: 'sticker-popup-close' });
+    }
+
+    syncStickerHoloPopupDOM();
+    syncStickerToolHUDInputs();
+    updateStickerHoloPopupTether();
+    updateTelemetryHUD();
+    if (this.ready) {
+      renderer.render(scene, camera);
+    }
+    return true;
+  },
+  saveStickerTagAndMessage(placedId = null, tagger = '', message = '') {
+    if (!this.holographicStickers) return null;
+    const targetId =
+      placedId ||
+      stickerPopupState.activePlacedId ||
+      this.holographicStickers.selectedPlacedId ||
+      (this.holographicStickers.placedStickers.length > 0
+        ? this.holographicStickers.placedStickers[this.holographicStickers.placedStickers.length - 1].placedId
+        : null);
+    if (!targetId) return null;
+    const record = this.holographicStickers.setStickerTagAndMessage(targetId, { tagger, message }, true);
+    if (!record) return null;
+    stickerPopupState.lastSavedAt = record.updatedAt;
+    persistPlacedStickerRecord(record);
+    if (this.audio) {
+      this.audio.trigger('onDataStream', { target: record.stickerId, source: 'sticker-tag-saved' });
+    }
+    syncStickerHoloPopupDOM({ populateInputs: true });
+    syncStickerToolHUDInputs();
+    updateStickerHoloPopupTether();
+    updateTelemetryHUD();
+    if (this.ready) {
+      renderer.render(scene, camera);
+    }
+    return record;
+  },
+  rotateStickerToDeg(rotationDeg) {
+    if (!this.holographicStickers) return 0;
+    const rad = THREE.MathUtils.degToRad(Number(rotationDeg) || 0);
+    const nextRad = this.holographicStickers.rotateActiveOrPlacedSticker(rad, false);
+    const activeRec = getActiveOrSelectedStickerRecord();
+    if (activeRec && !this.holographicStickers.isPlacementActive()) {
+      persistPlacedStickerRecord(activeRec);
+    }
+    syncStickerHoloPopupDOM();
+    syncStickerToolHUDInputs();
+    if (this.ready) {
+      renderer.render(scene, camera);
+    }
+    return THREE.MathUtils.radToDeg(nextRad);
+  },
+  rotateStickerByDeg(deltaDeg) {
+    if (!this.holographicStickers) return 0;
+    const deltaRad = THREE.MathUtils.degToRad(Number(deltaDeg) || 0);
+    const nextRad = this.holographicStickers.rotateActiveOrPlacedSticker(deltaRad, true);
+    const activeRec = getActiveOrSelectedStickerRecord();
+    if (activeRec && !this.holographicStickers.isPlacementActive()) {
+      persistPlacedStickerRecord(activeRec);
+    }
+    syncStickerHoloPopupDOM();
+    syncStickerToolHUDInputs();
+    if (this.ready) {
+      renderer.render(scene, camera);
+    }
+    return THREE.MathUtils.radToDeg(nextRad);
+  },
+  resizeStickerToMeters(sizeMeters) {
+    if (!this.holographicStickers) return 0;
+    const nextSize = this.holographicStickers.resizeActiveOrPlacedSticker(Number(sizeMeters) || 0.72, false);
+    const activeRec = getActiveOrSelectedStickerRecord();
+    if (activeRec && !this.holographicStickers.isPlacementActive()) {
+      persistPlacedStickerRecord(activeRec);
+    }
+    syncStickerHoloPopupDOM();
+    syncStickerToolHUDInputs();
+    if (this.ready) {
+      renderer.render(scene, camera);
+    }
+    return nextSize;
+  },
+  resizeStickerByStep(deltaMeters) {
+    if (!this.holographicStickers) return 0;
+    const nextSize = this.holographicStickers.resizeActiveOrPlacedSticker(Number(deltaMeters) || 0, true);
+    const activeRec = getActiveOrSelectedStickerRecord();
+    if (activeRec && !this.holographicStickers.isPlacementActive()) {
+      persistPlacedStickerRecord(activeRec);
+    }
+    syncStickerHoloPopupDOM();
+    syncStickerToolHUDInputs();
+    if (this.ready) {
+      renderer.render(scene, camera);
+    }
+    return nextSize;
+  },
+  setStickerSizeBounds(partialBounds = {}, persist = true) {
+    if (!this.holographicStickers) return null;
+    const bounds = this.holographicStickers.setSizeBounds(partialBounds, persist);
+    syncStickerHoloPopupDOM();
+    syncStickerToolHUDInputs();
+    updateTelemetryHUD();
+    if (this.ready) {
+      renderer.render(scene, camera);
+    }
+    return bounds;
+  },
+  captureCurrentStickerAsMinSize(persist = true) {
+    if (!this.holographicStickers) return null;
+    const bounds = this.holographicStickers.captureCurrentAsMinSize(persist);
+    syncStickerHoloPopupDOM();
+    syncStickerToolHUDInputs();
+    updateTelemetryHUD();
+    if (this.ready) {
+      renderer.render(scene, camera);
+    }
+    return bounds;
+  },
+  captureCurrentStickerAsMaxSize(persist = true) {
+    if (!this.holographicStickers) return null;
+    const bounds = this.holographicStickers.captureCurrentAsMaxSize(persist);
+    syncStickerHoloPopupDOM();
+    syncStickerToolHUDInputs();
+    updateTelemetryHUD();
+    if (this.ready) {
+      renderer.render(scene, camera);
+    }
+    return bounds;
+  },
+  toggleStickerCalibrationTool(forceState = undefined) {
+    if (!this.holographicStickers) return false;
+    const active = this.holographicStickers.toggleCalibrationTool(forceState);
+    syncStickerHoloPopupDOM();
+    syncStickerToolHUDInputs();
+    updateTelemetryHUD();
+    if (this.ready) {
+      renderer.render(scene, camera);
+    }
+    return active;
+  },
+  deleteSelectedSticker(placedId = null) {
+    if (!this.holographicStickers) return false;
+    const targetId = placedId || stickerPopupState.activePlacedId || this.holographicStickers.selectedPlacedId;
+    if (!targetId) return false;
+    const ok = this.holographicStickers.deletePlacedSticker(targetId);
+    if (ok) {
+      deletePersistedStickerRecord(targetId);
+    }
+    if (stickerPopupState.activePlacedId === targetId) {
+      stickerPopupState.activePlacedId = this.holographicStickers.selectedPlacedId;
+      if (!stickerPopupState.activePlacedId) {
+        this.closeStickerPopup();
+      }
+    }
+    syncStickerHoloPopupDOM({ populateInputs: true });
+    syncStickerToolHUDInputs();
+    updateTelemetryHUD();
+    if (this.ready) {
+      renderer.render(scene, camera);
+    }
+    return ok;
+  },
+  repositionSelectedSticker(placedId = null) {
+    if (!this.holographicStickers) return null;
+    const targetId = placedId || stickerPopupState.activePlacedId || this.holographicStickers.selectedPlacedId;
+    if (!targetId) return null;
+    this.closeStickerPopup();
+    const pState = this.holographicStickers.beginRepositionPlacedSticker(targetId);
+    syncStickerToolHUDInputs();
+    updateTelemetryHUD();
+    if (this.ready) {
+      renderer.render(scene, camera);
+    }
+    return pState;
+  },
+  getStickerSystemState() {
+    if (!this.holographicStickers) return null;
+    const sys = this.holographicStickers;
+    const activeRec = getActiveOrSelectedStickerRecord();
+    return {
+      sizeBounds: sys.getSizeBounds(),
+      calibrationToolActive: Boolean(sys.calibrationState.active),
+      placementActive: Boolean(sys.placementState.active),
+      placementState: {
+        active: Boolean(sys.placementState.active),
+        stickerId: sys.placementState.stickerId,
+        sizeMeters: sys.placementState.sizeMeters,
+        rotationRad: sys.placementState.rotationRad,
+        rotationDeg: Number(THREE.MathUtils.radToDeg(sys.placementState.rotationRad).toFixed(2)),
+        lastHit: sys.placementState.lastHit,
+      },
+      popupOpen: Boolean(stickerPopupState.isOpen && activeRec),
+      popupAnimState: stickerPopupState.animState,
+      cameraTransitionProgress: stickerPopupCameraState.transitionProgress,
+      activePlacedId: activeRec ? activeRec.placedId : null,
+      placedCount: sys.placedStickers.length,
+      persistence: { ...stickerPersistenceState },
+      placedStickers: sys.placedStickers.map((r) => ({
+        placedId: r.placedId,
+        stickerId: r.stickerId,
+        label: r.label,
+        surfaceId: r.surfaceId,
+        surfaceLabel: r.surfaceLabel,
+        surfaceCategory: r.surfaceCategory,
+        wallSide: r.wallSide,
+        position: { ...r.position },
+        normal: { ...r.normal },
+        sizeMeters: r.sizeMeters,
+        rotationRad: r.rotationRad,
+        rotationDeg: r.rotationDeg,
+        tagger: r.tagger,
+        message: r.message,
+        createdAt: r.createdAt,
+        updatedAt: r.updatedAt,
+      })),
+    };
   },
   holographicSignGroup: holographicSignRootGroup,
   holographicSign: null,
@@ -12195,7 +13929,7 @@ const sandbox = {
   sfx: null,
   audio: null,
   glbVariantCatalog: GLB_VARIANT_CATALOG,
-  currentVariantKey: 'luis_holo',
+  currentVariantKey: 'luis_color',
   soloCharacterMode: true,
   sidebarCollapsed: false,
   toggleSidebar(forceCollapsed) {
@@ -12290,6 +14024,9 @@ const sandbox = {
     const targetChar = this.getDoomChatCharacter();
     if (!targetChar) return null;
 
+    if (this.isStickerPopupOpen) {
+      this.closeStickerPopup({ immediate: true, silent: true });
+    }
     if (this.isPopupFocused) {
       this.exitMathPodPopupFocus({ immediate: true });
     }
@@ -12331,12 +14068,14 @@ const sandbox = {
     targetChar.updateCompanionLevitation(holoShaderUniforms.uHoloTime.value, immediate ? 1.0 : 1 / 60);
     targetChar.applyConversationalHeadLook();
 
-    const destPose = computeDoomChatCameraPose(targetChar);
     this.isDoomChatOpen = true;
     doomChatState.isOpen = true;
     if (resetToStarters || doomChatState.messages.length === 0) {
       doomChatState.stage = 'starters';
     }
+    syncDoomHoloChatDOM();
+
+    const destPose = computeDoomChatCameraPose(targetChar);
 
     doomChatCameraState.active = true;
     doomChatCameraState.returningToOrbit = false;
@@ -12347,14 +14086,13 @@ const sandbox = {
     doomChatCameraState.transitionProgress = immediate ? 1.0 : 0.0;
 
     if (!doomChatState.startersLoadedFromHF && !doomChatState.startersLoading) {
-      fetchDoomStartersFromHF().catch(() => {});
+      fetchDoomStartersFromHF({ silentFallback: true }).catch(() => {});
     }
 
     if (this.audio) {
       this.audio.trigger('onActivate', { target: 'DOOM_Companion', source: 'doom-chat-open' });
     }
 
-    syncDoomHoloChatDOM();
     updateCameraController(immediate ? 1.0 : 1 / 60);
     updateDoomHoloChatTether();
     updateTelemetryHUD();
@@ -12744,6 +14482,145 @@ const sandbox = {
     }
     return true;
   },
+  openPortalGameSelectorPopup(opts = {}) {
+    if (!this.ready || !this.waterColor) return false;
+    if (this.mode === 'mount-focus' || this.isMountFocused) {
+      this.exitMountFocusMode({ immediate: true });
+    }
+    if (this.radialMenu && this.radialMenu.isOpen()) {
+      this.radialMenu.cancelDeadzone();
+    }
+    if (this.isStickerPopupOpen) {
+      this.closeStickerPopup({ silent: true });
+    }
+    if (this.isDoomChatOpen) {
+      this.exitDoomChatMode({ silent: true });
+    }
+    if (this.whitepaperColumnOpen) {
+      this.closeWhitepaperHologramColumn({ immediate: true });
+    }
+    if (this.isStickerPopupOpen) {
+      this.closeStickerPopup({ immediate: true, silent: true });
+    }
+    if (this.isPopupFocused) {
+      this.exitMathPodPopupFocus({ immediate: true });
+    }
+    if (this.mode === 'scroll') {
+      enterFreeRoamMode();
+    }
+    for (const k of Object.keys(keysPressed)) {
+      keysPressed[k] = false;
+    }
+    jumpRequested = false;
+    cameraOrbit.isDragging = false;
+    cameraOrbit.pointerId = null;
+    mobileTouch.reset();
+
+    const activeChar = this.getActiveCharacter();
+    if (activeChar) {
+      activeChar.velocity.set(0, 0, 0);
+      if (!activeChar.dialogueActive) {
+        activeChar.freezeToIdle();
+      }
+      activeChar.mixer.update(0.0);
+      activeChar.updateCompanionLevitation(holoShaderUniforms.uHoloTime.value);
+      activeChar.root.updateMatrixWorld(true);
+    }
+    if (this.runningEffects) {
+      this.runningEffects.quiesceImmediately();
+    }
+
+    const wasAlreadyOpen = Boolean(this.isPortalPopupOpen && this.waterColor && this.waterColor.isPopupOpen);
+    this.isPortalPopupOpen = true;
+    this.portalGlitchBoostRemainingSec = 0.24;
+    if (this.waterColor && (!this.waterColor.isPopupOpen || opts.force)) {
+      this.waterColor.openPortalPopup({ ...opts, _fromSandbox: true });
+    } else {
+      if (this.waterColor && opts && opts.gameId) {
+        this.waterColor.selectGame(opts.gameId);
+      }
+      startPortalPopupOpenAnimation({
+        immediate: Boolean(opts.immediate || (wasAlreadyOpen && !opts.replayAnimation)),
+      });
+    }
+
+    syncPortalGamePopupDOM();
+    updatePortalGameHoloPopupUI(0.0);
+    updateTelemetryHUD();
+    if (this.audio && !(opts && opts.silent)) {
+      this.audio.trigger('onActivate', {
+        source: (opts && opts.source) || 'portalGameSelectorOpen',
+        selectedGameId: this.waterColor ? this.waterColor.selectedGameId : 'skate3',
+      });
+    }
+    return true;
+  },
+  closePortalGameSelectorPopup(opts = {}) {
+    if (!this.waterColor) return false;
+    const wasVisible = Boolean(
+      this.isPortalPopupOpen ||
+        this.waterColor.isPopupOpen ||
+        this.portalPopupAnimState === 'opening' ||
+        this.portalPopupAnimState === 'open'
+    );
+    this.isPortalPopupOpen = false;
+    this.portalGlitchBoostRemainingSec = 0.16;
+    if (this.waterColor.isPopupOpen) {
+      this.waterColor.closePortalPopup({ ...opts, _fromSandbox: true });
+    } else if (wasVisible) {
+      startPortalPopupCloseAnimation({ immediate: Boolean(opts && opts.immediate) });
+    } else {
+      startPortalPopupCloseAnimation({ immediate: true });
+    }
+    syncPortalGamePopupDOM();
+    updatePortalGameHoloPopupUI(0.0);
+    updateTelemetryHUD();
+    if (this.audio && !(opts && opts.silent)) {
+      this.audio.trigger('onHover', {
+        source: (opts && opts.source) || 'portalGameSelectorClose',
+      });
+    }
+    return true;
+  },
+  selectPortalGame(gameIdOrSlot, opts = {}) {
+    if (!this.waterColor) return null;
+    const spec = this.waterColor.selectGame(gameIdOrSlot);
+    if (!spec) return null;
+    this.portalGlitchBoostRemainingSec = Math.max(this.portalGlitchBoostRemainingSec, 0.14);
+    syncPortalGamePopupDOM();
+    updatePortalGameHoloPopupUI(0.0);
+    updateTelemetryHUD();
+    if (this.audio && !(opts && opts.silent)) {
+      this.audio.trigger('onUpdate', {
+        source: 'portalGameSelect',
+        gameId: spec.id,
+        slot: spec.slot,
+      });
+    }
+    return spec;
+  },
+  launchPortalGame(gameIdOrSlot = null, opts = {}) {
+    if (!this.waterColor) return false;
+    const catalog = getActivePortalGameCatalog();
+    const spec =
+      resolvePortalGameSpec(
+        gameIdOrSlot || (this.waterColor && this.waterColor.selectedGameId) || catalog[0]?.id || 'skate3',
+        catalog
+      ) ||
+      catalog[0] ||
+      PORTAL_GAME_CATALOG[0];
+    this.selectPortalGame(spec.id, { silent: true });
+    const targetUrl =
+      opts && typeof opts.targetUrl === 'string' && opts.targetUrl.trim()
+        ? opts.targetUrl.trim()
+        : spec.id === 'skate3'
+        ? this.resolveSkateRoomPortalUrl(opts)
+        : spec.targetUrl;
+    return this.waterColor.launchGame(spec.id, {
+      ...opts,
+      targetUrl,
+    });
+  },
   focusWallMount(identifier, { immediate = false } = {}) {
     if (!this.ready) return null;
     const targetMount = this.resolveWallMount(identifier);
@@ -12892,6 +14769,10 @@ const sandbox = {
   },
   interactNearestWallMount() {
     if (!this.ready) return null;
+    if (this.isPortalPopupOpen) {
+      this.closePortalGameSelectorPopup({ source: 'key-e' });
+      return null;
+    }
     if (this.whitepaperColumnOpen) {
       this.closeWhitepaperHologramColumn();
       return null;
@@ -13156,13 +15037,15 @@ const sandbox = {
     activeChar.updateCompanionLevitation(holoShaderUniforms.uHoloTime.value);
     activeChar.root.updateMatrixWorld(true);
 
-    idleChar.position.set(env.spawnNpcPos.x, env.floorY, env.spawnNpcPos.z);
-    idleChar.yaw = env.spawnNpcYaw;
-    idleChar.freezeToIdle();
-    idleChar.root.rotation.set(0, idleChar.yaw, 0);
-    idleChar.mixer.update(0.0);
-    idleChar.updateCompanionLevitation(holoShaderUniforms.uHoloTime.value);
-    idleChar.root.updateMatrixWorld(true);
+    if (idleChar) {
+      idleChar.position.set(env.spawnNpcPos.x, env.floorY, env.spawnNpcPos.z);
+      idleChar.yaw = env.spawnNpcYaw;
+      idleChar.freezeToIdle();
+      idleChar.root.rotation.set(0, idleChar.yaw, 0);
+      idleChar.mixer.update(0.0);
+      idleChar.updateCompanionLevitation(holoShaderUniforms.uHoloTime.value);
+      idleChar.root.updateMatrixWorld(true);
+    }
 
     cameraOrbit.yaw = 0.0;
     cameraOrbit.pitch = CAM_DEFAULT_PITCH;
@@ -13201,6 +15084,7 @@ const sandbox = {
     if (!this.ready) return null;
     const prevChar = this.getActiveCharacter();
     const nextChar = this.getIdleCharacter();
+    if (!nextChar) return prevChar;
 
     const activePos = prevChar.position.clone();
     const activeVel = prevChar.velocity.clone();
@@ -13406,7 +15290,7 @@ const sandbox = {
       this.characters[spec.characterSlot] = controller;
       window.__THREE_ANIMATION_MIXERS__ = [
         this.characters.hoodie.mixer,
-        this.characters.tunic.mixer,
+        ...(this.characters.tunic ? [this.characters.tunic.mixer] : []),
       ];
     }
 
@@ -13552,7 +15436,7 @@ function updateCharacterFootsteps(activeChar, frameStepDist, wasGrounded) {
   }
   fs.isHoloShaderActive = Boolean(activeChar.isHoloShaderActive);
 
-  if (sandbox.mode === 'mount-focus') {
+  if (sandbox.mode === 'mount-focus' || sandbox.isPortalPopupOpen) {
     fs.distanceAccumulator = 0.0;
     fs.lastStepMode = 'Idle';
     fs.prevNormalizedClipPhase = null;
@@ -13873,8 +15757,8 @@ function updateFreeRoamCharacterLocomotion(dt) {
     return;
   }
 
-  // In Mount Focus Mode, Character "X" remains quiescent in Idle or Talking (§5.1)
-  if (sandbox.mode === 'mount-focus') {
+  // In Mount Focus Mode or Portal Game Selector Mode, Character "X" remains quiescent in Idle or Talking (§5.1)
+  if (sandbox.mode === 'mount-focus' || sandbox.isPortalPopupOpen) {
     activeChar.velocity.set(0.0, 0.0, 0.0);
     activeChar.position.y = env.floorY;
     activeChar.isGrounded = true;
@@ -13969,12 +15853,14 @@ function updateFreeRoamCharacterLocomotion(dt) {
 
   const posXZ = { x: activeChar.position.x, z: activeChar.position.z };
   const velXZ = { x: activeChar.velocity.x, z: activeChar.velocity.z };
-  const idleXZ = { x: idleChar.position.x, z: idleChar.position.z };
+  const idleXZ = idleChar ? { x: idleChar.position.x, z: idleChar.position.z } : null;
 
   for (let s = 0; s < subSteps; s++) {
     posXZ.x += velXZ.x * subDt;
     posXZ.z += velXZ.z * subDt;
-    resolveCharacterSeparation(posXZ, velXZ, idleXZ, CHAR_SEPARATION_DIST);
+    if (idleXZ) {
+      resolveCharacterSeparation(posXZ, velXZ, idleXZ, CHAR_SEPARATION_DIST);
+    }
     resolveCircleAgainstWalls(posXZ, velXZ, CHAR_COLLISION_RADIUS, env.wallSegments);
   }
 
@@ -14187,6 +16073,7 @@ function updateCameraController(dt = 1 / 60) {
       ease
     );
     camera.lookAt(mountFocusCameraState.currentLookAt);
+    camera.updateMatrixWorld(true);
   } else if (doomChatCameraState.returningToOrbit) {
     doomChatCameraState.toPos.copy(orbitState.cameraPos);
     doomChatCameraState.toLookAt.copy(orbitState.pivotPos);
@@ -14211,6 +16098,69 @@ function updateCameraController(dt = 1 / 60) {
 
     if (doomChatCameraState.transitionProgress >= 1.0) {
       doomChatCameraState.returningToOrbit = false;
+    }
+  } else if (stickerPopupCameraState.active && sandbox.isStickerPopupOpen) {
+    const activeStickerRec = getActiveOrSelectedStickerRecord();
+    if (!activeStickerRec) {
+      stickerPopupCameraState.active = false;
+      stickerPopupCameraState.returningToOrbit = true;
+      stickerPopupCameraState.fromPos.copy(camera.position);
+      stickerPopupCameraState.fromLookAt.copy(mountFocusCameraState.currentLookAt);
+      stickerPopupCameraState.toPos.copy(orbitState.cameraPos);
+      stickerPopupCameraState.toLookAt.copy(orbitState.pivotPos);
+      stickerPopupCameraState.transitionProgress = 0.0;
+    } else {
+      const destPose = computeStickerPopupCameraPose(activeStickerRec);
+      if (destPose) {
+        stickerPopupCameraState.toPos.copy(destPose.camPos);
+        stickerPopupCameraState.toLookAt.copy(destPose.lookAtPos);
+      }
+      if (stickerPopupCameraState.transitionProgress < 1.0) {
+        stickerPopupCameraState.transitionProgress = Math.min(
+          1.0,
+          stickerPopupCameraState.transitionProgress + dt / STICKER_POPUP_CAM_TRANSITION_DURATION
+        );
+      }
+      const t = stickerPopupCameraState.transitionProgress;
+      const ease = 1.0 - Math.pow(1.0 - t, 3);
+
+      camera.position.lerpVectors(
+        stickerPopupCameraState.fromPos,
+        stickerPopupCameraState.toPos,
+        ease
+      );
+      mountFocusCameraState.currentLookAt.lerpVectors(
+        stickerPopupCameraState.fromLookAt,
+        stickerPopupCameraState.toLookAt,
+        ease
+      );
+      camera.lookAt(mountFocusCameraState.currentLookAt);
+      camera.updateMatrixWorld(true);
+    }
+  } else if (stickerPopupCameraState.returningToOrbit) {
+    stickerPopupCameraState.toPos.copy(orbitState.cameraPos);
+    stickerPopupCameraState.toLookAt.copy(orbitState.pivotPos);
+    stickerPopupCameraState.transitionProgress = Math.min(
+      1.0,
+      stickerPopupCameraState.transitionProgress + dt / STICKER_POPUP_CAM_TRANSITION_DURATION
+    );
+    const t = stickerPopupCameraState.transitionProgress;
+    const ease = 1.0 - Math.pow(1.0 - t, 3);
+
+    camera.position.lerpVectors(
+      stickerPopupCameraState.fromPos,
+      stickerPopupCameraState.toPos,
+      ease
+    );
+    mountFocusCameraState.currentLookAt.lerpVectors(
+      stickerPopupCameraState.fromLookAt,
+      stickerPopupCameraState.toLookAt,
+      ease
+    );
+    camera.lookAt(mountFocusCameraState.currentLookAt);
+
+    if (stickerPopupCameraState.transitionProgress >= 1.0) {
+      stickerPopupCameraState.returningToOrbit = false;
     }
   } else if (popupFocusCameraState.active && sandbox.isPopupFocused && sandbox.mathPodPopups) {
     const callout = sandbox.mathPodPopups.getCallout(sandbox.focusedMathPodPopupId);
@@ -14593,9 +16543,13 @@ function updateTelemetryHUD() {
   const elTelWaterColor = document.getElementById('tel-watercolor');
   if (elTelWaterColor && sandbox.waterColor) {
     if (sandbox.waterColor.isTeleporting) {
-      elTelWaterColor.textContent = 'TELEPORTING TO SKATE ROOM...';
+      const launchedId = (sandbox.waterColor.lastLaunchedGameId || sandbox.waterColor.selectedGameId || 'skate3').toUpperCase();
+      elTelWaterColor.textContent = `LAUNCHING PORTAL GAME [${launchedId}]...`;
+    } else if (sandbox.isPortalPopupOpen || sandbox.waterColor.isPopupOpen) {
+      const selId = (sandbox.waterColor.selectedGameId || 'skate3').toUpperCase();
+      elTelWaterColor.textContent = `PORTAL POPUP OPEN [SELECT GAME: ${selId}]`;
     } else if (typeof sandbox.waterColor.isNearPortal === 'function' && sandbox.waterColor.isNearPortal()) {
-      elTelWaterColor.textContent = `GALLERY [WALK THROUGH TO ENTER SKATE ROOM]`;
+      elTelWaterColor.textContent = `GALLERY [WALK THROUGH TO OPEN GAME PORTAL]`;
     } else {
       elTelWaterColor.textContent = `GALLERY (DIV:${sandbox.waterColor.division} SCALE:${sandbox.waterColor.scale})`;
     }
@@ -14673,6 +16627,21 @@ function updateTelemetryHUD() {
       elTelDoomChat.textContent = doomChatState.startersLoadedFromHF
         ? 'Dormant (Qwen 2.5 Starters Ready)'
         : 'Dormant (Click DOOM_HEAD)';
+    }
+  }
+  const elTelStickers = document.getElementById('tel-stickers');
+  if (elTelStickers && sandbox.holographicStickers) {
+    const sys = sandbox.holographicStickers;
+    const bounds = sys.getSizeBounds();
+    const pState = sys.placementState;
+    if (pState.active) {
+      const surf = pState.lastHit ? pState.lastHit.surfaceLabel : 'Aiming';
+      elTelStickers.textContent = `PLACING [${pState.stickerId}] on ${surf} (${pState.sizeMeters.toFixed(2)}m)`;
+    } else if (sandbox.isStickerPopupOpen) {
+      const rec = getActiveOrSelectedStickerRecord();
+      elTelStickers.textContent = `POPUP OPEN [${rec ? rec.stickerId : 'sticker'}] • ${sys.placedStickers.length} Placed`;
+    } else {
+      elTelStickers.textContent = `${sys.placedStickers.length} Placed | 6 Radial [${bounds.minSize.toFixed(2)}m..${bounds.maxSize.toFixed(2)}m]`;
     }
   }
 }
@@ -14827,14 +16796,14 @@ function stepSimulation(dt) {
         : Math.max(0.0, (doomTargetChar.companionSpeakingPulse || 0.0) - clampedDt * 3.0);
   }
 
-  if (sandbox.characters.hoodie.root.visible) {
+  if (sandbox.characters.hoodie && sandbox.characters.hoodie.root.visible) {
     sandbox.characters.hoodie.updateDialogueState(clampedDt);
     sandbox.characters.hoodie.mixer.update(clampedDt);
     sandbox.characters.hoodie.updateCompanionLevitation(holoShaderUniforms.uHoloTime.value, clampedDt);
     sandbox.characters.hoodie.applyConversationalHeadLook();
     sandbox.characters.hoodie.root.updateMatrixWorld(true);
   }
-  if (sandbox.characters.tunic.root.visible) {
+  if (sandbox.characters.tunic && sandbox.characters.tunic.root.visible) {
     sandbox.characters.tunic.updateDialogueState(clampedDt);
     sandbox.characters.tunic.mixer.update(clampedDt);
     sandbox.characters.tunic.updateCompanionLevitation(holoShaderUniforms.uHoloTime.value, clampedDt);
@@ -14855,6 +16824,7 @@ function stepSimulation(dt) {
   updateProximityAndHoverWallMounts();
   updateCameraController(clampedDt);
   updateDoomHoloChatTether();
+  updateStickerHoloPopupTether();
   updateHolographicPopupUI();
   updateSFXAndAudioSubsystems(clampedDt, holoShaderUniforms.uHoloTime.value);
   if (sandbox.mathPods) {
@@ -14877,6 +16847,9 @@ function stepSimulation(dt) {
   }
   if (sandbox.hologramColumns) {
     sandbox.hologramColumns.update(clampedDt, holoShaderUniforms.uHoloTime.value, activeChar, camera);
+  }
+  if (sandbox.holographicStickers) {
+    sandbox.holographicStickers.update(clampedDt, holoShaderUniforms.uHoloTime.value, camera);
   }
   if (sandbox.mp3Player) {
     sandbox.mp3Player.update(performance.now());
@@ -15105,9 +17078,17 @@ function bindInputListeners() {
     if (!sandbox.ready) return;
     const activeTag = document.activeElement ? document.activeElement.tagName : '';
     if (activeTag === 'INPUT' || activeTag === 'SELECT' || activeTag === 'TEXTAREA') {
-      if (e.code === 'Escape' && sandbox.isDoomChatOpen) {
-        e.preventDefault();
-        sandbox.exitDoomChatMode();
+      if (e.code === 'Escape') {
+        if (sandbox.isStickerPopupOpen) {
+          e.preventDefault();
+          sandbox.closeStickerPopup();
+          return;
+        }
+        if (sandbox.isDoomChatOpen) {
+          e.preventDefault();
+          sandbox.exitDoomChatMode();
+          return;
+        }
       }
       return;
     }
@@ -15213,15 +17194,36 @@ function bindInputListeners() {
       }
     }
 
-    // Rotate selected / hovered hologram via ',' / '<' (Left) and '.' / '>' (Right)
+    // Rotate selected / hovered sticker or hologram via ',' / '<' (Left) and '.' / '>' (Right)
     const isRotateLeftKey = e.code === 'Comma' || e.key === '<' || e.key === ',';
     const isRotateRightKey = e.code === 'Period' || e.key === '>' || e.key === '.';
+    if (
+      (isRotateLeftKey || isRotateRightKey) &&
+      sandbox.holographicStickers &&
+      (sandbox.holographicStickers.isPlacementActive() ||
+        sandbox.isStickerPopupOpen ||
+        sandbox.hoveredPlacedStickerId)
+    ) {
+      e.preventDefault();
+      if (
+        !sandbox.holographicStickers.isPlacementActive() &&
+        sandbox.hoveredPlacedStickerId &&
+        !sandbox.isStickerPopupOpen
+      ) {
+        sandbox.holographicStickers.selectPlacedSticker(sandbox.hoveredPlacedStickerId);
+      }
+      sandbox.rotateStickerByDeg(isRotateRightKey ? 5 : -5);
+      return;
+    }
     if ((isRotateLeftKey || isRotateRightKey) && sandbox.hologramColumns) {
       e.preventDefault();
       let targetColId = sandbox.hologramColumns.activeDragColumnId || null;
       if (!targetColId && pointerNDC.x >= -1.0 && pointerNDC.x <= 1.0 && pointerNDC.y >= -1.0 && pointerNDC.y <= 1.0) {
         pointerRaycaster.setFromCamera(pointerNDC, camera);
-        const holoHits = pointerRaycaster.intersectObjects(sandbox.hologramColumns.raycastTargets, false);
+        const rawHoloHits = pointerRaycaster.intersectObjects(sandbox.hologramColumns.raycastTargets, false);
+        const holoHits = sandbox.holoEditMode
+          ? rawHoloHits
+          : rawHoloHits.filter((h) => h.object?.userData?.holoColumnId !== 'watercolor_gallery');
         if (holoHits.length > 0 && holoHits[0].object.userData.holoColumnId) {
           targetColId = holoHits[0].object.userData.holoColumnId;
           sandbox.selectHologramColumnForEdit(targetColId);
@@ -15241,7 +17243,7 @@ function bindInputListeners() {
       return;
     }
 
-    // Resize selected / hovered hologram via Shift + '+' / '=' or '-' / '_' (or '[' / ']')
+    // Resize selected / hovered sticker or hologram via '+' / '=' or '-' / '_' (or '[' / ']')
     const isScaleUpKey =
       e.key === '+' ||
       e.key === '=' ||
@@ -15255,13 +17257,35 @@ function bindInputListeners() {
       e.code === 'NumpadSubtract' ||
       e.code === 'BracketLeft';
 
+    if (
+      (isScaleUpKey || isScaleDownKey) &&
+      sandbox.holographicStickers &&
+      (sandbox.holographicStickers.isPlacementActive() ||
+        sandbox.isStickerPopupOpen ||
+        sandbox.hoveredPlacedStickerId)
+    ) {
+      e.preventDefault();
+      if (
+        !sandbox.holographicStickers.isPlacementActive() &&
+        sandbox.hoveredPlacedStickerId &&
+        !sandbox.isStickerPopupOpen
+      ) {
+        sandbox.holographicStickers.selectPlacedSticker(sandbox.hoveredPlacedStickerId);
+      }
+      sandbox.resizeStickerByStep(isScaleUpKey ? 0.05 : -0.05);
+      return;
+    }
+
     if ((isScaleUpKey || isScaleDownKey) && sandbox.hologramColumns) {
       e.preventDefault();
       // If hovering over a hologram in the 3D scene, select it automatically before scaling
       let targetColId = sandbox.hologramColumns.activeDragColumnId || null;
       if (!targetColId && pointerNDC.x >= -1.0 && pointerNDC.x <= 1.0 && pointerNDC.y >= -1.0 && pointerNDC.y <= 1.0) {
         pointerRaycaster.setFromCamera(pointerNDC, camera);
-        const holoHits = pointerRaycaster.intersectObjects(sandbox.hologramColumns.raycastTargets, false);
+        const rawHoloHits = pointerRaycaster.intersectObjects(sandbox.hologramColumns.raycastTargets, false);
+        const holoHits = sandbox.holoEditMode
+          ? rawHoloHits
+          : rawHoloHits.filter((h) => h.object?.userData?.holoColumnId !== 'watercolor_gallery');
         if (holoHits.length > 0 && holoHits[0].object.userData.holoColumnId) {
           targetColId = holoHits[0].object.userData.holoColumnId;
           sandbox.selectHologramColumnForEdit(targetColId);
@@ -15279,6 +17303,56 @@ function bindInputListeners() {
       return;
     }
 
+    if (sandbox.isPortalPopupOpen) {
+      if (e.code === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
+        sandbox.closePortalGameSelectorPopup({ source: 'escape' });
+        return;
+      }
+      const catalog = getActivePortalGameCatalog();
+      const digitMatch = /^(?:Digit|Numpad)([1-9])$/.exec(e.code || '');
+      if (digitMatch) {
+        const slotIdx = Number(digitMatch[1]) - 1;
+        if (slotIdx >= 0 && slotIdx < catalog.length) {
+          e.preventDefault();
+          e.stopPropagation();
+          sandbox.launchPortalGame(catalog[slotIdx].id, { source: `hotkey-${slotIdx + 1}` });
+          return;
+        }
+      }
+      if (e.code === 'ArrowRight' || e.code === 'ArrowDown') {
+        e.preventDefault();
+        e.stopPropagation();
+        const curId = (sandbox.waterColor && sandbox.waterColor.selectedGameId) || catalog[0]?.id || 'skate3';
+        const curIdx = Math.max(0, catalog.findIndex((g) => g.id === curId));
+        const cols = (sandbox.portalGridLayout && sandbox.portalGridLayout.columns) || 1;
+        const step = e.code === 'ArrowDown' && cols > 1 && catalog.length > cols ? cols : 1;
+        const nextIdx = (curIdx + step) % catalog.length;
+        sandbox.selectPortalGame(catalog[nextIdx].id);
+        return;
+      }
+      if (e.code === 'ArrowLeft' || e.code === 'ArrowUp') {
+        e.preventDefault();
+        e.stopPropagation();
+        const curId = (sandbox.waterColor && sandbox.waterColor.selectedGameId) || catalog[0]?.id || 'skate3';
+        const curIdx = Math.max(0, catalog.findIndex((g) => g.id === curId));
+        const cols = (sandbox.portalGridLayout && sandbox.portalGridLayout.columns) || 1;
+        const step = e.code === 'ArrowUp' && cols > 1 && catalog.length > cols ? cols : 1;
+        const prevIdx = (curIdx - step + catalog.length * 4) % catalog.length;
+        sandbox.selectPortalGame(catalog[prevIdx].id);
+        return;
+      }
+      if (e.code === 'Enter' || e.code === 'NumpadEnter' || e.code === 'Space') {
+        e.preventDefault();
+        e.stopPropagation();
+        const curId = (sandbox.waterColor && sandbox.waterColor.selectedGameId) || catalog[0]?.id || 'skate3';
+        sandbox.launchPortalGame(curId, { source: 'hotkey-enter' });
+        return;
+      }
+      return;
+    }
+
     if (e.code === 'Backquote' || e.code === 'KeyQ') {
       if (sandbox.radialMenu) {
         e.preventDefault();
@@ -15292,6 +17366,19 @@ function bindInputListeners() {
         e.preventDefault();
         e.stopPropagation();
         sandbox.radialMenu.cancelDeadzone();
+        return;
+      }
+      if (e.code === 'Backspace') {
+        e.preventDefault();
+        e.stopPropagation();
+        if (
+          typeof sandbox.radialMenu.navigateBack === 'function' &&
+          sandbox.radialMenu.getState().menuDepth > 0
+        ) {
+          sandbox.radialMenu.navigateBack();
+        } else {
+          sandbox.radialMenu.cancelDeadzone();
+        }
         return;
       }
       if (e.code === 'ArrowRight' || e.code === 'ArrowDown') {
@@ -15333,6 +17420,16 @@ function bindInputListeners() {
     }
 
     if (e.code === 'Escape') {
+      if (sandbox.holographicStickers && sandbox.holographicStickers.isPlacementActive()) {
+        e.preventDefault();
+        sandbox.cancelStickerPlacement();
+        return;
+      }
+      if (sandbox.isStickerPopupOpen) {
+        e.preventDefault();
+        sandbox.closeStickerPopup();
+        return;
+      }
       if (sandbox.isDoomChatOpen) {
         e.preventDefault();
         sandbox.exitDoomChatMode();
@@ -15485,9 +17582,12 @@ function bindInputListeners() {
         return;
       }
 
-      // Pressing any movement key exits DOOM_HEAD Dialogue Mode, Popup Focus Mode, Mount Focus Mode, or hands off Scroll-Walk Mode to Free-Roam Mode (§5.2 & §5.3)
+      // Pressing any movement key exits DOOM_HEAD Dialogue Mode, Sticker Popup Mode, Popup Focus Mode, Mount Focus Mode, or hands off Scroll-Walk Mode to Free-Roam Mode (§5.2 & §5.3)
       if (sandbox.isDoomChatOpen && isMoveKey) {
         sandbox.exitDoomChatMode();
+      }
+      if (sandbox.isStickerPopupOpen && isMoveKey) {
+        sandbox.closeStickerPopup();
       }
       if (sandbox.isPopupFocused && isMoveKey) {
         sandbox.exitMathPodPopupFocus();
@@ -15553,6 +17653,8 @@ function bindInputListeners() {
   let podPointerDownState = null;
   let popupPointerDownState = null;
   let doomPointerDownState = null;
+  let stickerPlacementDownState = null;
+  let placedStickerPointerDownState = null;
   let activeSceneObjectPointerId = null;
   const canvas = renderer.domElement;
   canvas.addEventListener('pointerdown', (e) => {
@@ -15586,13 +17688,21 @@ function bindInputListeners() {
       }
       pointerRaycaster.setFromCamera(pointerNDC, camera);
 
-      // Click on DOOM_HEAD (DOOM_Companion) -> Open Two-Stage Hologram Dialogue & Close-Up Two-Shot Camera Pan (Spec 041)
-      const doomTargets = sandbox.getDoomCompanionRaycastTargets();
-      if (doomTargets.length > 0) {
-        const doomHits = pointerRaycaster.intersectObjects(doomTargets, false);
-        if (doomHits.length > 0) {
-          doomPointerDownState = {
+      // Interactive Sticker Placement Mode: record down state so clean click commits sticker on surface while drag still orbits camera
+      if (sandbox.holographicStickers && sandbox.holographicStickers.isPlacementActive()) {
+        sandbox.holographicStickers.updatePlacementPreviewFromRay(pointerRaycaster);
+        syncStickerToolHUDInputs();
+        stickerPlacementDownState = {
+          pointerId: e.pointerId,
+          clientX: e.clientX,
+          clientY: e.clientY,
+        };
+      } else if (sandbox.holographicStickers) {
+        const stickerHits = sandbox.holographicStickers.raycastPlacedStickers(pointerRaycaster);
+        if (stickerHits.length > 0 && stickerHits[0].placedSticker) {
+          placedStickerPointerDownState = {
             pointerId: e.pointerId,
+            placedId: stickerHits[0].placedSticker.placedId,
             clientX: e.clientX,
             clientY: e.clientY,
           };
@@ -15603,107 +17713,129 @@ function bindInputListeners() {
         }
       }
 
-      // Click-to-select Director 3D Handles (Spawn Marker, Camera Start/End, LookAt Start/End)
-      if (sandbox.director && sandbox.director.editMode && sandbox.director.rootGroup.visible) {
-        const dirHits = pointerRaycaster.intersectObjects(sandbox.director.raycastTargets, false);
-        if (dirHits.length > 0 && dirHits[0].object.userData.handleId) {
-          const hitHandleId = dirHits[0].object.userData.handleId;
-          sandbox.director.selectHandle(hitHandleId);
-          return;
-        }
-      }
-
-      // Click-and-drag the Lamppost Cone Landing Target directly in the 3D scene
-      if (sandbox.lamppostLight && sandbox.lamppostLight.targetMarkerGroup && sandbox.lamppostLight.targetMarkerGroup.visible) {
-        const lampHits = pointerRaycaster.intersectObjects(sandbox.lamppostLight.raycastTargets, false);
-        if (lampHits.length > 0 && (!sandbox.transformControls || sandbox.transformControls.axis === null)) {
-          activeSceneObjectPointerId = e.pointerId;
-          sandbox.lamppostLight.beginTargetDrag(pointerRaycaster.ray, camera);
-          return;
-        }
-      }
-
-      // Stage 2 Click: Click an active MathPod Holographic Pop-Up -> Camera Focuses on Pop-Up
-      if (sandbox.mathPodPopups) {
-        const popupHits = sandbox.mathPodPopups.raycastCallouts(pointerRaycaster);
-        if (popupHits.length > 0 && popupHits[0].object.userData.calloutId) {
-          popupPointerDownState = {
-            pointerId: e.pointerId,
-            calloutId: popupHits[0].object.userData.calloutId,
-            clientX: e.clientX,
-            clientY: e.clientY,
-          };
-          if (e.pointerType !== 'touch') {
-            activeSceneObjectPointerId = e.pointerId;
-            return;
-          }
-        }
-      }
-
-      const holoHits = sandbox.hologramColumns
-        ? pointerRaycaster.intersectObjects(sandbox.hologramColumns.raycastTargets, false)
-        : [];
-      const podHits = sandbox.mathPods
-        ? pointerRaycaster.intersectObjects(sandbox.mathPods.raycastTargets, false)
-        : [];
-
-      const hasPodHit = Boolean(podHits.length > 0 && podHits[0].object.userData.podId);
-      const hasHoloHit = Boolean(holoHits.length > 0 && holoHits[0].object.userData.holoColumnId);
-      const podIsCloser =
-        hasPodHit &&
-        (!hasHoloHit || podHits[0].distance <= holoHits[0].distance);
-
-      // Stage 1 Click: Click a MathPod -> Reveal/Toggle its Holographic Pop-Up (or drag pod on desktop)
-      if (podIsCloser) {
-        const podId = podHits[0].object.userData.podId;
-        podPointerDownState = { pointerId: e.pointerId, podId, clientX: e.clientX, clientY: e.clientY };
-        if (e.pointerType !== 'touch' || sandbox.holoEditMode) {
-          activeSceneObjectPointerId = e.pointerId;
-          const pod = sandbox.mathPods.beginDrag(podId, pointerRaycaster.ray, camera);
-          sandbox.draggedMathPod = pod;
-          if (sandbox.audio) {
-            sandbox.audio.trigger('onUpdate', { target: pod.id, source: 'math-pod-grab' });
-          }
-          return;
-        }
-      }
-
-      // Click-and-swipe Carousel Hologram Columns (or 3D placement drag when Holo Edit Mode is ON or asset supports direct drag)
-      if (hasHoloHit) {
-        const hitId = holoHits[0].object.userData.holoColumnId;
-        const hitCol = sandbox.hologramColumns.getColumn(hitId);
-        sandbox.selectHologramColumnForEdit(hitId);
-        if (!sandbox.holoEditMode && hitCol && hitCol.isScrollableDocument) {
-          activeSceneObjectPointerId = e.pointerId;
-          hitCol.beginDocumentDrag(e.clientX, e.clientY, holoHits[0].uv || null);
-          return;
-        }
-        if (!sandbox.holoEditMode && hitCol && hitCol.isCarousel && holoHits[0].distance <= 6.5) {
-          activeSceneObjectPointerId = e.pointerId;
-          sandbox.hologramColumns.beginSlideSwipe(hitId, e.clientX, e.clientY, holoHits[0].uv || null);
-          if (sandbox.audio) {
-            sandbox.audio.trigger('onUpdate', { target: hitId, source: 'holo-carousel-swipe-start' });
-          }
-          return;
-        }
-        if (sandbox.holoEditMode || (hitCol && hitCol.allowDirectDrag)) {
-          activeSceneObjectPointerId = e.pointerId;
-          // Start direct coplanar 3D placement drag when Holo Edit Mode is ON (or direct drag is enabled) unless gizmo is in 'rotate' or 'scale'
-          const isGizmoRotateOrScale =
-            sandbox.holoEditMode && (sandbox.holoGizmoMode === 'rotate' || sandbox.holoGizmoMode === 'scale');
-          if (!isGizmoRotateOrScale) {
-            if (sandbox.transformControls && sandbox.transformControls.enabled) {
-              sandbox.transformControls.enabled = false;
+      if (!stickerPlacementDownState) {
+        // Click on DOOM_HEAD (DOOM_Companion) -> Open Two-Stage Hologram Dialogue & Close-Up Two-Shot Camera Pan (Spec 041)
+        const doomTargets = sandbox.getDoomCompanionRaycastTargets();
+        if (doomTargets.length > 0) {
+          const doomHits = pointerRaycaster.intersectObjects(doomTargets, false);
+          if (doomHits.length > 0) {
+            doomPointerDownState = {
+              pointerId: e.pointerId,
+              clientX: e.clientX,
+              clientY: e.clientY,
+            };
+            if (e.pointerType !== 'touch') {
+              activeSceneObjectPointerId = e.pointerId;
+              return;
             }
-            sandbox.hologramColumns.beginDrag(hitId, pointerRaycaster.ray, camera);
+          }
+        }
+
+        // Click-to-select Director 3D Handles (Spawn Marker, Camera Start/End, LookAt Start/End)
+        if (sandbox.director && sandbox.director.editMode && sandbox.director.rootGroup.visible) {
+          const dirHits = pointerRaycaster.intersectObjects(sandbox.director.raycastTargets, false);
+          if (dirHits.length > 0 && dirHits[0].object.userData.handleId) {
+            const hitHandleId = dirHits[0].object.userData.handleId;
+            sandbox.director.selectHandle(hitHandleId);
+            return;
+          }
+        }
+
+        // Click-and-drag the Lamppost Cone Landing Target directly in the 3D scene
+        if (sandbox.lamppostLight && sandbox.lamppostLight.targetMarkerGroup && sandbox.lamppostLight.targetMarkerGroup.visible) {
+          const lampHits = pointerRaycaster.intersectObjects(sandbox.lamppostLight.raycastTargets, false);
+          if (lampHits.length > 0 && (!sandbox.transformControls || sandbox.transformControls.axis === null)) {
+            activeSceneObjectPointerId = e.pointerId;
+            sandbox.lamppostLight.beginTargetDrag(pointerRaycaster.ray, camera);
+            return;
+          }
+        }
+
+        // Stage 2 Click: Click an active MathPod Holographic Pop-Up -> Camera Focuses on Pop-Up
+        if (sandbox.mathPodPopups) {
+          const popupHits = sandbox.mathPodPopups.raycastCallouts(pointerRaycaster);
+          if (popupHits.length > 0 && popupHits[0].object.userData.calloutId) {
+            popupPointerDownState = {
+              pointerId: e.pointerId,
+              calloutId: popupHits[0].object.userData.calloutId,
+              clientX: e.clientX,
+              clientY: e.clientY,
+            };
+            if (e.pointerType !== 'touch') {
+              activeSceneObjectPointerId = e.pointerId;
+              return;
+            }
+          }
+        }
+
+        const rawHoloHits = sandbox.hologramColumns
+          ? pointerRaycaster.intersectObjects(sandbox.hologramColumns.raycastTargets, false)
+          : [];
+        const holoHits = sandbox.holoEditMode
+          ? rawHoloHits
+          : rawHoloHits.filter((h) => h.object?.userData?.holoColumnId !== 'watercolor_gallery');
+        const podHits = sandbox.mathPods
+          ? pointerRaycaster.intersectObjects(sandbox.mathPods.raycastTargets, false)
+          : [];
+
+        const hasPodHit = Boolean(podHits.length > 0 && podHits[0].object.userData.podId);
+        const hasHoloHit = Boolean(holoHits.length > 0 && holoHits[0].object.userData.holoColumnId);
+        const podIsCloser =
+          hasPodHit &&
+          (!hasHoloHit || podHits[0].distance <= holoHits[0].distance);
+
+        // Stage 1 Click: Click a MathPod -> Reveal/Toggle its Holographic Pop-Up (or drag pod on desktop)
+        if (podIsCloser) {
+          const podId = podHits[0].object.userData.podId;
+          podPointerDownState = { pointerId: e.pointerId, podId, clientX: e.clientX, clientY: e.clientY };
+          if (e.pointerType !== 'touch' || sandbox.holoEditMode) {
+            activeSceneObjectPointerId = e.pointerId;
+            const pod = sandbox.mathPods.beginDrag(podId, pointerRaycaster.ray, camera);
+            sandbox.draggedMathPod = pod;
+            if (sandbox.audio) {
+              sandbox.audio.trigger('onUpdate', { target: pod.id, source: 'math-pod-grab' });
+            }
+            return;
+          }
+        }
+
+        // Click-and-swipe Carousel Hologram Columns (or 3D placement drag when Holo Edit Mode is ON or asset supports direct drag)
+        if (hasHoloHit) {
+          const hitId = holoHits[0].object.userData.holoColumnId;
+          const hitCol = sandbox.hologramColumns.getColumn(hitId);
+          sandbox.selectHologramColumnForEdit(hitId);
+          if (!sandbox.holoEditMode && hitCol && hitCol.isScrollableDocument) {
+            activeSceneObjectPointerId = e.pointerId;
+            hitCol.beginDocumentDrag(e.clientX, e.clientY, holoHits[0].uv || null);
+            return;
+          }
+          if (!sandbox.holoEditMode && hitCol && hitCol.isCarousel && holoHits[0].distance <= 6.5) {
+            activeSceneObjectPointerId = e.pointerId;
+            sandbox.hologramColumns.beginSlideSwipe(hitId, e.clientX, e.clientY, holoHits[0].uv || null);
+            if (sandbox.audio) {
+              sandbox.audio.trigger('onUpdate', { target: hitId, source: 'holo-carousel-swipe-start' });
+            }
+            return;
+          }
+          if (sandbox.holoEditMode || (hitCol && hitCol.allowDirectDrag)) {
+            activeSceneObjectPointerId = e.pointerId;
+            // Start direct coplanar 3D placement drag when Holo Edit Mode is ON (or direct drag is enabled) unless gizmo is in 'rotate' or 'scale'
+            const isGizmoRotateOrScale =
+              sandbox.holoEditMode && (sandbox.holoGizmoMode === 'rotate' || sandbox.holoGizmoMode === 'scale');
+            if (!isGizmoRotateOrScale) {
+              if (sandbox.transformControls && sandbox.transformControls.enabled) {
+                sandbox.transformControls.enabled = false;
+              }
+              sandbox.hologramColumns.beginDrag(hitId, pointerRaycaster.ray, camera);
+            }
+            if (sandbox.audio) {
+              sandbox.audio.trigger('onUpdate', { target: hitId, source: 'holo-column-grab' });
+            }
+            return;
           }
           if (sandbox.audio) {
-            sandbox.audio.trigger('onUpdate', { target: hitId, source: 'holo-column-grab' });
+            sandbox.audio.trigger('onUpdate', { target: hitId, source: 'holo-column-select' });
           }
-          return;
-        }
-        if (sandbox.audio) {
-          sandbox.audio.trigger('onUpdate', { target: hitId, source: 'holo-column-select' });
         }
       }
     }
@@ -15801,7 +17933,10 @@ function bindInputListeners() {
       pointerRaycaster.setFromCamera(pointerNDC, camera);
       let hoveredHoloColumn = false;
       if (sandbox.hologramColumns) {
-        const holoHits = pointerRaycaster.intersectObjects(sandbox.hologramColumns.raycastTargets, false);
+        const rawHoloHits = pointerRaycaster.intersectObjects(sandbox.hologramColumns.raycastTargets, false);
+        const holoHits = sandbox.holoEditMode
+          ? rawHoloHits
+          : rawHoloHits.filter((h) => h.object?.userData?.holoColumnId !== 'watercolor_gallery');
         hoveredHoloColumn = holoHits.length > 0;
         const hoveredId = hoveredHoloColumn ? holoHits[0].object.userData.holoColumnId : null;
         sandbox.hoveredHoloColumnId = hoveredId;
@@ -15854,6 +17989,22 @@ function bindInputListeners() {
       }
       sandbox.hoveredDoomCompanion = isHoveringDoom;
 
+      let isStickerInteractiveHover = false;
+      if (sandbox.holographicStickers) {
+        if (sandbox.holographicStickers.isPlacementActive()) {
+          const hit = sandbox.holographicStickers.updatePlacementPreviewFromRay(pointerRaycaster);
+          isStickerInteractiveHover = Boolean(hit);
+          syncStickerToolHUDInputs();
+        } else {
+          const stickerHits = sandbox.holographicStickers.raycastPlacedStickers(pointerRaycaster);
+          sandbox.hoveredPlacedStickerId =
+            stickerHits.length > 0 && stickerHits[0].placedSticker
+              ? stickerHits[0].placedSticker.placedId
+              : null;
+          isStickerInteractiveHover = Boolean(sandbox.hoveredPlacedStickerId);
+        }
+      }
+
       document.body.classList.toggle(
         'mount-pointer-hover',
         Boolean(
@@ -15861,7 +18012,8 @@ function bindInputListeners() {
             sandbox.hoveredMathPod ||
             sandbox.hoveredMathPodPopupId ||
             hoveredHoloColumn ||
-            sandbox.hoveredDoomCompanion
+            sandbox.hoveredDoomCompanion ||
+            isStickerInteractiveHover
         )
       );
     }
@@ -15973,6 +18125,16 @@ function bindInputListeners() {
         }
         return;
       }
+      if (placedStickerPointerDownState && placedStickerPointerDownState.pointerId === e.pointerId) {
+        const dx = e.clientX - placedStickerPointerDownState.clientX;
+        const dy = e.clientY - placedStickerPointerDownState.clientY;
+        const clickedPlacedId = placedStickerPointerDownState.placedId;
+        placedStickerPointerDownState = null;
+        if (!isCancel && Math.hypot(dx, dy) <= CLICK_MAX_DRAG_PIXELS) {
+          sandbox.openStickerPopup(clickedPlacedId);
+        }
+        return;
+      }
       if (doomPointerDownState && doomPointerDownState.pointerId === e.pointerId) {
         const dx = e.clientX - doomPointerDownState.clientX;
         const dy = e.clientY - doomPointerDownState.clientY;
@@ -16028,6 +18190,32 @@ function bindInputListeners() {
     mobileTouch.lookActive = false;
     mobileTouch.lookPointerId = null;
 
+    if (stickerPlacementDownState && stickerPlacementDownState.pointerId === e.pointerId) {
+      const dx = e.clientX - stickerPlacementDownState.clientX;
+      const dy = e.clientY - stickerPlacementDownState.clientY;
+      stickerPlacementDownState = null;
+      if (
+        !isCancel &&
+        Math.hypot(dx, dy) <= CLICK_MAX_DRAG_PIXELS &&
+        sandbox.holographicStickers &&
+        sandbox.holographicStickers.isPlacementActive()
+      ) {
+        sandbox.commitStickerPlacementAtClientPoint(e.clientX, e.clientY);
+        return;
+      }
+    }
+
+    if (placedStickerPointerDownState && placedStickerPointerDownState.pointerId === e.pointerId) {
+      const dx = e.clientX - placedStickerPointerDownState.clientX;
+      const dy = e.clientY - placedStickerPointerDownState.clientY;
+      const clickedPlacedId = placedStickerPointerDownState.placedId;
+      placedStickerPointerDownState = null;
+      if (!isCancel && Math.hypot(dx, dy) <= CLICK_MAX_DRAG_PIXELS) {
+        sandbox.openStickerPopup(clickedPlacedId);
+        return;
+      }
+    }
+
     if (doomPointerDownState && doomPointerDownState.pointerId === e.pointerId) {
       const dx = e.clientX - doomPointerDownState.clientX;
       const dy = e.clientY - doomPointerDownState.clientY;
@@ -16081,6 +18269,16 @@ function bindInputListeners() {
       isCanvasTarget
     ) {
       sandbox.exitDoomChatMode();
+      return;
+    }
+
+    if (
+      sandbox.isStickerPopupOpen &&
+      isPrimaryOrTouch &&
+      dragDistance <= CLICK_MAX_DRAG_PIXELS &&
+      isCanvasTarget
+    ) {
+      sandbox.closeStickerPopup();
       return;
     }
 
@@ -16152,7 +18350,30 @@ function bindInputListeners() {
       if (sandbox.radialMenu && sandbox.radialMenu.isOpen()) {
         return;
       }
-      if (e.target && e.target.closest && e.target.closest('#sandbox-hud')) {
+      if (
+        e.target &&
+        e.target.closest &&
+        (e.target.closest('#sandbox-hud') ||
+          e.target.closest('#sticker-holo-popup-panel') ||
+          e.target.closest('#doom-holo-chat-panel'))
+      ) {
+        return;
+      }
+
+      if (
+        sandbox.holographicStickers &&
+        (sandbox.holographicStickers.isPlacementActive() ||
+          (e.shiftKey && (sandbox.isStickerPopupOpen || sandbox.hoveredPlacedStickerId)))
+      ) {
+        e.preventDefault();
+        if (
+          !sandbox.holographicStickers.isPlacementActive() &&
+          sandbox.hoveredPlacedStickerId &&
+          !sandbox.isStickerPopupOpen
+        ) {
+          sandbox.holographicStickers.selectPlacedSticker(sandbox.hoveredPlacedStickerId);
+        }
+        sandbox.resizeStickerByStep(-e.deltaY * 0.0012);
         return;
       }
 
@@ -16171,7 +18392,10 @@ function bindInputListeners() {
             pointerNDC.x = ((e.clientX - rect.left) / rect.width) * 2.0 - 1.0;
             pointerNDC.y = -((e.clientY - rect.top) / rect.height) * 2.0 + 1.0;
             pointerRaycaster.setFromCamera(pointerNDC, camera);
-            const holoHits = pointerRaycaster.intersectObjects(sandbox.hologramColumns.raycastTargets, false);
+            const rawHoloHits = pointerRaycaster.intersectObjects(sandbox.hologramColumns.raycastTargets, false);
+            const holoHits = sandbox.holoEditMode
+              ? rawHoloHits
+              : rawHoloHits.filter((h) => h.object?.userData?.holoColumnId !== 'watercolor_gallery');
             if (holoHits.length > 0 && holoHits[0].object.userData.holoColumnId) {
               targetColId = holoHits[0].object.userData.holoColumnId;
             }
@@ -16258,11 +18482,14 @@ function bindInputListeners() {
       }
     }
     mobileTouch.syncDOM();
+    syncPortalGamePopupDOM();
     if (sandbox.mode === 'scroll') {
       syncWindowScrollToFraction(sandbox.targetScrollProgress);
     }
     if (sandbox.ready) {
       updateCameraController(0.0);
+      updateDoomHoloChatTether();
+      updateStickerHoloPopupTether();
       renderer.render(scene, camera);
     }
   });
@@ -16426,13 +18653,6 @@ function bindInputListeners() {
   if (flyFreeRoamBtn) {
     flyFreeRoamBtn.addEventListener('click', () => {
       sandbox.toggleFreeRoamFlyMode();
-    });
-  }
-
-  const enterSkateRoomHudBtn = document.getElementById('hud-enter-skateroom-btn');
-  if (enterSkateRoomHudBtn) {
-    enterSkateRoomHudBtn.addEventListener('click', () => {
-      sandbox.teleportToSkateRoom({ force: true });
     });
   }
 
@@ -16914,6 +19134,298 @@ function bindInputListeners() {
   }
 
   bindDirectorHUDListeners();
+  bindStickerToolAndPopupListeners();
+  bindPortalGamePopupListeners();
+}
+
+function bindPortalGamePopupListeners() {
+  if (typeof document === 'undefined') return;
+  const stageEl = document.getElementById('portal-game-holo-stage');
+  const winEl = document.getElementById('portal-game-holo-window');
+  const exitBtn = document.getElementById('portal-holo-exit-btn');
+  const gridEl = document.getElementById('portal-game-cards-grid');
+
+  if (stageEl) {
+    stageEl.addEventListener('pointerdown', (e) => {
+      e.stopPropagation();
+    });
+    stageEl.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (e.target === stageEl && sandbox.isPortalPopupOpen) {
+        sandbox.closePortalGameSelectorPopup({ source: 'backdrop-click' });
+      }
+    });
+  }
+
+  if (winEl) {
+    winEl.addEventListener('pointerdown', (e) => e.stopPropagation());
+    winEl.addEventListener('click', (e) => e.stopPropagation());
+  }
+
+  if (exitBtn) {
+    exitBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      sandbox.closePortalGameSelectorPopup({ source: 'exit-button' });
+    });
+  }
+
+  if (gridEl) {
+    gridEl.addEventListener('pointerover', (e) => {
+      const card = e.target && e.target.closest ? e.target.closest('.portal-game-card') : null;
+      if (!card || !gridEl.contains(card)) return;
+      const gameId = card.getAttribute('data-game-id');
+      if (!gameId) return;
+      if (sandbox.waterColor && sandbox.waterColor.hoveredGameId !== gameId) {
+        sandbox.waterColor.setHoveredGame(gameId);
+        sandbox.selectPortalGame(gameId, { silent: false });
+      }
+    });
+
+    gridEl.addEventListener('pointerleave', () => {
+      if (sandbox.waterColor) {
+        sandbox.waterColor.setHoveredGame(null);
+      }
+    });
+
+    gridEl.addEventListener('click', (e) => {
+      const card = e.target && e.target.closest ? e.target.closest('.portal-game-card') : null;
+      if (!card || !gridEl.contains(card)) return;
+      const gameId = card.getAttribute('data-game-id');
+      if (!gameId) return;
+      e.stopPropagation();
+      sandbox.launchPortalGame(gameId, { source: 'card-click' });
+    });
+  }
+
+  syncPortalGamePopupDOM();
+}
+
+function bindStickerToolAndPopupListeners() {
+  if (typeof document === 'undefined') return;
+
+  const stopProp = (e) => e.stopPropagation();
+  const popupPanelEl = document.getElementById('sticker-holo-popup-panel');
+  if (popupPanelEl) {
+    popupPanelEl.addEventListener('pointerdown', stopProp);
+    popupPanelEl.addEventListener('click', stopProp);
+  }
+
+  const openRadialBtn = document.getElementById('hud-open-sticker-radial-btn');
+  if (openRadialBtn) {
+    openRadialBtn.addEventListener('click', () => {
+      if (sandbox.radialMenu) {
+        sandbox.radialMenu.toggle();
+      }
+    });
+  }
+
+  const openRadialHudBtn = document.getElementById('hud-open-sticker-radial-btn');
+  if (openRadialHudBtn) {
+    openRadialHudBtn.addEventListener('click', () => {
+      if (sandbox.radialMenu) {
+        sandbox.radialMenu.toggle();
+      }
+    });
+  }
+
+  const startPlaceBtn = document.getElementById('sticker-start-place-btn');
+  if (startPlaceBtn) {
+    startPlaceBtn.addEventListener('click', () => {
+      if (sandbox.holographicStickers && sandbox.holographicStickers.isPlacementActive()) {
+        sandbox.cancelStickerPlacement();
+      } else {
+        const selectEl = document.getElementById('sticker-asset-select');
+        const stickerId = selectEl ? selectEl.value : sandbox.selectedHoloStickerId;
+        sandbox.startStickerPlacement(stickerId);
+      }
+    });
+  }
+
+  const cancelPlaceBannerBtn = document.getElementById('sticker-placement-cancel-btn');
+  if (cancelPlaceBannerBtn) {
+    cancelPlaceBannerBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      sandbox.cancelStickerPlacement();
+    });
+  }
+
+  const assetSelectEl = document.getElementById('sticker-asset-select');
+  if (assetSelectEl) {
+    assetSelectEl.addEventListener('change', (e) => {
+      const nextId = e.target.value;
+      sandbox.selectedHoloStickerId = nextId;
+      if (sandbox.holographicStickers && sandbox.holographicStickers.isPlacementActive()) {
+        sandbox.startStickerPlacement(nextId);
+      } else {
+        syncStickerToolHUDInputs();
+      }
+    });
+  }
+
+  const calibToggleBtn = document.getElementById('sticker-calib-toggle-btn');
+  if (calibToggleBtn) {
+    calibToggleBtn.addEventListener('click', () => {
+      sandbox.toggleStickerCalibrationTool();
+    });
+  }
+
+  function bindMinMaxPair(sliderId, inputId, boundKey) {
+    const sEl = document.getElementById(sliderId);
+    const iEl = document.getElementById(inputId);
+    const applyVal = (raw) => {
+      const val = parseFloat(raw);
+      if (Number.isFinite(val)) {
+        sandbox.setStickerSizeBounds({ [boundKey]: val }, true);
+      }
+    };
+    if (sEl) {
+      sEl.addEventListener('input', (e) => applyVal(e.target.value));
+    }
+    if (iEl) {
+      iEl.addEventListener('input', (e) => applyVal(e.target.value));
+      iEl.addEventListener('change', (e) => applyVal(e.target.value));
+    }
+  }
+  bindMinMaxPair('sticker-min-size-slider', 'sticker-min-size-input', 'minSize');
+  bindMinMaxPair('sticker-max-size-slider', 'sticker-max-size-input', 'maxSize');
+
+  const capMinBtn = document.getElementById('sticker-capture-min-btn');
+  if (capMinBtn) {
+    capMinBtn.addEventListener('click', () => {
+      sandbox.captureCurrentStickerAsMinSize(true);
+    });
+  }
+  const capMaxBtn = document.getElementById('sticker-capture-max-btn');
+  if (capMaxBtn) {
+    capMaxBtn.addEventListener('click', () => {
+      sandbox.captureCurrentStickerAsMaxSize(true);
+    });
+  }
+
+  function bindSizeControlPair(sliderId, inputId) {
+    const sEl = document.getElementById(sliderId);
+    const iEl = document.getElementById(inputId);
+    const applyVal = (raw) => {
+      const val = parseFloat(raw);
+      if (Number.isFinite(val)) {
+        sandbox.resizeStickerToMeters(val);
+      }
+    };
+    if (sEl) sEl.addEventListener('input', (e) => applyVal(e.target.value));
+    if (iEl) {
+      iEl.addEventListener('input', (e) => applyVal(e.target.value));
+      iEl.addEventListener('change', (e) => applyVal(e.target.value));
+    }
+  }
+  bindSizeControlPair('sticker-cur-size-slider', 'sticker-cur-size-input');
+
+  function bindRotControlPair(sliderId, inputId) {
+    const sEl = document.getElementById(sliderId);
+    const iEl = document.getElementById(inputId);
+    const applyVal = (raw) => {
+      const val = parseFloat(raw);
+      if (Number.isFinite(val)) {
+        sandbox.rotateStickerToDeg(val);
+      }
+    };
+    if (sEl) sEl.addEventListener('input', (e) => applyVal(e.target.value));
+    if (iEl) {
+      iEl.addEventListener('input', (e) => applyVal(e.target.value));
+      iEl.addEventListener('change', (e) => applyVal(e.target.value));
+    }
+  }
+  bindRotControlPair('sticker-rot-deg-slider', 'sticker-rot-deg-input');
+
+  const openPopupHudBtn = document.getElementById('sticker-open-popup-btn');
+  if (openPopupHudBtn) {
+    openPopupHudBtn.addEventListener('click', () => {
+      if (sandbox.isStickerPopupOpen) {
+        sandbox.closeStickerPopup();
+      } else {
+        const rec = sandbox.openStickerPopup();
+        if (!rec && sandbox.holographicStickers) {
+          // If no sticker has been placed yet, place one on the left wall at SPAWN_PLAYER so the popup can be inspected immediately
+          const placed = sandbox.placeStickerAt(
+            {
+              stickerId: sandbox.selectedHoloStickerId || 'doom_tag',
+              surfaceId: 'COLLIDER_STICKER_WALL_L',
+              surfaceLabel: 'Left Alley Wall (Interior)',
+              surfaceCategory: 'interior-wall',
+              wallSide: 'L',
+              position: { x: resolveStickerWallProfileX('L', 3.5) + 0.015, y: 1.55, z: 3.5 },
+              normal: { x: 1, y: 0, z: 0 },
+            },
+            { openPopup: true }
+          );
+          if (placed) {
+            sandbox.openStickerPopup(placed.placedId);
+          }
+        }
+      }
+    });
+  }
+
+  const closePopupBtn = document.getElementById('sticker-close-popup-btn') || document.getElementById('sticker-holo-close-btn');
+  if (closePopupBtn) {
+    closePopupBtn.addEventListener('click', () => {
+      sandbox.closeStickerPopup();
+    });
+  }
+
+  const repositionBtn = document.getElementById('sticker-reposition-btn');
+  if (repositionBtn) {
+    repositionBtn.addEventListener('click', () => {
+      sandbox.repositionSelectedSticker();
+    });
+  }
+
+  const deleteBtn = document.getElementById('sticker-delete-btn');
+  if (deleteBtn) {
+    deleteBtn.addEventListener('click', () => {
+      sandbox.deleteSelectedSticker();
+    });
+  }
+
+  const tagFormEl = document.getElementById('sticker-tag-form');
+  if (tagFormEl) {
+    tagFormEl.addEventListener('submit', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const taggerEl = document.getElementById('sticker-tagger-input');
+      const msgEl = document.getElementById('sticker-message-input');
+      const tagger = taggerEl ? taggerEl.value : '';
+      const message = msgEl ? msgEl.value : '';
+      sandbox.saveStickerTagAndMessage(null, tagger, message);
+      const saveBtn = document.getElementById('sticker-save-message-btn') || document.getElementById('sticker-save-tag-btn');
+      if (saveBtn) {
+        const orig = saveBtn.textContent;
+        saveBtn.textContent = '✓ Saved!';
+        setTimeout(() => {
+          saveBtn.textContent = orig;
+        }, 1200);
+      }
+    });
+  }
+
+  const copyJsonBtn = document.getElementById('sticker-copy-json-btn');
+  if (copyJsonBtn) {
+    copyJsonBtn.addEventListener('click', async () => {
+      if (!sandbox.holographicStickers) return;
+      const jsonStr = sandbox.holographicStickers.exportSizeConfigJSON();
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(jsonStr);
+        }
+        const origText = copyJsonBtn.textContent;
+        copyJsonBtn.textContent = 'Copied!';
+        setTimeout(() => {
+          copyJsonBtn.textContent = origText;
+        }, 1400);
+      } catch (err) {
+        console.log('Sticker Size Config JSON:\n', jsonStr);
+      }
+    });
+  }
 }
 
 // ============================================================================
@@ -17477,7 +19989,7 @@ async function initSandbox() {
   const loader = new GLTFLoader();
   sandbox.variantLoader = loader;
 
-  const totalAssets = 7 + RPM_ANIMATION_CATALOG.length;
+  const totalAssets = 5 + RPM_ANIMATION_CATALOG.length;
   let loadedAssets = 0;
   const handleAssetProgress = () => {
     loadedAssets++;
@@ -17490,18 +20002,14 @@ async function initSandbox() {
   const [
     alleyGLTF,
     hoodieGLTF,
-    tunicGLTF,
     alarmLightGLTF,
-    hologramGLTF,
     alleyPipesGLTF,
     villainySignGLTF,
     ...rpmAnimGLTFs
   ] = await Promise.all([
     loadGLB(loader, ASSET_PATHS.alley, handleAssetProgress),
     loadGLB(loader, ASSET_PATHS.hoodie, handleAssetProgress),
-    loadGLB(loader, ASSET_PATHS.tunic, handleAssetProgress),
     loadGLB(loader, ASSET_PATHS.alarmLight, handleAssetProgress),
-    loadGLB(loader, ASSET_PATHS.hologram, handleAssetProgress),
     loadGLB(loader, ASSET_PATHS.alleyPipes, handleAssetProgress),
     loadGLB(loader, ASSET_PATHS.villainySign, handleAssetProgress),
     ...RPM_ANIMATION_CATALOG.map((spec) => loadGLB(loader, spec.url, handleAssetProgress)),
@@ -17510,11 +20018,6 @@ async function initSandbox() {
   if (hoodieGLTF.animations && hoodieGLTF.animations.length > 0) {
     raiseFatalError(
       `Character '${ASSET_PATHS.hoodie}' contains ${hoodieGLTF.animations.length} prohibited embedded legacy animation clips.`
-    );
-  }
-  if (tunicGLTF.animations && tunicGLTF.animations.length > 0) {
-    raiseFatalError(
-      `Character '${ASSET_PATHS.tunic}' contains ${tunicGLTF.animations.length} prohibited embedded legacy animation clips.`
     );
   }
 
@@ -17577,8 +20080,8 @@ async function initSandbox() {
   scene.add(alleyRoot);
   alleyRoot.updateMatrixWorld(true);
 
-  // Build and validate all 6 wall screen mounts (SCREEN_MOUNT_01..06) with transparent hologram.glb meshes (Spec 025 §4)
-  const { wallMounts, wallMountsByName, raycastTargets } = buildWallScreenMounts(markers, hologramGLTF);
+  // Build and validate all 6 wall screen mounts (SCREEN_MOUNT_01..06)
+  const { wallMounts, wallMountsByName, raycastTargets } = buildWallScreenMounts(markers, null);
   sandbox.wallMounts = wallMounts;
   sandbox.wallMountsByName = wallMountsByName;
   sandbox.wallMountRaycastTargets = raycastTargets;
@@ -17649,23 +20152,73 @@ async function initSandbox() {
   window.mathPodPopups = sandbox.mathPodPopups;
   updateMathPodsCorridorLOD();
 
-  // Build and integrate "Water Color" Gallery Rectangular Showcase (Strictly Gallery Visual, Zero Drawer UI)
+  // Build and integrate "Water Color" Gallery Rectangular Showcase & Portal Holographic Game Selector (Spec 048)
   watercolorRootGroup.clear();
   const waterColorGallerySystem = buildWaterColorGallerySystem({
     rootGroup: watercolorRootGroup,
     floorY,
     uTimeUniform: holoShaderUniforms.uHoloTime,
     applyStencilReject: applyCharacterOcclusionStencilReject,
-    portalTargetUrl: './skate3_cleanroom/',
-    resolvePortalTargetUrl: () => sandbox.resolveSkateRoomPortalUrl(),
+    portalTargetUrl: './skate3_cleanroom/?char=luis',
+    resolvePortalTargetUrl: (opts = {}) => sandbox.resolveSkateRoomPortalUrl(opts),
     shouldIgnorePortal: () =>
       Boolean(
         (sandbox.transformControls && sandbox.transformControls.dragging) ||
         sandbox.activeHoloTransformDrag
       ),
-    onTeleport: () => {
+    onOpenPortalPopup: (info = {}) => {
+      sandbox.isPortalPopupOpen = true;
+      sandbox.portalGlitchBoostRemainingSec = 0.24;
+      for (const k of Object.keys(keysPressed)) {
+        keysPressed[k] = false;
+      }
+      jumpRequested = false;
+      const activeChar = sandbox.getActiveCharacter ? sandbox.getActiveCharacter() : null;
+      if (activeChar) {
+        activeChar.velocity.set(0, 0, 0);
+        if (!activeChar.dialogueActive) {
+          activeChar.freezeToIdle();
+        }
+      }
+      if (sandbox.runningEffects) {
+        sandbox.runningEffects.quiesceImmediately();
+      }
+      startPortalPopupOpenAnimation({
+        immediate: Boolean(info.immediate || (info.wasAlreadyOpen && !info.replayAnimation)),
+      });
+      syncPortalGamePopupDOM();
+      updatePortalGameHoloPopupUI(0.0);
+      if (sandbox.audio && typeof sandbox.audio.trigger === 'function' && info.source === 'walk-through') {
+        sandbox.audio.trigger('onActivate', {
+          source: 'portalGameSelectorWalkThrough',
+          selectedGameId: info.selectedGameId || 'skate3',
+          intensity: 1.0,
+        });
+      }
+      updateTelemetryHUD();
+    },
+    onClosePortalPopup: (info = {}) => {
+      sandbox.isPortalPopupOpen = false;
+      sandbox.portalGlitchBoostRemainingSec = Math.max(sandbox.portalGlitchBoostRemainingSec, 0.16);
+      startPortalPopupCloseAnimation({
+        immediate: Boolean(info && info.immediate),
+      });
+      syncPortalGamePopupDOM();
+      updatePortalGameHoloPopupUI(0.0);
+      updateTelemetryHUD();
+    },
+    onSelectPortalGame: () => {
+      syncPortalGamePopupDOM();
+      updateTelemetryHUD();
+    },
+    onTeleport: (info = {}) => {
       if (sandbox.audio && typeof sandbox.audio.trigger === 'function') {
-        sandbox.audio.trigger('onActivate', { source: 'shaderPortalTeleport', intensity: 1.0 });
+        sandbox.audio.trigger('onActivate', {
+          source: 'shaderPortalTeleport',
+          gameId: info.gameId || 'skate3',
+          targetUrl: info.targetUrl,
+          intensity: 1.0,
+        });
       }
       updateTelemetryHUD();
     },
@@ -17812,12 +20365,19 @@ async function initSandbox() {
   syncLamppostEditorHUDInputs();
   syncDirectorHUDInputs();
 
-  // Keep Holographic Stickers & Sign detached from the live 3D scene while preserving asset modules
-  if (holographicStickersRootGroup.parent) {
-    holographicStickersRootGroup.parent.remove(holographicStickersRootGroup);
-  }
+  // Build and integrate Interactive Holographic Die-Cut Stickers, Aligned Interior/Exterior Wall & Floor Bounding Surfaces, and 3D Min/Max Size Calibration Tool (Spec 047)
   holographicStickersRootGroup.clear();
-  sandbox.holographicStickers = null;
+  if (!holographicStickersRootGroup.parent) {
+    scene.add(holographicStickersRootGroup);
+  }
+  sandbox.holographicStickers = buildHolographicStickersSystem({
+    rootGroup: holographicStickersRootGroup,
+    spawnDefaultCatalog: false,
+    floorY,
+    visualMesh: visualAlleyMesh,
+    uTimeUniform: holoShaderUniforms.uHoloTime,
+    applyStencilReject: applyCharacterOcclusionStencilReject,
+  });
 
   if (holographicSignRootGroup.parent) {
     holographicSignRootGroup.parent.remove(holographicSignRootGroup);
@@ -17851,6 +20411,9 @@ async function initSandbox() {
   const ambientParticulates = buildSuspendedAmbientParticulates(floorY);
   const precipitation = buildPrecipitationEmitter(floorY);
   const floorReflections = buildPlanarFloorReflectionSubsystem(floorY);
+  if (sandbox.holographicStickers && typeof sandbox.holographicStickers.syncVisualEnvelope === 'function') {
+    sandbox.holographicStickers.syncVisualEnvelope(visualAlleyMesh, floorReflections ? floorReflections.mesh : null);
+  }
   const audioSubsystem = buildAudioSubsystem(null, sandbox.alarmLights, sandbox.alleyPipes);
 
   // Build and integrate Interactive Straight-Line Scene Cutter & Half-Space Deletion Subsystem (Spec 036)
@@ -17926,6 +20489,9 @@ async function initSandbox() {
     spawnNpcPos,
     spawnPlayerYaw: spawnPlayerEuler.y,
     spawnNpcYaw: spawnNpcEuler.y,
+    stickerBoundingSurfaces: sandbox.holographicStickers
+      ? sandbox.holographicStickers.boundingSurfaces
+      : null,
   };
   if (sandbox.director) {
     sandbox.director.syncHandleGeometries();
@@ -17970,13 +20536,12 @@ async function initSandbox() {
     selectEl.value = 'IDLE_DEFAULT';
   }
 
-  // 3. Stage Both Rigged Humanoid Characters at SPAWN_PLAYER & SPAWN_NPC
+  // 3. Stage Colored LUIS + Floating DOOM_Companion Character at SPAWN_PLAYER
   scene.add(hoodieGLTF.scene);
-  scene.add(tunicGLTF.scene);
 
   const hoodieController = new CharacterController({
     id: 'hoodie',
-    label: 'LUIS_HOLOSYS_RIGGED.glb (Iridescent Holo)',
+    label: 'character_hoodie.glb (Full Color + DOOM Head)',
     gltfScene: hoodieGLTF.scene,
     sharedClips,
     spawnPos: spawnPlayerPos,
@@ -17984,37 +20549,24 @@ async function initSandbox() {
     floorY,
     baseColor: 0xe2e8f0,
   });
-
-  const tunicController = new CharacterController({
-    id: 'tunic',
-    label: 'PLATODOOM_HOLOSYS_RIGGED.glb (Iridescent Holo)',
-    gltfScene: tunicGLTF.scene,
-    sharedClips,
-    spawnPos: spawnNpcPos,
-    spawnYaw: spawnNpcEuler.y,
-    floorY,
-    baseColor: 0xf5efe6,
-  });
+  hoodieController.setHolographicShader(false);
 
   sandbox.characters = {
     hoodie: hoodieController,
-    tunic: tunicController,
   };
   if (sandbox.mathPodPopups) {
     sandbox.mathPodPopups.registerSceneAssetPresets(scene);
   }
   sandbox.variantCache = {
-    luis_holo: hoodieController,
-    platodoom_holo: tunicController,
+    luis_color: hoodieController,
   };
-  sandbox.activeVariantKey = 'luis_holo';
+  sandbox.activeVariantKey = 'luis_color';
+  sandbox.currentVariantKey = 'luis_color';
   sandbox.activeCharacterId = 'hoodie';
 
   hoodieController.root.animations = sharedClips;
-  tunicController.root.animations = sharedClips;
   window.__THREE_ANIMATION_MIXERS__ = [
     hoodieController.mixer,
-    tunicController.mixer,
   ];
 
   window.characterControllers = sandbox.characters;
@@ -18084,7 +20636,7 @@ async function initSandbox() {
   const radialController = createCyberRadialMenuHUD({
     container: radialOverlay,
     size: 680,
-    iconSize: 68,
+    iconSize: 94,
     bandWidth: 198,
     innerGap: 18,
     outerGap: 6,
@@ -18107,6 +20659,42 @@ async function initSandbox() {
         for (const k of Object.keys(keysPressed)) {
           keysPressed[k] = false;
         }
+        if (sandbox.audio && typeof sandbox.audio.trigger === 'function') {
+          sandbox.audio.trigger('onActivate', {
+            target: 'cyber-radial-menu',
+            source: 'radial-menu-open',
+          });
+        }
+      } else if (sandbox.audio && typeof sandbox.audio.trigger === 'function') {
+        sandbox.audio.trigger('onHover', {
+          target: 'cyber-radial-menu',
+          source: 'radial-menu-close',
+        });
+      }
+    },
+    onHoverChange: (item, index) => {
+      if (item && sandbox.audio && typeof sandbox.audio.trigger === 'function') {
+        sandbox.audio.trigger('onHover', {
+          target: item.key || `slice-${index}`,
+          source: 'radial-menu-hover',
+          index,
+        });
+      }
+    },
+    onSubmenuChange: (item, index) => {
+      if (item) {
+        sandbox.lastRadialAction = item.label;
+        const telEl = document.getElementById('tel-radial');
+        if (telEl) {
+          telEl.textContent = item.label;
+        }
+      }
+      if (sandbox.audio && typeof sandbox.audio.trigger === 'function') {
+        sandbox.audio.trigger('onActivate', {
+          target: (item && item.key) || `slice-${index}`,
+          source: 'radial-menu-submenu-open',
+          index,
+        });
       }
     },
     onSelect: (item, index) => {
@@ -18114,6 +20702,17 @@ async function initSandbox() {
       const telEl = document.getElementById('tel-radial');
       if (telEl) {
         telEl.textContent = item.label;
+      }
+      if (sandbox.audio && typeof sandbox.audio.trigger === 'function') {
+        sandbox.audio.trigger('onActivate', {
+          target: (item && item.key) || `slice-${index}`,
+          source: 'radial-menu-select',
+          index,
+        });
+      }
+      const candidateStickerId = item && (item.stickerId || item.key);
+      if (candidateStickerId && STICKER_ASSET_BY_ID[candidateStickerId]) {
+        sandbox.startStickerPlacement(candidateStickerId);
       }
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('cyber-radial-select', { detail: item }));
@@ -18141,19 +20740,29 @@ async function initSandbox() {
 
   bindInputListeners();
   syncDoomHoloChatDOM();
-  fetchDoomStartersFromHF().catch(() => {});
+  syncStickerToolHUDInputs();
+  syncStickerHoloPopupDOM();
+  syncPortalGamePopupDOM();
+  fetchDoomStartersFromHF({ silentFallback: true }).catch(() => {});
 
-  // Non-blocking discovery of Server Mac HTTPS Quick Tunnel (functional_specification_037.md)
+  // Discovery of Server Mac HTTPS Quick Tunnel (functional_specification_037.md) & PostgreSQL Sticker Hydration (functional_specification_056.md)
   sandbox.tunnelConfig = null;
   if (typeof fetch === 'function') {
-    fetch(`./tunnel.json?t=${Date.now()}`, { cache: 'no-store' })
-      .then((res) => (res && res.ok ? res.json() : null))
-      .then((data) => {
-        if (data && typeof data === 'object') {
-          sandbox.tunnelConfig = data;
+    try {
+      const tRes = await fetch(`./tunnel.json?t=${Date.now()}`, { cache: 'no-store' });
+      if (tRes && tRes.ok) {
+        const tData = await tRes.json();
+        if (tData && typeof tData === 'object') {
+          sandbox.tunnelConfig = tData;
+          if (!doomChatState.startersLoadedFromHF && !doomChatState.startersLoading) {
+            fetchDoomStartersFromHF({ silentFallback: true }).catch(() => {});
+          }
         }
-      })
-      .catch(() => {});
+      }
+    } catch (_err) {
+      // Ignore tunnel.json fetch errors in offline/static contexts
+    }
+    await sandbox.loadPersistedStickers().catch(() => {});
   }
 
   sandbox.ready = true;
@@ -18210,10 +20819,14 @@ export {
   resolveCircleAgainstWalls,
   extractFloorTriangles,
   createCyberRadialMenuHUD,
+  PRIMARY_CYBER_MENU_ITEMS,
+  STICKER_RADIAL_MENU_ITEMS,
+  LEGACY_CYBER_MENU_ITEMS,
   DEFAULT_CYBER_MENU_ITEMS,
   CENTRAL_HUB_EMBLEM,
   FULL_CIRCLE,
   START_ANGLE,
+  SUBMENU_FAN_IN_DURATION_MS,
   degToRad,
   radToDeg,
   polarToCartesian,
@@ -18255,6 +20868,19 @@ export {
   STICKER_BORDER_MODES,
   STICKER_PLACEMENT_MODES,
   STICKER_DEFAULT_MATERIAL_PARAMS,
+  STICKER_DEFAULT_SIZE_BOUNDS,
+  normalizeStickerSizeBounds,
+  clampStickerSize,
+  normalizeStickerRotationRad,
+  resolveStickerWallProfileX,
+  resolveStickerExteriorWallProfileZ,
+  resolveStickerFloorContourY,
+  computeStickerSurfaceBasis,
+  computeStickerPopupCameraPose,
+  STICKER_POPUP_IGNITE_MS,
+  STICKER_POPUP_COLLAPSE_MS,
+  STICKER_POPUP_CAM_TRANSITION_DURATION,
+  buildStickerBoundingSurfaces,
   resolveStickerAssetSpec,
   computeStickerGeometrySpec,
   evaluateStickerTriZoneClassification,
@@ -18320,4 +20946,10 @@ export {
   processMp3ChassisBitmap,
   drawTechnoVectorText,
   measureTechnoVectorText,
+  PORTAL_HEADER_LOGO_SPEC,
+  PORTAL_GAME_CATALOG,
+  PORTAL_GAME_BY_ID,
+  normalizePortalGameEntry,
+  resolvePortalGameSpec,
+  solvePortalGameGridLayout,
 };

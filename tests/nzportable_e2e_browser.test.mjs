@@ -139,20 +139,20 @@ describe('Spec 042 Live Playwright Browser End-to-End Verification (/nzportable/
       }
     });
 
-    await page.goto(`${baseUrl}/nzportable/`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`${baseUrl}/nzportable/?autostart=0`, { waitUntil: 'domcontentloaded' });
 
-    // Verify initial Splash Gate & 0px Canvas Calibration before launch
+    // Verify initial Spray Paint Intro & 0px Canvas Calibration before launch
     const preLaunch = await page.evaluate(() => {
       const canvas = document.getElementById('canvas');
-      const splash = document.getElementById('splash');
-      const overlay = document.getElementById('overlay');
+      const overlay = document.getElementById('spray-paint-loader-overlay');
+      const credit = document.getElementById('spray-paint-credit-subtitle');
       const hudbar = document.getElementById('hudbar');
       const cs = window.getComputedStyle(canvas);
       const rect = canvas.getBoundingClientRect();
       return {
         status: window.__NZP_STATUS__,
-        splashDisplay: window.getComputedStyle(splash).display,
         overlayDisplay: window.getComputedStyle(overlay).display,
+        creditText: credit?.textContent?.trim(),
         hudbarDisplay: window.getComputedStyle(hudbar).display,
         canvasBorderTop: cs.borderTopWidth,
         canvasBorderLeft: cs.borderLeftWidth,
@@ -170,8 +170,8 @@ describe('Spec 042 Live Playwright Browser End-to-End Verification (/nzportable/
 
     assert.equal(preLaunch.status.initialized, false);
     assert.equal(preLaunch.status.engineReady, false);
-    assert.equal(preLaunch.splashDisplay, 'flex');
-    assert.equal(preLaunch.overlayDisplay, 'none');
+    assert.equal(preLaunch.overlayDisplay, 'flex');
+    assert.equal(preLaunch.creditText, 'Decompilation Credit: NZPTeam');
     assert.equal(preLaunch.hudbarDisplay, 'none');
     assert.equal(preLaunch.canvasBorderTop, '0px');
     assert.equal(preLaunch.canvasBorderLeft, '0px');
@@ -183,9 +183,9 @@ describe('Spec 042 Live Playwright Browser End-to-End Verification (/nzportable/
     assert.equal(preLaunch.rectWidth, preLaunch.innerWidth);
     assert.equal(preLaunch.rectHeight, preLaunch.innerHeight);
 
-    // Click #splash to launch and measure cold-load time
+    // Click #spray-paint-loader-overlay to launch and measure cold-load time
     const t0 = Date.now();
-    await page.click('#splash');
+    await page.click('#spray-paint-loader-overlay');
 
     await page.waitForFunction(
       () => window.__NZP_STATUS__ && window.__NZP_STATUS__.engineReady === true,
@@ -199,7 +199,7 @@ describe('Spec 042 Live Playwright Browser End-to-End Verification (/nzportable/
 
     const postLaunch = await page.evaluate(() => {
       const canvas = document.getElementById('canvas');
-      const overlay = document.getElementById('overlay');
+      const overlay = document.getElementById('spray-paint-loader-overlay');
       const hudbar = document.getElementById('hudbar');
       const gl =
         (window.Module && window.Module.ctx) ||
@@ -248,11 +248,17 @@ describe('Spec 042 Live Playwright Browser End-to-End Verification (/nzportable/
     assert.equal(postLaunch.status.fmfBytes, 96);
     assert.equal(postLaunch.status.progsPk3Bytes, 491379);
     assert.equal(postLaunch.status.gamePk3Bytes, 94276834);
+    assert.equal(postLaunch.status.luisZombiesMounted, true);
+    assert.equal(postLaunch.status.luisZombieModelsCount, 10);
     assert.equal(postLaunch.status.cacheHit, false);
     assert.ok(postLaunch.status.fps >= 55, `Expected FPS >= 55, got ${postLaunch.status.fps}`);
     assert.deepEqual(postLaunch.status.errors, []);
 
     assert.equal(postLaunch.hasModuleSched, true, 'Expected window.Module.sched to be defined');
+    assert.ok(postLaunch.moduleFilesKeys.includes('nzp/luis_zombies.pk3'));
+    assert.ok(postLaunch.moduleFilesKeys.includes('nzp/models/ai/zb%.mdl'));
+    assert.ok(postLaunch.moduleFilesKeys.includes('nzp/models/ai/zh^.mdl'));
+    assert.ok(postLaunch.moduleFilesKeys.includes('nzp/models/ai/zfull.mdl'));
     assert.equal(postLaunch.overlayDisplay, 'none');
     assert.equal(postLaunch.hudbarVisible, true);
     assert.equal(postLaunch.hudbarDisplay, 'flex');
@@ -440,6 +446,58 @@ describe('Spec 042 Live Playwright Browser End-to-End Verification (/nzportable/
     assert.equal(navAttrs.overlayHref, '../');
     assert.equal(navAttrs.hudOnclick, "window.location.assign('../')");
     assert.equal(navAttrs.fullscreenText, 'Fullscreen');
+
+    await context.close();
+  });
+
+  it('6. Spec 045 Live Nacht der Untoten (ndu.bsp) boot with 10 LUIS zombie .mdl models mounted, zero .mdl parse warnings, and >= 55 FPS', async () => {
+    const context = await browser.newContext({ viewport: { width: 1280, height: 720 } });
+    const page = await context.newPage();
+
+    const mdlErrors = [];
+    page.on('console', (msg) => {
+      const txt = msg.text();
+      if (/bad model|mod_load|error.*models\/ai\/|corrupt.*\.mdl/i.test(txt)) {
+        mdlErrors.push(txt);
+      }
+    });
+
+    const argsParam = encodeURIComponent(JSON.stringify(['+map', 'ndu']));
+    await page.goto(`${baseUrl}/nzportable/?autostart=1&args=${argsParam}`, {
+      waitUntil: 'domcontentloaded',
+    });
+
+    await page.waitForFunction(
+      () => window.__NZP_STATUS__ && window.__NZP_STATUS__.engineReady === true,
+      null,
+      { timeout: 12000 }
+    );
+
+    await page.waitForTimeout(2500);
+    await page.waitForFunction(
+      () => window.__NZP_STATUS__ && window.__NZP_STATUS__.fps >= 55,
+      null,
+      { timeout: 8000 }
+    );
+
+    const nduState = await page.evaluate(() => {
+      const keys = window.Module && window.Module.files ? Object.keys(window.Module.files) : [];
+      const aiMdls = keys.filter((k) => k.startsWith('nzp/models/ai/') && k.endsWith('.mdl'));
+      return {
+        status: window.__NZP_STATUS__,
+        aiMdlsCount: aiMdls.length,
+        hasLuisPk3: keys.includes('nzp/luis_zombies.pk3'),
+      };
+    });
+
+    assert.equal(nduState.status.engineReady, true);
+    assert.equal(nduState.status.luisZombiesMounted, true);
+    assert.equal(nduState.status.luisZombieModelsCount, 10);
+    assert.equal(nduState.aiMdlsCount, 10);
+    assert.equal(nduState.hasLuisPk3, true);
+    assert.ok(nduState.status.fps >= 55, `Expected FPS >= 55 in ndu.bsp, got ${nduState.status.fps}`);
+    assert.deepEqual(nduState.status.errors, []);
+    assert.deepEqual(mdlErrors, []);
 
     await context.close();
   });

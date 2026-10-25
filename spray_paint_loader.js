@@ -86,6 +86,98 @@ export const SPRAY_LETTER_SPECS = Object.freeze([
   }),
 ]);
 
+export const SPRAY_ARCADE_TIMELINE_SPEC = Object.freeze({
+  totalDurationMs: 6500,
+  blackoutEndMs: 500,
+  shakeBurstsMs: Object.freeze([540, 720, 980, 1140]),
+  shakeEndMs: 1300,
+  valveClickMs: 1660,
+  sprayStartMs: 2039,
+  sprayEndMs: 3075,
+  holdEndMs: 6180,
+  fadeEndMs: 6500,
+  passes: Object.freeze([
+    Object.freeze({ index: 0, id: 'PASS_1_D', letterId: 'D', startMs: 2039, endMs: 2225, progressStart: 0.00, progressEnd: 0.20 }),
+    Object.freeze({ index: 1, id: 'PASS_2_O1', letterId: 'O1', startMs: 2245, endMs: 2425, progressStart: 0.20, progressEnd: 0.38 }),
+    Object.freeze({ index: 2, id: 'PASS_3_O2', letterId: 'O2', startMs: 2445, endMs: 2625, progressStart: 0.38, progressEnd: 0.56 }),
+    Object.freeze({ index: 3, id: 'PASS_4_M', letterId: 'M', startMs: 2645, endMs: 2855, progressStart: 0.56, progressEnd: 0.78 }),
+    Object.freeze({ index: 4, id: 'PASS_5_ARCADE', letterId: 'ARCADE', startMs: 2875, endMs: 3075, progressStart: 0.78, progressEnd: 1.00 }),
+  ]),
+});
+
+export const SPRAY_ARCADE_LETTER_SPECS = Object.freeze([
+  Object.freeze({
+    index: 0,
+    id: 'D',
+    progressStart: 0.00,
+    progressEnd: 0.20,
+    uvBounds: Object.freeze({ uMin: 0.2131, uMax: 0.3984, vMin: 0.0870, vMax: 0.6959 }),
+    waypoints: Object.freeze([
+      [0.365, 0.120], [0.305, 0.130], [0.245, 0.155],
+      [0.222, 0.235], [0.305, 0.250], [0.385, 0.265],
+      [0.390, 0.350], [0.300, 0.365], [0.220, 0.380],
+      [0.225, 0.465], [0.310, 0.480], [0.392, 0.495],
+      [0.388, 0.575], [0.320, 0.595], [0.265, 0.615],
+      [0.295, 0.660], [0.345, 0.675], [0.382, 0.665],
+    ]),
+  }),
+  Object.freeze({
+    index: 1,
+    id: 'O1',
+    progressStart: 0.20,
+    progressEnd: 0.38,
+    uvBounds: Object.freeze({ uMin: 0.3890, uMax: 0.5097, vMin: 0.0541, vMax: 0.6647 }),
+    waypoints: Object.freeze([
+      [0.485, 0.095], [0.440, 0.110], [0.398, 0.135],
+      [0.395, 0.230], [0.448, 0.245], [0.496, 0.265],
+      [0.492, 0.365], [0.445, 0.385], [0.400, 0.405],
+      [0.402, 0.505], [0.455, 0.525], [0.502, 0.545],
+      [0.495, 0.625], [0.455, 0.645], [0.420, 0.640],
+    ]),
+  }),
+  Object.freeze({
+    index: 2,
+    id: 'O2',
+    progressStart: 0.38,
+    progressEnd: 0.56,
+    uvBounds: Object.freeze({ uMin: 0.5011, uMax: 0.6244, vMin: 0.0684, vMax: 0.6461 }),
+    waypoints: Object.freeze([
+      [0.520, 0.120], [0.565, 0.105], [0.612, 0.100],
+      [0.595, 0.215], [0.550, 0.235], [0.508, 0.255],
+      [0.506, 0.355], [0.555, 0.375], [0.602, 0.395],
+      [0.618, 0.495], [0.565, 0.520], [0.515, 0.540],
+      [0.530, 0.605], [0.575, 0.625], [0.612, 0.620],
+    ]),
+  }),
+  Object.freeze({
+    index: 3,
+    id: 'M',
+    progressStart: 0.56,
+    progressEnd: 0.78,
+    uvBounds: Object.freeze({ uMin: 0.5905, uMax: 0.8338, vMin: 0.0557, vMax: 0.6672 }),
+    waypoints: Object.freeze([
+      [0.635, 0.115], [0.600, 0.235], [0.608, 0.365], [0.642, 0.505],
+      [0.662, 0.335], [0.710, 0.155], [0.780, 0.145],
+      [0.790, 0.275], [0.715, 0.310], [0.640, 0.345],
+      [0.648, 0.445], [0.740, 0.465], [0.825, 0.485],
+      [0.822, 0.575], [0.735, 0.595], [0.652, 0.610],
+      [0.675, 0.645], [0.755, 0.650], [0.810, 0.645],
+    ]),
+  }),
+  Object.freeze({
+    index: 4,
+    id: 'ARCADE',
+    progressStart: 0.78,
+    progressEnd: 1.00,
+    uvBounds: Object.freeze({ uMin: 0.3460, uMax: 0.6946, vMin: 0.6782, vMax: 0.9611 }),
+    waypoints: Object.freeze([
+      [0.352, 0.785], [0.435, 0.775], [0.520, 0.760], [0.605, 0.745], [0.688, 0.780],
+      [0.690, 0.855], [0.605, 0.865], [0.520, 0.870], [0.435, 0.875], [0.350, 0.880],
+      [0.355, 0.935], [0.440, 0.940], [0.525, 0.940], [0.610, 0.938], [0.688, 0.932],
+    ]),
+  }),
+]);
+
 export const SPRAY_DEFAULT_OPTIONS = Object.freeze({
   logoSource: 'tags/1DOOMTAG.jpeg',
   mode: 'deterministic',
@@ -97,6 +189,12 @@ export const SPRAY_DEFAULT_OPTIONS = Object.freeze({
   mistEnabled: true,
   backgroundColor: '#000000',
 });
+
+export function isArcadeLogoProfile(logoSource, explicitProfile) {
+  if (explicitProfile === 'platodoomarcade' || explicitProfile === 'arcade') return true;
+  if (explicitProfile === '1doomtag' || explicitProfile === 'default') return false;
+  return String(logoSource || '').toLowerCase().includes('platodoomarcade');
+}
 
 function parseHexColorToRGBNormalized(hexStr) {
   const cleaned = String(hexStr || '#000000').trim().replace(/^#/, '');
@@ -122,12 +220,13 @@ function seededHash(n) {
 
 /**
  * Builds a dense, arc-length-parameterized table of virtual spray nozzle sample points
- * across the 4 letters (D -> O1 -> O2 -> M), including local curvature/deceleration factors.
+ * across the target letters (D -> O1 -> O2 -> M [-> ARCADE]), including local curvature/deceleration factors.
  */
-export function buildChoreographedNozzleTrajectory(samplesPerLetter = 450) {
+export function buildChoreographedNozzleTrajectory(samplesPerLetter = 450, letterSpecs = SPRAY_LETTER_SPECS) {
+  const specs = Array.isArray(letterSpecs) && letterSpecs.length > 0 ? letterSpecs : SPRAY_LETTER_SPECS;
   const trajectory = [];
-  for (let lIdx = 0; lIdx < SPRAY_LETTER_SPECS.length; lIdx++) {
-    const letter = SPRAY_LETTER_SPECS[lIdx];
+  for (let lIdx = 0; lIdx < specs.length; lIdx++) {
+    const letter = specs[lIdx];
     const pts = letter.waypoints;
     const segLengths = [];
     let totalLen = 0;
@@ -188,7 +287,8 @@ export function buildChoreographedNozzleTrajectory(samplesPerLetter = 450) {
 
 /**
  * Evaluates the exact piecewise-linear separator curve in normalized UV space [0, 1] x [0, 1]
- * returning the letter index (0 = 'D', 1 = 'O1', 2 = 'O2', 3 = 'M') with 0 misclassified pixels.
+ * returning the letter index (0 = 'D', 1 = 'O1', 2 = 'O2', 3 = 'M') with 0 misclassified pixels
+ * for tags/1DOOMTAG.jpeg.
  */
 export function resolveLogoPixelLetterIndex(u, v) {
   const yPx = Math.max(0, Math.min(1184, v * 1184.0));
@@ -218,6 +318,66 @@ export function resolveLogoPixelLetterIndex(u, v) {
     d3 = 2149.0 + ((yPx - 450.0) / 300.0) * 205.0;
   } else {
     d3 = 2354.0 + ((yPx - 750.0) / 250.0) * 30.0;
+  }
+
+  if (xPx < d1) return 0;
+  if (xPx < d2) return 1;
+  if (xPx < d3) return 2;
+  return 3;
+}
+
+/**
+ * Evaluates the exact 5-region piecewise-linear separator curve in normalized UV space [0, 1] x [0, 1]
+ * returning the region index (0 = 'D', 1 = 'O1', 2 = 'O2', 3 = 'M', 4 = 'ARCADE') with 0 misclassified
+ * pixels across all 1,277,006 ink pixels of platodoomarcade.jpeg (Spec 046 §3.2).
+ */
+export function resolveArcadeLogoPixelLetterIndex(u, v) {
+  const xPx = u * 3514.0;
+  const yPx = Math.max(0.0, Math.min(1184.0, v * 1184.0));
+  const yArcade = xPx < 1410.0 ? 826.0 : 795.0;
+  if (yPx >= yArcade) {
+    return 4;
+  }
+
+  let d1 = 1368.0;
+  if (yPx < 180.0) {
+    d1 = 1330.0 + ((yPx - 100.0) / 80.0) * 20.0;
+  } else if (yPx < 240.0) {
+    d1 = 1350.0 + ((yPx - 180.0) / 60.0) * 18.0;
+  } else if (yPx < 460.0) {
+    d1 = 1368.0 + ((yPx - 240.0) / 220.0) * 27.0;
+  } else if (yPx < 660.0) {
+    d1 = 1395.0 + ((yPx - 460.0) / 200.0) * 16.0;
+  } else {
+    d1 = 1411.0 + ((yPx - 660.0) / 140.0) * 30.0;
+  }
+
+  let d2 = 1760.0;
+  if (yPx < 220.0) {
+    d2 = 1780.0 - ((yPx - 100.0) / 120.0) * 16.0;
+  } else if (yPx < 360.0) {
+    d2 = 1764.0 - ((yPx - 220.0) / 140.0) * 24.0;
+  } else if (yPx < 520.0) {
+    d2 = 1740.0 + ((yPx - 360.0) / 160.0) * 20.0;
+  } else if (yPx < 640.0) {
+    d2 = 1760.0 + ((yPx - 520.0) / 120.0) * 42.0;
+  } else {
+    d2 = 1802.0 + ((yPx - 640.0) / 140.0) * 50.0;
+  }
+
+  let d3 = 2188.0;
+  if (yPx < 155.0) {
+    d3 = 2205.0 - ((yPx - 100.0) / 55.0) * 35.0;
+  } else if (yPx < 215.0) {
+    d3 = 2170.0 - ((yPx - 155.0) / 60.0) * 102.0;
+  } else if (yPx < 350.0) {
+    d3 = 2068.0 - ((yPx - 215.0) / 135.0) * 6.0;
+  } else if (yPx < 480.0) {
+    d3 = 2062.0 + ((yPx - 350.0) / 130.0) * 126.0;
+  } else if (yPx < 660.0) {
+    d3 = 2188.0 + ((yPx - 480.0) / 180.0) * 30.0;
+  } else {
+    d3 = 2218.0 + ((yPx - 660.0) / 140.0) * 40.0;
   }
 
   if (xPx < d1) return 0;
@@ -562,6 +722,7 @@ uniform float u_oversprayScale;   // [0, 1]
 uniform float u_masterOpacity;    // [0, 1] for Stage 5 dissolve fade-out
 uniform vec2 u_nozzleUV;          // active nozzle (u, v)
 uniform float u_mistActive;       // [0, 1] active nozzle vapor glow
+uniform int u_profileMode;        // 0 = 1DOOMTAG (4 regions), 1 = PLATODOOMARCADE (5 regions)
 
 out vec4 fragColor;
 
@@ -574,6 +735,59 @@ float hash21(vec2 p) {
 int getLetterId(vec2 uv) {
   float yPx = clamp(uv.y * 1184.0, 0.0, 1184.0);
   float xPx = uv.x * 3514.0;
+
+  if (u_profileMode == 1) {
+    float yArcade = (xPx < 1410.0) ? 826.0 : 795.0;
+    if (yPx >= yArcade) {
+      return 4;
+    }
+
+    float d1 = 1368.0;
+    if (yPx < 180.0) {
+      d1 = 1330.0 + ((yPx - 100.0) / 80.0) * 20.0;
+    } else if (yPx < 240.0) {
+      d1 = 1350.0 + ((yPx - 180.0) / 60.0) * 18.0;
+    } else if (yPx < 460.0) {
+      d1 = 1368.0 + ((yPx - 240.0) / 220.0) * 27.0;
+    } else if (yPx < 660.0) {
+      d1 = 1395.0 + ((yPx - 460.0) / 200.0) * 16.0;
+    } else {
+      d1 = 1411.0 + ((yPx - 660.0) / 140.0) * 30.0;
+    }
+
+    float d2 = 1760.0;
+    if (yPx < 220.0) {
+      d2 = 1780.0 - ((yPx - 100.0) / 120.0) * 16.0;
+    } else if (yPx < 360.0) {
+      d2 = 1764.0 - ((yPx - 220.0) / 140.0) * 24.0;
+    } else if (yPx < 520.0) {
+      d2 = 1740.0 + ((yPx - 360.0) / 160.0) * 20.0;
+    } else if (yPx < 640.0) {
+      d2 = 1760.0 + ((yPx - 520.0) / 120.0) * 42.0;
+    } else {
+      d2 = 1802.0 + ((yPx - 640.0) / 140.0) * 50.0;
+    }
+
+    float d3 = 2188.0;
+    if (yPx < 155.0) {
+      d3 = 2205.0 - ((yPx - 100.0) / 55.0) * 35.0;
+    } else if (yPx < 215.0) {
+      d3 = 2170.0 - ((yPx - 155.0) / 60.0) * 102.0;
+    } else if (yPx < 350.0) {
+      d3 = 2068.0 - ((yPx - 215.0) / 135.0) * 6.0;
+    } else if (yPx < 480.0) {
+      d3 = 2062.0 + ((yPx - 350.0) / 130.0) * 126.0;
+    } else if (yPx < 660.0) {
+      d3 = 2188.0 + ((yPx - 480.0) / 180.0) * 30.0;
+    } else {
+      d3 = 2218.0 + ((yPx - 660.0) / 140.0) * 40.0;
+    }
+
+    if (xPx < d1) return 0;
+    if (xPx < d2) return 1;
+    if (xPx < d3) return 2;
+    return 3;
+  }
 
   float d1 = 1247.0;
   if (yPx < 350.0) {
@@ -642,18 +856,37 @@ void main() {
   }
 
   int letterId = getLetterId(clampedUV);
-  // Letter progress intervals: D=[0.00, 0.25], O1=[0.25, 0.46], O2=[0.46, 0.71], M=[0.71, 1.00]
   float letterStart = 0.0;
   float letterEnd = 0.25;
-  if (letterId == 1) {
-    letterStart = 0.25;
-    letterEnd = 0.46;
-  } else if (letterId == 2) {
-    letterStart = 0.46;
-    letterEnd = 0.71;
-  } else if (letterId == 3) {
-    letterStart = 0.71;
-    letterEnd = 1.00;
+  if (u_profileMode == 1) {
+    // 5-Region PLATODOOMARCADE intervals: D=[0.00, 0.20], O1=[0.20, 0.38], O2=[0.38, 0.56], M=[0.56, 0.78], ARCADE=[0.78, 1.00]
+    letterStart = 0.0;
+    letterEnd = 0.20;
+    if (letterId == 1) {
+      letterStart = 0.20;
+      letterEnd = 0.38;
+    } else if (letterId == 2) {
+      letterStart = 0.38;
+      letterEnd = 0.56;
+    } else if (letterId == 3) {
+      letterStart = 0.56;
+      letterEnd = 0.78;
+    } else if (letterId == 4) {
+      letterStart = 0.78;
+      letterEnd = 1.00;
+    }
+  } else {
+    // 4-Region 1DOOMTAG intervals: D=[0.00, 0.25], O1=[0.25, 0.46], O2=[0.46, 0.71], M=[0.71, 1.00]
+    if (letterId == 1) {
+      letterStart = 0.25;
+      letterEnd = 0.46;
+    } else if (letterId == 2) {
+      letterStart = 0.46;
+      letterEnd = 0.71;
+    } else if (letterId == 3) {
+      letterStart = 0.71;
+      letterEnd = 1.00;
+    }
   }
 
   float letterGate = step(letterStart + 0.0005, u_progress);
@@ -778,6 +1011,9 @@ export class SprayPaintLoader {
 
     this.canvas = options.canvas;
     this.logoSource = options.logoSource || SPRAY_DEFAULT_OPTIONS.logoSource;
+    this.isArcadeProfile = isArcadeLogoProfile(this.logoSource, options.profile);
+    this.letterSpecs = this.isArcadeProfile ? SPRAY_ARCADE_LETTER_SPECS : SPRAY_LETTER_SPECS;
+    this.timelineSpec = this.isArcadeProfile ? SPRAY_ARCADE_TIMELINE_SPEC : SPRAY_PAINT_TIMELINE_SPEC;
     this.mode = options.mode === 'autoplay' ? 'autoplay' : 'deterministic';
     this.duration = Number.isFinite(options.duration) && options.duration > 0
       ? options.duration
@@ -791,6 +1027,11 @@ export class SprayPaintLoader {
     this.mistEnabled = options.mistEnabled !== undefined ? Boolean(options.mistEnabled) : true;
     this.backgroundColor = options.backgroundColor || SPRAY_DEFAULT_OPTIONS.backgroundColor;
     this.bgRGB = parseHexColorToRGBNormalized(this.backgroundColor);
+    this.minCatchUpRate = Number.isFinite(options.minCatchUpRate) && options.minCatchUpRate > 0
+      ? options.minCatchUpRate
+      : 0.55;
+    this.creditText = options.creditText ? String(options.creditText) : '';
+    this.creditElement = options.creditElement || null;
 
     // Lifecycle Callbacks (§6)
     this.onReady = typeof options.onReady === 'function' ? options.onReady : null;
@@ -802,13 +1043,13 @@ export class SprayPaintLoader {
     this.onStageChange = typeof options.onStageChange === 'function' ? options.onStageChange : null;
 
     // Internal Trajectory & State
-    this.trajectory = buildChoreographedNozzleTrajectory(450); // 1,804 dense points
+    this.trajectory = buildChoreographedNozzleTrajectory(450, this.letterSpecs);
     this.lastStampedIndex = -1;
     this.renderedProgress = 0.0;
     this.targetProgress = 0.0;
     this.masterOpacity = 1.0;
     this.currentStage = 'STAGE_0_BLACKOUT';
-    this.nozzleUV = [0.31, 0.195];
+    this.nozzleUV = this.isArcadeProfile ? [0.365, 0.120] : [0.31, 0.195];
     this.isSpraying = false;
 
     this.completedLetters = new Set();
@@ -868,10 +1109,69 @@ export class SprayPaintLoader {
       window.addEventListener('resize', this._boundResize);
     }
 
+    this._initCreditElement();
     this._initWebGL2();
     this.resize();
     this._renderFrame(); // Frame 0 solid black (#000000) immediately
     this._loadLogoAsset(this.logoSource);
+  }
+
+  _initCreditElement() {
+    if (typeof document === 'undefined') return;
+    if (!this.creditElement && this.canvas && this.canvas.parentElement) {
+      const existing = this.canvas.parentElement.querySelector('#spray-paint-credit-subtitle');
+      if (existing) {
+        this.creditElement = existing;
+      } else if (this.creditText) {
+        const el = document.createElement('div');
+        el.id = 'spray-paint-credit-subtitle';
+        this.canvas.parentElement.appendChild(el);
+        this.creditElement = el;
+      }
+    }
+    if (this.creditElement) {
+      if (this.creditText) {
+        this.creditElement.textContent = this.creditText;
+      } else if (!this.creditText && this.creditElement.textContent) {
+        this.creditText = this.creditElement.textContent.trim();
+      }
+      const s = this.creditElement.style;
+      s.position = 'fixed';
+      s.transform = 'translateX(-50%)';
+      s.pointerEvents = 'none';
+      s.userSelect = 'none';
+      s.whiteSpace = 'nowrap';
+      s.zIndex = '100000';
+      if (!s.fontFamily) {
+        s.fontFamily = "'Courier New', Courier, monospace";
+      }
+      if (!s.fontSize) {
+        s.fontSize = 'clamp(11px, 1.15vw, 15px)';
+      }
+      if (!s.letterSpacing) {
+        s.letterSpacing = '0.16em';
+      }
+      if (!s.color) {
+        s.color = 'rgba(218, 198, 192, 0.86)';
+      }
+      if (!s.textShadow) {
+        s.textShadow = '0 1px 6px rgba(0, 0, 0, 0.95)';
+      }
+    }
+  }
+
+  _syncCreditPosition() {
+    if (!this.creditElement) return;
+    const [normX, normY, normW, normH] = this.logoRect;
+    // In platodoomarcade.jpeg (3514x1184), "arcade" spans u in [0.3460, 0.6946] (center u = 0.5203)
+    // and ends vertically at v = 0.9611. Position credit subtitle directly underneath at v = 0.982.
+    const anchorU = this.isArcadeProfile ? 0.5203 : 0.50;
+    const anchorV = this.isArcadeProfile ? 0.982 : 0.96;
+    const leftPct = (normX + anchorU * normW) * 100.0;
+    const topPct = Math.min(96.0, (normY + anchorV * normH) * 100.0);
+    this.creditElement.style.left = `${leftPct.toFixed(2)}%`;
+    this.creditElement.style.top = `${topPct.toFixed(2)}%`;
+    this.creditElement.style.opacity = String(Math.max(0, Math.min(1, this.masterOpacity)));
   }
 
   _initWebGL2() {
@@ -1019,8 +1319,13 @@ export class SprayPaintLoader {
     };
     img.onerror = () => {
       if (this.isDestroyed) return;
-      // Fallback if caller passed '1DOOMTAG.jpg' instead of 'tags/1DOOMTAG.jpeg'
-      if (source !== 'tags/1DOOMTAG.jpeg') {
+      if (this.isArcadeProfile) {
+        if (source !== '../platodoomarcade.jpeg' && source !== 'platodoomarcade.jpeg') {
+          this._loadLogoAsset('../platodoomarcade.jpeg');
+        } else if (source === '../platodoomarcade.jpeg') {
+          this._loadLogoAsset('platodoomarcade.jpeg');
+        }
+      } else if (source !== 'tags/1DOOMTAG.jpeg') {
         this._loadLogoAsset('tags/1DOOMTAG.jpeg');
       }
     };
@@ -1193,8 +1498,8 @@ export class SprayPaintLoader {
       }
     }
 
-    for (let i = 0; i < SPRAY_LETTER_SPECS.length; i++) {
-      const spec = SPRAY_LETTER_SPECS[i];
+    for (let i = 0; i < this.letterSpecs.length; i++) {
+      const spec = this.letterSpecs[i];
       if (progressVal >= spec.progressEnd - 0.001) {
         if (!this.completedPasses.has(i)) {
           this.completedPasses.add(i);
@@ -1225,6 +1530,10 @@ export class SprayPaintLoader {
     if (!this.gl || this.contextLost || this.isDestroyed) return;
     const gl = this.gl;
 
+    if (this.creditElement) {
+      this.creditElement.style.opacity = String(Math.max(0, Math.min(1, this.masterOpacity)));
+    }
+
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.viewport(0, 0, this.canvas.width, this.canvas.height);
     gl.clearColor(this.bgRGB[0], this.bgRGB[1], this.bgRGB[2], 1.0);
@@ -1252,6 +1561,7 @@ export class SprayPaintLoader {
     gl.uniform1f(gl.getUniformLocation(this.compositeProgram, 'u_oversprayScale'), this.oversprayIntensity);
     gl.uniform1f(gl.getUniformLocation(this.compositeProgram, 'u_masterOpacity'), this.masterOpacity);
     gl.uniform2fv(gl.getUniformLocation(this.compositeProgram, 'u_nozzleUV'), this.nozzleUV);
+    gl.uniform1i(gl.getUniformLocation(this.compositeProgram, 'u_profileMode'), this.isArcadeProfile ? 1 : 0);
     gl.uniform1f(
       gl.getUniformLocation(this.compositeProgram, 'u_mistActive'),
       this.mistEnabled && this.isSpraying && this.renderedProgress > 0.001 && this.renderedProgress < 0.998 ? 1.0 : 0.0
@@ -1294,7 +1604,7 @@ export class SprayPaintLoader {
     const scale = 6500 / Math.max(500, this.duration);
     this.autoplayElapsedMs += dtMs * scale;
     const t = this.autoplayElapsedMs;
-    const spec = SPRAY_PAINT_TIMELINE_SPEC;
+    const spec = this.timelineSpec;
 
     if (t < spec.blackoutEndMs) {
       this._setStage('STAGE_0_BLACKOUT');
@@ -1319,7 +1629,7 @@ export class SprayPaintLoader {
       }
     } else if (t <= spec.sprayEndMs) {
       this._setStage('STAGE_3_ACTIVE_SPRAY');
-      // Map t across the 4 passes (with realistic brief turnaround pauses between passes)
+      // Map t across the passes (with realistic brief turnaround pauses between passes)
       let mappedProgress = 0.0;
       let activelyEmitting = false;
       for (let i = 0; i < spec.passes.length; i++) {
@@ -1386,7 +1696,7 @@ export class SprayPaintLoader {
       this._setStage('STAGE_3_ACTIVE_SPRAY');
       this.isSpraying = true;
       // Adaptive catch-up buffering (§5.2): smoothly catches up within ~550ms without teleporting
-      const minRate = 0.55; // progress units per second
+      const minRate = this.minCatchUpRate; // progress units per second
       const adaptiveRate = Math.max(minRate, Math.abs(delta) * 2.6);
       const stepAmount = Math.min(Math.abs(delta), adaptiveRate * (dtMs * 0.001));
       const nextProg = this.renderedProgress + Math.sign(delta) * stepAmount;
@@ -1501,7 +1811,7 @@ export class SprayPaintLoader {
     this.autoplayElapsedMs = 0;
     this.deterministicHoldElapsedMs = 0;
     this.isSpraying = false;
-    this.nozzleUV = [0.31, 0.195];
+    this.nozzleUV = this.isArcadeProfile ? [0.365, 0.120] : [0.31, 0.195];
     this.mistParticles.length = 0;
 
     this.completedLetters.clear();
@@ -1554,6 +1864,7 @@ export class SprayPaintLoader {
     const normY = (1.0 - normH) * 0.5;
     this.logoRect = [normX, normY, normW, normH];
 
+    this._syncCreditPosition();
     this._renderFrame();
   }
 
@@ -1613,6 +1924,8 @@ export class SprayPaintLoader {
       isReady: this.isReady,
       isPlaying: this.isPlaying,
       mode: this.mode,
+      profile: this.isArcadeProfile ? 'platodoomarcade' : '1doomtag',
+      creditText: this.creditText,
       stage: this.currentStage,
       renderedProgress: Number(this.renderedProgress.toFixed(4)),
       targetProgress: Number(this.targetProgress.toFixed(4)),

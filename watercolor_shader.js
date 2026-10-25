@@ -92,6 +92,253 @@ export const WATERCOLOR_GALLERY_SPEC = {
   activeBorderColorHex: 0xffffff,
 };
 
+export const PORTAL_HEADER_LOGO_SPEC = Object.freeze({
+  id: 'platodoom_header',
+  title: 'platodoom',
+  sourcePath: '/Users/diesel/Desktop/1DOOMTAG.jpeg',
+  repoTagPath: './tags/1DOOMTAG.jpeg',
+  assetUrl: './assets/portal_games/platodoom_header.png',
+  width: 1120,
+  height: 381,
+  aspectRatio: Number((1120 / 381).toFixed(4)),
+  backgroundRemoved: 'white-exterior-floodfill',
+});
+
+export const PORTAL_GAME_CATALOG = Object.freeze([
+  Object.freeze({
+    id: 'skate3',
+    slot: 1,
+    hotkey: '1',
+    code: 'PORTAL_GAME_01',
+    title: 'SKATE 3 // PLATODOOM',
+    shortTitle: 'SKATE 3',
+    subtitle: '3D Physics Skatepark & Vert Halfpipe Cleanroom',
+    tagChip: '3D SKATE CLEANROOM // VERT & STREET',
+    sourcePath: '/Users/diesel/Desktop/SkateAlley/skate3xDOOM.jpeg',
+    logoUrl: './assets/portal_games/skate3_logo.png',
+    targetUrl: './skate3_cleanroom/?char=luis',
+    width: 960,
+    height: 803,
+    aspectRatio: Number((960 / 803).toFixed(4)),
+    backgroundRemoved: 'white-exterior-unmixed',
+  }),
+  Object.freeze({
+    id: 'gta',
+    slot: 2,
+    hotkey: '2',
+    code: 'PORTAL_GAME_02',
+    title: 'GRAND THEFT AUTO // PLATODOOM',
+    shortTitle: 'GTA VICE',
+    subtitle: 'Open-World Vice City WebGL Engine (reVCDOS)',
+    tagChip: 'OPEN WORLD // VICE CITY ENGINE',
+    sourcePath: '/Users/diesel/Desktop/SkateAlley/GTA.jpeg',
+    logoUrl: './assets/portal_games/gta_logo.png',
+    targetUrl: './revcdos/',
+    width: 960,
+    height: 878,
+    aspectRatio: Number((960 / 878).toFixed(4)),
+    backgroundRemoved: 'white-exterior-unmixed',
+  }),
+  Object.freeze({
+    id: 'zombies',
+    slot: 3,
+    hotkey: '3',
+    code: 'PORTAL_GAME_03',
+    title: 'PLATO DOOM // ZOMBIES',
+    shortTitle: 'ZOMBIES',
+    subtitle: 'Nazi Zombies: Portable Survival Arena (NZ:P WebGL)',
+    tagChip: 'SURVIVAL ARENA // NZ:P ENGINE',
+    sourcePath: '/Users/diesel/Desktop/SkateAlley/zombies.jpg',
+    logoUrl: './assets/portal_games/zombies_logo.png',
+    targetUrl: './nzportable/',
+    width: 960,
+    height: 647,
+    aspectRatio: Number((960 / 647).toFixed(4)),
+    backgroundRemoved: 'black-exterior-unmixed',
+  }),
+]);
+
+export const PORTAL_GAME_BY_ID = Object.freeze(
+  PORTAL_GAME_CATALOG.reduce((acc, item) => {
+    acc[item.id] = item;
+    return acc;
+  }, {})
+);
+
+export function normalizePortalGameEntry(raw, idx = 0) {
+  if (!raw || typeof raw !== 'object') {
+    return PORTAL_GAME_CATALOG[idx % PORTAL_GAME_CATALOG.length];
+  }
+  const slot = Number.isFinite(Number(raw.slot)) && Number(raw.slot) > 0 ? Math.floor(Number(raw.slot)) : idx + 1;
+  const id = String(raw.id || `game_${slot}`).trim();
+  const width = Number.isFinite(Number(raw.width)) && Number(raw.width) > 0 ? Number(raw.width) : 960;
+  const height = Number.isFinite(Number(raw.height)) && Number(raw.height) > 0 ? Number(raw.height) : 774;
+  const aspectRatio =
+    Number.isFinite(Number(raw.aspectRatio)) && Number(raw.aspectRatio) > 0
+      ? Number(Number(raw.aspectRatio).toFixed(4))
+      : Number((width / height).toFixed(4));
+  return Object.freeze({
+    id,
+    slot,
+    hotkey: String(raw.hotkey || slot),
+    code: String(raw.code || `PORTAL_GAME_${String(slot).padStart(2, '0')}`),
+    title: String(raw.title || raw.shortTitle || id.toUpperCase()),
+    shortTitle: String(raw.shortTitle || raw.title || id.toUpperCase()),
+    subtitle: String(raw.subtitle || ''),
+    tagChip: String(raw.tagChip || ''),
+    sourcePath: String(raw.sourcePath || ''),
+    logoUrl: String(raw.logoUrl || './assets/portal_games/skate3_logo.png'),
+    targetUrl: String(raw.targetUrl || './skate3_cleanroom/?char=luis'),
+    width,
+    height,
+    aspectRatio,
+    backgroundRemoved: String(raw.backgroundRemoved || 'rgba-cropped'),
+  });
+}
+
+export function resolvePortalGameSpec(identifier, catalog = PORTAL_GAME_CATALOG) {
+  if (!identifier && identifier !== 0) return null;
+  const list = Array.isArray(catalog) && catalog.length > 0 ? catalog : PORTAL_GAME_CATALOG;
+  if (typeof identifier === 'object' && identifier.id) {
+    const targetId = String(identifier.id).trim().toLowerCase();
+    for (const game of list) {
+      if (game && String(game.id).trim().toLowerCase() === targetId) {
+        return game;
+      }
+    }
+    if (PORTAL_GAME_BY_ID[identifier.id]) {
+      return PORTAL_GAME_BY_ID[identifier.id];
+    }
+  }
+  const str = String(identifier).trim().toLowerCase();
+  for (const game of list) {
+    if (!game) continue;
+    if (
+      String(game.id || '').toLowerCase() === str ||
+      String(game.code || '').toLowerCase() === str ||
+      String(game.hotkey || '').toLowerCase() === str ||
+      String(game.slot || '') === str ||
+      String(game.shortTitle || '').toLowerCase() === str ||
+      String(game.title || '').toLowerCase() === str
+    ) {
+      return game;
+    }
+  }
+  return null;
+}
+
+/**
+ * First-principles O(N) 2D viewport-and-catalog grid packing solver (Spec 053 §3.3).
+ * Computes optimal (columns, rows) and cell dimensions so N game logos fit inside
+ * the hologram showcase across any screen size without overflow or clipping.
+ */
+export function solvePortalGameGridLayout({
+  count = PORTAL_GAME_CATALOG.length,
+  viewportWidth = 1440,
+  viewportHeight = 900,
+  referenceAspect = 1.24,
+} = {}) {
+  const n = Math.max(1, Math.floor(Number(count) || 1));
+  const vpW = Math.max(260, Number(viewportWidth) || 1440);
+  const vpH = Math.max(260, Number(viewportHeight) || 900);
+  const minVp = Math.min(vpW, vpH);
+  const refA = Math.max(0.65, Math.min(2.4, Number(referenceAspect) || 1.24));
+
+  const stagePadding = minVp <= 480 ? 12 : minVp <= 820 ? 16 : 24;
+  const winPaddingX = minVp <= 480 ? 12 : minVp <= 820 ? 16 : 22;
+  const winPaddingY = minVp <= 480 ? 10 : minVp <= 820 ? 14 : 18;
+  const headerHeight = minVp <= 440 ? 42 : minVp <= 820 ? 48 : 54;
+  const chromeGap = minVp <= 480 ? 8 : minVp <= 820 ? 10 : 12;
+
+  const maxWinW = Math.min(1140, Math.max(220, vpW - stagePadding * 2));
+  const maxWinH = Math.min(860, Math.max(220, vpH - stagePadding * 2));
+
+  const stageWidth = Math.max(150, maxWinW - winPaddingX * 2 - 4);
+  const stageHeight = Math.max(110, maxWinH - winPaddingY * 2 - headerHeight - chromeGap - 6);
+
+  const gap = Math.round(
+    Math.max(8, Math.min(16, Math.min(stageWidth, stageHeight) * (n > 6 ? 0.018 : 0.024)))
+  );
+
+  const maxCellW = minVp <= 480 ? 250 : 300;
+  const maxCellH = minVp <= 480 ? 196 : 240;
+  const stageAspect = stageWidth / Math.max(1, stageHeight);
+  const targetGridAspect =
+    n <= 3 && stageAspect >= 1.15
+      ? n * refA
+      : n <= 3 && stageAspect <= 0.72
+      ? refA / n
+      : stageAspect;
+
+  let bestCols = 1;
+  let bestRows = n;
+  let bestScore = -Infinity;
+  let bestScale = 0;
+  let bestAvailW = stageWidth;
+  let bestAvailH = stageHeight / n;
+
+  for (let cols = 1; cols <= n; cols++) {
+    const rows = Math.ceil(n / cols);
+    const availW = (stageWidth - (cols - 1) * gap) / cols;
+    const availH = (stageHeight - (rows - 1) * gap) / rows;
+    if (availW <= 24 || availH <= 20) continue;
+
+    const capW = Math.min(availW, maxCellW);
+    const capH = Math.min(availH, maxCellH);
+    const inscribedScale = Math.min(capW / refA, capH);
+
+    const totalSlots = cols * rows;
+    const emptyRatio = (totalSlots - n) / totalSlots;
+    const gridAspect = (cols * refA) / rows;
+    const aspectMismatch = Math.abs(
+      Math.log(Math.max(0.05, gridAspect) / Math.max(0.05, targetGridAspect))
+    );
+
+    const score =
+      inscribedScale *
+      (1.0 - 0.28 * emptyRatio - 0.08 * Math.min(2.2, aspectMismatch));
+
+    if (score > bestScore) {
+      bestScore = score;
+      bestCols = cols;
+      bestRows = rows;
+      bestScale = inscribedScale;
+      bestAvailW = availW;
+      bestAvailH = availH;
+    }
+  }
+
+  const targetW = Math.min(bestAvailW, maxCellW, bestScale * refA * 1.08);
+  const targetH = Math.min(bestAvailH, maxCellH, bestScale * 1.08);
+
+  const cellWidth = Math.max(48, Math.min(Math.floor(bestAvailW), Math.floor(targetW)));
+  const cellHeight = Math.max(38, Math.min(Math.floor(bestAvailH), Math.floor(targetH)));
+  const cellPadding = Math.max(6, Math.min(14, Math.round(Math.min(cellWidth, cellHeight) * 0.075)));
+
+  const gridWidth = bestCols * cellWidth + (bestCols - 1) * gap;
+  const gridHeight = bestRows * cellHeight + (bestRows - 1) * gap;
+
+  return {
+    count: n,
+    columns: bestCols,
+    rows: bestRows,
+    cellWidth,
+    cellHeight,
+    cellPadding,
+    gap,
+    gridWidth,
+    gridHeight,
+    stageWidth: Math.floor(stageWidth),
+    stageHeight: Math.floor(stageHeight),
+    stagePadding,
+    winPaddingX,
+    winPaddingY,
+    headerHeight,
+    chromeGap,
+    inscribedScale: Number(bestScale.toFixed(2)),
+  };
+}
+
 function smoothstep(edge0, edge1, x) {
   const t = Math.max(0.0, Math.min(1.0, (x - edge0) / (edge1 - edge0)));
   return t * t * (3.0 - 2.0 * t);
@@ -438,16 +685,30 @@ export function buildWaterColorGallerySystem(options = {}) {
   const floorY = typeof options.floorY === 'number' ? options.floorY : 0.0;
   const uTimeUniform = options.uTimeUniform || { value: 0.0 };
   const applyStencilReject = typeof options.applyStencilReject === 'function' ? options.applyStencilReject : null;
-  const portalTargetUrl = typeof options.portalTargetUrl === 'string' && options.portalTargetUrl.trim()
+  const portalTargetUrlDefault = typeof options.portalTargetUrl === 'string' && options.portalTargetUrl.trim()
     ? options.portalTargetUrl.trim()
-    : './skate3_cleanroom/';
+    : './skate3_cleanroom/?char=luis';
+  let portalTargetUrl = portalTargetUrlDefault;
   const resolvePortalTargetUrl = typeof options.resolvePortalTargetUrl === 'function' ? options.resolvePortalTargetUrl : null;
   const onTeleport = typeof options.onTeleport === 'function' ? options.onTeleport : null;
+  const onOpenPortalPopup = typeof options.onOpenPortalPopup === 'function' ? options.onOpenPortalPopup : null;
+  const onClosePortalPopup = typeof options.onClosePortalPopup === 'function' ? options.onClosePortalPopup : null;
+  const onSelectPortalGame = typeof options.onSelectPortalGame === 'function' ? options.onSelectPortalGame : null;
   const shouldIgnorePortal = typeof options.shouldIgnorePortal === 'function' ? options.shouldIgnorePortal : null;
 
   let divisionVal = WATERCOLOR_DEFAULT_PARAMS.division;
   let scaleVal = WATERCOLOR_DEFAULT_PARAMS.scale;
   let isFocused = false;
+  let isPopupOpen = false;
+  let popupAnimState = 'dormant';
+  let popupOpenCount = 0;
+  let gameCatalog = Array.isArray(options.availableGames) && options.availableGames.length > 0
+    ? Object.freeze(options.availableGames.map((g, idx) => normalizePortalGameEntry(g, idx)))
+    : PORTAL_GAME_CATALOG;
+  let selectedGameId = gameCatalog[0]?.id || 'skate3';
+  let hoveredGameId = null;
+  let lastLaunchedGameId = null;
+  let walkThroughDisarmedUntilExit = false;
   let isTeleporting = false;
   let teleportCount = 0;
   let lastMetricZ = null;
@@ -639,6 +900,36 @@ export function buildWaterColorGallerySystem(options = {}) {
     get isFocused() {
       return isFocused;
     },
+    get isPopupOpen() {
+      return isPopupOpen;
+    },
+    get popupAnimState() {
+      return popupAnimState;
+    },
+    get popupOpenCount() {
+      return popupOpenCount;
+    },
+    get selectedGameId() {
+      return selectedGameId;
+    },
+    get hoveredGameId() {
+      return hoveredGameId;
+    },
+    get lastLaunchedGameId() {
+      return lastLaunchedGameId;
+    },
+    get walkThroughDisarmedUntilExit() {
+      return walkThroughDisarmedUntilExit;
+    },
+    get availableGames() {
+      return gameCatalog;
+    },
+    set availableGames(nextList) {
+      this.setAvailableGames(nextList);
+    },
+    get headerLogo() {
+      return PORTAL_HEADER_LOGO_SPEC;
+    },
     get isTeleporting() {
       return isTeleporting;
     },
@@ -650,6 +941,21 @@ export function buildWaterColorGallerySystem(options = {}) {
     },
     get lastPortalDistanceMeters() {
       return lastPortalDistanceMeters;
+    },
+
+    setAvailableGames(nextList) {
+      if (!Array.isArray(nextList) || nextList.length === 0) {
+        gameCatalog = PORTAL_GAME_CATALOG;
+      } else {
+        gameCatalog = Object.freeze(nextList.map((g, idx) => normalizePortalGameEntry(g, idx)));
+      }
+      if (!resolvePortalGameSpec(selectedGameId, gameCatalog)) {
+        selectedGameId = gameCatalog[0]?.id || 'skate3';
+      }
+      if (hoveredGameId && !resolvePortalGameSpec(hoveredGameId, gameCatalog)) {
+        hoveredGameId = null;
+      }
+      return gameCatalog;
     },
 
     setDivision(val) {
@@ -679,6 +985,122 @@ export function buildWaterColorGallerySystem(options = {}) {
       blackBackdropMesh.visible = isFocused;
       wireframeEnvGroup.visible = isFocused;
       return isFocused;
+    },
+
+    resolveGame(gameIdOrSlot) {
+      return resolvePortalGameSpec(gameIdOrSlot, gameCatalog);
+    },
+
+    selectGame(gameIdOrSlot) {
+      const spec = resolvePortalGameSpec(gameIdOrSlot, gameCatalog);
+      if (!spec) return null;
+      selectedGameId = spec.id;
+      if (spec.id === 'skate3') {
+        portalTargetUrl = resolvePortalTargetUrl ? resolvePortalTargetUrl() : spec.targetUrl;
+      } else {
+        portalTargetUrl = spec.targetUrl;
+      }
+      if (onSelectPortalGame) {
+        onSelectPortalGame({ game: spec, selectedGameId, system });
+      }
+      return spec;
+    },
+
+    setHoveredGame(gameIdOrSlot = null) {
+      if (!gameIdOrSlot) {
+        hoveredGameId = null;
+        return null;
+      }
+      const spec = resolvePortalGameSpec(gameIdOrSlot, gameCatalog);
+      hoveredGameId = spec ? spec.id : null;
+      return spec;
+    },
+
+    setPopupAnimState(nextState) {
+      if (['dormant', 'opening', 'open', 'closing'].includes(nextState)) {
+        popupAnimState = nextState;
+      }
+      return popupAnimState;
+    },
+
+    openPortalPopup(opts = {}) {
+      const wasAlreadyOpen = isPopupOpen;
+      if (isPopupOpen && !opts.force) {
+        return true;
+      }
+      isPopupOpen = true;
+      popupOpenCount += 1;
+      popupAnimState = opts && opts.immediate ? 'open' : wasAlreadyOpen && !opts.replayAnimation ? 'open' : 'opening';
+      if (opts && opts.gameId) {
+        const spec = resolvePortalGameSpec(opts.gameId, gameCatalog);
+        if (spec) {
+          selectedGameId = spec.id;
+        }
+      }
+      if (frameLines && frameLines.material) {
+        frameLines.material.color.setHex(0xfbbf24);
+        frameLines.material.opacity = 1.0;
+      }
+      if (onOpenPortalPopup) {
+        onOpenPortalPopup({
+          source: (opts && opts.source) || 'portal',
+          selectedGameId,
+          availableGames: gameCatalog,
+          headerLogo: PORTAL_HEADER_LOGO_SPEC,
+          wasAlreadyOpen,
+          immediate: Boolean(opts && opts.immediate),
+          replayAnimation: Boolean(opts && opts.replayAnimation),
+          popupAnimState,
+          system,
+        });
+      }
+      return true;
+    },
+
+    closePortalPopup(opts = {}) {
+      if (!isPopupOpen && !opts.force) {
+        return false;
+      }
+      isPopupOpen = false;
+      hoveredGameId = null;
+      popupAnimState = opts && opts.immediate ? 'dormant' : 'closing';
+      if (!opts || opts.disarmWalkThrough !== false) {
+        walkThroughDisarmedUntilExit = true;
+      }
+      if (!isTeleporting && frameLines && frameLines.material) {
+        frameLines.material.color.setHex(WATERCOLOR_GALLERY_SPEC.activeBorderColorHex);
+        frameLines.material.opacity = 0.88;
+      }
+      if (onClosePortalPopup) {
+        onClosePortalPopup({
+          source: (opts && opts.source) || 'dismiss',
+          selectedGameId,
+          walkThroughDisarmedUntilExit,
+          immediate: Boolean(opts && opts.immediate),
+          popupAnimState,
+          system,
+        });
+      }
+      return true;
+    },
+
+    launchGame(gameIdOrSlot = null, opts = {}) {
+      const spec = resolvePortalGameSpec(gameIdOrSlot || selectedGameId || 'skate3', gameCatalog) || gameCatalog[0] || PORTAL_GAME_CATALOG[0];
+      selectedGameId = spec.id;
+      lastLaunchedGameId = spec.id;
+      const targetUrl =
+        typeof opts.targetUrl === 'string' && opts.targetUrl.trim()
+          ? opts.targetUrl.trim()
+          : spec.id === 'skate3' && resolvePortalTargetUrl
+          ? resolvePortalTargetUrl({ gameId: spec.id })
+          : spec.targetUrl;
+      portalTargetUrl = targetUrl;
+      return this.teleportToSkateRoom({
+        ...opts,
+        gameId: spec.id,
+        game: spec,
+        targetUrl,
+      });
     },
 
     isNearPortal(activeChar = null) {
@@ -711,6 +1133,9 @@ export function buildWaterColorGallerySystem(options = {}) {
       if (isTeleporting && !opts.force) {
         return false;
       }
+      const spec = resolvePortalGameSpec((opts && opts.gameId) || selectedGameId || 'skate3', gameCatalog) || gameCatalog[0] || PORTAL_GAME_CATALOG[0];
+      selectedGameId = spec.id;
+      lastLaunchedGameId = spec.id;
       isTeleporting = true;
       teleportCount += 1;
 
@@ -720,17 +1145,21 @@ export function buildWaterColorGallerySystem(options = {}) {
         if (canvasMat.uniforms.uDivision) canvasMat.uniforms.uDivision.value = 12.0;
       }
       if (frameLines && frameLines.material) {
-        frameLines.material.color.setHex(0x3ec6ff);
+        frameLines.material.color.setHex(0xfbbf24);
         frameLines.material.opacity = 1.0;
       }
 
-      const dynamicDefaultUrl = resolvePortalTargetUrl ? resolvePortalTargetUrl() : portalTargetUrl;
+      const dynamicDefaultUrl =
+        spec.id === 'skate3' && resolvePortalTargetUrl
+          ? resolvePortalTargetUrl({ gameId: spec.id })
+          : spec.targetUrl || portalTargetUrlDefault;
       const targetUrl = typeof opts.targetUrl === 'string' && opts.targetUrl.trim()
         ? opts.targetUrl.trim()
         : dynamicDefaultUrl;
+      portalTargetUrl = targetUrl;
 
       if (onTeleport) {
-        onTeleport({ targetUrl, system });
+        onTeleport({ targetUrl, gameId: spec.id, game: spec, system });
       }
 
       if (typeof window !== 'undefined' && window.location && opts.navigate !== false) {
@@ -787,6 +1216,11 @@ export function buildWaterColorGallerySystem(options = {}) {
         Math.abs(metricX) <= halfW + 0.35 &&
         Math.abs(metricY) <= halfH + 0.65;
 
+      // Re-arm walk-through trigger once the character moves outside the 0.85m hysteresis band or exits the aperture XY bounds
+      if (walkThroughDisarmedUntilExit && (Math.abs(metricZ) > 0.85 || !insideApertureXY)) {
+        walkThroughDisarmedUntilExit = false;
+      }
+
       const crossedPlane =
         lastMetricZ !== null &&
         lastMetricZ * metricZ <= 0.0 &&
@@ -797,7 +1231,13 @@ export function buildWaterColorGallerySystem(options = {}) {
       lastMetricZ = metricZ;
 
       if (insideApertureXY && (penetratedPlane || crossedPlane)) {
-        return this.teleportToSkateRoom();
+        if (isPopupOpen) {
+          return true;
+        }
+        if (walkThroughDisarmedUntilExit) {
+          return false;
+        }
+        return this.openPortalPopup({ source: 'walk-through' });
       }
       return false;
     },
@@ -845,6 +1285,15 @@ export function buildWaterColorGallerySystem(options = {}) {
         scale: scaleVal,
         timeSec: uTimeUniform.value,
         isFocused,
+        isPopupOpen,
+        popupAnimState,
+        popupOpenCount,
+        selectedGameId,
+        hoveredGameId,
+        lastLaunchedGameId,
+        walkThroughDisarmedUntilExit,
+        availableGames: gameCatalog,
+        headerLogo: PORTAL_HEADER_LOGO_SPEC,
         isTeleporting,
         teleportCount,
         portalTargetUrl,

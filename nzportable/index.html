@@ -53,169 +53,64 @@
     background-color: #000000;
   }
 
-  /* Click-to-begin splash screen */
-  #splash {
+  /* Unified PLATODOOM arcade spray-paint boot overlay */
+  #spray-paint-loader-overlay {
     position: fixed;
     inset: 0;
-    z-index: 10;
+    width: 100vw;
+    height: 100vh;
+    background: #000000;
+    z-index: 99999;
     display: flex;
-    flex-direction: column;
     align-items: center;
     justify-content: center;
-    background: radial-gradient(circle at 50% 35%, #1c0d0a 0%, #050507 75%, #000000 100%);
-    text-align: center;
-    padding: 24px 20px;
-    box-sizing: border-box;
-    cursor: pointer;
+    overflow: hidden;
+    transition: opacity 0.35s ease;
   }
-  #splash .logo {
-    font-size: clamp(40px, 9vw, 84px);
-    font-weight: 900;
-    letter-spacing: -0.03em;
-    margin: 0 0 6px;
-    color: #ffffff;
-    line-height: 1.05;
-    text-transform: uppercase;
-    text-shadow: 0 0 32px rgba(220, 38, 38, 0.45);
+  #spray-paint-loader-canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
   }
-  #splash .logo span {
-    color: var(--accent);
-  }
-  #splash .subtitle {
-    font-size: clamp(14px, 3vw, 22px);
-    font-weight: 700;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    margin: 0 0 12px;
-    color: #f87171;
-  }
-  #splash .line {
-    width: 72px;
-    height: 3px;
-    background: linear-gradient(90deg, var(--accent-crimson), var(--accent));
-    margin: 0 auto 24px;
-    border-radius: 2px;
-  }
-  #splash p {
-    margin: 0 0 12px;
-    color: var(--muted);
-    max-width: 560px;
-    font-size: clamp(13px, 2.1vw, 15px);
-    line-height: 1.55;
-  }
-  #splash p strong {
-    color: #ffffff;
+  #spray-paint-credit-subtitle {
+    position: fixed;
+    left: 50%;
+    top: 82%;
+    transform: translateX(-50%);
+    font-family: 'Courier New', Courier, monospace;
+    font-size: clamp(11px, 1.15vw, 15px);
     font-weight: 600;
-  }
-  #splash .keybinds {
-    margin-top: 16px;
-    padding: 12px 18px;
-    border-radius: 10px;
-    background: rgba(20, 20, 24, 0.9);
-    border: 1px solid rgba(245, 158, 11, 0.35);
-    color: #e5e7eb;
-    font-size: 13px;
-    max-width: 560px;
-    line-height: 1.7;
-  }
-  #splash .keybinds kbd {
-    background: #27272a;
-    border: 1px solid #52525b;
-    border-radius: 4px;
-    padding: 1px 6px;
-    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-    font-size: 12px;
-    color: #fef3c7;
-  }
-  #splash .credit {
-    margin-top: 14px;
-    padding: 8px 16px;
-    border-radius: 8px;
-    background: #121215;
-    border: 1px solid #27272a;
-    color: var(--muted);
-    font-size: 12.5px;
-  }
-  #splash .continue {
-    margin-top: 32px;
-    color: var(--accent);
-    font-size: 15px;
-    font-weight: 700;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-  }
-
-  /* Loading progress overlay */
-  #overlay {
-    position: fixed;
-    inset: 0;
-    display: none;
-    align-items: center;
-    justify-content: center;
-    background: rgba(0, 0, 0, 0.94);
-    z-index: 8;
-    padding: 16px;
-    box-sizing: border-box;
-  }
-  #overlay.show {
-    display: flex;
-  }
-  #panel {
-    width: min(440px, 100%);
-    text-align: center;
-    background: #111115;
-    border: 1px solid #27272a;
-    border-radius: 12px;
-    padding: 24px 20px;
-    box-shadow: 0 18px 48px rgba(0, 0, 0, 0.75);
-  }
-  #panel h2 {
-    font-size: 18px;
-    margin: 0 0 10px;
-    font-weight: 700;
-    color: #ffffff;
+    letter-spacing: 0.16em;
+    color: rgba(218, 198, 192, 0.86);
+    text-shadow: 0 1px 6px rgba(0, 0, 0, 0.95);
+    pointer-events: none;
+    user-select: none;
+    white-space: nowrap;
+    z-index: 100000;
   }
   #status {
+    position: fixed;
+    top: 16px;
+    left: 50%;
+    transform: translateX(-50%);
     color: var(--muted);
-    min-height: 2.6em;
-    white-space: pre-wrap;
     font-size: 13px;
+    white-space: pre-wrap;
+    text-align: center;
+    max-width: min(560px, 92vw);
+    z-index: 100001;
+    display: none;
   }
   #status.error {
+    display: block;
     color: #ff7b72;
-  }
-  .bar {
-    height: 6px;
-    background: #1f1f23;
-    border-radius: 3px;
-    overflow: hidden;
-    margin: 14px 0 8px;
-  }
-  .bar > div {
-    height: 100%;
-    width: 0%;
-    background: linear-gradient(90deg, var(--accent-crimson), var(--accent));
-    transition: width 0.12s ease-out;
-  }
-  #mb-counter {
-    font-size: 12px;
-    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-    color: #d4d4d8;
-    margin-bottom: 16px;
-  }
-  #overlay-return-alley {
-    color: var(--accent);
-    text-decoration: none;
-    font-size: 13px;
-    border: 1px solid #3f3f46;
-    padding: 6px 14px;
+    background: rgba(17, 17, 21, 0.94);
+    border: 1px solid #442222;
     border-radius: 6px;
-    background: #18181b;
-    display: inline-block;
+    padding: 10px 14px;
   }
-  #overlay-return-alley:hover {
-    border-color: var(--accent);
-    color: #fff;
+  #progress, #mb-counter, #overlay-return-alley {
+    display: none;
   }
 
   /* Bottom-right non-intrusive HUD bar */
@@ -264,35 +159,13 @@
   <canvas class="emscripten" id="canvas" oncontextmenu="event.preventDefault()" tabindex="0"></canvas>
 </div>
 
-<div id="splash" role="button" tabindex="0" aria-label="Click or Press Any Key to Launch">
-  <div class="logo">NZ<span>:</span> PORTABLE</div>
-  <div class="subtitle">Nazi Zombies: Portable</div>
-  <div class="line"></div>
-  <p><strong>FTEQW WebGL Clean-Room Build</strong> · Powered by native QuakeC &amp; WebAssembly (`ftewebgl.wasm`).</p>
-  <p>Assets &amp; packs are cached locally in your browser (`CacheStorage`) for instant reloads.</p>
-  <div class="keybinds">
-    <kbd>WASD</kbd> Move &middot;
-    <kbd>Mouse</kbd> Aim/Fire &middot;
-    <kbd>R</kbd> Reload &middot;
-    <kbd>F</kbd> Interact/Buy &middot;
-    <kbd>Shift</kbd> Sprint &middot;
-    <kbd>C</kbd> Crouch &middot;
-    <kbd>Esc</kbd> Menu
-  </div>
-  <div class="credit">Credit: <strong>nzp-team</strong> (nzp-team/nzportable &amp; FTEQW WebGL)</div>
-  <div class="continue">Click or Press Any Key to Launch</div>
-</div>
-
-<div id="overlay">
-  <div id="panel">
-    <h2 id="overlay-title">Loading Nazi Zombies: Portable</h2>
-    <div id="status">Waiting to launch...</div>
-    <div class="bar"><div id="progress"></div></div>
-    <div id="mb-counter">0.0 / 94.8 MB</div>
-    <div>
-      <a id="overlay-return-alley" href="../">&larr; Return to 3D Alley Portfolio</a>
-    </div>
-  </div>
+<div id="spray-paint-loader-overlay">
+  <canvas id="spray-paint-loader-canvas" aria-label="Spray paint loading screen"></canvas>
+  <div id="spray-paint-credit-subtitle">Decompilation Credit: NZPTeam</div>
+  <div id="status"></div>
+  <div id="progress"></div>
+  <div id="mb-counter"></div>
+  <a id="overlay-return-alley" href="../">&larr; Return to 3D Alley Portfolio</a>
 </div>
 
 <div id="hudbar">

@@ -375,10 +375,9 @@ class TestNZPortableSpec042(unittest.TestCase):
         for required_id in (
             "game",
             "canvas",
-            "splash",
-            "overlay",
-            "panel",
-            "overlay-title",
+            "spray-paint-loader-overlay",
+            "spray-paint-loader-canvas",
+            "spray-paint-credit-subtitle",
             "status",
             "progress",
             "mb-counter",
@@ -419,16 +418,7 @@ class TestNZPortableSpec042(unittest.TestCase):
 
         for required_text in (
             "Nazi Zombies: Portable",
-            "FTEQW WebGL Clean-Room Build",
-            "nzp-team",
-            "WASD",
-            "Mouse",
-            "Reload",
-            "Interact/Buy",
-            "Sprint",
-            "Crouch",
-            "Esc",
-            "Click or Press Any Key to Launch",
+            "Decompilation Credit: NZPTeam",
         ):
             self.assertIn(required_text, raw_html)
 

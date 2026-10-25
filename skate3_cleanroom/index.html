@@ -30,51 +30,63 @@
   #game { position: fixed; inset: 0; }
   #bevy { width: 100%; height: 100%; display: block; outline: none; }
 
-  /* aaddpp-style splash */
-  #splash {
-    position: fixed; inset: 0; z-index: 10;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    background: #000; text-align: center; padding: 24px 20px; box-sizing: border-box;
-    cursor: pointer;
+  /* Unified PLATODOOM arcade spray-paint boot overlay */
+  #spray-paint-loader-overlay {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    background: #000000;
+    z-index: 99999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    transition: opacity 0.35s ease;
   }
-  #splash .logo {
-    font-size: clamp(48px, 12vw, 96px); font-weight: 800; letter-spacing: -0.04em;
-    margin: 0 0 8px; color: #fff; line-height: 1;
+  #spray-paint-loader-canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
   }
-  #splash .logo span { opacity: 0.35; }
-  #splash .fan {
-    font-size: clamp(18px, 4vw, 28px); font-weight: 700; letter-spacing: 0.12em;
-    text-transform: uppercase; margin: 0 0 10px; color: #fff;
+  #spray-paint-credit-subtitle {
+    position: fixed;
+    left: 50%;
+    top: 82%;
+    transform: translateX(-50%);
+    font-family: 'Courier New', Courier, monospace;
+    font-size: clamp(11px, 1.15vw, 15px);
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    color: rgba(218, 198, 192, 0.86);
+    text-shadow: 0 1px 6px rgba(0, 0, 0, 0.95);
+    pointer-events: none;
+    user-select: none;
+    white-space: nowrap;
+    z-index: 100000;
   }
-  #splash .line {
-    width: 64px; height: 3px; background: var(--accent); margin: 0 auto 28px; border-radius: 2px;
+  #status {
+    position: fixed;
+    top: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: var(--muted);
+    font-size: 13px;
+    white-space: pre-wrap;
+    text-align: center;
+    max-width: min(560px, 92vw);
+    z-index: 100001;
+    display: none;
   }
-  #splash p {
-    margin: 0 0 14px; color: var(--muted); max-width: 520px;
-    font-size: clamp(13px, 2.2vw, 15px); line-height: 1.55;
+  #status.error {
+    display: block;
+    color: #ff7b72;
+    background: rgba(17, 17, 17, 0.92);
+    border: 1px solid #442222;
+    border-radius: 6px;
+    padding: 10px 14px;
   }
-  #splash p strong { color: #fff; font-weight: 600; }
-  #splash .contact {
-    margin-top: 20px; padding: 10px 18px; border-radius: 10px;
-    background: #141414; border: 1px solid #2a2a2a; color: var(--muted); font-size: 13px;
-  }
-  #splash .contact a { color: var(--accent); text-decoration: none; }
-  #splash .continue {
-    margin-top: 36px; color: #5a6a7a; font-size: 14px; letter-spacing: 0.02em;
-  }
-
-  /* loading state after click */
-  #overlay {
-    position: fixed; inset: 0; display: none; align-items: center; justify-content: center;
-    background: #000; z-index: 8; padding: 16px; box-sizing: border-box;
-  }
-  #overlay.show { display: flex; }
-  #panel { width: min(420px, 100%); text-align: center; }
-  #panel h2 { font-size: 18px; margin: 0 0 12px; font-weight: 600; }
-  #status { color: var(--muted); min-height: 2.8em; white-space: pre-wrap; font-size: 13px; }
-  #status.error { color: #ff7b72; }
-  .bar { height: 4px; background: #1a1a1a; border-radius: 2px; overflow: hidden; margin: 14px 0 0; }
-  .bar > div { height: 100%; width: 0; background: var(--accent); transition: width .15s; }
+  #progress { display: none; }
 
   #mapbar {
     position: fixed; bottom: 8px; right: 8px; z-index: 3;
@@ -103,28 +115,12 @@
 <body>
 <div id="game"><canvas id="bevy" tabindex="0"></canvas></div>
 
-<div id="splash" role="button" tabindex="0" aria-label="Press any key or click to continue">
-  <div class="logo">skate<span>.</span></div>
-  <div class="fan">This is a fan game</div>
-  <div class="line"></div>
-  <p><strong>Not made by EA.</strong> This is an unofficial, non-commercial fan game.
-    It is not made, endorsed or supported by Electronic Arts or Black Box.
-    skate. and Skate 3 are trademarks of Electronic Arts.</p>
-  <p>Clean-room asset pack: textures, meshes and sounds were regenerated.
-    No retail game files are hosted here.</p>
-  <p>Settings are saved in this browser. Don't close the tab while the game is loading.</p>
-  <div class="contact">WebGPU required · Chrome / Edge 113+</div>
-  <div class="continue">Press any button to continue</div>
+<div id="spray-paint-loader-overlay">
+  <canvas id="spray-paint-loader-canvas" aria-label="Spray paint loading screen"></canvas>
+  <div id="spray-paint-credit-subtitle">Decompilation Credit: AndrewNakas</div>
+  <div id="status"></div>
+  <div id="progress"></div>
 </div>
-
-<div id="overlay"><div id="panel">
-  <h2>Loading</h2>
-  <div id="status">Starting...</div>
-  <div class="bar"><div id="progress"></div></div>
-  <div style="margin-top: 16px;">
-    <a id="overlay-return-alley" href="../" style="color: var(--accent); text-decoration: none; font-size: 13px; border: 1px solid #333; padding: 5px 12px; border-radius: 4px; background: #141414; display: inline-block;">← Return to 3D Alley Portfolio (WebGL2)</a>
-  </div>
-</div></div>
 
 <div id="mapbar">
   <button id="return-alley-btn" type="button" title="Return to Freeman Alley 3D Portfolio" onclick="window.location.assign('../')">← 3D Portfolio (Alley)</button>
@@ -138,31 +134,6 @@
   <button id="fullscreen" type="button" title="Fullscreen (F11 also works)">Fullscreen</button></div>
 <div id="hint"></div>
 
-<script>
-(function () {
-  var splash = document.getElementById('splash');
-  var overlay = document.getElementById('overlay');
-  var mapbar = document.getElementById('mapbar');
-  var started = false;
-
-  function begin() {
-    if (started) return;
-    started = true;
-    splash.style.display = 'none';
-    overlay.classList.add('show');
-    // Show map bar once the game is up (loader manages status)
-    setTimeout(function () { mapbar.classList.add('visible'); }, 800);
-  }
-
-  splash.addEventListener('click', begin);
-  window.addEventListener('keydown', function (e) {
-    if (!started) { e.preventDefault(); begin(); }
-  }, { once: true });
-  window.addEventListener('pointerdown', function () {
-    if (!started) begin();
-  }, { once: true });
-})();
-</script>
 <script type="module" src="./loader.js"></script>
 <script type="module" src="./touch.js"></script>
 </body>
