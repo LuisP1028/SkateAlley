@@ -1,0 +1,48 @@
+{
+  "required_security_headers": {
+    "Cross-Origin-Opener-Policy": "same-origin",
+    "Cross-Origin-Embedder-Policy": "require-corp",
+    "Cross-Origin-Resource-Policy": "same-origin"
+  },
+  "required_range_headers": {
+    "Accept-Ranges": "bytes",
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET, HEAD, POST, PUT, DELETE, OPTIONS",
+    "Access-Control-Allow-Headers": "Range, Content-Type, Accept, Origin, Authorization",
+    "Access-Control-Expose-Headers": "Content-Length, Content-Range, Accept-Ranges"
+  },
+  "range_response_format": {
+    "status": 206,
+    "content_range": "bytes {start}-{end}/{file_size}",
+    "content_length": "{end - start + 1}",
+    "streaming_chunk_buffer_size": 1048576,
+    "streaming_chunk_description": "1 MiB bounded chunk buffer iteration in _try_serve_range to prevent memory exhaustion on large open-ended ISO range requests"
+  },
+  "api_health_schema": {
+    "endpoint": "/api/health",
+    "required_field": "tkdr_webapp",
+    "expected_field_type": "boolean",
+    "components_list_membership": "tkdr_webapp",
+    "probe_criteria": [
+      "tkdr/index.html exists and is non-empty",
+      "tkdr/tkdr.wasm exists and is non-empty",
+      "tkdr/game.iso exists (1,750,237,184 B)",
+      "tkdr/eboot.bin exists (4,836,160 B)"
+    ]
+  },
+  "window_status_telemetry_schema": {
+    "target_global": "window.__TKDR_STATUS__",
+    "fields": {
+      "crossOriginIsolated": "boolean",
+      "runtimeReady": "boolean",
+      "isoReady": "boolean",
+      "ebootSha1": "string",
+      "recompiledFunctions": "number",
+      "wasmCodeBytes": "number",
+      "started": "boolean",
+      "frames": "number",
+      "guestTimeSec": "number",
+      "errors": "Array<string>"
+    }
+  }
+}

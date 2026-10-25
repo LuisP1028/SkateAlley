@@ -1,0 +1,32 @@
+{
+  "recompiler_pipeline": {
+    "source_executable": "ULUS10139_EBOOT.BIN",
+    "base_address": "0x08804000",
+    "entry_point": "0x089F34A8",
+    "mips_instructions_decoded": 641720,
+    "guest_functions_generated": 13809,
+    "emitted_wasm_code_bytes": 23544922,
+    "emitted_image_bin_bytes": 20629396,
+    "game_txt_lines": 281,
+    "hle_stubs_count": 280,
+    "hle_libraries_count": 31,
+    "cold_compilation_time_ms": 969.6,
+    "warm_indexeddb_cache_time_ms": "< 60"
+  },
+  "indexeddb_schema": {
+    "database_name": "tkdr-recomp",
+    "object_store": "recomp",
+    "cache_key_format": "{EBOOT_SHA1}-{recompiler_version}",
+    "cached_payload_structure": {
+      "image": "Uint8Array (20,629,396 B)",
+      "gameTxt": "string (281 lines)",
+      "code": "Uint8Array (23,544,922 B)",
+      "functions": 13809
+    }
+  },
+  "emscripten_memfs_mounts": [
+    "/game/code.wasm",
+    "/game/image.bin",
+    "/game/game.txt"
+  ]
+}
