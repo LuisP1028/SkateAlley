@@ -4201,6 +4201,36 @@ function applyLateResolvedIntroCardsIfSafe(mappedCards) {
   return false;
 }
 
+let _tunnelConfigDiscoveryPromise = null;
+
+function ensureTunnelConfigDiscovered() {
+  if (sandbox && sandbox.tunnelConfig) {
+    return Promise.resolve(sandbox.tunnelConfig);
+  }
+  if (_tunnelConfigDiscoveryPromise) {
+    return _tunnelConfigDiscoveryPromise;
+  }
+  if (typeof fetch !== 'function') {
+    return Promise.resolve(null);
+  }
+  _tunnelConfigDiscoveryPromise = (async () => {
+    try {
+      const tRes = await fetch(`./tunnel.json?t=${Date.now()}`, { cache: 'no-store' });
+      if (tRes && tRes.ok) {
+        const tData = await tRes.json();
+        if (tData && typeof tData === 'object' && sandbox) {
+          sandbox.tunnelConfig = tData;
+          return tData;
+        }
+      }
+    } catch (_err) {
+      // Ignore tunnel.json fetch errors in offline/static contexts
+    }
+    return null;
+  })();
+  return _tunnelConfigDiscoveryPromise;
+}
+
 function prefetchGenerativeIntroDeck() {
   if (_introPrefetchPromise) return _introPrefetchPromise;
   if (typeof fetch !== 'function') {
@@ -4220,6 +4250,7 @@ function prefetchGenerativeIntroDeck() {
   const t0 = typeof performance !== 'undefined' ? performance.now() : Date.now();
 
   _introPrefetchPromise = (async () => {
+    await ensureTunnelConfigDiscovered();
     const urls = resolveDoomApiCandidateUrls('api/intro/generate');
     let lastErr = null;
     let lastCode = 'NETWORK_UNREACHABLE';
@@ -11258,6 +11289,7 @@ function resolveDoomApiCandidateUrls(endpointPath) {
 }
 
 async function postDoomApiWithFallback(endpointPath, payloadObj) {
+  await ensureTunnelConfigDiscovered();
   const urls = resolveDoomApiCandidateUrls(endpointPath);
   let lastErr = null;
   for (const url of urls) {
@@ -11580,7 +11612,7 @@ function resolveStickerApiCandidateUrls(endpointPath = 'api/stickers') {
         const base = sandbox.tunnelConfig.url.trim().replace(/\/+$/, '');
         addCandidate(`${base}/${cleanPath}`);
       }
-      if (host === 'localhost' || host === '127.0.0.1' || isGitHubPages) {
+      if (host === 'localhost' || host === '127.0.0.1') {
         addCandidate(`http://localhost:8080/${cleanPath}`);
         addCandidate(`http://localhost:3002/${cleanPath}`);
       }
@@ -21906,25 +21938,19 @@ async function initSandbox() {
   fetchDoomStartersFromHF({ silentFallback: true }).catch(() => {});
 
   // Discovery of Server Mac HTTPS Quick Tunnel (functional_specification_037.md) & PostgreSQL Sticker Hydration (functional_specification_056.md)
-  sandbox.tunnelConfig = null;
+  if (!sandbox.tunnelConfig) {
+    sandbox.tunnelConfig = null;
+  }
   if (typeof fetch === 'function') {
-    try {
-      const tRes = await fetch(`./tunnel.json?t=${Date.now()}`, { cache: 'no-store' });
-      if (tRes && tRes.ok) {
-        const tData = await tRes.json();
-        if (tData && typeof tData === 'object') {
-          sandbox.tunnelConfig = tData;
-          if (!doomChatState.startersLoadedFromHF && !doomChatState.startersLoading) {
-            fetchDoomStartersFromHF({ silentFallback: true }).catch(() => {});
-          }
-          if (introGenerationTelemetry.status === 'fallback') {
-            _introPrefetchPromise = null;
-            prefetchGenerativeIntroDeck();
-          }
-        }
+    const tData = await ensureTunnelConfigDiscovered();
+    if (tData && typeof tData === 'object') {
+      if (!doomChatState.startersLoadedFromHF && !doomChatState.startersLoading) {
+        fetchDoomStartersFromHF({ silentFallback: true }).catch(() => {});
       }
-    } catch (_err) {
-      // Ignore tunnel.json fetch errors in offline/static contexts
+      if (introGenerationTelemetry.status === 'fallback') {
+        _introPrefetchPromise = null;
+        prefetchGenerativeIntroDeck();
+      }
     }
     await sandbox.loadPersistedStickers().catch(() => {});
     await sandbox.loadPersistedSceneLayouts().catch(() => {});
