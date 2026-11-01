@@ -1,0 +1,1285 @@
+{
+  "dataset_version": "0.1.0-seed",
+  "schema_version": "1.0",
+  "updated_at": "2026-10-31T00:00:00Z",
+  "description": "Authoritative hot-reloadable biographical, architectural, mathematical, and project property graph for Luis (Freeman Alley / SkateAlley).",
+  "nodes": [
+    {
+      "id": "Person:luis",
+      "type": "Person",
+      "label": "Luis",
+      "aliases": [
+        "luis",
+        "creator",
+        "author",
+        "engineer",
+        "portfolio owner",
+        "villainy inc",
+        "e/acc"
+      ],
+      "summary": "Luis is a 26-year-old software and AI/ML engineer who builds software that feels like magic, splitting his free time between hiking, swimming, eating good food, and building.",
+      "attributes": {
+        "age": 26,
+        "philosophy": "e/acc, baby.",
+        "hobbies": ["hiking", "swimming", "eating good food", "building software"],
+        "portfolio": "Freeman Alley Interactive 3D WebGL2 Portfolio (SkateAlley)"
+      },
+      "priority": 1.0
+    },
+    {
+      "id": "Person:eli",
+      "type": "Person",
+      "label": "Eli (Durable Medical Goods Friend)",
+      "aliases": [
+        "eli",
+        "hi eli",
+        "durable medical goods",
+        "dme friend",
+        "medicare friend"
+      ],
+      "summary": "Friend of Luis working at a Durable Medical Goods (DME) company for whom Luis built the GraphRAG Policy Engine covering Lymphemeda Treatment Act Medicare Qualifications.",
+      "attributes": {
+        "industry": "Durable Medical Goods (DME)",
+        "station_shoutout": "Hi Eli!"
+      },
+      "priority": 0.68
+    },
+    {
+      "id": "Person:devon",
+      "type": "Person",
+      "label": "Devon (Alleyway Sticker Wall Warning)",
+      "aliases": [
+        "devon",
+        "dickhead devon",
+        "recruiter warning",
+        "tread lightly"
+      ],
+      "summary": "Friend called out by name in Luis's welcome sequence warning visitors leaving public messages on the Freeman Alley sticker wall because job recruiters visit the alley: 'DON'T BE A DICKHEAD, DEVON!'",
+      "attributes": {
+        "quote": "Job recruiters will be visiting the alleyway so TREAD LIGHTLY. I MEAN IT. DON'T BE A DICKHEAD, DEVON!"
+      },
+      "priority": 0.62
+    },
+    {
+      "id": "Education:corporate_finance_accounting",
+      "type": "Education",
+      "label": "Corporate Finance & Accounting (Early College Major)",
+      "aliases": [
+        "corporate finance",
+        "accounting",
+        "finance major",
+        "business school",
+        "college finance",
+        "studied in college"
+      ],
+      "summary": "Luis originally studied corporate finance and accounting in college before switching his major to Philosophy and Religion during the COVID era.",
+      "attributes": {
+        "phase": "Initial undergraduate major",
+        "domain": "Corporate Finance and Accounting"
+      },
+      "priority": 0.82
+    },
+    {
+      "id": "Education:philosophy_and_religion_covid",
+      "type": "Education",
+      "label": "Philosophy and Religion (COVID-Era College Major)",
+      "aliases": [
+        "philosophy",
+        "religion",
+        "philosophy and religion",
+        "covid era",
+        "college",
+        "major",
+        "degree",
+        "education",
+        "studied"
+      ],
+      "summary": "Luis changed his college major from corporate finance and accounting to Philosophy and Religion during the COVID era, grounding his systems thinking, alignment research, and Digital Twin persona.",
+      "attributes": {
+        "phase": "Completed undergraduate focus (COVID era)",
+        "transitioned_from": "Corporate Finance and Accounting"
+      },
+      "priority": 0.88
+    },
+    {
+      "id": "Story:gpt35_eacc_2022",
+      "type": "Story",
+      "label": "2022 GPT-3.5 Acceleration Origin ('e/acc, baby.')",
+      "aliases": [
+        "gpt3.5",
+        "gpt-3.5",
+        "2022",
+        "ai psychosis",
+        "speedran ai psychosis",
+        "e/acc",
+        "accelerating"
+      ],
+      "summary": "Luis speedran AI psychosis with GPT-3.5 back in 2022 and has been accelerating across AI engineering, deep learning, and interactive 3D software ever since ('e/acc, baby.').",
+      "attributes": {
+        "year": 2022,
+        "catalyst_model": "GPT-3.5",
+        "motto": "e/acc, baby."
+      },
+      "priority": 0.84
+    },
+    {
+      "id": "ProjectStation:screen_mount_01",
+      "type": "ProjectStation",
+      "label": "GRAPHRAG POLICY ENGINE (Screen Mount 01)",
+      "aliases": [
+        "screen mount 1",
+        "station 01",
+        "graphrag policy engine",
+        "lymphemeda",
+        "lymphedema",
+        "lymphemeda treatment act",
+        "medicare",
+        "medicare qualifications",
+        "policy engine",
+        "durable medical goods"
+      ],
+      "summary": "GraphRAG LLM built for Lymphemeda Treatment Act Medicare Qualifications as a practical compliance and qualification tool for Luis's friend Eli at a Durable Medical Goods company.",
+      "attributes": {
+        "station_code": "01",
+        "mount_locator": "SCREEN_MOUNT_01",
+        "wall": "Left Wall (Z = 5.00m)",
+        "domain": "Healthcare Policy & Medicare DME Qualification",
+        "live_url": "https://huggingface.co/spaces"
+      },
+      "priority": 0.94
+    },
+    {
+      "id": "ProjectStation:screen_mount_02",
+      "type": "ProjectStation",
+      "label": "DIGITAL TWIN PERSONA (Screen Mount 02)",
+      "aliases": [
+        "screen mount 2",
+        "station 02",
+        "digital twin",
+        "digital twin persona",
+        "mf doom",
+        "doom head",
+        "doom companion",
+        "finetuned persona"
+      ],
+      "summary": "Digital persona finetuned on philosophy and MF DOOM, operating live Twitter and LinkedIn accounts and embodied in Freeman Alley as the floating DOOM_HEAD holographic companion.",
+      "attributes": {
+        "station_code": "02",
+        "mount_locator": "SCREEN_MOUNT_02",
+        "wall": "Right Wall (Z = 10.00m)",
+        "training_corpus": "Philosophy + MF DOOM lyricism & cadence",
+        "channels": ["Twitter / X", "LinkedIn", "Freeman Alley DOOM_HEAD"]
+      },
+      "priority": 0.93
+    },
+    {
+      "id": "ProjectStation:screen_mount_03",
+      "type": "ProjectStation",
+      "label": "QUANTITATIVE MODELING AND STATISTICAL ARBITRAGE (Screen Mount 03)",
+      "aliases": [
+        "screen mount 3",
+        "station 03",
+        "quantitative modeling",
+        "statistical arbitrage",
+        "stat arb",
+        "bayesian state space",
+        "ssm",
+        "cointegration",
+        "mean reverting",
+        "topstep",
+        "topstepxfa",
+        "50000",
+        "$50,000"
+      ],
+      "summary": "Bayesian state space model of mean-reverting, cointegrated financial assets that passed a $50,000 TopStepXFA funded trading application, showcased with a whitepaper hologram and live walkthrough video.",
+      "attributes": {
+        "station_code": "03",
+        "mount_locator": "SCREEN_MOUNT_03",
+        "wall": "Left Wall (Z = 15.00m)",
+        "milestone": "Passed $50,000 TopStepXFA application",
+        "whitepaper": "SSMWhitePaper.pdf"
+      },
+      "priority": 0.96
+    },
+    {
+      "id": "ProjectStation:screen_mount_07",
+      "type": "ProjectStation",
+      "label": "REJECTION STATION // MACHINE LEARNING (Screen Mount 07)",
+      "aliases": [
+        "rejection station",
+        "screen mount 7",
+        "resume scanner",
+        "resume classifier",
+        "huggingface resume",
+        "bge-large-en-v1.5",
+        "linearsvc",
+        "linear svm",
+        "9 job roles",
+        "classical machine learning",
+        "1024-dimensional"
+      ],
+      "summary": "Classical ML & high-dimensional embedding station featuring a deployed Hugging Face resume classifier that extracts 1,024-D vectors from a frozen bge-large-en-v1.5 backbone and dynamically swaps LinearSVC heads across 9 job roles.",
+      "attributes": {
+        "station_code": "04 (Corridor Order 04 / SCREEN_MOUNT_07)",
+        "mount_locator": "SCREEN_MOUNT_07",
+        "wall": "Right Wall (Z = 16.35m, across from SCREEN_MOUNT_03)",
+        "embedding_dim": 1024,
+        "backbone": "BAAI/bge-large-en-v1.5 (frozen)",
+        "classifier_heads": "9 dynamic LinearSVC (Linear SVM) role heads",
+        "tasks": ["classification", "regression", "clustering", "anomaly detection"]
+      },
+      "priority": 0.98
+    },
+    {
+      "id": "Story:rejection_station_nyu_ta",
+      "type": "Story",
+      "label": "What the hell does this mean, Luis? (1-Hour Resume Scanner & NYU Film Major TA Story)",
+      "aliases": [
+        "what the hell does this mean",
+        "rejected",
+        "rejection",
+        "talent acquisition",
+        "cold emailed",
+        "ceo",
+        "nyu",
+        "film major",
+        "within the hour",
+        "within minutes",
+        "make it make sense",
+        "recruiters"
+      ],
+      "summary": "Luis cold-emailed a data analytics CEO for a job, got redirected to Talent Acquisition, and was rejected within minutes—so he built and sent back a classical ML resume scanner within the hour, discovering on LinkedIn that a TA lead was an NYU film major.",
+      "attributes": {
+        "turnaround_time": "Built and sent back within 1 hour of rejection",
+        "ta_background": "Film major from NYU discovered via LinkedIn",
+        "takeaway": "Talent Acquisition is very likely hiding really good engineers from you. MAKE IT MAKE SENSE!"
+      },
+      "priority": 0.97
+    },
+    {
+      "id": "ProjectStation:screen_mount_04",
+      "type": "ProjectStation",
+      "label": "STATION 04 // AI DATA ANALYTICS DASHBOARDS AND ALIGNMENT RESEARCH",
+      "aliases": [
+        "screen mount 4",
+        "station 04",
+        "ai data analytics",
+        "analytics dashboards",
+        "alignment research",
+        "autonomous agent swarms",
+        "agent swarms",
+        "structured context"
+      ],
+      "summary": "Turning structured and unstructured datasets into live analytics dashboards and structured context to guide, coordinate, and align autonomous agent swarms.",
+      "attributes": {
+        "station_code": "05 (SCREEN_MOUNT_04)",
+        "mount_locator": "SCREEN_MOUNT_04",
+        "wall": "Right Wall (Z = 20.00m)",
+        "focus": "Live telemetry dashboards, structured context, multi-agent swarm coordination & alignment"
+      },
+      "priority": 0.90
+    },
+    {
+      "id": "ProjectStation:screen_mount_05",
+      "type": "ProjectStation",
+      "label": "STATION 05 // GENERATIVE PIPELINES",
+      "aliases": [
+        "screen mount 5",
+        "station 05",
+        "generative pipelines",
+        "chained ai models",
+        "workflow execution",
+        "code generation",
+        "content production"
+      ],
+      "summary": "Feeding extracted data and structured context into chained AI models to automate content production, code generation, and deterministic multi-step workflow execution.",
+      "attributes": {
+        "station_code": "06 (SCREEN_MOUNT_05)",
+        "mount_locator": "SCREEN_MOUNT_05",
+        "wall": "Right Wall (Z = 26.00m)",
+        "outputs": ["automated content production", "code generation", "workflow execution"]
+      },
+      "priority": 0.90
+    },
+    {
+      "id": "ProjectStation:screen_mount_06",
+      "type": "ProjectStation",
+      "label": "STATION 06 // MULTI-MODAL DEEP LEARNING",
+      "aliases": [
+        "screen mount 6",
+        "station 06",
+        "multi-modal deep learning",
+        "multimodal",
+        "deep learning",
+        "transformers",
+        "cnns",
+        "autoencoders",
+        "diffusion",
+        "audio cloning",
+        "computer vision",
+        "3d synthesis"
+      ],
+      "summary": "Working with open-source deep learning architectures (Transformers, CNNs, Autoencoders, and Diffusion) across anomaly detection, unstructured data mining, computer vision, audio cloning, and 3D synthesis.",
+      "attributes": {
+        "station_code": "07 (SCREEN_MOUNT_06)",
+        "mount_locator": "SCREEN_MOUNT_06",
+        "wall": "Right Wall (Z = 32.00m)",
+        "architectures": ["Transformers", "CNNs", "Autoencoders", "Diffusion"],
+        "modalities": ["anomaly detection", "unstructured data mining", "computer vision", "audio cloning", "3D synthesis"]
+      },
+      "priority": 0.92
+    },
+    {
+      "id": "ModelArchitecture:bge_large_en_v1_5",
+      "type": "ModelArchitecture",
+      "label": "bge-large-en-v1.5 Frozen 1,024-D Embedding Backbone",
+      "aliases": [
+        "bge-large-en-v1.5",
+        "bge large",
+        "1024-d",
+        "1,024-dimensional",
+        "embedding backbone",
+        "feature vectors"
+      ],
+      "summary": "Frozen dense text embedding transformer producing 1,024-dimensional semantic feature vectors for Luis's Hugging Face resume classifier.",
+      "attributes": {
+        "dimensions": 1024,
+        "weights_mode": "Frozen feature extractor"
+      },
+      "priority": 0.85
+    },
+    {
+      "id": "ModelArchitecture:linear_svc_heads",
+      "type": "ModelArchitecture",
+      "label": "Dynamic LinearSVC (Linear SVM) Multi-Role Classification Heads",
+      "aliases": [
+        "linearsvc",
+        "linear svm",
+        "svm",
+        "support vector machine",
+        "9 distinct job roles",
+        "role heads"
+      ],
+      "summary": "Nine lightweight, dynamically swappable Linear Support Vector Machine (LinearSVC) classification heads trained atop 1,024-D bge-large-en-v1.5 embeddings to score candidates across 9 distinct job roles.",
+      "attributes": {
+        "role_count": 9,
+        "algorithm": "LinearSVC (Support Vector Classification)"
+      },
+      "priority": 0.85
+    },
+    {
+      "id": "ModelArchitecture:bayesian_state_space_model",
+      "type": "ModelArchitecture",
+      "label": "Bayesian State Space Model (Kalman / Cointegration Stat-Arb)",
+      "aliases": [
+        "bayesian state space model",
+        "kalman filter",
+        "state space",
+        "cointegrated assets",
+        "mean reversion",
+        "spread modeling"
+      ],
+      "summary": "Probabilistic latent-state model tracking dynamic hedge ratios and mean-reverting spreads across cointegrated financial instruments, validated on a $50,000 TopStepXFA evaluation.",
+      "attributes": {
+        "domain": "Quantitative Finance & Statistical Arbitrage",
+        "validation": "Passed $50,000 TopStepXFA"
+      },
+      "priority": 0.87
+    },
+    {
+      "id": "ModelArchitecture:multimodal_dl_stack",
+      "type": "ModelArchitecture",
+      "label": "Open-Source Multi-Modal Deep Learning Stack (Transformers, CNNs, Autoencoders, Diffusion)",
+      "aliases": [
+        "transformers",
+        "cnn",
+        "convolutional neural network",
+        "autoencoder",
+        "diffusion models",
+        "open-source models"
+      ],
+      "summary": "Suite of open-source neural architectures applied by Luis for vision, audio cloning, 3D mesh/texture synthesis, unstructured text mining, and latent anomaly detection.",
+      "attributes": {
+        "families": ["Transformers", "CNNs", "Autoencoders", "Diffusion"]
+      },
+      "priority": 0.83
+    },
+    {
+      "id": "MathPod:pod_01_graph_theory",
+      "type": "MathPod",
+      "label": "POD-01 // 3D GRAPH THEORY HOLOGRAM",
+      "aliases": [
+        "pod-01",
+        "graph theory",
+        "nodes and edges",
+        "network topology",
+        "shortest paths",
+        "connectivity"
+      ],
+      "summary": "Modeling relational data as nodes and edges to analyze network topology, find shortest paths, and measure connectivity across complex systems.",
+      "attributes": {
+        "pod_code": "POD-01",
+        "corridor_z": 5.90
+      },
+      "priority": 0.78
+    },
+    {
+      "id": "MathPod:pod_02_matrix_rank",
+      "type": "MathPod",
+      "label": "POD-02 // MATRIX RANK SOLVER HOLOGRAM",
+      "aliases": [
+        "pod-02",
+        "matrix rank",
+        "gaussian elimination",
+        "row reduction",
+        "linearly independent",
+        "linear algebra",
+        "linear systems"
+      ],
+      "summary": "Performing Gaussian elimination and row reduction to identify linearly independent features, determine matrix rank, and solve linear systems.",
+      "attributes": {
+        "pod_code": "POD-02",
+        "corridor_z": 11.85
+      },
+      "priority": 0.76
+    },
+    {
+      "id": "MathPod:pod_03_gradient_descent",
+      "type": "MathPod",
+      "label": "POD-03 // GRADIENT DESCENT HOLOGRAM",
+      "aliases": [
+        "pod-03",
+        "gradient descent",
+        "sgd",
+        "momentum",
+        "adam",
+        "optimizers",
+        "non-convex loss",
+        "saddle points"
+      ],
+      "summary": "Visualizing how SGD, Momentum, and Adam optimizers navigate non-convex loss landscapes and escape saddle points to minimize model error.",
+      "attributes": {
+        "pod_code": "POD-03",
+        "corridor_z": 17.20
+      },
+      "priority": 0.77
+    },
+    {
+      "id": "MathPod:pod_04_neural_network",
+      "type": "MathPod",
+      "label": "POD-04 // NEURAL NETWORK HOLOGRAM",
+      "aliases": [
+        "pod-04",
+        "neural network",
+        "multi-layer perceptron",
+        "mlp",
+        "forward propagation",
+        "activations",
+        "class probabilities"
+      ],
+      "summary": "Forward propagation through a multi-layer perceptron, applying linear weights and non-linear activations to map input features to class probabilities.",
+      "attributes": {
+        "pod_code": "POD-04",
+        "corridor_z": 22.39
+      },
+      "priority": 0.77
+    },
+    {
+      "id": "MathPod:pod_05_clustering",
+      "type": "MathPod",
+      "label": "POD-05 // CLUSTERING ALGORITHM HOLOGRAM",
+      "aliases": [
+        "pod-05",
+        "clustering",
+        "k-means",
+        "kmeans",
+        "gaussian mixture models",
+        "gmm",
+        "unsupervised learning"
+      ],
+      "summary": "Unsupervised learning via K-Means and Gaussian Mixture Models to partition unlabeled data into distinct groups based on feature similarity.",
+      "attributes": {
+        "pod_code": "POD-05",
+        "corridor_z": 27.96
+      },
+      "priority": 0.76
+    },
+    {
+      "id": "MathPod:pod_07_poker_cfr",
+      "type": "MathPod",
+      "label": "POD-07 // POKER / GAME THEORY HOLOGRAM",
+      "aliases": [
+        "pod-07",
+        "poker",
+        "game theory",
+        "counterfactual regret minimization",
+        "cfr",
+        "nash equilibrium",
+        "imperfect information",
+        "expected value"
+      ],
+      "summary": "Imperfect-information game solving using Counterfactual Regret Minimization (CFR) to compute Nash equilibrium strategies and maximize expected value (EV).",
+      "attributes": {
+        "pod_code": "POD-07",
+        "corridor_z": 34.65
+      },
+      "priority": 0.80
+    },
+    {
+      "id": "Story:reverse_engineer_anything_2026",
+      "type": "Story",
+      "label": "GitHub 'Reverse Engineer Anything' Rabbit Hole",
+      "aliases": [
+        "reverse engineer",
+        "reverse engineering",
+        "reverse engineer anything",
+        "toilet sensors",
+        "smart tvs",
+        "smarttvs",
+        "critical infrastructure",
+        "decompiled",
+        "decompilation"
+      ],
+      "summary": "A viral 'reverse engineer anything' GitHub repository led Luis and fellow engineers to reverse-engineer everything from toilet sensors and smart TVs to video games and critical infrastructure—steering clear of critical infrastructure in Freeman Alley to showcase playable decompiled games.",
+      "attributes": {
+        "targets_explored": ["toilet sensors", "smart TVs", "video games", "critical infrastructure"],
+        "portfolio_focus": "Decompiled playable browser/WebGL games + custom 3D avatar injection pipeline"
+      },
+      "priority": 0.91
+    },
+    {
+      "id": "Pipeline:in_game_3d_avatar_pipeline",
+      "type": "Pipeline",
+      "label": "Put-Yourself-In-Game Generative 3D Avatar Pipeline",
+      "aliases": [
+        "put yourself in-game",
+        "in-game avatar",
+        "3d avatar pipeline",
+        "character pipeline",
+        "generative character",
+        "custom character"
+      ],
+      "summary": "Generative 3D character synthesis and rigging pipeline created by Luis that lets visitors generate and inject custom playable avatars directly into Freeman Alley and its decompiled game ports.",
+      "attributes": {
+        "capabilities": ["image-to-3D character synthesis", "humanoid/Skate3 rig retargeting", "in-browser runtime hot-swap"]
+      },
+      "priority": 0.89
+    },
+    {
+      "id": "GamePort:skate3_cleanroom",
+      "type": "GamePort",
+      "label": "Skateboarding Decompiled Cleanroom Port (Skate 3)",
+      "aliases": [
+        "skate",
+        "skate 3",
+        "skate3",
+        "skateboarding",
+        "skate3_cleanroom"
+      ],
+      "summary": "Playable reverse-engineered skateboarding cleanroom port accessible through the Watercolor Gallery portal at the end of Freeman Alley.",
+      "attributes": {
+        "portal_slot": 1,
+        "activity": "Skate with custom or Luis avatars"
+      },
+      "priority": 0.84
+    },
+    {
+      "id": "GamePort:gta_vice_city",
+      "type": "GamePort",
+      "label": "Grand Theft Auto Decompiled Port",
+      "aliases": [
+        "grand theft auto",
+        "gta",
+        "vice city",
+        "commit grand theft auto",
+        "open world driving"
+      ],
+      "summary": "Playable decompiled Grand Theft Auto experience integrated into the Freeman Alley game portal lineup ('commit grand theft auto').",
+      "attributes": {
+        "portal_slot": 2,
+        "activity": "Open-world Grand Theft Auto gameplay"
+      },
+      "priority": 0.83
+    },
+    {
+      "id": "GamePort:super_smash_bros_melee",
+      "type": "GamePort",
+      "label": "Super Smash Bros Decompiled / Web Port",
+      "aliases": [
+        "super smash bros",
+        "smash bros",
+        "melee",
+        "platform fighter",
+        "fight in super smash bros"
+      ],
+      "summary": "Playable Super Smash Bros fighting experience accessible from the Freeman Alley back-alley portal.",
+      "attributes": {
+        "portal_slot": 3,
+        "activity": "Fight in Super Smash Bros"
+      },
+      "priority": 0.83
+    },
+    {
+      "id": "GamePort:cod_zombies",
+      "type": "GamePort",
+      "label": "Zombies Survival Decompiled Port",
+      "aliases": [
+        "zombies",
+        "kill zombies",
+        "zombie survival",
+        "nzp",
+        "cod zombies"
+      ],
+      "summary": "Playable round-based Zombies survival game accessible directly from the Freeman Alley game selector portal.",
+      "attributes": {
+        "portal_slot": 4,
+        "activity": "Kill zombies in browser"
+      },
+      "priority": 0.82
+    },
+    {
+      "id": "Pipeline:alley_die_cut_sticker_wall",
+      "type": "Pipeline",
+      "label": "Freeman Alley Radial Menu & Persistent Die-Cut Sticker Message Wall",
+      "aliases": [
+        "sticker",
+        "stickers",
+        "leave a message",
+        "radial menu",
+        "graffiti wall",
+        "guestbook",
+        "menu"
+      ],
+      "summary": "Interactive radial menu (Key Q) allowing visitors and recruiters to slap holographic die-cut stickers onto Freeman Alley's brick walls and leave persistent PostgreSQL-backed public messages.",
+      "attributes": {
+        "persistence": "PostgreSQL + REST API (/api/stickers)",
+        "hotkey": "Q or Radial Menu button"
+      },
+      "priority": 0.79
+    },
+    {
+      "id": "Technology:threejs_webgl2_freeman_alley",
+      "type": "Technology",
+      "label": "Freeman Alley 3D WebGL2 Engine (Three.js + Custom GLSL Shaders)",
+      "aliases": [
+        "freeman alley",
+        "skatealley",
+        "three.js",
+        "webgl2",
+        "glsl",
+        "3d portfolio",
+        "alleyway",
+        "scrolly-walk"
+      ],
+      "summary": "Custom Three.js WebGL2 engine powering Freeman Alley with custom holographic GLSL shaders, planar wet-asphalt reflections, 7 wall screen mounts, 6 3D MathPods, spatial audio, and dual scroll-walk / WASD free-roam locomotion.",
+      "attributes": {
+        "rendering": "Three.js WebGL2 + custom GLSL shaders + stencil occlusion",
+        "target_fps": "60 FPS"
+      },
+      "priority": 0.86
+    },
+    {
+      "id": "Technology:graphrag_property_graph",
+      "type": "Technology",
+      "label": "Multi-Hop Property-Graph Retrieval Engine (GraphRAG)",
+      "aliases": [
+        "graphrag",
+        "knowledge graph",
+        "property graph",
+        "k-hop",
+        "multi-hop retrieval",
+        "subgraph traversal"
+      ],
+      "summary": "Entity-alias and IDF-weighted lexical seed resolver paired with bounded k-hop weighted breadth-first traversal over typed property graphs, used by Luis in both Medicare policy compliance and DOOM_HEAD portfolio Q&A.",
+      "attributes": {
+        "traversal": "Bounded k-hop weighted BFS (k=2, decay=0.72)",
+        "latency_budget": "< 5.0 ms p95"
+      },
+      "priority": 0.90
+    },
+    {
+      "id": "Technology:huggingface_llm_router",
+      "type": "Technology",
+      "label": "Hugging Face Inference Router & JSON-Schema Structured Generation",
+      "aliases": [
+        "hugging face",
+        "huggingface",
+        "qwen",
+        "json schema",
+        "structured outputs",
+        "generative intro"
+      ],
+      "summary": "Cloud LLM inference layer driving both the JSON-Schema-constrained 7-card generative welcome sequence and GraphRAG-grounded DOOM_HEAD multi-turn conversations.",
+      "attributes": {
+        "contracts": ["Draft 2020-12 JSON Schema intro generation", "GraphRAG-grounded DOOM_HEAD chat"]
+      },
+      "priority": 0.82
+    },
+    {
+      "id": "Technology:postgresql_persistence",
+      "type": "Technology",
+      "label": "PostgreSQL Real-Time Scene & Sticker Persistence",
+      "aliases": [
+        "postgres",
+        "postgresql",
+        "database",
+        "scene layout",
+        "server mac"
+      ],
+      "summary": "PostgreSQL persistence layer synchronizing visitor-placed holographic wall stickers, messages, and curated 3D spatial layouts across local and Server Mac Cloudflare tunnel deployments.",
+      "attributes": {
+        "tables": ["skatealley_stickers", "skatealley_scene_layouts"]
+      },
+      "priority": 0.74
+    },
+    {
+      "id": "Skill:feature_engineering_ml",
+      "type": "Skill",
+      "label": "Classical Machine Learning & High-Dimensional Feature Engineering",
+      "aliases": [
+        "machine learning",
+        "classical ml",
+        "feature engineering",
+        "embeddings",
+        "classification",
+        "regression",
+        "anomaly detection",
+        "skills",
+        "tech stack"
+      ],
+      "summary": "Designing high-signal feature pipelines and combining dense transformer embeddings with fast classical estimators (LinearSVC, K-Means, GMMs, anomaly detectors) for low-latency production inference.",
+      "attributes": {
+        "strength_tier": "Core stack specialty"
+      },
+      "priority": 0.88
+    },
+    {
+      "id": "Skill:quantitative_finance_stat_arb",
+      "type": "Skill",
+      "label": "Quantitative Modeling, Bayesian Inference & Statistical Arbitrage",
+      "aliases": [
+        "quant",
+        "quantitative finance",
+        "bayesian",
+        "time series",
+        "trading",
+        "econometrics"
+      ],
+      "summary": "Bridging early corporate finance/accounting foundations with Bayesian state-space time-series modeling, cointegration testing, and automated risk-managed execution.",
+      "attributes": {
+        "proof_point": "$50,000 TopStepXFA passed evaluation"
+      },
+      "priority": 0.87
+    },
+    {
+      "id": "Skill:agent_swarm_alignment",
+      "type": "Skill",
+      "label": "Autonomous Agent Swarms, Context Engineering & Alignment",
+      "aliases": [
+        "agents",
+        "multi-agent",
+        "context engineering",
+        "alignment",
+        "orchestration",
+        "dashboards"
+      ],
+      "summary": "Structuring live telemetry dashboards, property graphs, and deterministic JSON schemas to coordinate, observe, and align multi-agent LLM workflows without hallucination.",
+      "attributes": {
+        "strength_tier": "Core stack specialty"
+      },
+      "priority": 0.86
+    },
+    {
+      "id": "Skill:reverse_engineering_decomp",
+      "type": "Skill",
+      "label": "Systems Reverse Engineering & Cleanroom Game Decompilation",
+      "aliases": [
+        "decompiler",
+        "systems engineering",
+        "binary analysis",
+        "iot",
+        "webgl ports"
+      ],
+      "summary": "Analyzing binary protocols, hardware/IoT sensors, smart TVs, and legacy game engines to build cleanroom browser-playable ports and custom asset injection pipelines.",
+      "attributes": {
+        "domains": ["video games", "IoT / toilet sensors", "smart TVs", "3D engines"]
+      },
+      "priority": 0.86
+    },
+    {
+      "id": "ContactChannel:github",
+      "type": "ContactChannel",
+      "label": "Luis's GitHub",
+      "aliases": [
+        "github",
+        "code",
+        "repos",
+        "repositories",
+        "source code",
+        "contact"
+      ],
+      "summary": "Luis's GitHub profile hosting his open-source ML tools, GraphRAG engines, generative pipelines, and WebGL experiments (accessible via the Freeman Alley radial menu).",
+      "attributes": {
+        "access": "Freeman Alley Radial Menu (Key Q) -> GitHub"
+      },
+      "priority": 0.75
+    },
+    {
+      "id": "ContactChannel:email",
+      "type": "ContactChannel",
+      "label": "Direct Email Contact",
+      "aliases": [
+        "email",
+        "hire",
+        "recruiter",
+        "reach out",
+        "contact luis",
+        "job"
+      ],
+      "summary": "Direct email channel accessible from the Freeman Alley menu for engineering roles, collaborations, and founder outreach.",
+      "attributes": {
+        "access": "Freeman Alley Radial Menu (Key Q) -> Email"
+      },
+      "priority": 0.75
+    },
+    {
+      "id": "ContactChannel:twitter",
+      "type": "ContactChannel",
+      "label": "Luis's Twitter / X & LinkedIn",
+      "aliases": [
+        "twitter",
+        "x.com",
+        "linkedin",
+        "social",
+        "follow"
+      ],
+      "summary": "Luis's Twitter/X and LinkedIn channels (alongside his finetuned MF DOOM + philosophy Digital Twin social accounts), accessible from the Freeman Alley menu.",
+      "attributes": {
+        "access": "Freeman Alley Radial Menu (Key Q) -> Twitter / LinkedIn"
+      },
+      "priority": 0.74
+    }
+  ],
+  "edges": [
+    {
+      "source": "Person:luis",
+      "target": "Education:corporate_finance_accounting",
+      "relation": "STUDIED_INITIALLY",
+      "weight": 0.88,
+      "evidence": "Luis initially studied corporate finance and accounting in college before switching majors."
+    },
+    {
+      "source": "Education:corporate_finance_accounting",
+      "target": "Education:philosophy_and_religion_covid",
+      "relation": "TRANSITIONED_TO",
+      "weight": 0.94,
+      "evidence": "During the COVID era, Luis changed his college major from corporate finance and accounting to Philosophy and Religion."
+    },
+    {
+      "source": "Person:luis",
+      "target": "Education:philosophy_and_religion_covid",
+      "relation": "STUDIED",
+      "weight": 0.92,
+      "evidence": "Luis majored in Philosophy and Religion during the COVID era."
+    },
+    {
+      "source": "Person:luis",
+      "target": "Story:gpt35_eacc_2022",
+      "relation": "EXPERIENCED_CATALYST",
+      "weight": 0.90,
+      "evidence": "Luis speedran AI psychosis with GPT-3.5 back in 2022 and has been accelerating ever since ('e/acc, baby.')."
+    },
+    {
+      "source": "Person:luis",
+      "target": "ProjectStation:screen_mount_01",
+      "relation": "BUILT",
+      "weight": 0.95,
+      "evidence": "Luis built the GraphRAG Policy Engine for Lymphemeda Treatment Act Medicare Qualifications."
+    },
+    {
+      "source": "ProjectStation:screen_mount_01",
+      "target": "Person:eli",
+      "relation": "BUILT_FOR",
+      "weight": 0.90,
+      "evidence": "Screen Mount 01 was created as a tool for Luis's friend Eli working at a Durable Medical Goods company ('Hi Eli!')."
+    },
+    {
+      "source": "ProjectStation:screen_mount_01",
+      "target": "Technology:graphrag_property_graph",
+      "relation": "USES_ARCHITECTURE",
+      "weight": 0.94,
+      "evidence": "The Lymphemeda Treatment Act Medicare Qualification engine uses GraphRAG retrieval over policy rules."
+    },
+    {
+      "source": "Technology:graphrag_property_graph",
+      "target": "MathPod:pod_01_graph_theory",
+      "relation": "APPLIES_MATH",
+      "weight": 0.89,
+      "evidence": "GraphRAG models relational entities as nodes and directed edges using graph theory topology and shortest-path traversal."
+    },
+    {
+      "source": "Person:luis",
+      "target": "ProjectStation:screen_mount_02",
+      "relation": "BUILT",
+      "weight": 0.94,
+      "evidence": "Luis created and finetuned the Digital Twin Persona on philosophy and MF DOOM."
+    },
+    {
+      "source": "ProjectStation:screen_mount_02",
+      "target": "Education:philosophy_and_religion_covid",
+      "relation": "GROUNDED_IN",
+      "weight": 0.88,
+      "evidence": "The Digital Twin Persona combines Luis's Philosophy & Religion background with MF DOOM lyricism."
+    },
+    {
+      "source": "ProjectStation:screen_mount_02",
+      "target": "Technology:graphrag_property_graph",
+      "relation": "GROUNDED_BY",
+      "weight": 0.92,
+      "evidence": "In Freeman Alley, the DOOM_HEAD companion retrieves multi-hop subgraphs from Luis's knowledge graph to answer visitor questions factually."
+    },
+    {
+      "source": "Person:luis",
+      "target": "ProjectStation:screen_mount_03",
+      "relation": "BUILT",
+      "weight": 0.96,
+      "evidence": "Luis developed the Bayesian state space statistical arbitrage model featured on Screen Mount 03."
+    },
+    {
+      "source": "ProjectStation:screen_mount_03",
+      "target": "ModelArchitecture:bayesian_state_space_model",
+      "relation": "USES_MODEL",
+      "weight": 0.96,
+      "evidence": "Screen Mount 03 models mean-reverting, cointegrated financial assets with a Bayesian state space architecture that passed a $50,000 TopStepXFA application."
+    },
+    {
+      "source": "ProjectStation:screen_mount_03",
+      "target": "Skill:quantitative_finance_stat_arb",
+      "relation": "DEMONSTRATES_SKILL",
+      "weight": 0.93,
+      "evidence": "Passing the $50,000 TopStepXFA evaluation demonstrates applied quantitative modeling and statistical arbitrage."
+    },
+    {
+      "source": "Skill:quantitative_finance_stat_arb",
+      "target": "Education:corporate_finance_accounting",
+      "relation": "BUILDS_ON",
+      "weight": 0.82,
+      "evidence": "Luis's quantitative finance work builds upon his early college training in corporate finance and accounting."
+    },
+    {
+      "source": "ModelArchitecture:bayesian_state_space_model",
+      "target": "MathPod:pod_02_matrix_rank",
+      "relation": "APPLIES_MATH",
+      "weight": 0.85,
+      "evidence": "Cointegration and state-space covariance estimation rely on linear independence, Gaussian elimination, and matrix rank."
+    },
+    {
+      "source": "ModelArchitecture:bayesian_state_space_model",
+      "target": "MathPod:pod_07_poker_cfr",
+      "relation": "SHARES_DECISION_THEORY",
+      "weight": 0.78,
+      "evidence": "Both statistical arbitrage and Counterfactual Regret Minimization optimize expected value (EV) under imperfect information."
+    },
+    {
+      "source": "Person:luis",
+      "target": "ProjectStation:screen_mount_07",
+      "relation": "BUILT",
+      "weight": 0.98,
+      "evidence": "Luis built and deployed the Hugging Face resume classifier showcased at REJECTION STATION // MACHINE LEARNING."
+    },
+    {
+      "source": "ProjectStation:screen_mount_07",
+      "target": "Story:rejection_station_nyu_ta",
+      "relation": "MOTIVATED_BY",
+      "weight": 0.99,
+      "evidence": "After Talent Acquisition rejected his cold-email application within minutes, Luis built the resume scanner and sent it back to them within the hour."
+    },
+    {
+      "source": "Story:rejection_station_nyu_ta",
+      "target": "ProjectStation:screen_mount_07",
+      "relation": "EXPLAINS_STATION",
+      "weight": 0.99,
+      "evidence": "The 'What the hell does this mean, Luis?' story explains why REJECTION STATION exists and how an NYU film major in TA screened engineering applicants."
+    },
+    {
+      "source": "ProjectStation:screen_mount_07",
+      "target": "ModelArchitecture:bge_large_en_v1_5",
+      "relation": "USES_MODEL",
+      "weight": 0.96,
+      "evidence": "The resume classifier extracts 1,024-dimensional feature vectors from a frozen bge-large-en-v1.5 embedding backbone."
+    },
+    {
+      "source": "ProjectStation:screen_mount_07",
+      "target": "ModelArchitecture:linear_svc_heads",
+      "relation": "USES_MODEL",
+      "weight": 0.96,
+      "evidence": "The classifier dynamically swaps lightweight Linear SVM heads (LinearSVC) to evaluate candidates across 9 distinct job roles."
+    },
+    {
+      "source": "ProjectStation:screen_mount_07",
+      "target": "Skill:feature_engineering_ml",
+      "relation": "DEMONSTRATES_SKILL",
+      "weight": 0.94,
+      "evidence": "Rejection Station showcases feature engineering and high-dimensional embeddings for classification, regression, clustering, and anomaly detection."
+    },
+    {
+      "source": "Skill:feature_engineering_ml",
+      "target": "MathPod:pod_05_clustering",
+      "relation": "APPLIES_MATH",
+      "weight": 0.86,
+      "evidence": "Unsupervised feature partitioning uses K-Means and Gaussian Mixture Models (POD-05)."
+    },
+    {
+      "source": "Skill:feature_engineering_ml",
+      "target": "MathPod:pod_02_matrix_rank",
+      "relation": "APPLIES_MATH",
+      "weight": 0.84,
+      "evidence": "Feature engineering identifies linearly independent features via matrix rank and row reduction (POD-02)."
+    },
+    {
+      "source": "Person:luis",
+      "target": "ProjectStation:screen_mount_04",
+      "relation": "BUILT",
+      "weight": 0.92,
+      "evidence": "Luis builds AI data analytics dashboards and alignment frameworks for autonomous agent swarms (Station 04)."
+    },
+    {
+      "source": "ProjectStation:screen_mount_04",
+      "target": "Skill:agent_swarm_alignment",
+      "relation": "DEMONSTRATES_SKILL",
+      "weight": 0.94,
+      "evidence": "Station 04 turns structured and unstructured datasets into live analytics and structured context to coordinate and align agent swarms."
+    },
+    {
+      "source": "Skill:agent_swarm_alignment",
+      "target": "Education:philosophy_and_religion_covid",
+      "relation": "INFORMED_BY",
+      "weight": 0.83,
+      "evidence": "Luis's alignment research perspective is informed by his study of Philosophy and Religion."
+    },
+    {
+      "source": "Person:luis",
+      "target": "ProjectStation:screen_mount_05",
+      "relation": "BUILT",
+      "weight": 0.92,
+      "evidence": "Luis engineers chained multi-model generative pipelines for content production, code generation, and workflow execution (Station 05)."
+    },
+    {
+      "source": "ProjectStation:screen_mount_05",
+      "target": "Pipeline:in_game_3d_avatar_pipeline",
+      "relation": "EXEMPLIFIED_BY",
+      "weight": 0.91,
+      "evidence": "Luis's generative pipeline that puts visitors inside decompiled 3D games exemplifies chained multi-model content and code automation."
+    },
+    {
+      "source": "ProjectStation:screen_mount_05",
+      "target": "Technology:huggingface_llm_router",
+      "relation": "USES_TECHNOLOGY",
+      "weight": 0.87,
+      "evidence": "Freeman Alley's JSON-Schema-constrained 7-card generative welcome sequence chains biographical graph context into structured LLM output."
+    },
+    {
+      "source": "Person:luis",
+      "target": "ProjectStation:screen_mount_06",
+      "relation": "BUILT",
+      "weight": 0.93,
+      "evidence": "Luis works across open-source Multi-Modal Deep Learning models for vision, audio cloning, 3D synthesis, and anomaly detection (Station 06)."
+    },
+    {
+      "source": "ProjectStation:screen_mount_06",
+      "target": "ModelArchitecture:multimodal_dl_stack",
+      "relation": "USES_MODEL",
+      "weight": 0.95,
+      "evidence": "Station 06 leverages Transformers, CNNs, Autoencoders, and Diffusion models across text, vision, audio, and 3D modalities."
+    },
+    {
+      "source": "ModelArchitecture:multimodal_dl_stack",
+      "target": "MathPod:pod_03_gradient_descent",
+      "relation": "APPLIES_MATH",
+      "weight": 0.88,
+      "evidence": "Training deep learning architectures relies on SGD, Momentum, and Adam navigating non-convex loss surfaces (POD-03)."
+    },
+    {
+      "source": "ModelArchitecture:multimodal_dl_stack",
+      "target": "MathPod:pod_04_neural_network",
+      "relation": "APPLIES_MATH",
+      "weight": 0.89,
+      "evidence": "Multi-layer perceptrons and deep networks apply linear weights and non-linear activations via forward propagation (POD-04)."
+    },
+    {
+      "source": "ProjectStation:screen_mount_06",
+      "target": "Pipeline:in_game_3d_avatar_pipeline",
+      "relation": "POWERS_PIPELINE",
+      "weight": 0.90,
+      "evidence": "3D synthesis and computer vision models power the generative pipeline that turns visitor photos/prompts into playable in-game characters."
+    },
+    {
+      "source": "Person:luis",
+      "target": "Story:reverse_engineer_anything_2026",
+      "relation": "EXPLORED",
+      "weight": 0.92,
+      "evidence": "A 'reverse engineer anything' GitHub repo led Luis and other nerds to reverse-engineer toilet sensors, smart TVs, video games, and critical infrastructure."
+    },
+    {
+      "source": "Story:reverse_engineer_anything_2026",
+      "target": "Skill:reverse_engineering_decomp",
+      "relation": "DEMONSTRATES_SKILL",
+      "weight": 0.93,
+      "evidence": "Reverse-engineering hardware sensors, smart TVs, and game engines honed Luis's cleanroom decompilation capabilities."
+    },
+    {
+      "source": "Person:luis",
+      "target": "GamePort:skate3_cleanroom",
+      "relation": "PORTED_GAME",
+      "weight": 0.90,
+      "evidence": "Visitors can skate in Luis's decompiled Skate 3 cleanroom experience at the end of Freeman Alley."
+    },
+    {
+      "source": "Person:luis",
+      "target": "GamePort:gta_vice_city",
+      "relation": "PORTED_GAME",
+      "weight": 0.89,
+      "evidence": "Visitors can commit Grand Theft Auto in the decompiled game portal down the alleyway."
+    },
+    {
+      "source": "Person:luis",
+      "target": "GamePort:super_smash_bros_melee",
+      "relation": "PORTED_GAME",
+      "weight": 0.89,
+      "evidence": "Visitors can fight in Super Smash Bros through the Freeman Alley decompiled game portal."
+    },
+    {
+      "source": "Person:luis",
+      "target": "GamePort:cod_zombies",
+      "relation": "PORTED_GAME",
+      "weight": 0.88,
+      "evidence": "Visitors can kill zombies in the playable decompiled survival port down the alleyway."
+    },
+    {
+      "source": "Story:reverse_engineer_anything_2026",
+      "target": "GamePort:skate3_cleanroom",
+      "relation": "INSPIRED_PORT",
+      "weight": 0.88,
+      "evidence": "Steering clear of critical infrastructure, Luis channeled reverse engineering into playable decompiled games starting with skateboarding."
+    },
+    {
+      "source": "Story:reverse_engineer_anything_2026",
+      "target": "GamePort:gta_vice_city",
+      "relation": "INSPIRED_PORT",
+      "weight": 0.87,
+      "evidence": "Decompiled Grand Theft Auto is featured among the reverse-engineered games playable from Freeman Alley."
+    },
+    {
+      "source": "Story:reverse_engineer_anything_2026",
+      "target": "GamePort:super_smash_bros_melee",
+      "relation": "INSPIRED_PORT",
+      "weight": 0.87,
+      "evidence": "Super Smash Bros is featured in the playable reverse-engineered game showcase."
+    },
+    {
+      "source": "Story:reverse_engineer_anything_2026",
+      "target": "GamePort:cod_zombies",
+      "relation": "INSPIRED_PORT",
+      "weight": 0.87,
+      "evidence": "Playable Zombies survival is featured in the reverse-engineered game showcase."
+    },
+    {
+      "source": "Pipeline:in_game_3d_avatar_pipeline",
+      "target": "GamePort:skate3_cleanroom",
+      "relation": "INJECTS_AVATAR_INTO",
+      "weight": 0.90,
+      "evidence": "Luis's generative avatar pipeline retargets custom 3D characters onto the Skate 3 and Freeman Alley rigs."
+    },
+    {
+      "source": "Person:luis",
+      "target": "Technology:threejs_webgl2_freeman_alley",
+      "relation": "BUILT",
+      "weight": 0.95,
+      "evidence": "Luis engineered the interactive 3D Freeman Alley WebGL2 portfolio environment."
+    },
+    {
+      "source": "Technology:threejs_webgl2_freeman_alley",
+      "target": "Pipeline:alley_die_cut_sticker_wall",
+      "relation": "FEATURES_PIPELINE",
+      "weight": 0.86,
+      "evidence": "Freeman Alley includes a radial menu for placing holographic stickers and leaving persistent messages on the alley walls."
+    },
+    {
+      "source": "Pipeline:alley_die_cut_sticker_wall",
+      "target": "Technology:postgresql_persistence",
+      "relation": "PERSISTED_IN",
+      "weight": 0.85,
+      "evidence": "Alleyway sticker placements and visitor messages persist in PostgreSQL across sessions."
+    },
+    {
+      "source": "Pipeline:alley_die_cut_sticker_wall",
+      "target": "Person:devon",
+      "relation": "HAS_WARNING_FOR",
+      "weight": 0.80,
+      "evidence": "Luis warns visitors leaving messages on the sticker menu that recruiters visit the alley: 'DON'T BE A DICKHEAD, DEVON!'"
+    },
+    {
+      "source": "Person:luis",
+      "target": "MathPod:pod_01_graph_theory",
+      "relation": "CURATED_HOLOGRAM",
+      "weight": 0.80,
+      "evidence": "Luis curated the 3D Graph Theory MathPod hologram in Freeman Alley."
+    },
+    {
+      "source": "Person:luis",
+      "target": "MathPod:pod_02_matrix_rank",
+      "relation": "CURATED_HOLOGRAM",
+      "weight": 0.79,
+      "evidence": "Luis curated the Matrix Rank Solver MathPod hologram in Freeman Alley."
+    },
+    {
+      "source": "Person:luis",
+      "target": "MathPod:pod_03_gradient_descent",
+      "relation": "CURATED_HOLOGRAM",
+      "weight": 0.79,
+      "evidence": "Luis curated the Gradient Descent Optimizer MathPod hologram in Freeman Alley."
+    },
+    {
+      "source": "Person:luis",
+      "target": "MathPod:pod_04_neural_network",
+      "relation": "CURATED_HOLOGRAM",
+      "weight": 0.79,
+      "evidence": "Luis curated the Multi-Layer Perceptron Neural Network MathPod hologram in Freeman Alley."
+    },
+    {
+      "source": "Person:luis",
+      "target": "MathPod:pod_05_clustering",
+      "relation": "CURATED_HOLOGRAM",
+      "weight": 0.79,
+      "evidence": "Luis curated the K-Means & GMM Clustering MathPod hologram in Freeman Alley."
+    },
+    {
+      "source": "Person:luis",
+      "target": "MathPod:pod_07_poker_cfr",
+      "relation": "CURATED_HOLOGRAM",
+      "weight": 0.81,
+      "evidence": "Luis curated the Poker Counterfactual Regret Minimization (CFR) Game Theory MathPod hologram in Freeman Alley."
+    },
+    {
+      "source": "Person:luis",
+      "target": "ContactChannel:github",
+      "relation": "REACHABLE_VIA",
+      "weight": 0.82,
+      "evidence": "Visitors can check out Luis's GitHub via the Freeman Alley menu."
+    },
+    {
+      "source": "Person:luis",
+      "target": "ContactChannel:email",
+      "relation": "REACHABLE_VIA",
+      "weight": 0.82,
+      "evidence": "Visitors and recruiters can send Luis an email directly from the Freeman Alley menu."
+    },
+    {
+      "source": "Person:luis",
+      "target": "ContactChannel:twitter",
+      "relation": "REACHABLE_VIA",
+      "weight": 0.82,
+      "evidence": "Visitors can follow Luis on Twitter/X and LinkedIn via the Freeman Alley menu."
+    }
+  ]
+}

@@ -606,10 +606,11 @@ async function fetchLuisPlayerOverrideAssets() {
         return null;
     }
     const tryFetchAll = async (prefix) => {
+        const bust = `?t=${Date.now()}`;
         const [dffResp, txdResp, bmpResp] = await Promise.all([
-            fetch(`${prefix}vcbr/luis_player/player.dff`),
-            fetch(`${prefix}vcbr/luis_player/player.txd`),
-            fetch(`${prefix}vcbr/luis_player/player.bmp`),
+            fetch(`${prefix}vcbr/luis_player/player.dff${bust}`, { cache: "no-store" }),
+            fetch(`${prefix}vcbr/luis_player/player.txd${bust}`, { cache: "no-store" }),
+            fetch(`${prefix}vcbr/luis_player/player.bmp${bust}`, { cache: "no-store" }),
         ]);
         if (!dffResp.ok || !txdResp.ok || !bmpResp.ok) {
             throw new Error(`HTTP ${dffResp.status}/${txdResp.status}/${bmpResp.status} fetching luis_player assets`);

@@ -269,7 +269,15 @@ def migrate_character_glb(path, rpm_local_rots):
     first_joint_name = nodes[orig_joints[0]].get("name", "")
     if first_joint_name == "Hips" and len(orig_joints) == 64:
         print(f"  [SKIP] {path} is already migrated to 64-bone RPM skeleton.")
-        return
+        return {
+            "path": os.path.abspath(path),
+            "bone_count": 64,
+            "root_bone": "Hips",
+            "animations_count": len(gltf.get("animations", [])),
+            "max_pos_err": 0.0,
+            "max_bind_err": 0.0,
+            "size_bytes": os.path.getsize(path),
+        }
 
     if first_joint_name != "root" or len(orig_joints) != 65:
         raise RuntimeError(
@@ -465,9 +473,106 @@ def migrate_character_glb(path, rpm_local_rots):
         f"max_pos_err={max_pos_err:.2e}m, max_bind_err={max_bind_err:.2e}, "
         f"size={os.path.getsize(path):,} bytes"
     )
+    return {
+        "path": os.path.abspath(path),
+        "bone_count": 64,
+        "root_bone": "Hips",
+        "animations_count": 0,
+        "max_pos_err": float(max_pos_err),
+        "max_bind_err": float(max_bind_err),
+        "size_bytes": os.path.getsize(path),
+    }
+
+
+CANONICAL_RPM_LOCAL_ROTATIONS = {
+    "Hips": [0.0162302, -2.624e-05, -4.2e-07, 0.99986828],
+    "Spine": [-0.06853317, 2.627e-05, 1.81e-06, 0.99764884],
+    "Spine1": [-0.03212389, 6e-08, 1e-07, 0.99948389],
+    "Spine2": [0.04709896, -2.4e-07, 1.1e-07, 0.99889023],
+    "Neck": [0.20275378, 7e-08, 1.1e-07, 0.97922975],
+    "Head": [-0.16267579, -3.1e-07, -3.8e-07, 0.98667958],
+    "LeftShoulder": [-0.50413549, -0.4903079, 0.5138908, -0.49128589],
+    "LeftArm": [-0.01699487, -0.19165535, 0.00789032, 0.98128342],
+    "LeftForeArm": [2e-08, -1e-08, 0.02617705, 0.99965732],
+    "LeftHand": [0.00714944, 0.27302628, -0.02518174, 0.96165036],
+    "LeftHandThumb1": [1e-08, 1e-08, 0.41000252, 0.91208439],
+    "LeftHandThumb2": [1e-08, 1e-08, -0.4100026, 0.91208436],
+    "LeftHandThumb3": [0.0, 0.0, 0.0, 1.0],
+    "LeftHandThumb4": [0.01297596, 0.05238604, -0.00692916, 0.99851856],
+    "LeftHandIndex1": [0.0, 0.0, 0.0, 1.0],
+    "LeftHandIndex2": [0.0, 0.0, 0.0, 1.0],
+    "LeftHandIndex3": [0.0, 0.0, 0.0, 1.0],
+    "LeftHandIndex4": [0.04478403, 0.05674666, -0.00713273, 0.99735818],
+    "LeftHandMiddle1": [0.0, 0.0, 0.0, 1.0],
+    "LeftHandMiddle2": [0.0, 0.0, 0.0, 1.0],
+    "LeftHandMiddle3": [0.0, 0.0, 0.0, 1.0],
+    "LeftHandMiddle4": [0.02381281, 0.02245892, -0.00164729, 0.99946277],
+    "LeftHandRing1": [0.0, 0.0, 0.0, 1.0],
+    "LeftHandRing2": [0.0, 0.0, 0.0, 1.0],
+    "LeftHandRing3": [0.0, 0.0, 0.0, 1.0],
+    "LeftHandRing4": [0.00665057, -0.00689841, 0.02211652, 0.99970948],
+    "LeftHandPinky1": [0.0, 0.0, 0.0, 1.0],
+    "LeftHandPinky2": [0.0, 0.0, 0.0, 1.0],
+    "LeftHandPinky3": [0.0, 0.0, 0.0, 1.0],
+    "LeftHandPinky4": [0.13740319, 0.10453116, -0.01238184, 0.98490623],
+    "RightShoulder": [0.50413132, -0.49031088, 0.51388824, 0.49128986],
+    "RightArm": [-0.01927656, 0.19180338, 0.00011838, 0.98124404],
+    "RightForeArm": [-1e-08, 0.0, -0.02617688, 0.99965733],
+    "RightHand": [0.00714942, -0.27302628, 0.02518163, 0.96165036],
+    "RightHandThumb1": [1e-08, 0.0, -0.41000486, 0.91208334],
+    "RightHandThumb2": [2e-08, -2e-08, 0.41000252, 0.91208439],
+    "RightHandThumb3": [0.0, 0.0, 0.0, 1.0],
+    "RightHandThumb4": [0.01298076, -0.05237793, 0.00692649, 0.99851894],
+    "RightHandIndex1": [0.0, 0.0, 0.0, 1.0],
+    "RightHandIndex2": [0.0, 0.0, 0.0, 1.0],
+    "RightHandIndex3": [0.0, 0.0, 0.0, 1.0],
+    "RightHandIndex4": [0.044795, -0.05673525, 0.00713721, 0.9973583],
+    "RightHandMiddle1": [0.0, 0.0, 0.0, 1.0],
+    "RightHandMiddle2": [0.0, 0.0, 0.0, 1.0],
+    "RightHandMiddle3": [0.0, 0.0, 0.0, 1.0],
+    "RightHandMiddle4": [0.02380402, -0.02246819, 0.00164216, 0.99946278],
+    "RightHandRing1": [0.0, 0.0, 0.0, 1.0],
+    "RightHandRing2": [0.0, 0.0, 0.0, 1.0],
+    "RightHandRing3": [0.0390516, -1e-08, 0.0, 0.9992372],
+    "RightHandRing4": [0.00665799, 0.00690641, -0.02211559, 0.99970939],
+    "RightHandPinky1": [0.0, 0.0, 0.0, 1.0],
+    "RightHandPinky2": [0.0, 0.0, 0.0, 1.0],
+    "RightHandPinky3": [0.0, 0.0, 0.0, 1.0],
+    "RightHandPinky4": [0.13739918, -0.10453588, 0.01238135, 0.9849063],
+    "LeftUpLeg": [2.623e-05, -0.02166901, 0.9997652, 5.7e-07],
+    "LeftLeg": [-0.01745242, 0.0, 0.0, 0.99984769],
+    "LeftFoot": [0.51143367, 0.0519562, 0.02041017, 0.85750777],
+    "LeftToeBase": [0.26822883, -0.04375387, 0.01854728, 0.96218236],
+    "LeftToe_End": [0.0069079, 0.69840903, 0.01767031, 0.71544732],
+    "RightUpLeg": [2.623e-05, -0.02166901, 0.9997652, 5.7e-07],
+    "RightLeg": [-0.01745234, 0.0, 0.0, 0.9998477],
+    "RightFoot": [0.51143455, -0.05195823, -0.02041123, 0.8575071],
+    "RightToeBase": [0.26822859, 0.04374935, -0.01855645, 0.96218246],
+    "RightToe_End": [0.00690714, -0.69842994, -0.01767031, 0.71542692],
+}
+
+
+def migrate_single_character_glb(path, rpm_tpose_path=RPM_TPOSE_PATH):
+    if rpm_tpose_path and os.path.exists(rpm_tpose_path):
+        rpm_local_rots, _ = load_rpm_reference_rotations(rpm_tpose_path)
+    else:
+        hoodie_ref = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            "character_hoodie.glb",
+        )
+        if os.path.exists(hoodie_ref) and os.path.abspath(hoodie_ref) != os.path.abspath(path):
+            rpm_local_rots, _ = load_rpm_reference_rotations(hoodie_ref)
+        else:
+            rpm_local_rots = {k: quat_normalize(v) for k, v in CANONICAL_RPM_LOCAL_ROTATIONS.items()}
+    return migrate_character_glb(path, rpm_local_rots)
 
 
 def main():
+    if len(sys.argv) > 1 and not sys.argv[1].startswith("-"):
+        for arg_path in sys.argv[1:]:
+            migrate_single_character_glb(os.path.abspath(arg_path))
+        return
+
     workspace = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     if not os.path.exists(RPM_TPOSE_PATH):
         raise FileNotFoundError(f"Missing RPM reference T-Pose: {RPM_TPOSE_PATH}")

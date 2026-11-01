@@ -1,0 +1,176 @@
+<!doctype html>
+<!-- SPDX-License-Identifier: GPL-3.0-or-later -->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Super Smash Bros. Melee — Decompiled WebApp (doldecomp/melee + aurora)</title>
+  <link rel="icon" href="data:,">
+  <style>
+    :root {
+      color-scheme: dark;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 980px;
+      padding: 16px;
+      background: #0d0f14;
+      color: #eef2f7;
+      font: 15px/1.45 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 8px;
+    }
+    h1 {
+      margin: 0;
+      font-size: 22px;
+      letter-spacing: 0.01em;
+    }
+    .subtitle {
+      color: #8b95a7;
+      font-size: 13px;
+    }
+    canvas {
+      display: block;
+      width: 100%;
+      height: auto;
+      aspect-ratio: 4 / 3;
+      background: #000;
+      border-radius: 6px;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55);
+      outline: none;
+    }
+    #bar, #rig-bar {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin: 10px 0 12px;
+      padding: 8px 12px;
+      background: #161a22;
+      border: 1px solid #262c3a;
+      border-radius: 6px;
+    }
+    #rig-bar label {
+      font-size: 12.5px;
+      color: #8b95a7;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    #rig-bar select {
+      background: #0d0f14;
+      color: #eef2f7;
+      border: 1px solid #30363d;
+      border-radius: 5px;
+      padding: 5px 10px;
+      font-size: 13px;
+      font-weight: 500;
+    }
+    #rig-play-btn {
+      background: #1f6feb;
+    }
+    #rig-status {
+      font-size: 12.5px;
+      color: #79c0ff;
+      font-weight: 500;
+    }
+    #stats {
+      margin-left: auto;
+      font-variant-numeric: tabular-nums;
+      color: #7ee787;
+      font-weight: 600;
+    }
+    #status {
+      color: #f2cc60;
+      font-weight: 500;
+    }
+    button {
+      background: #238636;
+      color: #fff;
+      border: 1px solid rgba(240, 246, 252, 0.1);
+      border-radius: 5px;
+      padding: 5px 14px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    button:disabled {
+      background: #21262d;
+      color: #6e7681;
+      cursor: not-allowed;
+    }
+    .controls {
+      margin: 12px 0;
+      color: #c9d1d9;
+      font-size: 13.5px;
+    }
+    kbd {
+      background: #21262d;
+      border: 1px solid #30363d;
+      border-radius: 4px;
+      padding: 1px 6px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 12px;
+    }
+    pre {
+      white-space: pre-wrap;
+      color: #8b949e;
+      background: #11151c;
+      border: 1px solid #21262d;
+      border-radius: 6px;
+      padding: 10px;
+      font-size: 12px;
+      max-height: 14em;
+      overflow: auto;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Super Smash Bros. Melee</h1>
+    <span class="subtitle">Standalone Decompilation WebApp · <code>doldecomp/melee</code> + <code>aurora</code> (WebGPU)</span>
+  </header>
+  <div id="bar">
+    <input id="disc" type="file" accept=".iso,.gcm">
+    <button id="start" disabled>Start</button>
+    <span id="status">Loading engine…</span>
+    <span id="stats"></span>
+  </div>
+  <div id="rig-bar">
+    <label for="gcs-char-select">GCS Character:
+      <select id="gcs-char-select">
+        <option value="nicotest_nt01|run_01">nicotest_nt01 / run_01 (character_full.glb)</option>
+      </select>
+    </label>
+    <label for="fighter-select">Melee Fighter:
+      <select id="fighter-select">
+        <option value="Ca">Captain Falcon (Ca · 63 bones)</option>
+      </select>
+    </label>
+    <button id="rig-play-btn" type="button">Rig &amp; Play as Character</button>
+    <span id="rig-status"></span>
+  </div>
+  <canvas id="canvas" width="960" height="720" tabindex="0"></canvas>
+  <p class="controls">
+    <kbd>Arrows</kbd> Control Stick ·
+    <kbd>X</kbd> A ·
+    <kbd>Z</kbd> B ·
+    <kbd>C</kbd> X (Jump) ·
+    <kbd>V</kbd> Y (Jump) ·
+    <kbd>Q</kbd> L (Shield) ·
+    <kbd>E</kbd> R (Shield) ·
+    <kbd>Tab</kbd> Z (Grab) ·
+    <kbd>Enter</kbd> Start ·
+    <kbd>I</kbd><kbd>J</kbd><kbd>K</kbd><kbd>L</kbd> C-Stick
+  </p>
+  <pre id="log"></pre>
+  <script type="module" src="./shell.mjs"></script>
+</body>
+</html>

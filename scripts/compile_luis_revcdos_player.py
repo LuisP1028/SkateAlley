@@ -17,6 +17,7 @@ Ingests the un-rigged glTF 2.0 character asset `/Users/diesel/desktop/skatealley
    cutscene player files in `/revcdos/vcsky/fetched/models/gta3.img/`.
 """
 
+import argparse
 import io
 import json
 import math
@@ -26,6 +27,8 @@ import struct
 import subprocess
 import sys
 import tempfile
+import time
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 # Re-invoke under greek_env python if numpy/cv2 are not in the active interpreter
 try:
@@ -37,7 +40,17 @@ except ImportError:
         os.execv(GREEK_PY, [GREEK_PY] + sys.argv)
     raise
 
-REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+REPO_ROOT = os.path.dirname(SCRIPT_DIR)
+if SCRIPT_DIR not in sys.path:
+    sys.path.insert(0, SCRIPT_DIR)
+
+from gcs_rig_intake import (
+    add_gcs_rig_cli_args,
+    intake_assembled_character_for_rigging,
+    select_pose_intake,
+    sync_target_rigged_deliverables,
+)
 SOURCE_GLB_PATH = os.path.join(REPO_ROOT, "LUIS_TPOSE_STANDALONE_BACKUP.glb")
 VC_DATA_PATH = os.path.join(REPO_ROOT, "revcdos", "vcbr", "vc-sky-en-v6.data")
 OUT_DIR = os.path.join(REPO_ROOT, "revcdos", "vcbr", "luis_player")
@@ -75,14 +88,18 @@ def read_stock_slices():
 
 
 def load_and_validate_unrigged_glb(glb_path=SOURCE_GLB_PATH):
+    """
+    Loads any valid glTF 2.0 `.glb` binary (`.glb`-file agnostic: supports 1..N primitives,
+    0..N materials/textures, and arbitrary byte sizes).
+    """
     if not os.path.isfile(glb_path):
-        raise FileNotFoundError(f"Missing un-rigged source GLB: {glb_path}")
+        raise FileNotFoundError(f"Missing source GLB: {glb_path}")
 
     with open(glb_path, "rb") as f:
         glb = f.read()
 
-    if len(glb) != 5285932:
-        raise ValueError(f"Expected LUIS_TPOSE_STANDALONE_BACKUP.glb to be 5,285,932 bytes, got {len(glb)}")
+    if len(glb) < 28:
+        raise ValueError(f"GLB file too small ({len(glb)} bytes): {glb_path}")
 
     magic, version, total_len = struct.unpack_from("<III", glb, 0)
     if magic != 0x46546C67 or version != 2:
@@ -91,40 +108,108 @@ def load_and_validate_unrigged_glb(glb_path=SOURCE_GLB_PATH):
     j_len, j_type = struct.unpack_from("<II", glb, 12)
     gltf = json.loads(glb[20 : 20 + j_len].decode("utf-8"))
     b_off = 20 + j_len
-    b_len, b_type = struct.unpack_from("<II", glb, b_off)
-    bin_buf = glb[b_off + 8 : b_off + 8 + b_len]
+    bin_buf = b""
+    if b_off + 8 <= len(glb):
+        b_len, b_type = struct.unpack_from("<II", glb, b_off)
+        bin_buf = glb[b_off + 8 : b_off + 8 + b_len]
 
-    if len(gltf.get("skins", [])) != 0:
-        raise ValueError("Source GLB must be un-rigged (skins == [])")
-
-    prims = gltf["meshes"][0]["primitives"]
-    if len(prims) != 2:
-        raise ValueError(f"Expected 2 primitives (Body + Head/Hair), got {len(prims)}")
+    meshes = gltf.get("meshes") or []
+    if not meshes or not any(m.get("primitives") for m in meshes):
+        raise ValueError(f"Source GLB '{glb_path}' contains zero mesh primitives.")
 
     return gltf, bin_buf
 
 
-def build_composite_atlas_images(gltf, bin_buf):
-    """
-    Decode the 2 embedded 2048x2048 PNG textures (Body + Head/Hair) and pack them into
-    a unified 256x256 RGB texture atlas:
-      - Left half (x in 0..127, U in [0.0, 0.5]): Body texture (images[0])
-      - Right half (x in 128..255, U in [0.5, 1.0]): Head/Hair texture (images[1])
-    """
-    imgs = []
-    for i in range(2):
-        img_meta = gltf["images"][i]
-        bv = gltf["bufferViews"][img_meta["bufferView"]]
-        raw_png = bin_buf[bv["byteOffset"] : bv["byteOffset"] + bv["byteLength"]]
-        bgr = cv2.imdecode(np.frombuffer(raw_png, dtype=np.uint8), cv2.IMREAD_COLOR)
-        rgb = cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)
-        imgs.append(rgb)
+def _decode_glb_image_rgb(gltf, bin_buf, img_idx):
+    images = gltf.get("images") or []
+    if not (0 <= img_idx < len(images)):
+        return None
+    img_meta = images[img_idx]
+    if "bufferView" not in img_meta:
+        return None
+    bv = gltf["bufferViews"][img_meta["bufferView"]]
+    off = int(bv.get("byteOffset", 0))
+    raw_bytes = bin_buf[off : off + int(bv["byteLength"])]
+    bgr = cv2.imdecode(np.frombuffer(raw_bytes, dtype=np.uint8), cv2.IMREAD_COLOR)
+    if bgr is None:
+        return None
+    return cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)
 
-    body_half = cv2.resize(imgs[0], (128, 256), interpolation=cv2.INTER_AREA)
-    head_half = cv2.resize(imgs[1], (128, 256), interpolation=cv2.INTER_AREA)
+
+def build_composite_atlas_images(gltf, bin_buf, return_uv_transforms=False):
+    """
+    Generalized `256x256` RGB texture atlas builder supporting `M >= 0` materials/textures:
+      - `M == 0`: solid RGB tile from default `baseColorFactor`
+      - `M == 1`: single `256x256` full-frame texture (`u_off=0.0, u_scale=1.0, v_off=0.0, v_scale=1.0`)
+      - `M == 2`: left/right `128x256` split (`mat 0 -> U in [0.0, 0.5]`, `mat 1 -> U in [0.5, 1.0]`)
+      - `M >= 3`: `N_cols x N_rows` grid inside `256x256`
+    """
+    materials = gltf.get("materials") or []
+    textures = gltf.get("textures") or []
+    images = gltf.get("images") or []
+
+    mat_tiles = []
+    if materials:
+        for mat in materials:
+            pbr = mat.get("pbrMetallicRoughness") or {}
+            bct = pbr.get("baseColorTexture")
+            rgb_tile = None
+            if isinstance(bct, dict) and "index" in bct:
+                t_idx = int(bct["index"])
+                if 0 <= t_idx < len(textures):
+                    src_idx = textures[t_idx].get("source")
+                    if src_idx is not None:
+                        rgb_tile = _decode_glb_image_rgb(gltf, bin_buf, int(src_idx))
+            if rgb_tile is None:
+                bcf = pbr.get("baseColorFactor") or [0.78, 0.78, 0.78, 1.0]
+                r8 = int(np.clip(round(float(bcf[0]) * 255.0), 0, 255))
+                g8 = int(np.clip(round(float(bcf[1]) * 255.0), 0, 255))
+                b8 = int(np.clip(round(float(bcf[2]) * 255.0), 0, 255))
+                rgb_tile = np.full((64, 64, 3), (r8, g8, b8), dtype=np.uint8)
+            mat_tiles.append(rgb_tile)
+    elif images:
+        for idx in range(len(images)):
+            rgb_tile = _decode_glb_image_rgb(gltf, bin_buf, idx)
+            if rgb_tile is not None:
+                mat_tiles.append(rgb_tile)
+
+    if not mat_tiles:
+        mat_tiles = [np.full((64, 64, 3), (200, 200, 200), dtype=np.uint8)]
+
+    k_mats = len(mat_tiles)
     atlas_rgb = np.zeros((256, 256, 3), dtype=np.uint8)
-    atlas_rgb[:, :128, :] = body_half
-    atlas_rgb[:, 128:, :] = head_half
+    uv_transforms: Dict[int, Tuple[float, float, float, float]] = {}
+
+    if k_mats == 1:
+        atlas_rgb[:, :, :] = cv2.resize(mat_tiles[0], (256, 256), interpolation=cv2.INTER_AREA)
+        uv_transforms[0] = (0.0, 1.0, 0.0, 1.0)
+    elif k_mats == 2:
+        atlas_rgb[:, :128, :] = cv2.resize(mat_tiles[0], (128, 256), interpolation=cv2.INTER_AREA)
+        atlas_rgb[:, 128:, :] = cv2.resize(mat_tiles[1], (128, 256), interpolation=cv2.INTER_AREA)
+        uv_transforms[0] = (0.0, 0.5, 0.0, 1.0)
+        uv_transforms[1] = (0.5, 0.5, 0.0, 1.0)
+    else:
+        n_cols = int(math.ceil(math.sqrt(k_mats)))
+        n_rows = int(math.ceil(float(k_mats) / float(n_cols)))
+        for m_idx, tile in enumerate(mat_tiles):
+            col = m_idx % n_cols
+            row = m_idx // n_cols
+            x0 = int(round(col * 256.0 / n_cols))
+            x1 = int(round((col + 1) * 256.0 / n_cols))
+            y0 = int(round(row * 256.0 / n_rows))
+            y1 = int(round((row + 1) * 256.0 / n_rows))
+            atlas_rgb[y0:y1, x0:x1, :] = cv2.resize(
+                tile, (max(1, x1 - x0), max(1, y1 - y0)), interpolation=cv2.INTER_AREA
+            )
+            uv_transforms[m_idx] = (
+                float(x0) / 256.0,
+                float(x1 - x0) / 256.0,
+                float(y0) / 256.0,
+                float(y1 - y0) / 256.0,
+            )
+
+    if return_uv_transforms:
+        return atlas_rgb, uv_transforms
     return atlas_rgb
 
 
@@ -282,11 +367,11 @@ def compile_player_bmp(atlas_rgb, stock_bmp_bytes):
     return bmp_bytes
 
 
-def decimate_luis_mesh_blender(glb_path, ratio=0.16):
+def decimate_luis_mesh_blender(glb_path, ratio=None, target_tris=2800):
     """
-    Run Blender headless to weld interior vertices and decimate `LUIS_TPOSE_STANDALONE_BACKUP.glb`
-    with `delimit={'MATERIAL', 'UV'}`, returning `(positions, normals, uvs, mat_indices, triangles)`
-    in glTF coordinate space.
+    Run Blender headless to join all mesh objects, weld interior vertices, and adaptively decimate
+    `glb_path` to `target_tris` (~3,200 triangles, 1,800-4,200 vertices) with `delimit={'MATERIAL', 'UV'}`,
+    returning `(positions, normals, uvs, mat_indices, triangles)` in glTF coordinate space.
     """
     with tempfile.NamedTemporaryFile(suffix=".npz", delete=False) as tmp:
         out_npz = tmp.name
@@ -297,7 +382,15 @@ import numpy as np
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
 bpy.ops.import_scene.gltf(filepath={glb_path!r})
-obj = [o for o in bpy.data.objects if o.type == 'MESH'][0]
+meshes = [o for o in bpy.context.scene.objects if o.type == 'MESH']
+bpy.ops.object.select_all(action='DESELECT')
+for m in meshes:
+    m.select_set(True)
+bpy.context.view_layer.objects.active = meshes[0]
+if len(meshes) > 1:
+    bpy.ops.object.join()
+obj = bpy.context.view_layer.objects.active
+bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
 
 bm = bmesh.new()
 bm.from_mesh(obj.data)
@@ -306,9 +399,16 @@ bmesh.ops.triangulate(bm, faces=bm.faces)
 bm.to_mesh(obj.data)
 bm.free()
 
+tot_faces = max(1, len(obj.data.polygons))
+req_ratio = {ratio!r}
+if req_ratio is None:
+    eff_ratio = min(1.0, max(0.01, float({int(target_tris)}) / float(tot_faces)))
+else:
+    eff_ratio = float(req_ratio)
+
 mod = obj.modifiers.new(name='Dec', type='DECIMATE')
 mod.decimate_type = 'COLLAPSE'
-mod.ratio = {ratio}
+mod.ratio = eff_ratio
 mod.delimit = {{'MATERIAL', 'UV'}}
 dg = bpy.context.evaluated_depsgraph_get()
 em = obj.evaluated_get(dg).to_mesh()
@@ -319,7 +419,8 @@ bmesh.ops.triangulate(bm2, faces=bm2.faces)
 bm2.to_mesh(em)
 bm2.free()
 
-uv_layer = em.uv_layers.active.data
+has_uv = em.uv_layers.active is not None
+uv_layer = em.uv_layers.active.data if has_uv else None
 vert_map = {{}}
 positions = []
 normals = []
@@ -332,9 +433,12 @@ for poly in em.polygons:
     tri_idx = []
     for li in poly.loop_indices:
         v_idx = em.loops[li].vertex_index
-        uv = uv_layer[li].uv
-        u_g = float(uv[0])
-        v_g = float(1.0 - uv[1])
+        if uv_layer is not None:
+            uv = uv_layer[li].uv
+            u_g = float(uv[0])
+            v_g = float(1.0 - uv[1])
+        else:
+            u_g, v_g = 0.5, 0.5
         key = (v_idx, m_id, round(u_g, 4), round(v_g, 4))
         out_vi = vert_map.get(key)
         if out_vi is None:
@@ -379,60 +483,193 @@ np.savez(
             os.remove(out_npz)
 
 
-def calibrate_tpose_and_remap_uvs(positions, normals, uvs, mat_ids):
+def _normalize_to_2m_and_lift_apose_arms(positions, normals, skeleton_metrics=None):
     """
-    Transform decimated glTF T-pose vertices into stock `player.dff` bind-pose space
-    and remap `prim[0]` / `prim[1]` UVs into the single `"player"` texture atlas.
+    Normalizes arbitrary glTF character coordinates to canonical `2.000m` height (`y in [0.0, 2.0]`)
+    and automatically lifts downward A-pose arms (`x_arm_max < 0.75m` or `skeleton_metrics["is_apose"]`)
+    into a horizontal T-pose around the character's measured shoulder pivots (`skeleton_metrics["joints_y_up"]`
+    or `(±0.195m, 1.540m)` fallback) so all characters align with `player.dff`'s horizontal HAnim arm bones.
+    Leaves already-horizontal T-pose meshes unchanged.
     """
-    x_g = positions[:, 0]
-    y_g = positions[:, 1]
-    z_g = positions[:, 2]
+    pos = np.asarray(positions, dtype=np.float64).copy()
+    nrm = np.asarray(normals, dtype=np.float64).copy()
 
-    # 1. X: scale [-0.9018, +0.9018] -> [-0.8730, +0.8730]
-    x_dff = x_g * (0.8730 / 0.9018285)
+    p_min = pos.min(axis=0)
+    p_max = pos.max(axis=0)
+    raw_h = max(1e-6, float(p_max[1] - p_min[1]))
+    # If not already normalized to 2.000m (e.g. raw stature != 2.0), normalize to 2.000m
+    if abs(raw_h - 2.0) > 0.02 or abs(float(p_min[1])) > 0.02:
+        s = 2.0 / raw_h
+        x_mid = 0.5 * float(p_min[0] + p_max[0])
+        z_mid = 0.5 * float(p_min[2] + p_max[2])
+        pos[:, 0] = (pos[:, 0] - x_mid) * s
+        pos[:, 1] = (pos[:, 1] - float(p_min[1])) * s
+        pos[:, 2] = (pos[:, 2] - z_mid) * s
 
-    # 2. Y: piecewise-linear anatomical landmark alignment
-    # Soles (0.0) -> -0.9814, Knees (0.50) -> -0.4565, Pelvis (0.98) -> 0.0000,
-    # Shoulder/Arm centerline (1.588) -> +0.5370, Neck/Head base (1.6844) -> +0.6000, Crown (2.00) -> +0.8548
+    jy = (skeleton_metrics or {}).get("joints_y_up") if isinstance(skeleton_metrics, dict) else None
+    if isinstance(skeleton_metrics, dict) and skeleton_metrics.get("is_apose") is False:
+        return pos.astype(np.float32), nrm.astype(np.float32)
+
+    x_g = pos[:, 0]
+    y_g = pos[:, 1]
+    arm_band = (np.abs(x_g) > 0.215) & (y_g >= 0.78) & (y_g <= 1.65)
+    if arm_band.any():
+        x_arm_max = float(np.abs(x_g[arm_band]).max())
+        is_apose_flag = bool(skeleton_metrics.get("is_apose")) if isinstance(skeleton_metrics, dict) and "is_apose" in skeleton_metrics else (x_arm_max < 0.75)
+        if is_apose_flag and x_arm_max < 0.78:
+            # Downward A-pose detected: use measured shoulder & wrist landmarks when available
+            x_sh, y_sh = 0.195, 1.540
+            x_wr, y_wr = None, None
+            if isinstance(jy, dict):
+                sh_l = jy.get("shoulder_l")
+                sh_r = jy.get("shoulder_r")
+                wr_l = jy.get("wrist_l")
+                wr_r = jy.get("wrist_r")
+                if sh_l and sh_r and len(sh_l) == 3 and len(sh_r) == 3:
+                    x_sh = max(0.16, min(0.24, 0.5 * (abs(float(sh_l[0])) + abs(float(sh_r[0])))))
+                    y_sh = max(1.38, min(1.58, 0.5 * (float(sh_l[1]) + float(sh_r[1]))))
+                if wr_l and wr_r and len(wr_l) == 3 and len(wr_r) == 3:
+                    x_wr = 0.5 * (abs(float(wr_l[0])) + abs(float(wr_r[0])))
+                    y_wr = 0.5 * (float(wr_l[1]) + float(wr_r[1]))
+            if x_wr is None or y_wr is None:
+                wrist_mask = arm_band & (np.abs(x_g) >= 0.80 * x_arm_max)
+                if wrist_mask.any():
+                    x_wr = float(np.median(np.abs(x_g[wrist_mask])))
+                    y_wr = float(np.median(y_g[wrist_mask]))
+            if x_wr is not None and y_wr is not None:
+                theta_down = math.atan2(y_wr - y_sh, max(0.05, x_wr - x_sh))
+                if theta_down < -0.15:
+                    lift_angle = -theta_down
+                    ax_x = np.abs(x_g)
+                    y_arm_min = np.minimum(1.05, np.maximum(0.75, 1.18 - 1.50 * (ax_x - 0.215)))
+                    iso_arm = (ax_x > 0.185) & (y_g >= y_arm_min) & (y_g <= 1.64)
+                    idxs = np.where(iso_arm)[0]
+                    for i in idxs:
+                        xv, yv = float(pos[i, 0]), float(pos[i, 1])
+                        sgn = 1.0 if xv >= 0.0 else -1.0
+                        t_b = max(0.0, min(1.0, (abs(xv) - 0.185) / (0.245 - 0.185)))
+                        s_b = t_b * t_b * (3.0 - 2.0 * t_b)
+                        ang = sgn * lift_angle * s_b
+                        ca, sa = math.cos(ang), math.sin(ang)
+                        px_s = sgn * x_sh
+                        dx = xv - px_s
+                        dy = yv - y_sh
+                        pos[i, 0] = px_s + dx * ca - dy * sa
+                        pos[i, 1] = y_sh + dx * sa + dy * ca
+                        nx, ny = float(nrm[i, 0]), float(nrm[i, 1])
+                        nrm[i, 0] = nx * ca - ny * sa
+                        nrm[i, 1] = nx * sa + ny * ca
+
+    return pos.astype(np.float32), nrm.astype(np.float32)
+
+
+def calibrate_tpose_and_remap_uvs(
+    positions,
+    normals,
+    uvs,
+    mat_ids,
+    uv_transforms=None,
+    head_mat_indices=None,
+    y_neck_norm=1.640,
+    skeleton_metrics=None,
+):
+    """
+    Transform decimated glTF vertices into stock `player.dff` bind-pose space
+    using character-specific `skeleton_metrics` landmarks and remap material UVs
+    into the single `"player"` texture atlas.
+    """
+    pos_tpose, norm_tpose = _normalize_to_2m_and_lift_apose_arms(
+        positions, normals, skeleton_metrics=skeleton_metrics
+    )
+    x_g = pos_tpose[:, 0]
+    y_g = pos_tpose[:, 1]
+    z_g = pos_tpose[:, 2]
+
+    # 1. X: scale horizontal wingspan [-x_max, +x_max] -> [-0.8730, +0.8730]
+    x_max_span = max(0.75, float(np.abs(x_g).max()))
+    x_dff = x_g * (0.8730 / x_max_span)
+
+    # 2. Y: piecewise-linear anatomical landmark alignment parameterized by skeleton_metrics when present
+    y_knee_src = 0.5000
+    y_pelvis_src = 0.9800
+    y_sh_src = 1.5880
+    y_neck_src = 1.6844
+    if isinstance(skeleton_metrics, dict) and isinstance(skeleton_metrics.get("joints_y_up"), dict):
+        jy = skeleton_metrics["joints_y_up"]
+        kn_l = jy.get("knee_l")
+        kn_r = jy.get("knee_r")
+        pelv = jy.get("pelvis")
+        sh_l = jy.get("shoulder_l")
+        sh_r = jy.get("shoulder_r")
+        nk = jy.get("neck_01")
+        if kn_l and kn_r and len(kn_l) == 3 and len(kn_r) == 3:
+            y_knee_src = max(0.36, min(0.56, 0.5 * (float(kn_l[1]) + float(kn_r[1]))))
+        if pelv and len(pelv) == 3:
+            y_pelvis_src = max(y_knee_src + 0.25, min(1.06, float(pelv[1])))
+        if sh_l and sh_r and len(sh_l) == 3 and len(sh_r) == 3:
+            y_sh_src = max(y_pelvis_src + 0.32, min(1.62, 0.5 * (float(sh_l[1]) + float(sh_r[1]))))
+        if nk and len(nk) == 3:
+            y_neck_src = max(y_sh_src + 0.04, min(1.76, float(nk[1])))
+
     y_dff = np.interp(
         y_g,
-        [0.0000, 0.5000, 0.9800, 1.5880, 1.6844, 2.0000],
+        [0.0000, y_knee_src, y_pelvis_src, y_sh_src, y_neck_src, 2.0000],
         [-0.9814, -0.4565, 0.0000, 0.5370, 0.6000, 0.8548],
     ).astype(np.float32)
+
+    # Determine head vertices via material index or canonical neck plane
+    if head_mat_indices is not None and len(head_mat_indices) > 0:
+        is_head = np.isin(mat_ids, list(head_mat_indices))
+    elif int(mat_ids.max()) == 1 and int(mat_ids.min()) == 0:
+        is_head = mat_ids == 1
+    else:
+        is_head = (y_g >= float(y_neck_norm)) & (np.abs(x_g) <= 0.22)
 
     # 3. Z: align torso/legs around Z=-0.03, arms around Z=-0.074, head around Z=-0.035
     arm_t = np.clip((np.abs(x_g) - 0.18) / (0.35 - 0.18), 0.0, 1.0)
     arm_s = arm_t * arm_t * (3.0 - 2.0 * arm_t)
     z_body = z_g * 0.78 - 0.035 - 0.068 * arm_s
     z_head = z_g * 0.80 - 0.010
-    z_dff = np.where(mat_ids == 1, z_head, z_body).astype(np.float32)
+    z_dff = np.where(is_head, z_head, z_body).astype(np.float32)
     z_dff = np.clip(z_dff, -0.1840, 0.1705)
 
     aligned_pos = np.stack([x_dff.astype(np.float32), y_dff, z_dff], axis=-1)
 
     # Re-normalize vertex normals
-    n_len = np.linalg.norm(normals, axis=-1, keepdims=True)
-    aligned_norm = np.where(n_len > 1e-8, normals / np.maximum(n_len, 1e-8), np.array([0.0, 1.0, 0.0], dtype=np.float32)).astype(np.float32)
+    n_len = np.linalg.norm(norm_tpose, axis=-1, keepdims=True)
+    aligned_norm = np.where(
+        n_len > 1e-8,
+        norm_tpose / np.maximum(n_len, 1e-8),
+        np.array([0.0, 1.0, 0.0], dtype=np.float32),
+    ).astype(np.float32)
 
-    # Remap UVs: prim[0] (Body) -> left half [0.0, 0.5], prim[1] (Head) -> right half [0.5, 1.0]
+    # Remap UVs using per-material affine transform (defaults to 2-material left/right split when uv_transforms is None)
     u_clamped = np.clip(uvs[:, 0], 0.002, 0.998)
     v_clamped = np.clip(uvs[:, 1], 0.002, 0.998)
-    u_atlas = np.where(mat_ids == 1, 0.5 + 0.5 * u_clamped, 0.5 * u_clamped).astype(np.float32)
-    v_atlas = v_clamped.astype(np.float32)
+    if uv_transforms:
+        u_atlas = np.empty_like(u_clamped, dtype=np.float32)
+        v_atlas = np.empty_like(v_clamped, dtype=np.float32)
+        default_tf = uv_transforms.get(0, (0.0, 1.0, 0.0, 1.0))
+        for m_val in np.unique(mat_ids):
+            u_off, u_sc, v_off, v_sc = uv_transforms.get(int(m_val), default_tf)
+            m_mask = mat_ids == m_val
+            u_atlas[m_mask] = np.float32(u_off) + np.float32(u_sc) * u_clamped[m_mask]
+            v_atlas[m_mask] = np.float32(v_off) + np.float32(v_sc) * v_clamped[m_mask]
+    else:
+        u_atlas = np.where(mat_ids == 1, 0.5 + 0.5 * u_clamped, 0.5 * u_clamped).astype(np.float32)
+        v_atlas = v_clamped.astype(np.float32)
+
     aligned_uv = np.stack([u_atlas, v_atlas], axis=-1)
 
     return aligned_pos, aligned_norm, aligned_uv
 
 
-def compute_24bone_skin_weights(positions, mat_ids):
+def compute_24bone_skin_weights(positions, mat_ids, head_mat_indices=None):
     """
     Compute anatomical 4-bone skin weights (`uint8[4]` bone indices in `1..23` + `float32[4]`
     normalized weights summing to `1.0000`) for the 24-bone RenderWare HAnim hierarchy in `player.dff`.
     """
     n_verts = len(positions)
-    # Define the 23 active anatomical bone segments (indices 1..23; index 0 = Root is unused for skinning)
-    # Each entry: (bone_idx, p0, p1, sigma, side_rule)
-    # side_rule: 'center', 'left_arm', 'right_arm', 'left_leg', 'right_leg', 'head'
     segments = [
         (1, (-0.004, -0.060, -0.021), (0.000, 0.050, -0.045), 0.11, "center"),       # Pelvis
         (2, (0.000, 0.050, -0.045), (0.000, 0.240, -0.071), 0.12, "center"),         # Spine
@@ -467,6 +704,15 @@ def compute_24bone_skin_weights(positions, mat_ids):
     px = positions[:, 0]
     py = positions[:, 1]
 
+    if head_mat_indices is not None and len(head_mat_indices) > 0:
+        is_head_prim = np.isin(mat_ids, list(head_mat_indices))
+    elif int(mat_ids.max()) == 1 and int(mat_ids.min()) == 0:
+        is_head_prim = mat_ids == 1
+    else:
+        is_head_prim = (py > 0.56) & (np.abs(px) < 0.18)
+
+    is_body_prim = ~is_head_prim
+
     for b_idx, p0, p1, sigma, rule in segments:
         a = np.array(p0, dtype=np.float64)
         b = np.array(p1, dtype=np.float64)
@@ -482,19 +728,19 @@ def compute_24bone_skin_weights(positions, mat_ids):
 
         # Enforce strict anatomical region isolation
         if rule == "head":
-            mask = (mat_ids == 1) | ((py > 0.56) & (np.abs(px) < 0.16))
+            mask = is_head_prim | ((py > 0.56) & (np.abs(px) < 0.16))
             w = np.where(mask, w * 4.0, 0.0)
         elif rule == "left_arm":
-            mask = (mat_ids == 0) & (px > 0.02) & (py > 0.25)
+            mask = is_body_prim & (px > 0.02) & (py > 0.25)
             w = np.where(mask, w, 0.0)
         elif rule == "right_arm":
-            mask = (mat_ids == 0) & (px < -0.02) & (py > 0.25)
+            mask = is_body_prim & (px < -0.02) & (py > 0.25)
             w = np.where(mask, w, 0.0)
         elif rule == "left_leg":
-            mask = (mat_ids == 0) & (px >= -0.005) & (py < 0.06)
+            mask = is_body_prim & (px >= -0.005) & (py < 0.06)
             w = np.where(mask, w, 0.0)
         elif rule == "right_leg":
-            mask = (mat_ids == 0) & (px < 0.005) & (py < 0.06)
+            mask = is_body_prim & (px < 0.005) & (py < 0.06)
             w = np.where(mask, w, 0.0)
         elif rule == "center":
             mask = (np.abs(px) < 0.24) & (py > -0.18) & (py < 0.66)
@@ -502,8 +748,8 @@ def compute_24bone_skin_weights(positions, mat_ids):
 
         raw_weights[:, b_idx] = w
 
-    # Explicit head binding for prim[1] (Head/Hair): smooth blend between Head (5) and Neck (4)
-    head_mask = mat_ids == 1
+    # Explicit head binding for head primitive/region: smooth blend between Head (5) and Neck (4)
+    head_mask = is_head_prim
     if np.any(head_mask):
         raw_weights[head_mask, :] = 0.0
         w_h = np.clip((py[head_mask] - 0.55) / 0.10, 0.80, 1.0)
@@ -517,7 +763,6 @@ def compute_24bone_skin_weights(positions, mat_ids):
     for i in range(n_verts):
         row = raw_weights[i, 1:24]  # bones 1..23
         if row.max() <= 1e-12:
-            # Fallback to nearest bone in 1..23
             bone_indices[i, 0] = 1
             bone_weights[i, 0] = 1.0
             continue
@@ -525,13 +770,11 @@ def compute_24bone_skin_weights(positions, mat_ids):
         top4_rel = np.argsort(row)[::-1][:4]
         top4_bones = (top4_rel + 1).astype(np.uint8)
         top4_vals = row[top4_rel]
-        # Zero out negligible weights (< 1% of primary weight)
         keep = top4_vals >= (top4_vals[0] * 0.01)
         top4_vals = np.where(keep, top4_vals, 0.0)
         top4_bones = np.where(keep, top4_bones, 0).astype(np.uint8)
 
         w32 = (top4_vals / top4_vals.sum()).astype(np.float32)
-        # Adjust primary weight so float32 sum is 1.000000
         w32[0] = np.float32(1.0) - (w32[1] + w32[2] + w32[3])
         bone_indices[i] = top4_bones
         bone_weights[i] = w32
@@ -672,20 +915,50 @@ def mirror_outfits_and_cutscenes(dff_bytes, txd_bytes):
     return mirrored
 
 
-def build_all():
-    os.makedirs(OUT_DIR, exist_ok=True)
+def build_all(
+    source_glb_path: str = SOURCE_GLB_PATH,
+    out_dir: str = OUT_DIR,
+    head_mat_indices: Optional[Sequence[int]] = None,
+    y_neck_norm: float = 1.640,
+    target_tris: int = 2800,
+    skeleton_metrics: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    t0 = time.perf_counter()
+    os.makedirs(out_dir, exist_ok=True)
     stock_dff, stock_txd, stock_bmp = read_stock_slices()
-    gltf, bin_buf = load_and_validate_unrigged_glb(SOURCE_GLB_PATH)
+    gltf, bin_buf = load_and_validate_unrigged_glb(source_glb_path)
+
+    # Auto-detect head material indices if not provided
+    if head_mat_indices is None:
+        detected_heads = []
+        for idx, m in enumerate(gltf.get("materials") or []):
+            mname = str(m.get("name") or "").lower()
+            if "head" in mname or "hair" in mname or "face" in mname:
+                detected_heads.append(idx)
+        head_mat_indices = detected_heads
 
     # Step 1: Texture Atlas + player.txd + player.bmp
-    atlas_pil = build_composite_atlas_images(gltf, bin_buf)
-    txd_bytes = compile_player_txd(atlas_pil, stock_txd, tex_name="player")
-    bmp_bytes = compile_player_bmp(atlas_pil, stock_bmp)
+    atlas_rgb, uv_transforms = build_composite_atlas_images(gltf, bin_buf, return_uv_transforms=True)
+    txd_bytes = compile_player_txd(atlas_rgb, stock_txd, tex_name="player")
+    bmp_bytes = compile_player_bmp(atlas_rgb, stock_bmp)
 
     # Step 2: UV-preserving mesh decimation + T-pose calibration + 24-bone auto-rigging
-    positions, normals, uvs, mat_ids, triangles = decimate_luis_mesh_blender(SOURCE_GLB_PATH, ratio=0.16)
-    aligned_pos, aligned_norm, aligned_uv = calibrate_tpose_and_remap_uvs(positions, normals, uvs, mat_ids)
-    bone_indices, bone_weights = compute_24bone_skin_weights(aligned_pos, mat_ids)
+    positions, normals, uvs, mat_ids, triangles = decimate_luis_mesh_blender(
+        source_glb_path, ratio=None, target_tris=target_tris
+    )
+    aligned_pos, aligned_norm, aligned_uv = calibrate_tpose_and_remap_uvs(
+        positions,
+        normals,
+        uvs,
+        mat_ids,
+        uv_transforms=uv_transforms,
+        head_mat_indices=head_mat_indices,
+        y_neck_norm=y_neck_norm,
+        skeleton_metrics=skeleton_metrics,
+    )
+    bone_indices, bone_weights = compute_24bone_skin_weights(
+        aligned_pos, mat_ids, head_mat_indices=head_mat_indices
+    )
 
     # Step 3: RenderWare 0x0C02FFFF player.dff compilation
     dff_bytes = compile_player_dff(
@@ -698,10 +971,10 @@ def build_all():
         bone_weights,
     )
 
-    out_dff = os.path.join(OUT_DIR, "player.dff")
-    out_txd = os.path.join(OUT_DIR, "player.txd")
-    out_bmp = os.path.join(OUT_DIR, "player.bmp")
-    out_meta = os.path.join(OUT_DIR, "metadata.json")
+    out_dff = os.path.join(out_dir, "player.dff")
+    out_txd = os.path.join(out_dir, "player.txd")
+    out_bmp = os.path.join(out_dir, "player.bmp")
+    out_meta = os.path.join(out_dir, "metadata.json")
 
     with open(out_dff, "wb") as f:
         f.write(dff_bytes)
@@ -710,14 +983,21 @@ def build_all():
     with open(out_bmp, "wb") as f:
         f.write(bmp_bytes)
 
+    # Also mirror to default OUT_DIR if out_dir is custom so /revcdos/ runtime serves the newly compiled character
+    if os.path.abspath(out_dir) != os.path.abspath(OUT_DIR):
+        os.makedirs(OUT_DIR, exist_ok=True)
+        shutil.copy2(out_dff, os.path.join(OUT_DIR, "player.dff"))
+        shutil.copy2(out_txd, os.path.join(OUT_DIR, "player.txd"))
+        shutil.copy2(out_bmp, os.path.join(OUT_DIR, "player.bmp"))
+
     mirrored = mirror_outfits_and_cutscenes(dff_bytes, txd_bytes)
 
     active_bones = sorted(int(b) for b in np.unique(bone_indices) if b > 0)
     weight_sums = bone_weights.sum(axis=-1)
     meta = {
-        "sourceGlb": "LUIS_TPOSE_STANDALONE_BACKUP.glb",
-        "sourceGlbBytes": 5285932,
-        "unriggedSourceSkinsCount": 0,
+        "sourceGlb": os.path.basename(source_glb_path),
+        "sourceGlbBytes": os.path.getsize(source_glb_path),
+        "unriggedSourceSkinsCount": len(gltf.get("skins", [])),
         "numVertices": int(len(aligned_pos)),
         "numTriangles": int(len(triangles)),
         "numBones": 24,
@@ -731,13 +1011,124 @@ def build_all():
         "playerTxdBytes": len(txd_bytes),
         "playerBmpBytes": len(bmp_bytes),
         "mirroredFilesCount": len(mirrored),
+        "elapsedSec": round(time.perf_counter() - t0, 4),
+        "playerDffPath": out_dff,
+        "playerTxdPath": out_txd,
+        "playerBmpPath": out_bmp,
     }
     with open(out_meta, "w", encoding="utf-8") as f:
         json.dump(meta, f, indent=2)
+    if os.path.abspath(out_dir) != os.path.abspath(OUT_DIR):
+        with open(os.path.join(OUT_DIR, "metadata.json"), "w", encoding="utf-8") as f:
+            json.dump(meta, f, indent=2)
 
-    print(json.dumps(meta, indent=2))
     return meta
 
 
+def rig_assembled_glb_for_gta(
+    glb_path: Optional[str] = None,
+    telemetry_path: Optional[str] = None,
+    char_id: Optional[str] = None,
+    bucket_name: Optional[str] = None,
+    player_name: Optional[str] = None,
+    player_id: Optional[str] = None,
+    run_id: Optional[str] = None,
+    output_dir: Optional[str] = None,
+    credentials_path: Optional[str] = None,
+    precomputed_intake: Optional[Dict[str, Any]] = None,
+    sync_audit: bool = True,
+    return_sync_bundle: bool = False,
+) -> Dict[str, Any]:
+    """
+    Stage 5 `.glb`-agnostic GTA: Vice City rigger entrypoint (`INV-GCS-RIG-01`, `INV-NO-REASSEMBLE-01`):
+      1. Pulls and validates `03_meshes/assembled/character_full.glb` + `assembly_telemetry.json` from GCS (or local `--glb`),
+      2. Compiles `player.dff` (RenderWare `0x0C02FFFF`, 24 HAnim bones), `player.txd` (`0x1003FFFF` DXT1), and `player.bmp` (`66,612` B),
+      3. Mirrors outfits/cutscenes into `/revcdos/vcsky/fetched/models/gta3.img/`,
+      4. Syncs `player.dff`, `player.txd`, `player.bmp`, and `rig_telemetry.json` to
+         `gs://<bucket>/players/{player_slug}_{player_id}/runs/{run_id}/04_rigged/gta/`.
+    """
+    if precomputed_intake is not None:
+        intake = select_pose_intake(precomputed_intake, preferred_pose="tpose", target_game="gta")
+    else:
+        intake = intake_assembled_character_for_rigging(
+            glb_path=glb_path,
+            telemetry_path=telemetry_path,
+            char_id=char_id,
+            bucket_name=bucket_name,
+            player_name=player_name,
+            player_id=player_id,
+            run_id=run_id,
+            output_dir=output_dir,
+            credentials_path=credentials_path,
+            preferred_pose="tpose",
+            target_game="gta",
+        )
+    hb = intake["head_bounds_norm"]
+    meta = build_all(
+        source_glb_path=intake["local_glb_path"],
+        out_dir=OUT_DIR,
+        head_mat_indices=hb.get("head_material_indices"),
+        y_neck_norm=float(hb.get("y_neck_norm", 1.640)),
+        target_tris=2800,
+        skeleton_metrics=intake.get("skeleton_metrics"),
+    )
+
+    # Also copy deliverables into <output_dir>/rigged/gta/
+    stage5_dir = os.path.join(intake["output_dir"], "rigged", "gta")
+    os.makedirs(stage5_dir, exist_ok=True)
+    for fn in ("player.dff", "player.txd", "player.bmp"):
+        src_p = os.path.join(OUT_DIR, fn)
+        dst_p = os.path.join(stage5_dir, fn)
+        if os.path.abspath(src_p) != os.path.abspath(dst_p):
+            shutil.copy2(src_p, dst_p)
+
+    telemetry_payload: Dict[str, Any] = {
+        "status": "SUCCESS",
+        "specification": "functional_specification_061",
+        "rw_version_dff": "0x0C02FFFF",
+        "rw_version_txd": "0x1003FFFF",
+        "build_metadata": meta,
+        "head_bounds_norm": hb,
+    }
+    sync_res = sync_target_rigged_deliverables(
+        intake_info=intake,
+        target_game="gta",
+        deliverables=[
+            ("player_dff", os.path.join(stage5_dir, "player.dff"), "application/octet-stream"),
+            ("player_txd", os.path.join(stage5_dir, "player.txd"), "application/octet-stream"),
+            ("player_bmp", os.path.join(stage5_dir, "player.bmp"), "image/bmp"),
+        ],
+        telemetry_payload=telemetry_payload,
+        sync_audit=sync_audit,
+    )
+    return sync_res if return_sync_bundle else sync_res["telemetry"]
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(
+        description="Stage 5 .glb-agnostic GTA: Vice City (RenderWare 0x0C02FFFF) automated rigger."
+    )
+    add_gcs_rig_cli_args(parser)
+    args = parser.parse_args()
+
+    if args.glb or (args.player_name and args.player_id and args.run_id):
+        tel = rig_assembled_glb_for_gta(
+            glb_path=args.glb,
+            telemetry_path=args.telemetry,
+            char_id=args.char_id,
+            bucket_name=args.gcs_bucket,
+            player_name=args.player_name,
+            player_id=args.player_id,
+            run_id=args.run_id,
+            output_dir=args.output_dir,
+            credentials_path=args.gcs_credentials,
+        )
+        print(json.dumps(tel, indent=2))
+        return
+
+    meta = build_all()
+    print(json.dumps(meta, indent=2))
+
+
 if __name__ == "__main__":
-    build_all()
+    main()

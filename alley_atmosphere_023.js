@@ -1419,9 +1419,10 @@ export function buildCharacterLightResponsiveShadowSubsystem({
     );
     updateShadowQuad(0, primaryShadowRecord);
 
-    // 2. DOOM Companion Floating Head Shadow (active when LUIS / hoodie variant is active)
-    const isLuis = activeChar.id === 'hoodie';
-    if (isLuis) {
+    // 2. DOOM Companion Floating Head Shadow (active only when character actually carries a companionMesh)
+    const hasCompanion =
+      'companionMesh' in activeChar ? Boolean(activeChar.companionMesh) : activeChar.id === 'hoodie';
+    if (hasCompanion) {
       const headEquilibrium = { x: -0.430, y: 1.862, z: 0.055 };
       const deltaY = 0.036 * Math.sin(2.80 * timeSec);
       const deltaX = 0.011 * Math.sin(1.40 * timeSec + 0.85);

@@ -214,11 +214,11 @@ export const HOLO_MEDIA_MANIFEST = Object.freeze([
     "defaultTintPreset": "magenta",
     "corridorPlacement": {
       "wallSide": "L",
-      "x": -1.72,
+      "x": -2.3251,
       "yRel": 2.85,
       "z": 23.6,
       "pitchRad": 0,
-      "yawRad": 1.68,
+      "yawRad": 1.5683,
       "rollRad": 0,
       "scale": 2.65,
       "scaleX": 2.65,
@@ -255,11 +255,11 @@ export const HOLO_MEDIA_MANIFEST = Object.freeze([
     "defaultTintPreset": "amber",
     "corridorPlacement": {
       "wallSide": "R",
-      "x": 1.42,
+      "x": 1.6624,
       "yRel": 2.15,
-      "z": 12.2,
+      "z": 14.0992,
       "pitchRad": 0,
-      "yawRad": -1.78,
+      "yawRad": -1.5933,
       "rollRad": 0,
       "scale": 1.65,
       "scaleX": 1.65,
@@ -296,11 +296,11 @@ export const HOLO_MEDIA_MANIFEST = Object.freeze([
     "defaultTintPreset": "magenta",
     "corridorPlacement": {
       "wallSide": "L",
-      "x": -1.72,
+      "x": -2.1182,
       "yRel": 2.45,
-      "z": 18.08,
+      "z": 18.0797,
       "pitchRad": 0,
-      "yawRad": 1.68,
+      "yawRad": 1.5844,
       "rollRad": 0,
       "scale": 2.22,
       "scaleX": 2.22,
@@ -474,7 +474,7 @@ export const HOLO_MEDIA_MANIFEST = Object.freeze([
     "defaultTintPreset": "amber",
     "corridorPlacement": {
       "wallSide": "R",
-      "x": 1.72,
+      "x": 1.9235,
       "yRel": 2.1031,
       "z": 4.8246,
       "pitchRad": 0,
@@ -713,11 +713,11 @@ export const HOLO_MEDIA_MANIFEST = Object.freeze([
     "blendMode": "normal",
     "corridorPlacement": {
       "wallSide": "L",
-      "x": -1.18,
+      "x": -1.8193,
       "yRel": 2.15,
-      "z": 8.80,
+      "z": 9.6597,
       "pitchRad": 0,
-      "yawRad": 0.55,
+      "yawRad": 1.5407,
       "rollRad": 0,
       "scale": 1.35,
       "scaleX": 1.35,
@@ -1266,6 +1266,125 @@ export function createProceduralSlideCardTexture(slideSpec, slideIndex = 0, tota
 }
 
 const HOLO_FRAME_IMAGE_CACHE = new Map();
+const HOLO_MEDIA_MAX_CONCURRENCY = 2;
+let _holoMediaActiveCount = 0;
+const _holoMediaQueue = [];
+
+function _pumpHoloMediaQueue() {
+  while (_holoMediaActiveCount < HOLO_MEDIA_MAX_CONCURRENCY && _holoMediaQueue.length > 0) {
+    const nextTask = _holoMediaQueue.shift();
+    _holoMediaActiveCount++;
+    Promise.resolve()
+      .then(nextTask)
+      .catch((err) => {
+        console.warn('[HologramColumns] Media load failed:', err?.message || err);
+      })
+      .finally(() => {
+        _holoMediaActiveCount = Math.max(0, _holoMediaActiveCount - 1);
+        _pumpHoloMediaQueue();
+      });
+  }
+}
+
+async function _fetchHoloRangeArrayBuffer(url, { chunkSize = 786432, maxChunkAttempts = 4 } = {}) {
+  let offset = 0;
+  let totalBytes = null;
+  let fullBytes = null;
+
+  while (totalBytes === null || offset < totalBytes) {
+    const endByte =
+      totalBytes !== null
+        ? Math.min(totalBytes - 1, offset + chunkSize - 1)
+        : offset + chunkSize - 1;
+    let chunkSucceeded = false;
+    let lastErr = null;
+
+    for (let attempt = 1; attempt <= maxChunkAttempts; attempt++) {
+      const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+      const timer = controller ? setTimeout(() => controller.abort(), 12000) : null;
+      try {
+        const resp = await fetch(url, {
+          headers: { Range: `bytes=${offset}-${endByte}` },
+          signal: controller ? controller.signal : undefined,
+        });
+        if (resp.status === 200 && offset === 0) {
+          return await resp.arrayBuffer();
+        }
+        if (resp.status !== 206) {
+          throw new Error(`HTTP ${resp.status} for '${url}' (range ${offset}-${endByte})`);
+        }
+        const cr = resp.headers.get('Content-Range') || '';
+        const match = /bytes\s+(\d+)-(\d+)\/(\d+)/i.exec(cr);
+        if (!match) {
+          throw new Error(`Invalid Content-Range '${cr}' for '${url}'`);
+        }
+        const respStart = Number(match[1]);
+        const respEnd = Number(match[2]);
+        const respTotal = Number(match[3]);
+        const expectedLen = respEnd - respStart + 1;
+        const part = new Uint8Array(await resp.arrayBuffer());
+        if (respStart !== offset || part.byteLength !== expectedLen || respTotal <= 0) {
+          throw new Error(
+            `Range mismatch for '${url}': got ${part.byteLength}B [${respStart}-${respEnd}/${respTotal}], expected ${expectedLen}B at ${offset}`
+          );
+        }
+        if (offset === 0 && part.byteLength === respTotal) {
+          return part.buffer;
+        }
+        if (fullBytes === null) {
+          totalBytes = respTotal;
+          fullBytes = new Uint8Array(respTotal);
+        }
+        fullBytes.set(part, offset);
+        offset += part.byteLength;
+        chunkSucceeded = true;
+        break;
+      } catch (err) {
+        lastErr = err;
+        if (attempt < maxChunkAttempts) {
+          await new Promise((resolve) => setTimeout(resolve, 450 * attempt));
+        }
+      } finally {
+        if (timer) clearTimeout(timer);
+      }
+    }
+
+    if (!chunkSucceeded) {
+      throw new Error(
+        `Failed to fetch '${url}' at byte ${offset} after ${maxChunkAttempts} attempts: ${lastErr?.message || lastErr}`
+      );
+    }
+  }
+
+  return fullBytes ? fullBytes.buffer : new ArrayBuffer(0);
+}
+
+function enqueueHoloImageLoad(mediaUrl, img, onLoaded = null) {
+  _holoMediaQueue.push(async () => {
+    const buf = await _fetchHoloRangeArrayBuffer(mediaUrl);
+    const lower = String(mediaUrl).toLowerCase();
+    const mime = lower.endsWith('.png') ? 'image/png' : lower.endsWith('.webp') ? 'image/webp' : 'image/jpeg';
+    const blobUrl = URL.createObjectURL(new Blob([buf], { type: mime }));
+    try {
+      await new Promise((resolve, reject) => {
+        const prevLoad = img.onload;
+        img.onload = () => {
+          try {
+            if (typeof prevLoad === 'function') prevLoad();
+            if (typeof onLoaded === 'function') onLoaded(img);
+          } finally {
+            resolve();
+          }
+        };
+        img.onerror = () => reject(new Error(`Failed to decode image '${mediaUrl}'`));
+        img.src = blobUrl;
+      });
+    } finally {
+      URL.revokeObjectURL(blobUrl);
+    }
+  });
+  _pumpHoloMediaQueue();
+}
 
 function loadCachedHoloFrameImage(framePath, onLoadCallback) {
   let entry = HOLO_FRAME_IMAGE_CACHE.get(framePath);
@@ -1285,7 +1404,7 @@ function loadCachedHoloFrameImage(framePath, onLoadCallback) {
       }
       entry.listeners.length = 0;
     };
-    img.src = resolveMediaUrl(framePath);
+    enqueueHoloImageLoad(resolveMediaUrl(framePath), img);
     HOLO_FRAME_IMAGE_CACHE.set(framePath, entry);
   }
   if (entry.loaded) {
@@ -1613,7 +1732,7 @@ export class HoloScrollableDocumentController {
             }
             this.renderViewport();
           };
-          img.src = resolveMediaUrl(page.path);
+          enqueueHoloImageLoad(resolveMediaUrl(page.path), img);
         }
       }
       this.renderViewport();
@@ -1933,19 +2052,24 @@ export function createHoloMediaTextureController(assetSpec, options = {}) {
   }
   let texture;
   if (typeof document !== 'undefined') {
-    const loader = new THREE.TextureLoader();
-    texture = loader.load(resolveMediaUrl(spec.repoPath), (loadedTex) => {
-      if (loadedTex.image && loadedTex.image.width > 0 && loadedTex.image.height > 0 && !Object.isFrozen(spec)) {
-        spec.width = loadedTex.image.width;
-        spec.height = loadedTex.image.height;
-        spec.aspectRatio = Number((loadedTex.image.width / loadedTex.image.height).toFixed(4));
-      }
-    });
+    texture = new THREE.Texture();
     texture.colorSpace = THREE.SRGBColorSpace;
     texture.minFilter = THREE.LinearFilter;
     texture.magFilter = THREE.LinearFilter;
     texture.wrapS = THREE.ClampToEdgeWrapping;
     texture.wrapT = THREE.ClampToEdgeWrapping;
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      texture.image = img;
+      texture.needsUpdate = true;
+      if (img.width > 0 && img.height > 0 && !Object.isFrozen(spec)) {
+        spec.width = img.width;
+        spec.height = img.height;
+        spec.aspectRatio = Number((img.width / img.height).toFixed(4));
+      }
+    };
+    enqueueHoloImageLoad(resolveMediaUrl(spec.repoPath), img);
   } else {
     texture = createDeterministicPlaceholderTexture(spec);
   }
@@ -4043,6 +4167,50 @@ export function buildHologramColumnsSystem(options = {}) {
     }
   }
 
+  function isLegacyWaterColorDefaultTransform(colId, saved) {
+    if (colId !== 'watercolor_gallery' || !saved || typeof saved !== 'object') return false;
+    return (
+      (Math.abs((saved.z ?? 0) - 42.2) < 1e-2 && Math.abs((saved.scale ?? 1) - 1.0) < 1e-2) ||
+      (Math.abs((saved.z ?? 0) - 42.786) < 1e-2 && Math.abs((saved.scale ?? 1) - 1.875) < 1e-2) ||
+      (Math.abs((saved.z ?? 0) - 42.6182) < 1e-3 && Math.abs((saved.scale ?? 1) - 1.875) < 1e-2)
+    );
+  }
+
+  function getTransformsMap() {
+    const payload = {};
+    for (const col of columns) {
+      payload[col.id] = col.getTransformState();
+    }
+    return payload;
+  }
+
+  function applyTransformsMap(transformsMap, { persistLocal = true, updatedAtMs = null } = {}) {
+    if (!transformsMap || typeof transformsMap !== 'object') return false;
+    let appliedCount = 0;
+    for (const col of columns) {
+      const saved = transformsMap[col.id];
+      if (saved && typeof saved === 'object' && !isLegacyWaterColorDefaultTransform(col.id, saved)) {
+        col.setTransformState(saved);
+        if (typeof col.onTransformMutated === 'function') {
+          col.onTransformMutated();
+        }
+        appliedCount += 1;
+      }
+    }
+    if (persistLocal && typeof window !== 'undefined' && window.localStorage) {
+      try {
+        window.localStorage.setItem(storageKey, JSON.stringify(getTransformsMap()));
+        if (Number.isFinite(updatedAtMs) && updatedAtMs > 0) {
+          window.localStorage.setItem(`${storageKey}_ts`, String(Math.round(updatedAtMs)));
+        }
+      } catch (err) {
+        console.warn('[hologram_columns] Failed to persist applied transforms locally:', err);
+      }
+    }
+    updateSelectionHighlights();
+    return appliedCount > 0;
+  }
+
   function loadTransformsFromStorage() {
     if (typeof window === 'undefined' || !window.localStorage) return false;
     try {
@@ -4052,7 +4220,7 @@ export function buildHologramColumnsSystem(options = {}) {
       if (!parsed || typeof parsed !== 'object') return false;
       for (const col of columns) {
         const saved = parsed[col.id];
-        if (saved && typeof saved === 'object') {
+        if (saved && typeof saved === 'object' && !isLegacyWaterColorDefaultTransform(col.id, saved)) {
           col.setTransformState(saved);
         }
       }
@@ -4064,18 +4232,21 @@ export function buildHologramColumnsSystem(options = {}) {
   }
 
   function saveTransformsToStorage() {
-    if (typeof window === 'undefined' || !window.localStorage) return false;
-    try {
-      const payload = {};
-      for (const col of columns) {
-        payload[col.id] = col.getTransformState();
+    const payload = getTransformsMap();
+    const updatedAtMs = Date.now();
+    if (typeof window !== 'undefined' && window.localStorage) {
+      try {
+        window.localStorage.setItem(storageKey, JSON.stringify(payload));
+        window.localStorage.setItem(`${storageKey}_ts`, String(updatedAtMs));
+      } catch (err) {
+        console.warn('[hologram_columns] Failed to save transforms:', err);
+        return false;
       }
-      window.localStorage.setItem(storageKey, JSON.stringify(payload));
-      return true;
-    } catch (err) {
-      console.warn('[hologram_columns] Failed to save transforms:', err);
-      return false;
     }
+    if (typeof options.onTransformsMutated === 'function') {
+      options.onTransformsMutated(payload, { updatedAtMs });
+    }
+    return true;
   }
 
   if (options.loadSavedTransforms !== false) {
@@ -4278,10 +4449,16 @@ export function buildHologramColumnsSystem(options = {}) {
       }
       if (persist && typeof window !== 'undefined' && window.localStorage) {
         window.localStorage.removeItem(storageKey);
+        window.localStorage.removeItem(`${storageKey}_ts`);
+      }
+      if (persist && typeof options.onTransformsMutated === 'function') {
+        options.onTransformsMutated(null, { deleted: true });
       }
       return this.exportTransformManifest();
     },
 
+    getTransformsMap,
+    applyTransformsMap,
     saveTransformsToStorage,
     loadTransformsFromStorage,
 

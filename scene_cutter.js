@@ -377,6 +377,8 @@ export function buildSceneCutterSubsystem({
   renderer,
   sandbox,
   floorY = 0.0,
+  isDevMode = typeof window !== 'undefined' &&
+    new URLSearchParams(window.location.search).get('dev') === '1',
 }) {
   const cutter3DGroup = new THREE.Group();
   cutter3DGroup.name = 'SceneCutter3DVisualizerGroup';
@@ -1280,6 +1282,16 @@ export function buildSceneCutterSubsystem({
   }
 
   function toggleActive(forceState = undefined) {
+    if (!isDevMode) {
+      state.active = false;
+      state.interactionPhase = 'INACTIVE';
+      if (elOverlay) {
+        elOverlay.style.display = 'none';
+        elOverlay.setAttribute('aria-hidden', 'true');
+      }
+      planeVizMesh.visible = false;
+      return false;
+    }
     const next = typeof forceState === 'boolean' ? forceState : !state.active;
     state.active = next;
     state.interactionPhase = next
@@ -1290,6 +1302,7 @@ export function buildSceneCutterSubsystem({
 
     if (elOverlay) {
       elOverlay.style.display = next ? 'block' : 'none';
+      elOverlay.setAttribute('aria-hidden', next ? 'false' : 'true');
     }
     planeVizMesh.visible = next && Boolean(state.currentPlane);
     syncClippingPlanes();
@@ -1492,19 +1505,24 @@ export function buildSceneCutterSubsystem({
     }
   });
 
-  // Restore saved cuts from localStorage, or apply the default back-alley cutoff (Z > 42.5m)
+  // Restore saved cuts from localStorage in dev mode, or apply the default back-alley cutoff (Z > 42.5m)
   let initialCutSpecs = DEFAULT_INITIAL_CUT_SPECS;
-  try {
-    if (typeof localStorage !== 'undefined') {
-      const raw = localStorage.getItem(SCENE_CUTS_STORAGE_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed)) {
-          initialCutSpecs = parsed;
+  if (isDevMode) {
+    try {
+      if (typeof localStorage !== 'undefined') {
+        const raw = localStorage.getItem(SCENE_CUTS_STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) {
+            initialCutSpecs = parsed;
+          }
         }
       }
-    }
-  } catch (_) {}
+    } catch (_) {}
+  } else if (elOverlay) {
+    elOverlay.style.display = 'none';
+    elOverlay.setAttribute('aria-hidden', 'true');
+  }
 
   for (const spec of initialCutSpecs) {
     if (spec && Array.isArray(spec.normal) && typeof spec.constant === 'number') {

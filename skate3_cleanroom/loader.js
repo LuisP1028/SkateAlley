@@ -434,7 +434,8 @@ async function main() {
   const charPicker = document.getElementById('char');
   const rawChar = (params.get('char') || '').trim().toLowerCase();
   const validChars = pack.characters ? Object.keys(pack.characters) : ['luis', 'luis_holo'];
-  const selectedChar = validChars.includes(rawChar) ? rawChar : 'luis';
+  const defaultChar = (pack.default_char && validChars.includes(pack.default_char)) ? pack.default_char : 'luis';
+  const selectedChar = validChars.includes(rawChar) ? rawChar : defaultChar;
   if (rawChar && rawChar !== selectedChar && typeof history !== 'undefined' && history.replaceState) {
     const cleanUrl = new URL(location.href);
     cleanUrl.searchParams.set('char', selectedChar);
@@ -442,6 +443,13 @@ async function main() {
   }
   globalThis.SKATE_ACTIVE_CHAR = selectedChar;
   if (charPicker) {
+    if (pack.characters) {
+      charPicker.replaceChildren(
+        ...Object.entries(pack.characters).map(([cKey, cSpec]) =>
+          new Option(cSpec.name || cKey, cKey, cKey === selectedChar, cKey === selectedChar)
+        )
+      );
+    }
     charPicker.value = selectedChar;
     charPicker.onchange = () => {
       const url = new URL(location.href);

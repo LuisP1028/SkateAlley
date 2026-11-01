@@ -2565,8 +2565,1038 @@ def run_pipeline():
     print("=== PIPELINE COMPLETE ===")
 
 
+# ============================================================================
+# Functional Specification 061: .glb-File-Agnostic Alleyway 64-Bone RPM Rigger
+# ============================================================================
+
+def import_and_decimate_assembled_glb_in_blender(
+    glb_path: str,
+    character_name: str,
+    y_neck_norm: float = 1.640,
+    x_half_norm: float = 0.220,
+    head_mat_indices: List[int] = None,
+    target_max_tris: int = 19500,
+) -> Tuple["bpy.types.Object", Dict[str, Any]]:
+    """
+    Imports an already-assembled character .glb (`03_meshes/assembled/character_full.glb`)
+    without performing any head/body re-assembly (`INV-NO-REASSEMBLE-01`):
+    1. Flattens and joins all mesh objects in the imported scene (stripping any old armatures/skins).
+    2. Verifies/normalizes height to 2.000m (Z_min = 0.000m in Blender +Z-up, centered at X=0, Y=0).
+    3. Welds duplicate interior vertices per material slot (`dist=1e-4m`) and applies seam-safe
+       adaptive collapse decimation (`DELIMIT={'UV', 'MATERIAL'}`) if triangles > target_max_tris.
+    4. Tags `_IS_HEAD_PART` vertex group using head material indices/names and cranial bounds.
+    """
+    before_objs = set(bpy.data.objects)
+    bpy.ops.import_scene.gltf(filepath=glb_path)
+    new_objs = [o for o in bpy.data.objects if o not in before_objs]
+    mesh_objs = [o for o in new_objs if o.type == 'MESH']
+    if not mesh_objs:
+        raise ValueError(f"Fatal [INV-AGNOSTIC-RIG-01]: Imported '{glb_path}' contains 0 MESH objects.")
+
+    # Strip any pre-existing Armature modifiers/vertex groups and bake world transforms
+    bpy.ops.object.select_all(action='DESELECT')
+    for m_obj in mesh_objs:
+        m_obj.parent = None
+        for mod in list(m_obj.modifiers):
+            if mod.type == 'ARMATURE':
+                m_obj.modifiers.remove(mod)
+        m_obj.vertex_groups.clear()
+        m_obj.select_set(True)
+    bpy.context.view_layer.objects.active = mesh_objs[0]
+    if len(mesh_objs) > 1:
+        bpy.ops.object.join()
+    unified_obj = bpy.context.active_object
+    unified_obj.name = f"{character_name}_Mesh"
+    unified_obj.data.name = f"{character_name}_MeshData"
+    bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+
+    # Remove any imported non-mesh helper/armature objects from this import
+    for o in list(new_objs):
+        if o != unified_obj and o.name in bpy.data.objects:
+            bpy.data.objects.remove(o, do_unlink=True)
+
+    # Normalize to 2.000m stature, Z_min = 0.000m, centered at (X_mid=0, Y_mid=0)
+    n_verts_raw = len(unified_obj.data.vertices)
+    coords_raw = np.empty(n_verts_raw * 3, dtype=np.float32)
+    unified_obj.data.vertices.foreach_get("co", coords_raw)
+    v_raw = coords_raw.reshape(-1, 3)
+    z_min_raw = float(v_raw[:, 2].min())
+    z_max_raw = float(v_raw[:, 2].max())
+    h_raw = max(1e-5, z_max_raw - z_min_raw)
+    x_mid_raw = 0.5 * float(v_raw[:, 0].min() + v_raw[:, 0].max())
+    y_mid_raw = 0.5 * float(v_raw[:, 1].min() + v_raw[:, 1].max())
+    scale_2m = 2.000 / h_raw
+
+    v_norm = np.empty_like(v_raw)
+    v_norm[:, 0] = (v_raw[:, 0] - x_mid_raw) * scale_2m
+    v_norm[:, 1] = (v_raw[:, 1] - y_mid_raw) * scale_2m
+    v_norm[:, 2] = (v_raw[:, 2] - z_min_raw) * scale_2m
+    unified_obj.data.vertices.foreach_set("co", v_norm.ravel())
+    unified_obj.data.update()
+
+    # Weld interior duplicate vertices and triangulate prior to measuring triangle count
+    bm = bmesh.new()
+    bm.from_mesh(unified_obj.data)
+    bmesh.ops.remove_doubles(bm, verts=bm.verts[:], dist=1e-4)
+    bmesh.ops.triangulate(bm, faces=bm.faces[:])
+    bm.to_mesh(unified_obj.data)
+    bm.free()
+    unified_obj.data.update()
+
+    initial_tris = len(unified_obj.data.polygons)
+    decimation_ratio = 1.0
+    if initial_tris > target_max_tris:
+        decimation_ratio = max(0.05, min(1.0, float(target_max_tris) / float(initial_tris)))
+        bpy.ops.object.select_all(action='DESELECT')
+        unified_obj.select_set(True)
+        bpy.context.view_layer.objects.active = unified_obj
+        dec_mod = unified_obj.modifiers.new(name="Agnostic_Collapse", type='DECIMATE')
+        dec_mod.decimate_type = 'COLLAPSE'
+        dec_mod.ratio = decimation_ratio
+        dec_mod.use_collapse_triangulate = True
+        if unified_obj.data.uv_layers:
+            dec_mod.delimit = {'UV', 'MATERIAL'}
+        else:
+            dec_mod.delimit = {'MATERIAL'}
+        bpy.ops.object.modifier_apply(modifier=dec_mod.name)
+
+        # Ensure triangulated clean normals after decimation
+        bm2 = bmesh.new()
+        bm2.from_mesh(unified_obj.data)
+        bmesh.ops.triangulate(bm2, faces=bm2.faces[:])
+        bmesh.ops.recalc_face_normals(bm2, faces=bm2.faces[:])
+        for f in bm2.faces:
+            f.smooth = True
+        bm2.to_mesh(unified_obj.data)
+        bm2.free()
+        unified_obj.data.update()
+
+    # Re-ground Z_min = 0.000m after decimation
+    n_verts = len(unified_obj.data.vertices)
+    coords = np.empty(n_verts * 3, dtype=np.float32)
+    unified_obj.data.vertices.foreach_get("co", coords)
+    v = coords.reshape(-1, 3)
+    v[:, 2] -= float(v[:, 2].min())
+    unified_obj.data.vertices.foreach_set("co", v.ravel())
+    unified_obj.data.update()
+
+    # Tag `_IS_HEAD_PART` vertex group from head material slots AND/OR cranial bounds
+    head_mats_set = set(head_mat_indices or [])
+    for idx_m, mat in enumerate(unified_obj.data.materials):
+        if mat and "head" in mat.name.lower():
+            head_mats_set.add(idx_m)
+
+    head_v_mask = np.zeros(n_verts, dtype=bool)
+    if head_mats_set:
+        for poly in unified_obj.data.polygons:
+            if int(poly.material_index) in head_mats_set:
+                for vi in poly.vertices:
+                    head_v_mask[int(vi)] = True
+
+    # Also include cranial vertices above y_neck_norm within |X| <= x_half_norm (for single-material meshes)
+    cranial_mask = (v[:, 2] >= float(y_neck_norm)) & (np.abs(v[:, 0]) <= max(0.20, float(x_half_norm)))
+    head_v_mask |= cranial_mask
+
+    vg_head = unified_obj.vertex_groups.new(name="_IS_HEAD_PART")
+    head_v_indices = [int(i) for i in np.where(head_v_mask)[0]]
+    if head_v_indices:
+        vg_head.add(head_v_indices, 1.0, 'REPLACE')
+
+    final_tris = len(unified_obj.data.polygons)
+    return unified_obj, {
+        "initial_triangles": int(initial_tris),
+        "final_triangles": int(final_tris),
+        "final_vertices": int(n_verts),
+        "decimation_ratio": round(float(decimation_ratio), 5),
+        "head_tagged_vertices": len(head_v_indices),
+        "material_count": len(unified_obj.data.materials),
+        "materials": [m.name for m in unified_obj.data.materials if m],
+    }
+
+
+def discover_mesh_limb_landmarks_blender(
+    mesh_obj: "bpy.types.Object",
+    y_neck_norm: float = 1.640,
+    skeleton_metrics: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    """
+    Resolves the character mesh's rest-pose arm corridor (A-pose vs T-pose),
+    3D shoulder/elbow/wrist joint centers, and lower-body leg/pelvis/knee/ankle landmarks.
+    Consumes Stage 4 `skeleton_metrics["joints_z_up"]` directly when available (`INV-SKEL-METRICS-01`),
+    with geometric fallback on `mesh_obj` vertices.
+    """
+    if isinstance(skeleton_metrics, dict) and isinstance(skeleton_metrics.get("joints_z_up"), dict):
+        jz = skeleton_metrics["joints_z_up"]
+        sh_l = jz.get("shoulder_l", [0.195, 0.005, 1.495])
+        sh_r = jz.get("shoulder_r", [-0.195, 0.005, 1.495])
+        el_l = jz.get("elbow_l", [0.350, 0.008, 1.260])
+        el_r = jz.get("elbow_r", [-0.350, 0.008, 1.260])
+        wr_l = jz.get("wrist_l", [0.505, 0.010, 1.030])
+        wr_r = jz.get("wrist_r", [-0.505, 0.010, 1.030])
+        ht_l = jz.get("hand_tip_l", [0.580, 0.010, 0.960])
+        ht_r = jz.get("hand_tip_r", [-0.580, 0.010, 0.960])
+        hip_l = jz.get("hip_l", [0.115, 0.000, 0.860])
+        hip_r = jz.get("hip_r", [-0.115, 0.000, 0.860])
+        kn_l = jz.get("knee_l", [0.125, -0.008, 0.440])
+        kn_r = jz.get("knee_r", [-0.125, -0.008, 0.440])
+        ank_l = jz.get("ankle_l", [0.135, 0.015, 0.105])
+        ank_r = jz.get("ankle_r", [-0.135, 0.015, 0.105])
+        ball_l = jz.get("ball_l", [0.135, -0.100, 0.016])
+        toe_l = jz.get("toe_l", [0.135, -0.170, 0.016])
+        pelvis = jz.get("pelvis", [0.0, 0.008, 0.860])
+        crotch = jz.get("crotch", [0.0, 0.008, 0.720])
+        sp1 = jz.get("spine_01", [0.0, 0.008, 1.050])
+        sp2 = jz.get("spine_02", [0.0, 0.008, 1.240])
+        sp3 = jz.get("spine_03", [0.0, 0.008, 1.430])
+        neck = jz.get("neck_01", [0.0, 0.008, y_neck_norm])
+
+        x_sh = 0.5 * (abs(float(sh_l[0])) + abs(float(sh_r[0])))
+        y_sh = 0.5 * (float(sh_l[1]) + float(sh_r[1]))
+        z_sh = 0.5 * (float(sh_l[2]) + float(sh_r[2]))
+        x_el = 0.5 * (abs(float(el_l[0])) + abs(float(el_r[0])))
+        y_el = 0.5 * (float(el_l[1]) + float(el_r[1]))
+        z_el = 0.5 * (float(el_l[2]) + float(el_r[2]))
+        x_wr = 0.5 * (abs(float(wr_l[0])) + abs(float(wr_r[0])))
+        y_wr = 0.5 * (float(wr_l[1]) + float(wr_r[1]))
+        z_wr = 0.5 * (float(wr_l[2]) + float(wr_r[2]))
+        x_arm_max = max(abs(float(ht_l[0])), abs(float(ht_r[0])))
+        ankle_x = float(np.clip(0.5 * (abs(float(ank_l[0])) + abs(float(ank_r[0]))), 0.095, 0.185))
+        leg_x = float(np.clip(0.5 * (abs(float(hip_l[0])) + abs(float(hip_r[0]))), 0.095, 0.165))
+        y_neck_val = float((skeleton_metrics.get("head_bounds_2m") or {}).get("y_neck_norm", neck[2] if len(neck) == 3 else y_neck_norm))
+        is_apose = bool(skeleton_metrics.get("is_apose", (z_sh - z_wr) > 0.14))
+        has_skirt = bool(skeleton_metrics.get("has_skirt", False))
+
+        return {
+            "skeleton_metrics_used": True,
+            "is_apose": is_apose,
+            "pose_type": str(skeleton_metrics.get("pose_type") or ("A_POSE" if is_apose else "T_POSE")),
+            "has_skirt": has_skirt,
+            "x_arm_max": round(x_arm_max, 4),
+            "shoulder": (round(x_sh, 4), round(y_sh, 4), round(z_sh, 4)),
+            "elbow": (round(x_el, 4), round(y_el, 4), round(z_el, 4)),
+            "wrist": (round(x_wr, 4), round(y_wr, 4), round(z_wr, 4)),
+            "shoulder_l": (round(float(sh_l[0]), 4), round(float(sh_l[1]), 4), round(float(sh_l[2]), 4)),
+            "shoulder_r": (round(float(sh_r[0]), 4), round(float(sh_r[1]), 4), round(float(sh_r[2]), 4)),
+            "elbow_l": (round(float(el_l[0]), 4), round(float(el_l[1]), 4), round(float(el_l[2]), 4)),
+            "elbow_r": (round(float(el_r[0]), 4), round(float(el_r[1]), 4), round(float(el_r[2]), 4)),
+            "wrist_l": (round(float(wr_l[0]), 4), round(float(wr_l[1]), 4), round(float(wr_l[2]), 4)),
+            "wrist_r": (round(float(wr_r[0]), 4), round(float(wr_r[1]), 4), round(float(wr_r[2]), 4)),
+            "ankle_x": round(ankle_x, 4),
+            "leg_x": round(leg_x, 4),
+            "pelvis_z": round(float(pelvis[2]), 4),
+            "crotch_z": round(float(crotch[2]), 4),
+            "hip_z": round(0.5 * (float(hip_l[2]) + float(hip_r[2])), 4),
+            "knee_z": round(0.5 * (float(kn_l[2]) + float(kn_r[2])), 4),
+            "ankle_z": round(0.5 * (float(ank_l[2]) + float(ank_r[2])), 4),
+            "ball_y": round(float(ball_l[1]), 4),
+            "ball_z": round(float(ball_l[2]), 4),
+            "toe_y": round(float(toe_l[1]), 4),
+            "spine_z": (round(float(sp1[2]), 4), round(float(sp2[2]), 4), round(float(sp3[2]), 4)),
+            "y_neck_norm": round(y_neck_val, 4),
+        }
+
+    mesh = mesh_obj.data
+    n_verts = len(mesh.vertices)
+    coords = np.empty(n_verts * 3, dtype=np.float32)
+    mesh.vertices.foreach_get("co", coords)
+    v = coords.reshape(-1, 3)
+    x, y, z = v[:, 0], v[:, 1], v[:, 2]
+    x_abs = np.abs(x)
+
+    # Identify body (non-head) vertices
+    is_head = np.zeros(n_verts, dtype=bool)
+    vg_head = mesh_obj.vertex_groups.get("_IS_HEAD_PART")
+    if vg_head is not None:
+        t_idx = vg_head.index
+        for i_v, vt in enumerate(mesh.vertices):
+            for g in vt.groups:
+                if g.group == t_idx and g.weight > 0.5:
+                    is_head[i_v] = True
+                    break
+    is_body = ~is_head
+
+    arm_band = is_body & (x_abs > 0.18) & (z > 0.72) & (z < 1.72)
+    if np.any(arm_band):
+        x_arm_max = float(np.percentile(x_abs[arm_band], 98.5))
+    else:
+        x_arm_max = float(x_abs.max())
+
+    # Sample shoulder, elbow, and wrist bands along |X|
+    sh_mask = is_body & (x_abs >= 0.155) & (x_abs <= 0.225) & (z >= 1.32) & (z <= 1.66)
+    if np.any(sh_mask):
+        x_sh = float(np.median(x_abs[sh_mask]))
+        y_sh = float(np.median(y[sh_mask]))
+        z_sh = float(np.clip(np.percentile(z[sh_mask], 60.0), 1.45, 1.57))
+    else:
+        x_sh, y_sh, z_sh = 0.190, 0.005, 1.495
+
+    wr_lo = max(x_sh + 0.14, x_sh + 0.68 * (x_arm_max - x_sh))
+    wr_hi = max(wr_lo + 0.04, x_sh + 0.88 * (x_arm_max - x_sh))
+    wr_mask = arm_band & (x_abs >= wr_lo) & (x_abs <= wr_hi)
+    if np.any(wr_mask):
+        x_wr = float(np.median(x_abs[wr_mask]))
+        y_wr = float(np.median(y[wr_mask]))
+        z_wr = float(np.median(z[wr_mask]))
+    else:
+        x_wr, y_wr, z_wr = 0.505, 0.010, 1.030
+
+    is_apose = bool((z_sh - z_wr) > 0.14 or z_wr < 1.38 or x_arm_max < 0.72)
+
+    el_lo = x_sh + 0.38 * (x_wr - x_sh)
+    el_hi = x_sh + 0.62 * (x_wr - x_sh)
+    el_mask = arm_band & (x_abs >= el_lo) & (x_abs <= el_hi)
+    if is_apose:
+        el_mask = el_mask & (z <= z_sh - 0.04) & (z >= z_wr + 0.04)
+    if np.any(el_mask):
+        x_el = float(np.median(x_abs[el_mask]))
+        y_el = float(np.median(y[el_mask]))
+        z_el = float(np.median(z[el_mask]))
+    else:
+        x_el = 0.5 * (x_sh + x_wr)
+        y_el = 0.5 * (y_sh + y_wr)
+        z_el = 0.5 * (z_sh + z_wr)
+
+    # Check if lower body has continuous skirt/tunic across midline X=0 in knee/shin band
+    mid_leg_mask = is_body & (x_abs < 0.022) & (z >= 0.25) & (z <= 0.68)
+    has_skirt = bool(int(np.sum(mid_leg_mask)) > 35)
+
+    # Measure ankle X center from foot band Z in [0.02, 0.14]
+    foot_mask = is_body & (z >= 0.02) & (z <= 0.14) & (x_abs > 0.03)
+    ankle_x = float(np.clip(np.median(x_abs[foot_mask]), 0.095, 0.185)) if np.any(foot_mask) else 0.135
+    leg_x = float(np.clip(ankle_x * 0.92, 0.095, 0.145))
+
+    return {
+        "is_apose": is_apose,
+        "pose_type": "A_POSE" if is_apose else "T_POSE",
+        "has_skirt": has_skirt,
+        "x_arm_max": round(x_arm_max, 4),
+        "shoulder": (round(x_sh, 4), round(y_sh, 4), round(z_sh, 4)),
+        "elbow": (round(x_el, 4), round(y_el, 4), round(z_el, 4)),
+        "wrist": (round(x_wr, 4), round(y_wr, 4), round(z_wr, 4)),
+        "ankle_x": round(ankle_x, 4),
+        "leg_x": round(leg_x, 4),
+        "y_neck_norm": round(float(y_neck_norm), 4),
+    }
+
+
+def create_agnostic_character_armatures(
+    character_name: str,
+    bone_specs: List[Dict[str, Any]],
+    landmarks: Dict[str, Any],
+) -> Tuple["bpy.types.Object", "bpy.types.Object"]:
+    """
+    Constructs `canon_arm` (canonical horizontal T-pose) and `native_arm` (fitted to the
+    measured `landmarks["shoulder"]`, `landmarks["elbow"]`, `landmarks["wrist"]` whether
+    A-pose or T-pose) without any hardcoded character-name branches.
+    """
+    spec_map = {b["name"]: b for b in bone_specs}
+    is_apose = bool(landmarks["is_apose"])
+    x_sh, y_sh, z_sh = landmarks["shoulder"]
+    x_el, y_el, z_el = landmarks["elbow"]
+    x_wr, y_wr, z_wr = landmarks["wrist"]
+    leg_x = float(landmarks["leg_x"])
+    ankle_x = float(landmarks["ankle_x"])
+
+    len_up = max(0.22, math.sqrt((x_el - x_sh) ** 2 + (y_el - y_sh) ** 2 + (z_el - z_sh) ** 2))
+    len_lo = max(0.20, math.sqrt((x_wr - x_el) ** 2 + (y_wr - y_el) ** 2 + (z_wr - z_el) ** 2))
+
+    canon_data = bpy.data.armatures.new(f"{character_name}_ArmatureData")
+    canon_obj = bpy.data.objects.new(f"{character_name}_Armature", canon_data)
+    bpy.context.collection.objects.link(canon_obj)
+
+    bpy.ops.object.select_all(action='DESELECT')
+    canon_obj.select_set(True)
+    bpy.context.view_layer.objects.active = canon_obj
+    bpy.ops.object.mode_set(mode='EDIT')
+
+    z_torso_scale = 1.090
+    arm_scale = 0.92
+    canon_heads: Dict[str, "mathutils.Vector"] = {}
+    canon_lengths: Dict[str, float] = {}
+
+    for b in bone_specs:
+        bname = b["name"]
+        h_ual = b["head"]
+        L_ual = b["length"]
+
+        if bname == "root":
+            canon_heads[bname] = mathutils.Vector((0.0, 0.0, 0.0))
+            canon_lengths[bname] = L_ual
+        elif bname == "pelvis":
+            canon_heads[bname] = mathutils.Vector((0.0, 0.008, 0.920))
+            canon_lengths[bname] = L_ual * z_torso_scale
+        elif bname in ("spine_01", "spine_02", "spine_03", "neck_01", "Head"):
+            z_h = 0.920 + (h_ual.z - 0.9167) * z_torso_scale
+            y_h = 0.008 + h_ual.y * 0.5
+            canon_heads[bname] = mathutils.Vector((0.0, y_h, z_h))
+            canon_lengths[bname] = L_ual * (1.25 if bname == "Head" else z_torso_scale)
+        elif bname in ("clavicle_l", "clavicle_r"):
+            sgn = 1.0 if bname.endswith("_l") else -1.0
+            canon_heads[bname] = mathutils.Vector((sgn * 0.020, -0.040, z_sh))
+            canon_lengths[bname] = L_ual * 0.95
+        elif bname in ("upperarm_l", "upperarm_r"):
+            sgn = 1.0 if bname.endswith("_l") else -1.0
+            canon_heads[bname] = mathutils.Vector((sgn * x_sh, y_sh, z_sh))
+            canon_lengths[bname] = len_up
+        elif bname in ("lowerarm_l", "lowerarm_r"):
+            parent_n = b["parent"]
+            p_head = canon_heads[parent_n]
+            p_dir = (spec_map[parent_n]["rot3x3"] @ mathutils.Vector((0.0, 1.0, 0.0))).normalized()
+            canon_heads[bname] = p_head + p_dir * canon_lengths[parent_n]
+            canon_lengths[bname] = len_lo
+        elif bname in ("hand_l", "hand_r"):
+            parent_n = b["parent"]
+            p_head = canon_heads[parent_n]
+            p_dir = (spec_map[parent_n]["rot3x3"] @ mathutils.Vector((0.0, 1.0, 0.0))).normalized()
+            canon_heads[bname] = p_head + p_dir * canon_lengths[parent_n]
+            canon_lengths[bname] = L_ual * arm_scale
+        elif any(bname.startswith(fp) for fp in ("index_", "middle_", "pinky_", "ring_", "thumb_")):
+            side = "_l" if bname.endswith("_l") else "_r"
+            hand_n = f"hand{side}"
+            hand_h_ual = spec_map[hand_n]["head"]
+            hand_h_can = canon_heads[hand_n]
+            rel_ual = h_ual - hand_h_ual
+            f_scale = 0.70
+            canon_heads[bname] = hand_h_can + rel_ual * f_scale
+            canon_lengths[bname] = L_ual * f_scale
+        elif bname in ("thigh_l", "thigh_r"):
+            sgn = 1.0 if bname.endswith("_l") else -1.0
+            hip_z_val = float(landmarks.get("hip_z", 0.925))
+            knee_z_val = float(landmarks.get("knee_z", 0.528))
+            canon_heads[bname] = mathutils.Vector((sgn * leg_x, 0.000, hip_z_val))
+            canon_lengths[bname] = max(0.28, hip_z_val - knee_z_val)
+        elif bname in ("calf_l", "calf_r"):
+            sgn = 1.0 if bname.endswith("_l") else -1.0
+            knee_z_val = float(landmarks.get("knee_z", 0.528))
+            ankle_z_val = float(landmarks.get("ankle_z", 0.105))
+            canon_heads[bname] = mathutils.Vector((sgn * leg_x, -0.008, knee_z_val))
+            canon_lengths[bname] = max(0.26, knee_z_val - ankle_z_val)
+        elif bname in ("foot_l", "foot_r"):
+            sgn = 1.0 if bname.endswith("_l") else -1.0
+            ankle_z_val = float(landmarks.get("ankle_z", 0.105))
+            canon_heads[bname] = mathutils.Vector((sgn * ankle_x, 0.015, ankle_z_val))
+            canon_lengths[bname] = L_ual * 0.92
+        elif bname in ("ball_l", "ball_r"):
+            sgn = 1.0 if bname.endswith("_l") else -1.0
+            ball_y_val = float(landmarks.get("ball_y", -0.100))
+            ball_z_val = float(landmarks.get("ball_z", 0.016))
+            canon_heads[bname] = mathutils.Vector((sgn * ankle_x, ball_y_val, ball_z_val))
+            canon_lengths[bname] = L_ual * 0.90
+        elif bname in ("ball_leaf_l", "ball_leaf_r"):
+            sgn = 1.0 if bname.endswith("_l") else -1.0
+            toe_y_val = float(landmarks.get("toe_y", -0.170))
+            ball_z_val = float(landmarks.get("ball_z", 0.016))
+            canon_heads[bname] = mathutils.Vector((sgn * ankle_x, toe_y_val, ball_z_val))
+            canon_lengths[bname] = L_ual * 0.90
+
+    for b in bone_specs:
+        bname = b["name"]
+        eb = canon_data.edit_bones.new(bname)
+        eb.use_connect = False
+        rot3 = b["rot3x3"]
+        y_axis = (rot3 @ mathutils.Vector((0.0, 1.0, 0.0))).normalized()
+        z_axis = (rot3 @ mathutils.Vector((0.0, 0.0, 1.0))).normalized()
+        eb.head = canon_heads[bname]
+        eb.tail = eb.head + y_axis * max(0.01, canon_lengths[bname])
+        eb.align_roll(z_axis)
+
+    for b in bone_specs:
+        if b["parent"]:
+            canon_data.edit_bones[b["name"]].parent = canon_data.edit_bones[b["parent"]]
+
+    bpy.ops.object.mode_set(mode='OBJECT')
+
+    # Duplicate canon_data to create native_arm fitted to the measured arm corridor
+    native_data = canon_data.copy()
+    native_data.name = f"{character_name}_NativeArmData"
+    native_obj = bpy.data.objects.new(f"{character_name}_NativeArmature", native_data)
+    bpy.context.collection.objects.link(native_obj)
+
+    bpy.ops.object.select_all(action='DESELECT')
+    native_obj.select_set(True)
+    bpy.context.view_layer.objects.active = native_obj
+    bpy.ops.object.mode_set(mode='EDIT')
+
+    for side_sgn, suffix in [(1.0, "_l"), (-1.0, "_r")]:
+        sh_t = landmarks.get(f"shoulder{suffix}") or (side_sgn * x_sh, y_sh, z_sh)
+        el_t = landmarks.get(f"elbow{suffix}") or (side_sgn * x_el, y_el, z_el)
+        wr_t = landmarks.get(f"wrist{suffix}") or (side_sgn * x_wr, y_wr, z_wr)
+        sh_p = mathutils.Vector((float(sh_t[0]), float(sh_t[1]), float(sh_t[2])))
+        elbow_p = mathutils.Vector((float(el_t[0]), float(el_t[1]), float(el_t[2])))
+        wrist_p = mathutils.Vector((float(wr_t[0]), float(wr_t[1]), float(wr_t[2])))
+
+        eb_up = native_data.edit_bones[f"upperarm{suffix}"]
+        v_up_can = (eb_up.tail - eb_up.head).normalized()
+        v_up_nat = (elbow_p - sh_p).normalized()
+        q_up = v_up_can.rotation_difference(v_up_nat)
+        mat_up = q_up.to_matrix()
+        z_up_old = eb_up.z_axis.copy()
+        eb_up.head = sh_p
+        eb_up.tail = elbow_p
+        eb_up.align_roll(mat_up @ z_up_old)
+
+        eb_lo = native_data.edit_bones[f"lowerarm{suffix}"]
+        v_lo_can = (eb_lo.tail - eb_lo.head).normalized()
+        v_lo_nat = (wrist_p - elbow_p).normalized()
+        q_lo_swing = v_lo_can.rotation_difference(v_lo_nat)
+        if is_apose:
+            q_lo_twist = mathutils.Quaternion(v_lo_nat, side_sgn * math.radians(-45.0))
+            q_lo = q_lo_twist @ q_lo_swing
+        else:
+            q_lo = q_lo_swing
+        mat_lo = q_lo.to_matrix()
+        z_lo_old = eb_lo.z_axis.copy()
+        eb_lo.head = elbow_p
+        eb_lo.tail = wrist_p
+        eb_lo.align_roll(mat_lo @ z_lo_old)
+
+        can_wrist = canon_heads[f"hand{suffix}"]
+        hand_chain = [f"hand{suffix}"] + [
+            f"{fg}_0{idx}{ '_leaf' if idx==4 else '' }{suffix}"
+            for fg in ("index", "middle", "pinky", "ring", "thumb")
+            for idx in (1, 2, 3, 4)
+        ]
+        for hname in hand_chain:
+            eb_h = native_data.edit_bones[hname]
+            h_rel = eb_h.head - can_wrist
+            t_rel = eb_h.tail - can_wrist
+            z_old = eb_h.z_axis.copy()
+            eb_h.head = wrist_p + (mat_lo @ h_rel)
+            eb_h.tail = wrist_p + (mat_lo @ t_rel)
+            eb_h.align_roll(mat_lo @ z_old)
+
+    bpy.ops.object.mode_set(mode='OBJECT')
+    return native_obj, canon_obj
+
+
+def compute_agnostic_isolated_skin_weights(
+    mesh_obj: "bpy.types.Object",
+    native_arm: "bpy.types.Object",
+    landmarks: Dict[str, Any],
+) -> Dict[str, Any]:
+    """
+    Computes isolated 4-bone anatomical skin weights for any humanoid mesh using
+    the geometrically discovered `landmarks` (`is_apose`, `has_skirt`, `y_neck_norm`).
+    """
+    is_apose = bool(landmarks["is_apose"])
+    has_skirt = bool(landmarks["has_skirt"])
+    z_neck_cut = float(landmarks.get("y_neck_norm", 1.640))
+
+    mesh = mesh_obj.data
+    n_verts = len(mesh.vertices)
+    coords = np.empty(n_verts * 3, dtype=np.float32)
+    mesh.vertices.foreach_get("co", coords)
+    v = coords.reshape(-1, 3)
+    x, y, z = v[:, 0], v[:, 1], v[:, 2]
+
+    is_head_comp = np.zeros(n_verts, dtype=bool)
+    vg_head_tag = mesh_obj.vertex_groups.get("_IS_HEAD_PART")
+    if vg_head_tag is not None:
+        tag_idx = vg_head_tag.index
+        for i_v, vt in enumerate(mesh.vertices):
+            for g in vt.groups:
+                if g.group == tag_idx and g.weight > 0.5:
+                    is_head_comp[i_v] = True
+                    break
+    if not np.any(is_head_comp):
+        is_head_comp = (z >= z_neck_cut) & (np.abs(x) <= 0.22)
+
+    is_body_comp = ~is_head_comp
+
+    bones = native_arm.data.bones
+    bone_names = [b.name for b in bones]
+    bone_idx_map = {name: i for i, name in enumerate(bone_names)}
+    n_bones = len(bone_names)
+
+    mesh_obj.vertex_groups.clear()
+    vgs = {name: mesh_obj.vertex_groups.new(name=name) for name in bone_names}
+    W = np.zeros((n_verts, n_bones), dtype=np.float32)
+
+    upper_limb_bones_l = [
+        "clavicle_l", "upperarm_l", "lowerarm_l", "hand_l",
+        "index_01_l", "index_02_l", "index_03_l",
+        "middle_01_l", "middle_02_l", "middle_03_l",
+        "pinky_01_l", "pinky_02_l", "pinky_03_l",
+        "ring_01_l", "ring_02_l", "ring_03_l",
+        "thumb_01_l", "thumb_02_l", "thumb_03_l",
+    ]
+    upper_limb_bones_r = [b.replace("_l", "_r") for b in upper_limb_bones_l]
+
+    if is_apose:
+        # Axillary separating plane between downward A-pose arms and lateral torso/hips
+        x_sep = 0.215 + 0.16 * np.maximum(0.0, 1.34 - z)
+        is_arm_l = is_body_comp & (x > x_sep) & (z > 0.74) & (z < 1.64)
+        is_arm_r = is_body_comp & (x < -x_sep) & (z > 0.74) & (z < 1.64)
+        is_shoulder_blend_l = is_body_comp & (x > 0.13) & (x <= x_sep) & (z >= 1.28) & (z < 1.66)
+        is_shoulder_blend_r = is_body_comp & (x < -0.13) & (x >= -x_sep) & (z >= 1.28) & (z < 1.66)
+    else:
+        x_arm_thresh = np.where(z >= 1.44, 0.235, 0.255)
+        is_arm_l = is_body_comp & (x > x_arm_thresh) & (z > 1.36) & (z < 1.76)
+        is_arm_r = is_body_comp & (x < -x_arm_thresh) & (z > 1.36) & (z < 1.76)
+        is_shoulder_blend_l = is_body_comp & (x > 0.09) & (x <= x_arm_thresh) & (z > 1.32) & (z < 1.76)
+        is_shoulder_blend_r = is_body_comp & (x < -0.09) & (x >= -x_arm_thresh) & (z > 1.32) & (z < 1.76)
+
+    is_rigid_head = is_head_comp & ((z >= z_neck_cut + 0.015) | ((z >= z_neck_cut - 0.015) & (y < -0.02)))
+    is_neck_blend = is_head_comp & (~is_rigid_head)
+
+    W[is_rigid_head, bone_idx_map["Head"]] = 1.0
+    if is_neck_blend.any():
+        z_n = z[is_neck_blend]
+        z_lo = z_neck_cut - 0.10
+        z_hi = z_neck_cut + 0.015
+        t_head = np.clip((z_n - (z_lo + 0.04)) / max(1e-4, z_hi - (z_lo + 0.04)), 0.0, 1.0)
+        t_sp3 = np.clip(((z_lo + 0.05) - z_n) / 0.05, 0.0, 1.0)
+        t_neck = np.maximum(0.0, 1.0 - t_head - t_sp3)
+        W[is_neck_blend, bone_idx_map["Head"]] = t_head
+        W[is_neck_blend, bone_idx_map["neck_01"]] = t_neck
+        W[is_neck_blend, bone_idx_map["spine_03"]] = t_sp3
+
+    for is_arm_mask, sh_blend_mask, limb_list, side_sgn, suffix in [
+        (is_arm_l, is_shoulder_blend_l, upper_limb_bones_l, 1.0, "_l"),
+        (is_arm_r, is_shoulder_blend_r, upper_limb_bones_r, -1.0, "_r"),
+    ]:
+        arm_indices = np.where(is_arm_mask)[0]
+        if len(arm_indices) > 0:
+            pts_arm = v[arm_indices]
+            wrist_co = np.array(bones[f"hand{suffix}"].head_local, dtype=np.float32)
+            sh_co = np.array(bones[f"upperarm{suffix}"].head_local, dtype=np.float32)
+            el_co = np.array(bones[f"lowerarm{suffix}"].head_local, dtype=np.float32)
+
+            major_bones = [f"clavicle{suffix}", f"upperarm{suffix}", f"lowerarm{suffix}", f"hand{suffix}"]
+            finger_bones = [b for b in limb_list if b not in major_bones]
+
+            for bname in major_bones:
+                b_obj = bones[bname]
+                a_pt = np.array(b_obj.head_local, dtype=np.float32)
+                b_pt = np.array(b_obj.tail_local, dtype=np.float32)
+                d2 = point_to_segment_dist_sq(pts_arm, a_pt, b_pt)
+                sigma = 0.045 if "hand" in bname else 0.080
+                w_b = np.exp(-d2 / (2.0 * sigma * sigma))
+                dist_from_sh = np.linalg.norm(pts_arm - sh_co, axis=1)
+                if "clavicle" in bname:
+                    w_b *= np.clip(1.0 - dist_from_sh / 0.16, 0.0, 1.0)
+                elif "upperarm" in bname:
+                    w_b *= np.clip(1.0 - (dist_from_sh - 0.34) / 0.12, 0.0, 1.0)
+                W[arm_indices, bone_idx_map[bname]] = w_b
+
+            dist_from_el = np.linalg.norm(pts_arm - el_co, axis=1)
+            forearm_len = float(np.linalg.norm(wrist_co - el_co))
+            is_distal_hand = dist_from_el > (forearm_len + 0.025)
+            if is_distal_hand.any():
+                f_indices = arm_indices[is_distal_hand]
+                pts_f = v[f_indices]
+                for bname in finger_bones:
+                    b_obj = bones[bname]
+                    a_pt = np.array(b_obj.head_local, dtype=np.float32)
+                    b_pt = np.array(b_obj.tail_local, dtype=np.float32)
+                    d2 = point_to_segment_dist_sq(pts_f, a_pt, b_pt)
+                    sigma_f = 0.018
+                    W[f_indices, bone_idx_map[bname]] = np.exp(-d2 / (2.0 * sigma_f * sigma_f))
+
+        sh_indices = np.where(sh_blend_mask)[0]
+        if len(sh_indices) > 0:
+            x_s = np.abs(v[sh_indices, 0])
+            z_s = v[sh_indices, 2]
+            t_x = np.clip((x_s - 0.11) / (0.23 - 0.11), 0.0, 1.0)
+            t_z = np.clip((z_s - 1.30) / 0.10, 0.0, 1.0)
+            t_sh = t_x * t_z
+            w_sp3 = 1.0 - t_sh
+            t_outer = np.clip((x_s - 0.14) / (0.23 - 0.14), 0.0, 1.0)
+            w_up = t_sh * (0.30 + 0.60 * t_outer)
+            w_cl = t_sh - w_up
+            W[sh_indices, bone_idx_map["spine_03"]] = w_sp3
+            W[sh_indices, bone_idx_map[f"clavicle{suffix}"]] = w_cl
+            W[sh_indices, bone_idx_map[f"upperarm{suffix}"]] = w_up
+
+    assigned_mask = W.sum(axis=1) > 1e-5
+    rem_indices = np.where(~assigned_mask)[0]
+    if len(rem_indices) > 0:
+        z_r = z[rem_indices]
+        torso_mask = z_r >= 0.94
+        if torso_mask.any():
+            t_idx = rem_indices[torso_mask]
+            zt = z[t_idx]
+            for bname, z_c, sig in [
+                ("pelvis", 0.94, 0.08),
+                ("spine_01", 1.09, 0.09),
+                ("spine_02", 1.24, 0.09),
+                ("spine_03", 1.43, 0.11),
+            ]:
+                W[t_idx, bone_idx_map[bname]] = np.exp(-((zt - z_c) ** 2) / (2.0 * sig * sig))
+
+        leg_mask = z_r < 0.94
+        if leg_mask.any():
+            l_idx = rem_indices[leg_mask]
+            zl = z[l_idx]
+            if has_skirt:
+                skirt_mask = zl >= 0.14
+                if skirt_mask.any():
+                    sk_idx = l_idx[skirt_mask]
+                    z_sk = z[sk_idx]
+                    x_sk = x[sk_idx]
+                    w_pelvis = np.clip((z_sk - 0.52) / (0.94 - 0.52), 0.0, 1.0) ** 1.35
+                    w_limb = 1.0 - w_pelvis
+                    t_calf = np.clip((0.55 - z_sk) / 0.14, 0.0, 1.0)
+                    w_thigh_tot = w_limb * (1.0 - t_calf)
+                    w_calf_tot = w_limb * t_calf
+                    t_left = 1.0 / (1.0 + np.exp(-x_sk / 0.055))
+                    W[sk_idx, bone_idx_map["pelvis"]] = w_pelvis
+                    W[sk_idx, bone_idx_map["thigh_l"]] = w_thigh_tot * t_left
+                    W[sk_idx, bone_idx_map["thigh_r"]] = w_thigh_tot * (1.0 - t_left)
+                    W[sk_idx, bone_idx_map["calf_l"]] = w_calf_tot * t_left
+                    W[sk_idx, bone_idx_map["calf_r"]] = w_calf_tot * (1.0 - t_left)
+                low_leg_mask = zl < 0.14
+            else:
+                hip_mask = zl >= 0.55
+                if hip_mask.any():
+                    hp_idx = l_idx[hip_mask]
+                    z_hp = z[hp_idx]
+                    x_hp = x[hp_idx]
+                    w_pelvis = np.clip((z_hp - 0.80) / 0.14, 0.0, 1.0)
+                    w_knee = np.clip((0.60 - z_hp) / 0.10, 0.0, 0.45)
+                    w_thigh = np.maximum(0.0, 1.0 - w_pelvis - w_knee)
+                    is_left = x_hp >= 0.0
+                    W[hp_idx, bone_idx_map["pelvis"]] = w_pelvis
+                    W[hp_idx, bone_idx_map["thigh_l"]] = w_thigh * is_left
+                    W[hp_idx, bone_idx_map["thigh_r"]] = w_thigh * (~is_left)
+                    W[hp_idx, bone_idx_map["calf_l"]] = w_knee * is_left
+                    W[hp_idx, bone_idx_map["calf_r"]] = w_knee * (~is_left)
+                low_leg_mask = zl < 0.55
+
+            if low_leg_mask.any():
+                ll_idx = l_idx[low_leg_mask]
+                x_ll = x[ll_idx]
+                for is_left_side, suf in [(x_ll >= 0.0, "_l"), (x_ll < 0.0, "_r")]:
+                    s_idx = ll_idx[is_left_side]
+                    if len(s_idx) == 0:
+                        continue
+                    zs = z[s_idx]
+                    ys = y[s_idx]
+                    w_th = np.clip((zs - 0.48) / 0.12, 0.0, 0.45)
+                    w_ank = np.clip((0.14 - zs) / 0.06, 0.0, 1.0)
+                    w_ca = np.maximum(0.0, 1.0 - w_th - w_ank)
+                    toe_break = -0.105
+                    w_ball = w_ank * (zs < 0.075) * np.clip((toe_break - ys) / 0.045, 0.0, 1.0)
+                    w_foot = w_ank - w_ball
+                    W[s_idx, bone_idx_map[f"thigh{suf}"]] = w_th
+                    W[s_idx, bone_idx_map[f"calf{suf}"]] = w_ca
+                    W[s_idx, bone_idx_map[f"foot{suf}"]] = w_foot
+                    W[s_idx, bone_idx_map[f"ball{suf}"]] = w_ball
+
+    if n_bones > 4:
+        top4_idx = np.argpartition(W, -4, axis=1)[:, -4:]
+        W_capped = np.zeros_like(W)
+        rows = np.arange(n_verts)[:, None]
+        W_capped[rows, top4_idx] = W[rows, top4_idx]
+        W = W_capped
+
+    W[W < 1e-4] = 0.0
+    row_sums = W.sum(axis=1, keepdims=True)
+    unweighted = (row_sums[:, 0] < 1e-6)
+    if unweighted.any():
+        W[unweighted, bone_idx_map["pelvis"]] = 1.0
+        row_sums = W.sum(axis=1, keepdims=True)
+    W /= row_sums
+
+    for b_idx, bname in enumerate(bone_names):
+        col = W[:, b_idx]
+        nz = np.where(col > 0.0)[0]
+        if len(nz) > 0:
+            vg = vgs[bname]
+            for v_i in nz:
+                vg.add([int(v_i)], float(col[v_i]), 'REPLACE')
+
+    mesh_obj.parent = native_arm
+    mod = mesh_obj.modifiers.new(name="Armature", type='ARMATURE')
+    mod.object = native_arm
+
+    return {
+        "vertices_weighted": int(n_verts),
+        "unweighted_vertices": int(unweighted.sum()),
+        "max_influences": int((W > 0).sum(axis=1).max()),
+    }
+
+
+def _rig_assembled_glb_for_alleyway_in_blender(
+    input_glb_path: str,
+    output_glb_path: str,
+    char_id: str,
+    y_neck_norm: float = 1.640,
+    x_half_norm: float = 0.220,
+    head_mat_indices: List[int] = None,
+    target_max_tris: int = 19500,
+    telemetry_out_path: str = None,
+    skeleton_metrics: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    """
+    Executes inside Blender: imports `input_glb_path` (already assembled in Stage 4),
+    decimates to <= 20,000 tris, resolves arm/leg landmarks via `skeleton_metrics`, skins & normalizes to T-pose,
+    exports .glb with 0 animations, and migrates in-place to the 64-bone RPM skeleton.
+    """
+    import time as _time
+    from migrate_to_rpm_rig import migrate_single_character_glb
+
+    t0 = _time.time()
+    bpy.ops.wm.read_factory_settings(use_empty=True)
+    bpy.context.scene.render.fps = 24
+
+    bone_specs, ual_arm, ual_objs = load_quaternius_reference_data()
+    char_name = char_id.upper()
+
+    char_mesh, mesh_info = import_and_decimate_assembled_glb_in_blender(
+        glb_path=input_glb_path,
+        character_name=char_name,
+        y_neck_norm=y_neck_norm,
+        x_half_norm=x_half_norm,
+        head_mat_indices=head_mat_indices,
+        target_max_tris=target_max_tris,
+    )
+    landmarks = discover_mesh_limb_landmarks_blender(
+        char_mesh,
+        y_neck_norm=y_neck_norm,
+        skeleton_metrics=skeleton_metrics,
+    )
+    native_arm, canon_arm = create_agnostic_character_armatures(char_name, bone_specs, landmarks)
+    skin_info = compute_agnostic_isolated_skin_weights(char_mesh, native_arm, landmarks)
+    normalize_to_quaternius_rest_pose(char_mesh, native_arm, canon_arm, char_name)
+
+    # Clear any actions/NLA on canon_arm and export clean static bind pose (0 animations)
+    if canon_arm.animation_data:
+        canon_arm.animation_data_clear()
+
+    bpy.ops.object.select_all(action='DESELECT')
+    canon_arm.select_set(True)
+    char_mesh.select_set(True)
+    bpy.context.view_layer.objects.active = canon_arm
+
+    os.makedirs(os.path.dirname(os.path.abspath(output_glb_path)), exist_ok=True)
+    bpy.ops.export_scene.gltf(
+        filepath=output_glb_path,
+        export_format='GLB',
+        use_selection=True,
+        export_apply=False,
+        export_yup=True,
+        export_skins=True,
+        export_all_influences=False,
+        export_def_bones=False,
+        export_animations=False,
+        export_normals=True,
+        export_texcoords=True,
+        export_materials='EXPORT',
+    )
+
+    rpm_info = migrate_single_character_glb(output_glb_path)
+    elapsed = round(_time.time() - t0, 3)
+
+    result = {
+        "status": "COMPLETE",
+        "target_game": "alleyway",
+        "char_id": char_id,
+        "character_name": char_name,
+        "output_glb_path": os.path.abspath(output_glb_path),
+        "size_bytes": os.path.getsize(output_glb_path),
+        "sha256": sha256_file(output_glb_path),
+        "mesh": mesh_info,
+        "landmarks": landmarks,
+        "skeleton_metrics": skeleton_metrics,
+        "skinning": skin_info,
+        "rpm_migration": rpm_info,
+        "elapsed_seconds": elapsed,
+    }
+    if telemetry_out_path:
+        os.makedirs(os.path.dirname(os.path.abspath(telemetry_out_path)), exist_ok=True)
+        with open(telemetry_out_path, "w", encoding="utf-8") as tf:
+            json.dump(result, tf, indent=2)
+    return result
+
+
+def rig_assembled_glb_for_alleyway(
+    glb_path: str = None,
+    telemetry_path: str = None,
+    char_id: str = None,
+    bucket_name: str = None,
+    player_name: str = None,
+    player_id: str = None,
+    run_id: str = None,
+    output_dir: str = None,
+    credentials_path: str = None,
+    output_glb_path: str = None,
+    update_default_hoodie: bool = False,
+) -> Dict[str, Any]:
+    """
+    Host/Blender-agnostic entrypoint for Target 1 (The Alleyway 64-bone RPM Rigger):
+    1. Pulls and validates pose-matched Stage 4 `.glb` (`preferred_pose="tpose"`) and `skeleton_metrics` via `gcs_rig_intake`.
+    2. Spawns headless Blender (or runs in-process if already inside Blender) to decimate,
+       fit armatures to `skeleton_metrics`, skin, bake T-pose, and migrate to the 64-bone RPM skeleton.
+    3. Stages output to `/Users/diesel/desktop/skatealley/characters/<char_id>.glb`
+       (and `character_hoodie.glb` if requested) and syncs to `gs://<bucket>/{run_prefix}/04_rigged/alleyway/`.
+    """
+    import subprocess
+    import tempfile
+    import shutil
+    import gcs_rig_intake
+
+    intake = gcs_rig_intake.intake_assembled_character_for_rigging(
+        glb_path=glb_path,
+        telemetry_path=telemetry_path,
+        char_id=char_id,
+        bucket_name=bucket_name,
+        player_name=player_name,
+        player_id=player_id,
+        run_id=run_id,
+        output_dir=output_dir,
+        credentials_path=credentials_path,
+        preferred_pose="tpose",
+        target_game="alleyway",
+    )
+    resolved_id = intake["char_id"]
+    repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    chars_dir = os.path.join(repo_root, "characters")
+    os.makedirs(chars_dir, exist_ok=True)
+    primary_out = os.path.abspath(output_glb_path or os.path.join(chars_dir, f"{resolved_id}.glb"))
+
+    hb = intake["head_bounds_norm"]
+    y_neck = float(hb["y_neck_norm"])
+    x_half = float(hb["x_half_norm"])
+    h_mats = list(hb["head_material_indices"])
+    skel_metrics = intake.get("skeleton_metrics")
+
+    if HAS_BLENDER:
+        res = _rig_assembled_glb_for_alleyway_in_blender(
+            input_glb_path=intake["local_glb_path"],
+            output_glb_path=primary_out,
+            char_id=resolved_id,
+            y_neck_norm=y_neck,
+            x_half_norm=x_half,
+            head_mat_indices=h_mats,
+            skeleton_metrics=skel_metrics,
+        )
+    else:
+        blender_bin = "/Applications/Blender.app/Contents/MacOS/Blender"
+        with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as tmp_f:
+            tmp_tel = tmp_f.name
+        with tempfile.NamedTemporaryFile(suffix=".json", mode="w", encoding="utf-8", delete=False) as tmp_sm:
+            json.dump(skel_metrics or {}, tmp_sm)
+            tmp_sm_path = tmp_sm.name
+        try:
+            mat_csv = ",".join(str(m) for m in h_mats)
+            cmd = [
+                blender_bin,
+                "-b",
+                "--python-exit-code",
+                "1",
+                "-P",
+                os.path.abspath(__file__),
+                "--",
+                "--blender-alleyway-worker",
+                "--input-glb",
+                intake["local_glb_path"],
+                "--output-glb",
+                primary_out,
+                "--char-id",
+                resolved_id,
+                "--y-neck",
+                str(y_neck),
+                "--x-half",
+                str(x_half),
+                "--head-mats",
+                mat_csv,
+                "--skeleton-metrics-json",
+                tmp_sm_path,
+                "--telemetry-out",
+                tmp_tel,
+            ]
+            proc = subprocess.run(cmd, capture_output=True, text=True, timeout=180)
+            if proc.returncode != 0:
+                raise RuntimeError(
+                    f"Fatal: Blender Alleyway RPM rigger failed (exit {proc.returncode}):\n"
+                    f"{(proc.stdout or '')[-2000:]}\n{(proc.stderr or '')[-2000:]}"
+                )
+            with open(tmp_tel, "r", encoding="utf-8") as tf:
+                res = json.load(tf)
+        finally:
+            for p_tmp in (tmp_tel, tmp_sm_path):
+                if os.path.exists(p_tmp):
+                    os.remove(p_tmp)
+
+    # Also stage `character_rigged.glb` inside `<output_dir>/rigged/alleyway/character_rigged.glb` for GCS upload
+    stage_dir = os.path.join(intake["output_dir"], "rigged", "alleyway")
+    os.makedirs(stage_dir, exist_ok=True)
+    staged_rigged_glb = os.path.join(stage_dir, "character_rigged.glb")
+    if os.path.abspath(primary_out) != os.path.abspath(staged_rigged_glb):
+        shutil.copy2(primary_out, staged_rigged_glb)
+
+    if update_default_hoodie:
+        hoodie_dst = os.path.join(repo_root, "character_hoodie.glb")
+        if os.path.abspath(primary_out) != os.path.abspath(hoodie_dst):
+            shutil.copy2(primary_out, hoodie_dst)
+        res["updated_character_hoodie_glb"] = hoodie_dst
+
+    sync_res = gcs_rig_intake.sync_target_rigged_deliverables(
+        intake_info=intake,
+        target_game="alleyway",
+        deliverables=[
+            ("character_rigged_glb", staged_rigged_glb, "model/gltf-binary"),
+        ],
+        telemetry_payload=res,
+    )
+    return sync_res["telemetry"]
+
+
 if __name__ == "__main__":
-    if not HAS_BLENDER or "--skate3" in sys.argv:
+    if "--blender-alleyway-worker" in sys.argv:
+        import argparse as _ap
+        argv = sys.argv[sys.argv.index("--") + 1 :] if "--" in sys.argv else sys.argv[1:]
+        p = _ap.ArgumentParser()
+        p.add_argument("--blender-alleyway-worker", action="store_true")
+        p.add_argument("--input-glb", required=True)
+        p.add_argument("--output-glb", required=True)
+        p.add_argument("--char-id", required=True)
+        p.add_argument("--y-neck", type=float, default=1.640)
+        p.add_argument("--x-half", type=float, default=0.220)
+        p.add_argument("--head-mats", default="")
+        p.add_argument("--skeleton-metrics-json", default=None)
+        p.add_argument("--telemetry-out", required=True)
+        w_args = p.parse_args(argv)
+        h_indices = [int(x) for x in w_args.head_mats.split(",") if x.strip().isdigit()]
+        w_skel = None
+        if w_args.skeleton_metrics_json and os.path.isfile(w_args.skeleton_metrics_json):
+            with open(w_args.skeleton_metrics_json, "r", encoding="utf-8") as smf:
+                w_skel = json.load(smf)
+        _rig_assembled_glb_for_alleyway_in_blender(
+            input_glb_path=w_args.input_glb,
+            output_glb_path=w_args.output_glb,
+            char_id=w_args.char_id,
+            y_neck_norm=w_args.y_neck,
+            x_half_norm=w_args.x_half,
+            head_mat_indices=h_indices,
+            telemetry_out_path=w_args.telemetry_out,
+            skeleton_metrics=w_skel,
+        )
+    elif any(k in sys.argv for k in ("--glb", "--player-name", "--playername", "--run-id")):
+        import argparse as _ap
+        import gcs_rig_intake
+        argv = sys.argv[sys.argv.index("--") + 1 :] if "--" in sys.argv else sys.argv[1:]
+        parser = _ap.ArgumentParser(description=".glb-Agnostic Alleyway 64-Bone RPM Rigger (Spec 061)")
+        gcs_rig_intake.add_gcs_rig_cli_args(parser)
+        parser.add_argument("--output", default=None, help="Optional explicit output .glb path.")
+        parser.add_argument("--update-default", action="store_true", help="Also copy rigged .glb to character_hoodie.glb.")
+        cli_args = parser.parse_args(argv)
+        tel = rig_assembled_glb_for_alleyway(
+            glb_path=cli_args.glb,
+            telemetry_path=cli_args.telemetry,
+            char_id=cli_args.char_id,
+            bucket_name=cli_args.gcs_bucket,
+            player_name=cli_args.player_name,
+            player_id=cli_args.player_id,
+            run_id=cli_args.run_id,
+            output_dir=cli_args.output_dir,
+            credentials_path=cli_args.gcs_credentials,
+            output_glb_path=cli_args.output,
+            update_default_hoodie=cli_args.update_default,
+        )
+        print(json.dumps(tel, indent=2), flush=True)
+    elif not HAS_BLENDER or "--skate3" in sys.argv:
         build_all_skate3_deliverables()
     elif "--holo-only" in sys.argv:
         run_holo_only_pipeline()

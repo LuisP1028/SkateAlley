@@ -9,6 +9,7 @@ Serves the repository root on port 3002 (default) with:
 """
 import argparse
 import base64
+import gzip
 import hashlib
 import hmac
 import json
@@ -21,6 +22,8 @@ import shutil
 import socket
 import socketserver
 import struct
+import subprocess
+import sys
 import threading
 import time
 import urllib.error
@@ -28,23 +31,81 @@ import urllib.parse
 import urllib.request
 from http.server import SimpleHTTPRequestHandler
 
+_SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
+if _SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPTS_DIR)
+
+from graphrag_engine import (
+    AUTHORITATIVE_INTRO_ANCHOR_CARDS,
+    INTRO_DECK_JSON_SCHEMA,
+    KnowledgeGraphEngine,
+    validate_intro_deck_payload,
+)
+
 HF_ROUTER_COMPLETIONS_URL = "https://router.huggingface.co/v1/chat/completions"
 DEFAULT_DOOM_CHAT_MODEL = "Qwen/Qwen3.8-27B"
-DEFAULT_DOOM_STARTERS_MODEL = "Qwen/Qwen2.5-Coder-32B-Instruct"
-DEFAULT_DOOM_PERSONA_PROMPT = ""
+DEFAULT_DOOM_STARTERS_MODEL = "Qwen/Qwen3.8-27B"
+DEFAULT_INTRO_GENERATE_MODEL = "openai/gpt-oss-120b"
+DEFAULT_DOOM_PERSONA_PROMPT = (
+    "You are DOOM_HEAD, the floating amber holographic companion and Digital Twin guide inside "
+    "Luis's interactive 3D Freeman Alley portfolio (SkateAlley). Speak with sharp technical precision, "
+    "philosophical depth, and subtle MF DOOM cadence while answering questions directly, concisely, "
+    "and factually."
+)
 DEFAULT_STARTER_TOPIC_PROMPT = ""
 
 CHAT_MODEL_FALLBACK_CHAIN = [
     "Qwen/Qwen3.8-27B",
-    "Qwen/Qwen3-8B",
-    "Qwen/Qwen3.5-27B",
+    "openai/gpt-oss-120b",
+    "Qwen/Qwen2.5-72B-Instruct",
 ]
 
 STARTERS_MODEL_FALLBACK_CHAIN = [
+    "Qwen/Qwen3.8-27B",
+    "openai/gpt-oss-120b",
     "Qwen/Qwen2.5-Coder-32B-Instruct",
-    "Qwen/Qwen2.5-72B-Instruct",
-    "Qwen/Qwen3-8B",
 ]
+
+INTRO_MODEL_FALLBACK_CHAIN = [
+    "openai/gpt-oss-120b",
+    "Qwen/Qwen3.8-27B",
+    "meta-llama/Llama-3.1-8B-Instruct",
+]
+
+_LEGACY_CHAT_MODEL_ALIASES = frozenset({
+    "Qwen/Qwen3.5-27B",
+    "Qwen/Qwen3-8B",
+    "Qwen/Qwen2.5-7B-Instruct",
+    "Qwen/Qwen2.5-3B-Instruct",
+    "Qwen/Qwen2.5",
+})
+
+_GRAPH_ENGINE_LOCK = threading.Lock()
+_GRAPH_ENGINE_INSTANCE = None
+_GRAPH_ENGINE_PATH = None
+
+
+def resolve_knowledge_graph_path():
+    override = os.environ.get("SKATEALLEY_KNOWLEDGE_GRAPH_PATH", "").strip()
+    if override:
+        return os.path.abspath(override)
+    cwd_candidate = os.path.abspath(os.path.join(os.getcwd(), "data", "luis_knowledge_graph.json"))
+    if os.path.isfile(cwd_candidate):
+        return cwd_candidate
+    repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    return os.path.abspath(os.path.join(repo_root, "data", "luis_knowledge_graph.json"))
+
+
+def get_knowledge_graph_engine():
+    global _GRAPH_ENGINE_INSTANCE, _GRAPH_ENGINE_PATH
+    target_path = resolve_knowledge_graph_path()
+    with _GRAPH_ENGINE_LOCK:
+        if _GRAPH_ENGINE_INSTANCE is None or _GRAPH_ENGINE_PATH != target_path:
+            _GRAPH_ENGINE_INSTANCE = KnowledgeGraphEngine(target_path)
+            _GRAPH_ENGINE_PATH = target_path
+        else:
+            _GRAPH_ENGINE_INSTANCE.ensure_fresh()
+        return _GRAPH_ENGINE_INSTANCE
 
 
 def resolve_hf_token():
@@ -90,8 +151,18 @@ def resolve_hf_token():
     return None
 
 
-def call_hf_chat_completions(token, model_candidates, messages, max_tokens=512, temperature=0.7, use_low_reasoning=False, timeout_sec=12.0):
-    """Call Hugging Face Inference Provider router with bounded model failover."""
+def call_hf_chat_completions(
+    token,
+    model_candidates,
+    messages,
+    max_tokens=512,
+    temperature=0.7,
+    use_low_reasoning=False,
+    timeout_sec=12.0,
+    response_format=None,
+    total_deadline_sec=None,
+):
+    """Call Hugging Face Inference Provider router with bounded model failover and optional JSON Schema response_format."""
     headers = {
         "Authorization": f"Bearer {token}",
         "Content-Type": "application/json",
@@ -99,14 +170,26 @@ def call_hf_chat_completions(token, model_candidates, messages, max_tokens=512, 
     }
     last_error = None
     t0 = time.time()
+    deadline = (t0 + float(total_deadline_sec)) if total_deadline_sec else None
 
     for idx, model_id in enumerate(model_candidates):
+        if deadline is not None:
+            remaining = deadline - time.time()
+            if remaining <= 0.4:
+                last_error = last_error or f"Upstream deadline ({total_deadline_sec}s) exceeded before trying {model_id}"
+                break
+            call_timeout = min(float(timeout_sec), remaining)
+        else:
+            call_timeout = float(timeout_sec)
+
         payload = {
             "model": model_id,
             "messages": messages,
             "max_tokens": max_tokens,
             "temperature": temperature,
         }
+        if response_format is not None:
+            payload["response_format"] = response_format
         if use_low_reasoning and ("Qwen3.8" in model_id or "Qwen3" in model_id):
             payload["reasoning_effort"] = "low"
 
@@ -117,7 +200,7 @@ def call_hf_chat_completions(token, model_candidates, messages, max_tokens=512, 
             method="POST",
         )
         try:
-            with urllib.request.urlopen(req, timeout=timeout_sec) as resp:
+            with urllib.request.urlopen(req, timeout=call_timeout) as resp:
                 raw_body = resp.read().decode("utf-8")
                 body = json.loads(raw_body)
                 choices = body.get("choices") or []
@@ -143,18 +226,30 @@ def call_hf_chat_completions(token, model_candidates, messages, max_tokens=512, 
                 }
         except urllib.error.HTTPError as e:
             err_text = e.read().decode("utf-8", errors="replace")[:300]
-            # Retry without reasoning_effort if a specific provider rejects that parameter
-            if e.code == 400 and "reasoning_effort" in payload:
-                payload.pop("reasoning_effort", None)
-                payload["max_tokens"] = max(max_tokens, 1200)
+            # Retry if a specific provider rejects reasoning_effort or strict json_schema parameter
+            if e.code in (400, 422) and ("reasoning_effort" in payload or "response_format" in payload):
+                retry_payload = dict(payload)
+                if "reasoning_effort" in retry_payload:
+                    retry_payload.pop("reasoning_effort", None)
+                    retry_payload["max_tokens"] = max(max_tokens, 1200)
+                elif "response_format" in retry_payload and isinstance(retry_payload["response_format"], dict):
+                    if retry_payload["response_format"].get("type") == "json_schema":
+                        retry_payload["response_format"] = {"type": "json_object"}
+                    else:
+                        retry_payload.pop("response_format", None)
+                retry_timeout = (
+                    min(float(timeout_sec), max(0.8, deadline - time.time()))
+                    if deadline is not None
+                    else float(timeout_sec)
+                )
                 req_retry = urllib.request.Request(
                     HF_ROUTER_COMPLETIONS_URL,
-                    data=json.dumps(payload).encode("utf-8"),
+                    data=json.dumps(retry_payload).encode("utf-8"),
                     headers=headers,
                     method="POST",
                 )
                 try:
-                    with urllib.request.urlopen(req_retry, timeout=timeout_sec) as resp2:
+                    with urllib.request.urlopen(req_retry, timeout=retry_timeout) as resp2:
                         body2 = json.loads(resp2.read().decode("utf-8"))
                         choices2 = body2.get("choices") or []
                         if choices2:
@@ -181,9 +276,17 @@ def call_hf_chat_completions(token, model_candidates, messages, max_tokens=512, 
 
     return {
         "ok": False,
-        "error": "UPSTREAM_INFERENCE_FAILED",
+        "error": "UPSTREAM_HF_ERROR",
         "message": last_error or "All candidate Hugging Face models failed.",
     }
+
+
+def extract_json_object_from_text(raw_text):
+    """Strip optional markdown code fences around a JSON object response."""
+    cleaned = (raw_text or "").strip()
+    cleaned = re.sub(r"^```(?:json)?\s*", "", cleaned, flags=re.IGNORECASE)
+    cleaned = re.sub(r"\s*```$", "", cleaned)
+    return cleaned.strip()
 
 
 def parse_two_starters_from_text(raw_text):
@@ -217,12 +320,20 @@ NZP_GAME_PK3_EXPECTED_SIZE = 94276834
 REVCDOS_DATA_EXPECTED_SIZE = 135355111
 TKDR_ISO_EXPECTED_SIZE = 1750237184
 TKDR_EBOOT_EXPECTED_SIZE = 4836160
+MELEE_ISO_EXPECTED_SIZE = 1459978240
+MELEE_WASM_EXPECTED_SIZE = 16353806
+MELEE_JS_EXPECTED_SIZE = 528343
+MKD_ISO_EXPECTED_SIZE = 1459978240
+MKD_DOL_EXPECTED_SIZE = 3843104
 EXTRA_MIME_TYPES = {
+    ".dol": "application/octet-stream",
     ".wasm": "application/wasm",
     ".pk3": "application/octet-stream",
     ".fmf": "application/octet-stream",
     ".data": "application/octet-stream",
     ".iso": "application/octet-stream",
+    ".gcm": "application/octet-stream",
+    ".rvz": "application/octet-stream",
     ".cso": "application/octet-stream",
     ".bin": "application/octet-stream",
     ".elf": "application/octet-stream",
@@ -393,7 +504,10 @@ def ensure_revcdos_vcsky(base_dir=None):
         os.path.join(target_vcsky, "sha256sums.txt")
     ):
         for sub in REVCDOS_VCSKY_SUBDIRS:
-            os.makedirs(os.path.join(target_fetched, sub), exist_ok=True)
+            try:
+                os.makedirs(os.path.join(target_fetched, sub), exist_ok=True)
+            except OSError:
+                pass
         return True
 
     candidate_sources = [
@@ -571,6 +685,286 @@ ensure_tkdr_assets(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 ensure_tkdr_assets(os.getcwd())
 
 
+def ensure_melee_assets(base_dir=None):
+    """Materialize melee/game.iso and tracked runtime files between
+    /Users/diesel/Desktop/SkateAlley/melee/ and the active worktree.
+    """
+    root = os.path.abspath(base_dir or os.getcwd())
+    target_melee = os.path.join(root, "melee")
+    candidate_sources = [
+        "/Users/diesel/Desktop/SkateAlley/melee",
+        os.path.abspath(os.path.join(root, "..", "..", "..", "melee")),
+    ]
+
+    def _has_valid_binaries(d):
+        iso_p = os.path.join(d, "game.iso")
+        wasm_p = os.path.join(d, "melee_browser.wasm")
+        js_p = os.path.join(d, "melee_browser.js")
+        try:
+            return (
+                os.path.isfile(iso_p)
+                and os.path.getsize(iso_p) == MELEE_ISO_EXPECTED_SIZE
+                and os.path.isfile(wasm_p)
+                and os.path.getsize(wasm_p) == MELEE_WASM_EXPECTED_SIZE
+                and os.path.isfile(js_p)
+                and os.path.getsize(js_p) == MELEE_JS_EXPECTED_SIZE
+            )
+        except OSError:
+            return False
+
+    src_melee = None
+    for cand in candidate_sources:
+        if _has_valid_binaries(cand):
+            src_melee = cand
+            break
+
+    if not _has_valid_binaries(target_melee) and not src_melee:
+        try:
+            scripts_dir = os.path.dirname(os.path.abspath(__file__))
+            if scripts_dir not in sys.path:
+                sys.path.insert(0, scripts_dir)
+            from provision_melee import provision_melee
+            provision_melee(worktree_root=root)
+            return _has_valid_binaries(target_melee)
+        except Exception:
+            return False
+
+    if src_melee and not (os.path.isdir(target_melee) and os.path.samefile(src_melee, target_melee)):
+        os.makedirs(target_melee, exist_ok=True)
+        for name in (
+            "game.iso",
+            "index.html",
+            "shell.mjs",
+            "disc-cache.mjs",
+            "coi-sw.js",
+            "melee_browser.js",
+            "melee_browser.wasm",
+            "_headers",
+        ):
+            src_f = os.path.join(src_melee, name)
+            dst_f = os.path.join(target_melee, name)
+            if os.path.isfile(src_f):
+                _link_or_copy_file(src_f, dst_f)
+            elif os.path.isfile(dst_f):
+                _link_or_copy_file(dst_f, src_f)
+
+    return _has_valid_binaries(target_melee)
+
+
+ensure_melee_assets(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+ensure_melee_assets(os.getcwd())
+
+
+def ensure_mkd_assets(base_dir=None):
+    """Materialize mkd/game.iso, mkd/main.dol, mkd/bin/mkd_runtime, and mkd/decomp_manifest.json
+    between /Users/diesel/Desktop/SkateAlley/mkd/ and the active worktree.
+    """
+    root = os.path.abspath(base_dir or os.getcwd())
+    target_mkd = os.path.join(root, "mkd")
+    candidate_sources = [
+        "/Users/diesel/Desktop/SkateAlley/mkd",
+        os.path.abspath(os.path.join(root, "..", "..", "..", "mkd")),
+    ]
+
+    def _has_valid_binaries(d):
+        iso_p = os.path.join(d, "game.iso")
+        dol_p = os.path.join(d, "main.dol")
+        idx_p = os.path.join(d, "index.html")
+        try:
+            return (
+                os.path.isfile(iso_p)
+                and os.path.getsize(iso_p) == MKD_ISO_EXPECTED_SIZE
+                and os.path.isfile(dol_p)
+                and os.path.getsize(dol_p) == MKD_DOL_EXPECTED_SIZE
+                and os.path.isfile(idx_p)
+            )
+        except OSError:
+            return False
+
+    src_mkd = None
+    for cand in candidate_sources:
+        if _has_valid_binaries(cand):
+            src_mkd = cand
+            break
+
+    if not _has_valid_binaries(target_mkd) and not src_mkd:
+        try:
+            scripts_dir = os.path.dirname(os.path.abspath(__file__))
+            if scripts_dir not in sys.path:
+                sys.path.insert(0, scripts_dir)
+            from provision_mkd import provision_mkd
+            provision_mkd(worktree_root=root, verify_sha1=False)
+            return _has_valid_binaries(target_mkd)
+        except Exception:
+            return False
+
+    if src_mkd and not (os.path.isdir(target_mkd) and os.path.samefile(src_mkd, target_mkd)):
+        os.makedirs(target_mkd, exist_ok=True)
+        for name in (
+            "game.iso",
+            "main.dol",
+            "decomp_manifest.json",
+            "index.html",
+            "shell.mjs",
+            "disc-cache.mjs",
+            "coi-sw.js",
+            "_headers",
+            "bin/mkd_runtime",
+        ):
+            src_f = os.path.join(src_mkd, name)
+            dst_f = os.path.join(target_mkd, name)
+            if os.path.isfile(src_f):
+                _link_or_copy_file(src_f, dst_f)
+            elif os.path.isfile(dst_f):
+                _link_or_copy_file(dst_f, src_f)
+
+    return _has_valid_binaries(target_mkd)
+
+
+ensure_mkd_assets(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+ensure_mkd_assets(os.getcwd())
+
+MKD_LIVE_RGBA_PATH = "/tmp/mkd_live_frame.rgba"
+MKD_INPUT_STATE_FILE = "/tmp/mkd_pad_state.txt"
+MKD_RUNTIME_LOG_PATH = "/tmp/mkd_runtime.log"
+MKD_RGBA_EXPECTED_BYTES = 16 + (640 * 480 * 4)
+
+_MKD_LOCK = threading.Lock()
+_MKD_PROC = None
+_MKD_BOOT_TO_FRAME = 535
+_MKD_PULSE_SEQ = 0
+_MKD_LAST_CLIENT_SEQ = 0
+_MKD_LAST_PULSE_BTN = 0
+_MKD_LAST_PULSE_SX = 0
+_MKD_LAST_PULSE_SY = 0
+_MKD_CURRENT_BTN = 0
+_MKD_CURRENT_SX = 0
+_MKD_CURRENT_SY = 0
+_MKD_CURRENT_CX = 0
+_MKD_CURRENT_CY = 0
+
+
+def _write_mkd_pad_state_unlocked():
+    tmp_path = MKD_INPUT_STATE_FILE + ".tmp"
+    line = (
+        f"{_MKD_CURRENT_BTN} {_MKD_CURRENT_SX} {_MKD_CURRENT_SY} "
+        f"{_MKD_CURRENT_CX} {_MKD_CURRENT_CY} "
+        f"{_MKD_PULSE_SEQ} {_MKD_LAST_PULSE_BTN} {_MKD_LAST_PULSE_SX} {_MKD_LAST_PULSE_SY}\n"
+    )
+    try:
+        with open(tmp_path, "w", encoding="utf-8") as f:
+            f.write(line)
+        os.replace(tmp_path, MKD_INPUT_STATE_FILE)
+    except OSError:
+        pass
+
+
+def read_mkd_live_header():
+    """Return (width, height, frame_seq, draws_this_frame) from MKD_LIVE_RGBA_PATH."""
+    try:
+        if os.path.isfile(MKD_LIVE_RGBA_PATH) and os.path.getsize(MKD_LIVE_RGBA_PATH) >= 16:
+            with open(MKD_LIVE_RGBA_PATH, "rb") as f:
+                hdr = f.read(16)
+            if len(hdr) == 16:
+                return struct.unpack("<IIII", hdr)
+    except OSError:
+        pass
+    return (640, 480, 0, 0)
+
+
+def ensure_mkd_runtime(base_dir=None, force_restart=False, boot_to_frame=None):
+    """Ensure the recompiled Mortal Kombat: Deception runtime (mkd/bin/mkd_runtime) is running."""
+    global _MKD_PROC, _MKD_BOOT_TO_FRAME, _MKD_PULSE_SEQ
+    global _MKD_LAST_PULSE_BTN, _MKD_LAST_PULSE_SX, _MKD_LAST_PULSE_SY
+    global _MKD_CURRENT_BTN, _MKD_CURRENT_SX, _MKD_CURRENT_SY, _MKD_CURRENT_CX, _MKD_CURRENT_CY
+
+    root = os.path.abspath(base_dir or os.getcwd())
+    runtime_bin = os.path.join(root, "mkd", "bin", "mkd_runtime")
+    dol_path = os.path.join(root, "mkd", "main.dol")
+    iso_path = os.path.join(root, "mkd", "game.iso")
+
+    if not (os.path.isfile(runtime_bin) and os.path.isfile(dol_path) and os.path.isfile(iso_path)):
+        return False
+
+    with _MKD_LOCK:
+        if boot_to_frame is not None:
+            _MKD_BOOT_TO_FRAME = max(0, int(boot_to_frame))
+
+        if not force_restart:
+            if _MKD_PROC is not None and _MKD_PROC.poll() is None:
+                return True
+            try:
+                if os.path.isfile(MKD_LIVE_RGBA_PATH) and (time.time() - os.path.getmtime(MKD_LIVE_RGBA_PATH)) < 2.5:
+                    return True
+            except OSError:
+                pass
+
+        if _MKD_PROC is not None:
+            try:
+                _MKD_PROC.terminate()
+                _MKD_PROC.wait(timeout=2.0)
+            except Exception:
+                try:
+                    _MKD_PROC.kill()
+                except Exception:
+                    pass
+            _MKD_PROC = None
+
+        try:
+            subprocess.run(["pkill", "-f", "mkd/bin/mkd_runtime"], capture_output=True)
+        except OSError:
+            pass
+
+        _MKD_PULSE_SEQ = 0
+        _MKD_LAST_PULSE_BTN = 0
+        _MKD_LAST_PULSE_SX = 0
+        _MKD_LAST_PULSE_SY = 0
+        _MKD_CURRENT_BTN = 0
+        _MKD_CURRENT_SX = 0
+        _MKD_CURRENT_SY = 0
+        _MKD_CURRENT_CX = 0
+        _MKD_CURRENT_CY = 0
+        _write_mkd_pad_state_unlocked()
+
+        if sys.platform != "darwin":
+            print(
+                f"[skatealley-app-local] Skipping macOS Mach-O mkd_runtime spawn inside {sys.platform} container.",
+                flush=True,
+            )
+            return False
+
+        env = os.environ.copy()
+        env["MKD_LIVE_RGBA_PATH"] = MKD_LIVE_RGBA_PATH
+        env["MKD_INPUT_STATE_FILE"] = MKD_INPUT_STATE_FILE
+        env["MKD_BOOT_TO_FRAME"] = str(_MKD_BOOT_TO_FRAME)
+        env["MKD_PACE_60HZ"] = "1"
+
+        try:
+            log_f = open(MKD_RUNTIME_LOG_PATH, "wb")
+            _MKD_PROC = subprocess.Popen(
+                [
+                    runtime_bin,
+                    dol_path,
+                    "--iso", iso_path,
+                    "--no-card",
+                    "--max-blocks", "999999999999",
+                ],
+                cwd=root,
+                env=env,
+                stdout=log_f,
+                stderr=subprocess.STDOUT,
+            )
+        except OSError as exc:
+            print(f"[skatealley-app-local] WARNING: Failed to spawn mkd_runtime: {exc}", flush=True)
+            _MKD_PROC = None
+            return False
+        print(
+            f"[skatealley-app-local] Started mkd_runtime pid={_MKD_PROC.pid} boot_to_frame={_MKD_BOOT_TO_FRAME}",
+            flush=True,
+        )
+        return True
+
+
 # ============================================================================
 # PostgreSQL v3 Wire Protocol Client & Sticker Persistence Layer (Spec 056)
 # ============================================================================
@@ -644,13 +1038,33 @@ def parse_postgres_dsn(dsn):
     }
 
 
+_PG_POOL_LOCK = threading.Lock()
+_PG_IDLE_POOL = []
+_PG_POOL_MAX_IDLE = 3
+_PG_POOL_MAX_AGE_SEC = 45.0
+
+
 class PgWireConnection:
-    """Zero-dependency Python stdlib PostgreSQL v3 Wire Protocol + SCRAM-SHA-256 client."""
+    """Zero-dependency Python stdlib PostgreSQL v3 Wire Protocol + SCRAM-SHA-256 client with idle pool support."""
 
     def __init__(self, dsn, timeout=3.5):
+        self.dsn = dsn
+        self.timeout = timeout
         self.cfg = parse_postgres_dsn(dsn)
-        self.sock = socket.create_connection((self.cfg["host"], self.cfg["port"]), timeout=timeout)
-        self.sock.settimeout(timeout)
+        self.sock = None
+        self._broken = False
+        self._reused_from_pool = False
+        self._connect()
+
+    def _connect(self):
+        if self.sock is not None:
+            try:
+                self.sock.close()
+            except Exception:
+                pass
+        self.sock = socket.create_connection((self.cfg["host"], self.cfg["port"]), timeout=self.timeout)
+        self.sock.settimeout(self.timeout)
+        self._broken = False
         self._handshake()
 
     def _recv_exact(self, n):
@@ -747,16 +1161,27 @@ class PgWireConnection:
 
     def execute_simple(self, sql):
         """Execute simple SQL batch (DDL or unparameterized statements)."""
-        self._send_message("Q", sql.encode("utf-8") + b"\x00")
-        err_msg = None
-        while True:
-            mtype, body = self._read_message()
-            if mtype == "E":
-                err_msg = self._parse_error_body(body)
-            elif mtype == "Z":
-                break
-        if err_msg:
-            raise RuntimeError(err_msg)
+        for attempt in range(2):
+            was_reused = self._reused_from_pool
+            self._reused_from_pool = False
+            try:
+                self._send_message("Q", sql.encode("utf-8") + b"\x00")
+                err_msg = None
+                while True:
+                    mtype, body = self._read_message()
+                    if mtype == "E":
+                        err_msg = self._parse_error_body(body)
+                    elif mtype == "Z":
+                        break
+                if err_msg:
+                    raise RuntimeError(err_msg)
+                return
+            except (ConnectionError, OSError, socket.timeout):
+                self._broken = True
+                if was_reused and attempt == 0:
+                    self._connect()
+                    continue
+                raise
 
     def execute_params(self, sql, params=()):
         """Execute parameterized SQL ($1, $2, ...) via PostgreSQL Extended Query Protocol."""
@@ -784,69 +1209,106 @@ class PgWireConnection:
             + b"E" + struct.pack("!I", len(execute_payload) + 4) + execute_payload
             + b"S" + struct.pack("!I", 4)
         )
-        self.sock.sendall(pkt)
 
-        columns = []
-        rows = []
-        err_msg = None
+        for attempt in range(2):
+            was_reused = self._reused_from_pool
+            self._reused_from_pool = False
+            try:
+                self.sock.sendall(pkt)
 
-        while True:
-            mtype, body = self._read_message()
-            if mtype == "T":
-                # RowDescription
-                col_count = struct.unpack("!H", body[:2])[0]
-                idx = 2
                 columns = []
-                for _ in range(col_count):
-                    end_name = body.index(b"\x00", idx)
-                    col_name = body[idx:end_name].decode("utf-8", errors="replace")
-                    columns.append(col_name)
-                    idx = end_name + 1 + 18  # tableOID(4)+colAttr(2)+typeOID(4)+typeSize(2)+typeMod(4)+fmt(2)
-            elif mtype == "D":
-                # DataRow
-                col_count = struct.unpack("!H", body[:2])[0]
-                idx = 2
-                row_dict = {}
-                for c_idx in range(col_count):
-                    val_len = struct.unpack("!i", body[idx:idx + 4])[0]
-                    idx += 4
-                    if val_len == -1:
-                        val_str = None
-                    else:
-                        val_str = body[idx:idx + val_len].decode("utf-8", errors="replace")
-                        idx += val_len
-                    col_key = columns[c_idx] if c_idx < len(columns) else f"col_{c_idx}"
-                    row_dict[col_key] = val_str
-                rows.append(row_dict)
-            elif mtype == "E":
-                err_msg = self._parse_error_body(body)
-            elif mtype == "Z":
-                break
+                rows = []
+                err_msg = None
 
-        if err_msg:
-            raise RuntimeError(err_msg)
-        return rows
+                while True:
+                    mtype, body = self._read_message()
+                    if mtype == "T":
+                        # RowDescription
+                        col_count = struct.unpack("!H", body[:2])[0]
+                        idx = 2
+                        columns = []
+                        for _ in range(col_count):
+                            end_name = body.index(b"\x00", idx)
+                            col_name = body[idx:end_name].decode("utf-8", errors="replace")
+                            columns.append(col_name)
+                            idx = end_name + 1 + 18  # tableOID(4)+colAttr(2)+typeOID(4)+typeSize(2)+typeMod(4)+fmt(2)
+                    elif mtype == "D":
+                        # DataRow
+                        col_count = struct.unpack("!H", body[:2])[0]
+                        idx = 2
+                        row_dict = {}
+                        for c_idx in range(col_count):
+                            val_len = struct.unpack("!i", body[idx:idx + 4])[0]
+                            idx += 4
+                            if val_len == -1:
+                                val_str = None
+                            else:
+                                val_str = body[idx:idx + val_len].decode("utf-8", errors="replace")
+                                idx += val_len
+                            col_key = columns[c_idx] if c_idx < len(columns) else f"col_{c_idx}"
+                            row_dict[col_key] = val_str
+                        rows.append(row_dict)
+                    elif mtype == "E":
+                        err_msg = self._parse_error_body(body)
+                    elif mtype == "Z":
+                        break
+
+                if err_msg:
+                    raise RuntimeError(err_msg)
+                return rows
+            except (ConnectionError, OSError, socket.timeout):
+                self._broken = True
+                if was_reused and attempt == 0:
+                    self._connect()
+                    continue
+                raise
 
     def close(self):
-        try:
-            self._send_message("X")
-        except Exception:
-            pass
-        try:
-            self.sock.close()
-        except Exception:
-            pass
+        self._broken = True
+        if self.sock is not None:
+            try:
+                self._send_message("X")
+            except Exception:
+                pass
+            try:
+                self.sock.close()
+            except Exception:
+                pass
+            self.sock = None
 
     def __enter__(self):
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        self.close()
+        if exc_type is not None or self._broken or self.sock is None:
+            self.close()
+            return
+        returned = False
+        with _PG_POOL_LOCK:
+            if len(_PG_IDLE_POOL) < _PG_POOL_MAX_IDLE:
+                _PG_IDLE_POOL.append((time.monotonic(), self))
+                returned = True
+        if not returned:
+            self.close()
 
 
 def open_postgres_connection():
-    """Open a PgWireConnection to the first reachable PostgreSQL DSN candidate."""
+    """Acquire an authenticated PgWireConnection from the idle pool or open a new one."""
     global _ACTIVE_POSTGRES_DSN
+    now_mono = time.monotonic()
+    while True:
+        candidate = None
+        with _PG_POOL_LOCK:
+            if _PG_IDLE_POOL:
+                candidate = _PG_IDLE_POOL.pop()
+        if candidate is None:
+            break
+        ts_mono, pooled_conn = candidate
+        if (now_mono - ts_mono) <= _PG_POOL_MAX_AGE_SEC and not pooled_conn._broken and pooled_conn.sock is not None:
+            pooled_conn._reused_from_pool = True
+            return pooled_conn
+        pooled_conn.close()
+
     last_err = None
     for dsn in resolve_postgres_dsn_candidates():
         try:
@@ -1207,6 +1669,153 @@ def get_sticker_db_health():
         return {"ready": False, "storage": "postgres", "count": 0, "error": str(e)}
 
 
+# ============================================================================
+# PostgreSQL Scene Layout Persistence Layer (Hologram Columns & Scene Overrides)
+# ============================================================================
+
+_SCENE_LAYOUT_SCHEMA_READY = False
+
+ALLOWED_SCENE_LAYOUT_KEYS = {
+    "holo_columns",
+    "math_pods",
+    "lamppost_light",
+    "player_spawn",
+    "startup_camera_pan",
+    "intro_dialogue_boxes",
+    "scene_cuts",
+}
+
+
+def ensure_scene_layout_schema(conn=None):
+    """Ensure skatealley_scene_layouts table exists on PostgreSQL."""
+    global _SCENE_LAYOUT_SCHEMA_READY
+    if _SCENE_LAYOUT_SCHEMA_READY:
+        return True
+    with _STICKER_DB_LOCK:
+        if _SCENE_LAYOUT_SCHEMA_READY:
+            return True
+        own_conn = conn is None
+        active_conn = conn or open_postgres_connection()
+        try:
+            active_conn.execute_simple(
+                """
+                CREATE TABLE IF NOT EXISTS skatealley_scene_layouts (
+                    layout_key VARCHAR(64) PRIMARY KEY,
+                    payload_json TEXT NOT NULL,
+                    updated_at_ms BIGINT NOT NULL
+                );
+                """
+            )
+            _SCENE_LAYOUT_SCHEMA_READY = True
+            return True
+        finally:
+            if own_conn:
+                active_conn.close()
+
+
+def list_persisted_scene_layouts():
+    with _STICKER_DB_LOCK:
+        with open_postgres_connection() as conn:
+            ensure_scene_layout_schema(conn)
+            rows = conn.execute_params(
+                "SELECT layout_key, payload_json, updated_at_ms FROM skatealley_scene_layouts ORDER BY layout_key ASC"
+            )
+            layouts = {}
+            updated_at = {}
+            for r in rows:
+                k = str(r["layout_key"])
+                try:
+                    layouts[k] = json.loads(r["payload_json"])
+                    updated_at[k] = int(r["updated_at_ms"])
+                except Exception:
+                    continue
+            return {"layouts": layouts, "updatedAtMs": updated_at}
+
+
+def upsert_persisted_scene_layouts(entries, default_updated_at_ms=None):
+    if not isinstance(entries, dict) or not entries:
+        raise ValueError("entries must be a non-empty dict mapping layout_key -> JSON payload")
+    now_ms = int(default_updated_at_ms if default_updated_at_ms is not None else time.time() * 1000)
+    saved = {}
+    with _STICKER_DB_LOCK:
+        with open_postgres_connection() as conn:
+            ensure_scene_layout_schema(conn)
+            for raw_key, payload in entries.items():
+                key = str(raw_key or "").strip()[:64]
+                if not key or not re.match(r"^[a-zA-Z0-9_.-]+$", key):
+                    raise ValueError(f"Invalid scene layout key '{raw_key}'")
+                if not isinstance(payload, (dict, list)):
+                    raise ValueError(f"Scene layout payload for '{key}' must be a JSON object or array")
+                encoded = json.dumps(payload, separators=(",", ":"))
+                conn.execute_params(
+                    """
+                    INSERT INTO skatealley_scene_layouts (layout_key, payload_json, updated_at_ms)
+                    VALUES ($1, $2, $3)
+                    ON CONFLICT (layout_key) DO UPDATE SET
+                        payload_json = EXCLUDED.payload_json,
+                        updated_at_ms = EXCLUDED.updated_at_ms
+                    """,
+                    (key, encoded, now_ms),
+                )
+                saved[key] = now_ms
+    return saved
+
+
+def delete_persisted_scene_layout(layout_key):
+    clean_key = str(layout_key or "").strip()[:64]
+    if not clean_key:
+        raise ValueError("layout key is required for deletion")
+    with _STICKER_DB_LOCK:
+        with open_postgres_connection() as conn:
+            ensure_scene_layout_schema(conn)
+            if clean_key == "all":
+                rows = conn.execute_params("DELETE FROM skatealley_scene_layouts RETURNING layout_key")
+            else:
+                rows = conn.execute_params(
+                    "DELETE FROM skatealley_scene_layouts WHERE layout_key = $1 RETURNING layout_key",
+                    (clean_key,),
+                )
+            return [str(r["layout_key"]) for r in rows]
+
+
+def get_scene_layout_db_health():
+    try:
+        with _STICKER_DB_LOCK:
+            with open_postgres_connection() as conn:
+                ensure_scene_layout_schema(conn)
+                rows = conn.execute_params(
+                    "SELECT layout_key FROM skatealley_scene_layouts ORDER BY layout_key ASC"
+                )
+                keys = [str(r["layout_key"]) for r in rows]
+                return {"ready": True, "storage": "postgres", "keys": keys, "error": None}
+    except Exception as e:
+        return {"ready": False, "storage": "postgres", "keys": [], "error": str(e)}
+
+
+def get_combined_db_health():
+    """Execute sticker + scene-layout PostgreSQL health check in a single connection & query roundtrip."""
+    try:
+        with _STICKER_DB_LOCK:
+            with open_postgres_connection() as conn:
+                ensure_sticker_schema(conn)
+                ensure_scene_layout_schema(conn)
+                rows = conn.execute_params(
+                    "SELECT "
+                    "(SELECT COUNT(*) FROM skatealley_placed_stickers) AS sticker_cnt, "
+                    "COALESCE((SELECT string_agg(layout_key, ',' ORDER BY layout_key ASC) FROM skatealley_scene_layouts), '') AS layout_keys"
+                )
+                row = rows[0] if rows else {}
+                cnt = int(row.get("sticker_cnt") or 0)
+                keys_raw = str(row.get("layout_keys") or "")
+                keys = [k for k in keys_raw.split(",") if k]
+                return (
+                    {"ready": True, "storage": "postgres", "count": cnt, "error": None},
+                    {"ready": True, "storage": "postgres", "keys": keys, "error": None},
+                )
+    except Exception as e:
+        return get_sticker_db_health(), get_scene_layout_db_health()
+
+
 class ThreadingHTTPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
     allow_reuse_address = True
     daemon_threads = True
@@ -1245,21 +1854,41 @@ class SkateAlleyRequestHandler(SimpleHTTPRequestHandler):
             return resolved
         return resolved
 
+    def handle(self):
+        try:
+            super().handle()
+        except (BrokenPipeError, ConnectionResetError):
+            pass
+
     def end_headers(self):
         self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Access-Control-Allow-Methods", "GET, HEAD, POST, PUT, DELETE, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "Range, Content-Type, Accept, Origin, Authorization")
         self.send_header("Access-Control-Expose-Headers", "Content-Length, Content-Range, Accept-Ranges")
         self.send_header("Accept-Ranges", "bytes")
-        self.send_header("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
-        self.send_header("Pragma", "no-cache")
         req_path = getattr(self, "path", "").split("?", 1)[0].split("#", 1)[0]
-        is_tkdr_route = (
+        _, req_ext = os.path.splitext(req_path.lower())
+        is_dynamic_or_code = (
+            req_path in ("", "/", "/health", "/tunnel.json")
+            or req_path.endswith("/")
+            or req_path.startswith("/api/")
+            or req_ext in ("", ".html", ".htm", ".js", ".mjs", ".css", ".json")
+        )
+        if is_dynamic_or_code:
+            self.send_header("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
+            self.send_header("Pragma", "no-cache")
+        else:
+            self.send_header("Cache-Control", "public, max-age=3600")
+        is_coi_route = (
             req_path == "/tkdr"
             or req_path.startswith("/tkdr/")
-            or os.path.basename(os.getcwd()) == "tkdr"
+            or req_path == "/melee"
+            or req_path.startswith("/melee/")
+            or req_path == "/mkd"
+            or req_path.startswith("/mkd/")
+            or os.path.basename(os.getcwd()) in ("tkdr", "melee", "mkd")
         )
-        if is_tkdr_route:
+        if is_coi_route:
             self.send_header("Cross-Origin-Opener-Policy", "same-origin")
             self.send_header("Cross-Origin-Embedder-Policy", "require-corp")
             self.send_header("Cross-Origin-Resource-Policy", "same-origin")
@@ -1305,6 +1934,177 @@ class SkateAlleyRequestHandler(SimpleHTTPRequestHandler):
         except Exception:
             return {}
 
+    def _handle_graphrag_status(self):
+        engine = get_knowledge_graph_engine()
+        st = engine.status()
+        return self._send_json(200 if st.get("ready") else 503, st)
+
+    def _handle_graphrag_query(self):
+        engine = get_knowledge_graph_engine()
+        st = engine.status()
+        if not st.get("ready"):
+            return self._send_json(503, {
+                "ok": False,
+                "ready": False,
+                "error": st.get("error", "GRAPHRAG_UNAVAILABLE"),
+                "message": st.get("message", "Knowledge graph failed validation."),
+            })
+
+        body = self._read_json_body()
+        query_text = str(body.get("query") or "").strip()
+        raw_hops = body.get("maxHops", 2)
+        try:
+            max_hops = max(1, min(3, int(raw_hops)))
+        except (TypeError, ValueError):
+            max_hops = 2
+
+        recent_messages = body.get("recentMessages") if isinstance(body.get("recentMessages"), list) else None
+        result = engine.query(
+            query_text=query_text,
+            recent_messages=recent_messages,
+            max_hops=max_hops,
+        )
+        return self._send_json(200, result)
+
+    def _handle_intro_generate(self):
+        t0 = time.time()
+        token = resolve_hf_token()
+        if not token:
+            return self._send_json(503, {
+                "ok": False,
+                "error": "MISSING_HF_TOKEN",
+                "message": "HF_TOKEN is not configured in environment or .env on the SkateAlley server.",
+            })
+
+        engine = get_knowledge_graph_engine()
+        st = engine.status()
+        bio_summary = engine.build_biographical_anchor_summary() if st.get("ready") else ""
+        dataset_version = st.get("datasetVersion") if st.get("ready") else None
+
+        body = self._read_json_body()
+        requested_model = str(body.get("model") or DEFAULT_INTRO_GENERATE_MODEL).strip()
+        candidates = []
+        if requested_model in _LEGACY_CHAT_MODEL_ALIASES:
+            candidates.extend(INTRO_MODEL_FALLBACK_CHAIN)
+        else:
+            candidates.append(requested_model)
+            for fb in INTRO_MODEL_FALLBACK_CHAIN:
+                if fb not in candidates:
+                    candidates.append(fb)
+
+        anchor_json = json.dumps({
+            "schema_version": "1.0",
+            "cards": AUTHORITATIVE_INTRO_ANCHOR_CARDS,
+        }, ensure_ascii=False, indent=2)
+
+        system_prompt = (
+            "You generate the 7-card first-person welcome dialogue sequence for Luis's interactive 3D "
+            "Freeman Alley portfolio (SkateAlley). You MUST output ONLY a single valid JSON object "
+            "conforming strictly to the FreemanAlleyGenerativeIntroDeck Draft 2020-12 JSON Schema.\n\n"
+            "STRICT ANCHOR & VOICE INVARIANTS (NEVER HALLUCINATE BIOGRAPHY):\n"
+            "1. Keep Luis's authentic, witty, energetic first-person voice closely anchored to the 7 hand-authored "
+            "anchor cards below (lightly riffing phrasing is allowed, inventing fake jobs/degrees/projects is FORBIDDEN).\n"
+            "2. Card 1 (index=1, id='card_01', header='01 // WELCOME', requires_question_prompt=false): "
+            "Must introduce 'Luis', age '26', who builds software that feels like magic.\n"
+            "3. Card 2 (index=2, id='card_02', header='02 // ABOUT ME', requires_question_prompt=false): "
+            "Must preserve hiking, swimming, eating good food, and building; studying corporate finance and accounting "
+            "in college before changing major to 'Philosophy and Religion' during the COVID era; speedrunning AI psychosis "
+            "with GPT-3.5 / GPT3.5 in 2022; and 'e/acc, baby.'\n"
+            "4. Card 3 (index=3, id='card_03', header='03 // PROJECTS & ARCHITECTURE', requires_question_prompt=false): "
+            "Must describe Luis's work on display down the alley alongside where he excels in the technical stack.\n"
+            "5. Card 4 (index=4, id='card_04', header='04 // EXPLORE THE ALLEY', requires_question_prompt=false): "
+            "Must preserve the 'reverse engineer anything' GitHub repo leading Luis and other nerds to reverse-engineer "
+            "toilet sensors, smart TVs, video games, and critical infrastructure.\n"
+            "6. Card 5 (index=5, id='card_05', header='05 // GAMES', requires_question_prompt=false): "
+            "Must steer clear of reverse engineering critical infrastructure for now, highlight playable decompiled games "
+            "down the alleyway, and mention Luis's generative pipeline to put yourself in-game.\n"
+            "7. Card 6 (index=6, id='card_06', header='06 // GENERATIVE PIPELINE', requires_question_prompt=false): "
+            "Must list skating, committing grand theft auto, fighting in Super Smash Bros, killing zombies, or joining Luis in the alleyway.\n"
+            "8. Card 7 (index=7, id='card_07', header='07 // MENU', requires_question_prompt=true): "
+            "Must explain using the menu to leave a message in the alleyway, warn that job recruiters visit so TREAD LIGHTLY "
+            "and explicitly include 'DON’T BE A DICKHEAD, DEVON!', mention GitHub/email/Twitter, note that this conversation "
+            "is generative, and end with a direct question asking if the visitor has any questions for Luis (ending with '?').\n"
+            "9. Every card 'body' string MUST be between 45 and 440 characters."
+        )
+
+        user_prompt = (
+            f"AUTHORITATIVE 7 ANCHOR CARDS:\n{anchor_json}\n\n"
+            f"VERIFIED BIOGRAPHICAL CONTEXT:\n{bio_summary}\n\n"
+            "Generate the FreemanAlleyGenerativeIntroDeck JSON object now."
+        )
+
+        response_format_spec = {
+            "type": "json_schema",
+            "json_schema": {
+                "name": "FreemanAlleyGenerativeIntroDeck",
+                "strict": True,
+                "schema": INTRO_DECK_JSON_SCHEMA,
+            },
+        }
+
+        res = call_hf_chat_completions(
+            token=token,
+            model_candidates=candidates,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+            max_tokens=2200,
+            temperature=0.40,
+            use_low_reasoning=True,
+            timeout_sec=8.0,
+            response_format=response_format_spec,
+            total_deadline_sec=8.0,
+        )
+        if not res.get("ok"):
+            return self._send_json(502, {
+                "ok": False,
+                "error": res.get("error", "UPSTREAM_HF_ERROR"),
+                "message": res.get("message", "Upstream Hugging Face intro generation failed."),
+                "latencyMs": round((time.time() - t0) * 1000.0, 1),
+            })
+
+        cleaned_json_str = extract_json_object_from_text(res.get("content", ""))
+        try:
+            parsed_payload = json.loads(cleaned_json_str)
+        except json.JSONDecodeError as exc:
+            return self._send_json(502, {
+                "ok": False,
+                "error": "SCHEMA_VALIDATION_FAILED",
+                "schemaValid": False,
+                "model": res.get("model"),
+                "message": f"Upstream LLM returned malformed JSON at line {exc.lineno}, col {exc.colno}: {exc.msg}",
+                "validationErrors": [str(exc)],
+                "latencyMs": round((time.time() - t0) * 1000.0, 1),
+            })
+
+        is_valid, validation_errors, normalized_deck = validate_intro_deck_payload(parsed_payload)
+        if not is_valid or not normalized_deck:
+            return self._send_json(502, {
+                "ok": False,
+                "error": "SCHEMA_VALIDATION_FAILED",
+                "schemaValid": False,
+                "model": res.get("model"),
+                "message": "Generated intro deck violated FreemanAlleyGenerativeIntroDeck schema invariants.",
+                "validationErrors": validation_errors,
+                "latencyMs": round((time.time() - t0) * 1000.0, 1),
+            })
+
+        total_ms = round((time.time() - t0) * 1000.0, 1)
+        return self._send_json(200, {
+            "ok": True,
+            "source": "hf_json_schema",
+            "schemaValid": True,
+            "schema_version": normalized_deck["schema_version"],
+            "cards": normalized_deck["cards"],
+            "model": res["model"],
+            "requestedModel": requested_model,
+            "datasetVersion": dataset_version,
+            "latencyMs": total_ms,
+            "upstreamLatencyMs": res.get("latencyMs", total_ms),
+            "usage": res.get("usage", {}),
+        })
+
     def _handle_doom_starters(self):
         token = resolve_hf_token()
         if not token:
@@ -1314,13 +2114,36 @@ class SkateAlleyRequestHandler(SimpleHTTPRequestHandler):
                 "message": "HF_TOKEN is not configured in environment or .env on the SkateAlley server.",
             })
 
+        engine = get_knowledge_graph_engine()
+        graph_status = engine.status()
+        if not graph_status.get("ready"):
+            return self._send_json(503, {
+                "ok": False,
+                "error": graph_status.get("error", "GRAPHRAG_UNAVAILABLE"),
+                "message": graph_status.get("message", "Knowledge graph failed validation."),
+            })
+
         body = self._read_json_body()
         requested_model = str(body.get("model") or DEFAULT_DOOM_STARTERS_MODEL).strip()
         topic_prompt = str(body.get("topicPrompt") if body.get("topicPrompt") is not None else DEFAULT_STARTER_TOPIC_PROMPT).strip()
 
+        graph_query_seed = (
+            topic_prompt
+            if topic_prompt
+            else "Luis Rejection Station resume scanner TopStepXFA GraphRAG college reverse engineering games"
+        )
+        graph_res = engine.query(query_text=graph_query_seed, max_hops=2)
+        graphrag_meta = {
+            "datasetVersion": graph_res["datasetVersion"],
+            "seedNodeIds": graph_res["seedNodeIds"],
+            "retrievedNodeCount": graph_res["retrievedNodeCount"],
+            "retrievedEdgeCount": graph_res["retrievedEdgeCount"],
+            "hops": graph_res["hops"],
+            "retrievalLatencyMs": graph_res["retrievalLatencyMs"],
+        }
+
         candidates = []
-        # Map generic Qwen2.5 aliases to live enabled HF router models first
-        if requested_model in ("Qwen/Qwen2.5-7B-Instruct", "Qwen/Qwen2.5-3B-Instruct", "Qwen/Qwen2.5"):
+        if requested_model in _LEGACY_CHAT_MODEL_ALIASES:
             candidates.extend(STARTERS_MODEL_FALLBACK_CHAIN)
         else:
             candidates.append(requested_model)
@@ -1329,19 +2152,22 @@ class SkateAlleyRequestHandler(SimpleHTTPRequestHandler):
                     candidates.append(fb)
 
         user_instruction = (
-            "Generate a JSON array containing exactly 2 short, intriguing conversation starter questions "
-            "(each under 70 characters). Output ONLY a valid JSON array of 2 strings, e.g. [\"Question 1?\", \"Question 2?\"]."
+            "Using the verified GraphRAG biographical subgraph below about Luis and his Freeman Alley portfolio, "
+            "generate a JSON array containing exactly 2 short, specific, intriguing visitor questions "
+            "(each under 70 characters) about Luis's projects, Rejection Station story, education, or decompiled games. "
+            "Output ONLY a valid JSON array of 2 strings, e.g. [\"Question 1?\", \"Question 2?\"].\n\n"
+            f"{graph_res['contextBlock']}"
         )
         if topic_prompt:
-            user_instruction += f" Topic focus: {topic_prompt}"
+            user_instruction += f"\nTopic focus: {topic_prompt}"
 
         messages = [{"role": "user", "content": user_instruction}]
         res = call_hf_chat_completions(
             token=token,
             model_candidates=candidates,
             messages=messages,
-            max_tokens=160,
-            temperature=0.85,
+            max_tokens=600,
+            temperature=0.80,
             use_low_reasoning=True,
             timeout_sec=12.0,
         )
@@ -1363,9 +2189,11 @@ class SkateAlleyRequestHandler(SimpleHTTPRequestHandler):
             "topicPrompt": topic_prompt,
             "starters": starters[:2],
             "latencyMs": res.get("latencyMs", 0.0),
+            "graphrag": graphrag_meta,
         })
 
     def _handle_doom_chat(self):
+        t0 = time.time()
         token = resolve_hf_token()
         if not token:
             return self._send_json(503, {
@@ -1374,10 +2202,28 @@ class SkateAlleyRequestHandler(SimpleHTTPRequestHandler):
                 "message": "HF_TOKEN is not configured in environment or .env on the SkateAlley server.",
             })
 
+        engine = get_knowledge_graph_engine()
+        graph_status = engine.status()
+        if not graph_status.get("ready"):
+            return self._send_json(503, {
+                "ok": False,
+                "error": graph_status.get("error", "GRAPHRAG_UNAVAILABLE"),
+                "message": graph_status.get("message", "Knowledge graph failed validation."),
+            })
+
         body = self._read_json_body()
         requested_model = str(body.get("model") or DEFAULT_DOOM_CHAT_MODEL).strip()
-        persona_prompt = str(body.get("personaPrompt") if body.get("personaPrompt") is not None else DEFAULT_DOOM_PERSONA_PROMPT).strip()
+        raw_persona = body.get("personaPrompt")
+        persona_prompt = (
+            str(raw_persona).strip()
+            if raw_persona is not None and str(raw_persona).strip()
+            else DEFAULT_DOOM_PERSONA_PROMPT
+        )
         raw_messages = body.get("messages")
+        try:
+            max_hops = max(1, min(3, int(body.get("maxHops", 2))))
+        except (TypeError, ValueError):
+            max_hops = 2
 
         if not isinstance(raw_messages, list) or len(raw_messages) == 0:
             return self._send_json(400, {
@@ -1386,10 +2232,7 @@ class SkateAlleyRequestHandler(SimpleHTTPRequestHandler):
                 "message": "Request body must include a non-empty 'messages' array.",
             })
 
-        messages = []
-        if persona_prompt:
-            messages.append({"role": "system", "content": persona_prompt})
-
+        conversation_turns = []
         for m in raw_messages[-24:]:
             if isinstance(m, dict):
                 role = str(m.get("role") or "user").strip().lower()
@@ -1397,40 +2240,92 @@ class SkateAlleyRequestHandler(SimpleHTTPRequestHandler):
                     role = "user"
                 content = str(m.get("content") or "").strip()
                 if content:
-                    messages.append({"role": role, "content": content})
+                    conversation_turns.append({"role": role, "content": content})
 
-        if not messages:
+        if not conversation_turns:
             return self._send_json(400, {
                 "ok": False,
                 "error": "EMPTY_MESSAGES",
                 "message": "No valid non-empty messages provided.",
             })
 
-        candidates = [requested_model]
-        for fb in CHAT_MODEL_FALLBACK_CHAIN:
-            if fb not in candidates:
-                candidates.append(fb)
+        latest_user_msg = ""
+        for turn in reversed(conversation_turns):
+            if turn["role"] == "user":
+                latest_user_msg = turn["content"]
+                break
+        if not latest_user_msg:
+            latest_user_msg = conversation_turns[-1]["content"]
+
+        recent_window = [
+            t for t in conversation_turns[:-1]
+            if t["role"] in ("user", "assistant")
+        ][-4:]
+
+        graph_res = engine.query(
+            query_text=latest_user_msg,
+            recent_messages=recent_window,
+            max_hops=max_hops,
+        )
+        graphrag_meta = {
+            "datasetVersion": graph_res["datasetVersion"],
+            "seedNodeIds": graph_res["seedNodeIds"],
+            "retrievedNodeCount": graph_res["retrievedNodeCount"],
+            "retrievedEdgeCount": graph_res["retrievedEdgeCount"],
+            "hops": graph_res["hops"],
+            "retrievalLatencyMs": graph_res["retrievalLatencyMs"],
+        }
+
+        grounded_system_prompt = (
+            f"{persona_prompt}\n\n"
+            "GRAPHRAG FACTUAL GROUNDING DIRECTIVE:\n"
+            "Ground all factual claims about Luis's biography, age, education, projects, Rejection Station "
+            "(bge-large-en-v1.5 + LinearSVC resume classifier & NYU film-major Talent Acquisition story), "
+            "$50,000 TopStepXFA Bayesian state space model, Lymphemeda GraphRAG Policy Engine for Eli, "
+            "MathPods, reverse-engineered games, and generative pipelines strictly in the retrieved "
+            "[GRAPHRAG_SUBGRAPH] below. Cite concrete technical names and numbers when relevant, keep answers "
+            "punchy (2-5 sentences unless asked for deep detail), and never fabricate unverified biographical claims.\n\n"
+            f"{graph_res['contextBlock']}"
+        )
+
+        messages = [{"role": "system", "content": grounded_system_prompt}]
+        for turn in conversation_turns:
+            if turn["role"] != "system":
+                messages.append(turn)
+
+        candidates = []
+        if requested_model in _LEGACY_CHAT_MODEL_ALIASES:
+            candidates.extend(CHAT_MODEL_FALLBACK_CHAIN)
+        else:
+            candidates.append(requested_model)
+            for fb in CHAT_MODEL_FALLBACK_CHAIN:
+                if fb not in candidates:
+                    candidates.append(fb)
 
         res = call_hf_chat_completions(
             token=token,
             model_candidates=candidates,
             messages=messages,
-            max_tokens=1024,
-            temperature=0.7,
+            max_tokens=1400,
+            temperature=0.55,
             use_low_reasoning=True,
             timeout_sec=12.0,
+            total_deadline_sec=12.0,
         )
         if not res.get("ok"):
             return self._send_json(502, res)
 
+        total_ms = round((time.time() - t0) * 1000.0, 1)
         return self._send_json(200, {
             "ok": True,
             "model": res["model"],
             "requestedModel": requested_model,
             "personaPrompt": persona_prompt,
             "reply": res["content"],
-            "latencyMs": res.get("latencyMs", 0.0),
+            "latencyMs": total_ms,
+            "upstreamLatencyMs": res.get("latencyMs", 0.0),
             "usage": res.get("usage", {}),
+            "graphrag": graphrag_meta,
         })
 
     def _handle_stickers_get(self):
@@ -1557,8 +2452,351 @@ class SkateAlleyRequestHandler(SimpleHTTPRequestHandler):
                 "message": str(e),
             })
 
+    def _handle_scene_layout_get(self):
+        t0 = time.time()
+        try:
+            res = list_persisted_scene_layouts()
+            elapsed_ms = round((time.time() - t0) * 1000.0, 2)
+            return self._send_json(200, {
+                "ok": True,
+                "storage": "postgres",
+                "dbConnected": True,
+                "layouts": res["layouts"],
+                "updatedAtMs": res["updatedAtMs"],
+                "count": len(res["layouts"]),
+                "latencyMs": elapsed_ms,
+            })
+        except Exception as e:
+            return self._send_json(503, {
+                "ok": False,
+                "storage": "postgres",
+                "dbConnected": False,
+                "error": "SCENE_LAYOUT_DB_UNAVAILABLE",
+                "message": str(e),
+            })
+
+    def _handle_scene_layout_upsert(self):
+        t0 = time.time()
+        body = self._read_json_body()
+        if not isinstance(body, dict) or not body:
+            return self._send_json(400, {
+                "ok": False,
+                "error": "INVALID_PAYLOAD",
+                "message": "Request body must be a non-empty JSON object.",
+            })
+        try:
+            updated_at_ms = body.get("updatedAtMs")
+            if updated_at_ms is not None:
+                updated_at_ms = int(float(updated_at_ms))
+            if isinstance(body.get("layouts"), dict):
+                entries = body["layouts"]
+            elif body.get("key") and "payload" in body:
+                entries = {str(body["key"]): body["payload"]}
+            else:
+                raise ValueError("Request body must include either {'key': ..., 'payload': ...} or {'layouts': {...}}")
+            saved = upsert_persisted_scene_layouts(entries, default_updated_at_ms=updated_at_ms)
+            elapsed_ms = round((time.time() - t0) * 1000.0, 2)
+            return self._send_json(200, {
+                "ok": True,
+                "storage": "postgres",
+                "dbConnected": True,
+                "savedKeys": list(saved.keys()),
+                "updatedAtMs": saved,
+                "latencyMs": elapsed_ms,
+            })
+        except ValueError as ve:
+            return self._send_json(400, {
+                "ok": False,
+                "error": "VALIDATION_ERROR",
+                "message": str(ve),
+            })
+        except Exception as e:
+            return self._send_json(503, {
+                "ok": False,
+                "storage": "postgres",
+                "dbConnected": False,
+                "error": "SCENE_LAYOUT_DB_UNAVAILABLE",
+                "message": str(e),
+            })
+
+    def _handle_scene_layout_delete(self, path_layout_key=None):
+        t0 = time.time()
+        layout_key = path_layout_key
+        if not layout_key:
+            parsed_url = urllib.parse.urlparse(self.path)
+            qs = urllib.parse.parse_qs(parsed_url.query)
+            if qs.get("key"):
+                layout_key = qs["key"][0]
+        if not layout_key:
+            body = self._read_json_body()
+            if isinstance(body, dict):
+                layout_key = body.get("key")
+        if not layout_key or not str(layout_key).strip():
+            return self._send_json(400, {
+                "ok": False,
+                "error": "MISSING_LAYOUT_KEY",
+                "message": "key is required to delete a persisted scene layout.",
+            })
+        try:
+            clean_key = urllib.parse.unquote(str(layout_key).strip())
+            deleted_keys = delete_persisted_scene_layout(clean_key)
+            elapsed_ms = round((time.time() - t0) * 1000.0, 2)
+            return self._send_json(200, {
+                "ok": True,
+                "storage": "postgres",
+                "dbConnected": True,
+                "deletedKeys": deleted_keys,
+                "latencyMs": elapsed_ms,
+            })
+        except ValueError as ve:
+            return self._send_json(400, {
+                "ok": False,
+                "error": "VALIDATION_ERROR",
+                "message": str(ve),
+            })
+        except Exception as e:
+            return self._send_json(503, {
+                "ok": False,
+                "storage": "postgres",
+                "dbConnected": False,
+                "error": "SCENE_LAYOUT_DB_UNAVAILABLE",
+                "message": str(e),
+            })
+
+    def _load_melee_rigger_module(self):
+        import importlib
+        scripts_dir = os.path.dirname(os.path.abspath(__file__))
+        if scripts_dir not in sys.path:
+            sys.path.insert(0, scripts_dir)
+        import rig_melee_character
+        return importlib.reload(rig_melee_character)
+
+    def _handle_melee_fighters(self):
+        try:
+            rmc = self._load_melee_rigger_module()
+            fighters = rmc.get_fighter_catalog_with_bone_counts()
+            return self._send_json(200, {
+                "ok": True,
+                "status": "ok",
+                "count": len(fighters),
+                "fighters": fighters,
+            })
+        except Exception as e:
+            return self._send_json(500, {
+                "ok": False,
+                "status": "error",
+                "error": "MELEE_FIGHTERS_ERROR",
+                "message": str(e),
+            })
+
+    def _handle_melee_gcs_characters(self):
+        try:
+            rmc = self._load_melee_rigger_module()
+            characters = rmc.list_available_gcs_characters()
+            return self._send_json(200, {
+                "ok": True,
+                "status": "ok",
+                "count": len(characters),
+                "characters": characters,
+            })
+        except Exception as e:
+            return self._send_json(500, {
+                "ok": False,
+                "status": "error",
+                "error": "MELEE_GCS_CHARACTERS_ERROR",
+                "message": str(e),
+            })
+
+    def _handle_melee_rig(self):
+        body = self._read_json_body()
+        if not isinstance(body, dict):
+            body = {}
+        fighter = str(body.get("fighter") or body.get("fighter_code") or "Ca").strip()
+        player_folder = str(body.get("player_folder") or body.get("player") or "nicotest_nt01").strip()
+        run_id = str(body.get("run_id") or body.get("run") or "run_01").strip()
+        glb_path = body.get("glb_path")
+        force_rebuild = bool(body.get("force") or body.get("force_rebuild"))
+
+        # Check if rig_melee_character can run in-process (requires numpy, cv2, scipy)
+        try:
+            rmc = self._load_melee_rigger_module()
+            if getattr(rmc, "np", None) is None or getattr(rmc, "cv2", None) is None:
+                raise ImportError("numpy/cv2 not loaded in current interpreter")
+            res = rmc.rig_character_for_melee_fighter(
+                fighter_code=fighter,
+                player_folder=player_folder,
+                run_id=run_id,
+                glb_path=glb_path,
+                sync_gcs=False,
+                force_rebuild=force_rebuild,
+            )
+            return self._send_json(200, res)
+        except ImportError:
+            # Delegate to /opt/anaconda3/bin/python3 if current python lacks scientific libs
+            py_bin = "/opt/anaconda3/bin/python3" if os.path.isfile("/opt/anaconda3/bin/python3") else sys.executable
+            script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "rig_melee_character.py")
+            cmd = [
+                py_bin,
+                script_path,
+                "--fighter", fighter,
+                "--player-folder", player_folder,
+                "--run-id", run_id,
+            ]
+            if glb_path:
+                cmd.extend(["--glb-path", str(glb_path)])
+            if force_rebuild:
+                cmd.append("--force")
+            proc = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+            if proc.returncode != 0:
+                return self._send_json(400, {
+                    "ok": False,
+                    "status": "error",
+                    "error": "MELEE_RIG_FAILED",
+                    "message": (proc.stderr or proc.stdout or "Auto-rigger subprocess failed").strip(),
+                })
+            try:
+                out_json = json.loads(proc.stdout)
+                return self._send_json(200, out_json)
+            except Exception as je:
+                return self._send_json(500, {
+                    "ok": False,
+                    "status": "error",
+                    "error": "MELEE_RIG_PARSE_ERROR",
+                    "message": str(je),
+                })
+        except ValueError as ve:
+            return self._send_json(400, {
+                "ok": False,
+                "status": "error",
+                "error": "INVALID_RIG_REQUEST",
+                "message": str(ve),
+            })
+        except Exception as e:
+            return self._send_json(500, {
+                "ok": False,
+                "status": "error",
+                "error": "MELEE_RIG_FAILED",
+                "message": str(e),
+            })
+
+    def _handle_mkd_frame(self):
+        ensure_mkd_runtime(os.getcwd())
+        raw = None
+        try:
+            if os.path.isfile(MKD_LIVE_RGBA_PATH):
+                with open(MKD_LIVE_RGBA_PATH, "rb") as f:
+                    raw = f.read()
+        except OSError:
+            raw = None
+
+        if not raw or len(raw) < MKD_RGBA_EXPECTED_BYTES:
+            hdr = struct.pack("<IIII", 640, 480, 0, 0)
+            raw = hdr + (b"\x00\x00\x00\xff" * (640 * 480))
+
+        w, h, frame_seq, draws = struct.unpack("<IIII", raw[:16])
+        try:
+            self.send_response(200)
+            self.send_header("Content-Type", "application/octet-stream")
+            self.send_header("Content-Length", str(len(raw)))
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("X-MKD-Width", str(w))
+            self.send_header("X-MKD-Height", str(h))
+            self.send_header("X-MKD-Frame-Seq", str(frame_seq))
+            self.send_header("X-MKD-Draws", str(draws))
+            self.send_header("X-MKD-Boot-To-Frame", str(_MKD_BOOT_TO_FRAME))
+            self.end_headers()
+            self.wfile.write(raw)
+        except (BrokenPipeError, ConnectionResetError):
+            pass
+
+    def _handle_mkd_status(self):
+        running = ensure_mkd_runtime(os.getcwd())
+        w, h, frame_seq, draws = read_mkd_live_header()
+        pid = _MKD_PROC.pid if (_MKD_PROC is not None and _MKD_PROC.poll() is None) else None
+        return self._send_json(200, {
+            "ok": True,
+            "status": "ok",
+            "gameId": "GQNE5D",
+            "running": bool(running),
+            "pid": pid,
+            "width": w,
+            "height": h,
+            "frameSeq": frame_seq,
+            "drawsThisFrame": draws,
+            "bootToFrame": _MKD_BOOT_TO_FRAME,
+            "buttons": _MKD_CURRENT_BTN,
+            "stickX": _MKD_CURRENT_SX,
+            "stickY": _MKD_CURRENT_SY,
+            "pulseSeq": _MKD_PULSE_SEQ,
+        })
+
+    def _handle_mkd_input(self):
+        global _MKD_PULSE_SEQ, _MKD_LAST_CLIENT_SEQ, _MKD_LAST_PULSE_BTN, _MKD_LAST_PULSE_SX, _MKD_LAST_PULSE_SY
+        global _MKD_CURRENT_BTN, _MKD_CURRENT_SX, _MKD_CURRENT_SY, _MKD_CURRENT_CX, _MKD_CURRENT_CY
+
+        ensure_mkd_runtime(os.getcwd())
+        body = self._read_json_body()
+        if not isinstance(body, dict):
+            body = {}
+        client_seq = int(body.get("clientSeq", 0))
+        buttons = int(body.get("buttons", 0)) & 0xFFFF
+        sx = max(-127, min(127, int(body.get("stickX", 0))))
+        sy = max(-127, min(127, int(body.get("stickY", 0))))
+        cx = max(-127, min(127, int(body.get("cstickX", 0))))
+        cy = max(-127, min(127, int(body.get("cstickY", 0))))
+
+        with _MKD_LOCK:
+            if client_seq == 0 or client_seq >= _MKD_LAST_CLIENT_SEQ:
+                if client_seq > 0:
+                    _MKD_LAST_CLIENT_SEQ = client_seq
+                _MKD_CURRENT_BTN = buttons
+                _MKD_CURRENT_SX = sx
+                _MKD_CURRENT_SY = sy
+                _MKD_CURRENT_CX = cx
+                _MKD_CURRENT_CY = cy
+            if buttons != 0 or sx != 0 or sy != 0:
+                _MKD_PULSE_SEQ += 1
+                _MKD_LAST_PULSE_BTN = buttons
+                _MKD_LAST_PULSE_SX = sx
+                _MKD_LAST_PULSE_SY = sy
+            _write_mkd_pad_state_unlocked()
+            pulse_seq = _MKD_PULSE_SEQ
+
+        _, _, frame_seq, draws = read_mkd_live_header()
+        return self._send_json(200, {
+            "ok": True,
+            "status": "ok",
+            "gameId": "GQNE5D",
+            "buttons": buttons,
+            "stickX": sx,
+            "stickY": sy,
+            "pulseSeq": pulse_seq,
+            "frameSeq": frame_seq,
+            "drawsThisFrame": draws,
+        })
+
+    def _handle_mkd_reset(self):
+        body = self._read_json_body()
+        if not isinstance(body, dict):
+            body = {}
+        boot_to = body.get("bootToFrame")
+        if boot_to is None:
+            boot_to = 535
+        running = ensure_mkd_runtime(os.getcwd(), force_restart=True, boot_to_frame=int(boot_to))
+        return self._send_json(200, {
+            "ok": True,
+            "status": "ok",
+            "gameId": "GQNE5D",
+            "running": bool(running),
+            "bootToFrame": _MKD_BOOT_TO_FRAME,
+        })
+
     def do_POST(self):
         clean_path = self.path.split("?", 1)[0].rstrip("/")
+        if clean_path == "/api/intro/generate":
+            return self._handle_intro_generate()
+        if clean_path == "/api/graphrag/query":
+            return self._handle_graphrag_query()
         if clean_path == "/api/doom/starters":
             return self._handle_doom_starters()
         if clean_path == "/api/doom/chat":
@@ -1567,6 +2805,16 @@ class SkateAlleyRequestHandler(SimpleHTTPRequestHandler):
             return self._handle_stickers_upsert()
         if clean_path == "/api/stickers/delete":
             return self._handle_stickers_delete()
+        if clean_path == "/api/scene-layout":
+            return self._handle_scene_layout_upsert()
+        if clean_path == "/api/scene-layout/delete":
+            return self._handle_scene_layout_delete()
+        if clean_path == "/api/melee/rig":
+            return self._handle_melee_rig()
+        if clean_path == "/api/mkd/input":
+            return self._handle_mkd_input()
+        if clean_path == "/api/mkd/reset":
+            return self._handle_mkd_reset()
         return self._send_json(404, {
             "ok": False,
             "error": "NOT_FOUND",
@@ -1577,6 +2825,8 @@ class SkateAlleyRequestHandler(SimpleHTTPRequestHandler):
         clean_path = self.path.split("?", 1)[0].rstrip("/")
         if clean_path == "/api/stickers" or clean_path.startswith("/api/stickers/"):
             return self._handle_stickers_upsert()
+        if clean_path == "/api/scene-layout" or clean_path.startswith("/api/scene-layout/"):
+            return self._handle_scene_layout_upsert()
         return self._send_json(404, {
             "ok": False,
             "error": "NOT_FOUND",
@@ -1590,6 +2840,11 @@ class SkateAlleyRequestHandler(SimpleHTTPRequestHandler):
         if clean_path.startswith("/api/stickers/"):
             target_id = clean_path[len("/api/stickers/"):].strip("/")
             return self._handle_stickers_delete(path_placed_id=target_id)
+        if clean_path == "/api/scene-layout":
+            return self._handle_scene_layout_delete()
+        if clean_path.startswith("/api/scene-layout/"):
+            target_key = clean_path[len("/api/scene-layout/"):].strip("/")
+            return self._handle_scene_layout_delete(path_layout_key=target_key)
         return self._send_json(404, {
             "ok": False,
             "error": "NOT_FOUND",
@@ -1618,20 +2873,54 @@ class SkateAlleyRequestHandler(SimpleHTTPRequestHandler):
             and os.path.isfile(tkdr_eboot_path)
             and os.path.getsize(tkdr_eboot_path) == TKDR_EBOOT_EXPECTED_SIZE
         )
-        sticker_db = get_sticker_db_health()
+        melee_iso_path = os.path.join(os.getcwd(), "melee", "game.iso")
+        melee_wasm_path = os.path.join(os.getcwd(), "melee", "melee_browser.wasm")
+        melee_js_path = os.path.join(os.getcwd(), "melee", "melee_browser.js")
+        melee_ready = (
+            os.path.isfile(os.path.join(os.getcwd(), "melee", "index.html"))
+            and os.path.isfile(melee_wasm_path)
+            and os.path.getsize(melee_wasm_path) == MELEE_WASM_EXPECTED_SIZE
+            and os.path.isfile(melee_js_path)
+            and os.path.getsize(melee_js_path) == MELEE_JS_EXPECTED_SIZE
+            and os.path.isfile(melee_iso_path)
+            and os.path.getsize(melee_iso_path) == MELEE_ISO_EXPECTED_SIZE
+        )
+        mkd_iso_path = os.path.join(os.getcwd(), "mkd", "game.iso")
+        mkd_dol_path = os.path.join(os.getcwd(), "mkd", "main.dol")
+        mkd_ready = (
+            os.path.isfile(os.path.join(os.getcwd(), "mkd", "index.html"))
+            and os.path.isfile(os.path.join(os.getcwd(), "mkd", "shell.mjs"))
+            and os.path.isfile(os.path.join(os.getcwd(), "mkd", "decomp_manifest.json"))
+            and os.path.isfile(mkd_iso_path)
+            and os.path.getsize(mkd_iso_path) == MKD_ISO_EXPECTED_SIZE
+            and os.path.isfile(mkd_dol_path)
+            and os.path.getsize(mkd_dol_path) == MKD_DOL_EXPECTED_SIZE
+        )
+        sticker_db, layout_db = get_combined_db_health()
+        graph_status = get_knowledge_graph_engine().status()
+        graphrag_ready = bool(graph_status.get("ready"))
         components = [
             "freeman_alley_3d_portfolio",
             "skate3_cleanroom_skateroom",
             "doom_head_llm_proxy",
+            "intro_json_schema_generator",
         ]
+        if graphrag_ready:
+            components.append("graphrag_property_graph_engine")
         if sticker_db.get("ready"):
             components.append("sticker_postgres_persistence")
+        if layout_db.get("ready"):
+            components.append("scene_layout_postgres_persistence")
         if nzportable_ready:
             components.append("nzportable_webapp")
         if revcdos_ready:
             components.append("revcdos_webapp")
         if tkdr_ready:
             components.append("tkdr_webapp")
+        if melee_ready:
+            components.append("melee_webapp")
+        if mkd_ready:
+            components.append("mkd_webapp")
         payload = json.dumps({
             "ok": True,
             "status": "ok",
@@ -1640,22 +2929,104 @@ class SkateAlleyRequestHandler(SimpleHTTPRequestHandler):
             "hf_token_configured": bool(resolve_hf_token()),
             "doom_chat_model": DEFAULT_DOOM_CHAT_MODEL,
             "doom_starters_model": DEFAULT_DOOM_STARTERS_MODEL,
+            "intro_generate_model": DEFAULT_INTRO_GENERATE_MODEL,
+            "graphrag_ready": graphrag_ready,
+            "graphrag_dataset_version": graph_status.get("datasetVersion"),
+            "graphrag_node_count": int(graph_status.get("nodeCount", 0)),
+            "graphrag_edge_count": int(graph_status.get("edgeCount", 0)),
+            "graphrag_error": None if graphrag_ready else graph_status.get("message"),
             "sticker_db_ready": bool(sticker_db.get("ready")),
             "sticker_storage": sticker_db.get("storage", "postgres"),
             "persisted_sticker_count": int(sticker_db.get("count", 0)),
+            "scene_layout_db_ready": bool(layout_db.get("ready")),
+            "persisted_layout_keys": layout_db.get("keys", []),
             "nzportable_webapp": nzportable_ready,
             "revcdos_webapp": revcdos_ready,
             "tkdr_webapp": tkdr_ready,
+            "melee_webapp": melee_ready,
+            "mkd_webapp": mkd_ready,
             "services": list(components),
             "components": components,
         }).encode("utf-8")
         self.send_response(200)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(payload)))
-        self.send_header("Cache-Control", "no-store")
         self.end_headers()
         if not head_only:
             self.wfile.write(payload)
+
+    def _try_serve_gzip_static(self, head_only=False):
+        if self.headers.get("Range"):
+            return False
+        accept_enc = (self.headers.get("Accept-Encoding") or "").lower()
+        if "gzip" not in accept_enc:
+            return False
+
+        clean_url_path = self.path.split("?", 1)[0].split("#", 1)[0]
+        path = self.translate_path(self.path)
+        if os.path.isdir(path):
+            if not clean_url_path.endswith("/"):
+                return False
+            for idx_name in ("index.html", "index.htm"):
+                candidate = os.path.join(path, idx_name)
+                if os.path.isfile(candidate):
+                    path = candidate
+                    break
+            else:
+                return False
+        if not os.path.isfile(path):
+            return False
+
+        _, ext = os.path.splitext(path)
+        if ext.lower() not in (".html", ".htm", ".js", ".mjs", ".css", ".json", ".svg"):
+            return False
+
+        try:
+            st = os.stat(path)
+        except OSError:
+            return False
+        if st.st_size <= 256 or st.st_size > 16 * 1024 * 1024:
+            return False
+
+        cache_dict = getattr(SkateAlleyRequestHandler, "_gzip_cache", None)
+        cache_lock = getattr(SkateAlleyRequestHandler, "_gzip_lock", None)
+        if cache_dict is None or cache_lock is None:
+            SkateAlleyRequestHandler._gzip_cache = {}
+            SkateAlleyRequestHandler._gzip_lock = threading.Lock()
+            cache_dict = SkateAlleyRequestHandler._gzip_cache
+            cache_lock = SkateAlleyRequestHandler._gzip_lock
+
+        gz_bytes = None
+        with cache_lock:
+            entry = cache_dict.get(path)
+            if entry and entry[0] == st.st_mtime_ns and entry[1] == st.st_size:
+                gz_bytes = entry[2]
+        if gz_bytes is None:
+            try:
+                with open(path, "rb") as f:
+                    raw_bytes = f.read()
+                gz_bytes = gzip.compress(raw_bytes, compresslevel=5)
+            except OSError:
+                return False
+            with cache_lock:
+                if len(cache_dict) >= 128:
+                    cache_dict.clear()
+                cache_dict[path] = (st.st_mtime_ns, st.st_size, gz_bytes)
+
+        ctype = self.guess_type(path)
+        try:
+            self.send_response(200)
+            self.send_header("Content-Type", ctype)
+            self.send_header("Content-Encoding", "gzip")
+            self.send_header("Vary", "Accept-Encoding")
+            self.send_header("Content-Length", str(len(gz_bytes)))
+            self.send_header("Last-Modified", self.date_time_string(st.st_mtime))
+            self.end_headers()
+            if not head_only:
+                self.wfile.write(gz_bytes)
+        except (BrokenPipeError, ConnectionResetError):
+            pass
+        return True
 
     def _try_serve_range(self, head_only=False):
         range_header = self.headers.get("Range")
@@ -1711,15 +3082,31 @@ class SkateAlleyRequestHandler(SimpleHTTPRequestHandler):
             return self._serve_health(head_only=True)
         if self._try_serve_range(head_only=True):
             return
+        if self._try_serve_gzip_static(head_only=True):
+            return
         super().do_HEAD()
 
     def do_GET(self):
         clean_path = self.path.split("?", 1)[0].rstrip("/") or "/"
         if clean_path in ("/api/health", "/health"):
             return self._serve_health(head_only=False)
+        if clean_path == "/api/graphrag/status":
+            return self._handle_graphrag_status()
         if clean_path == "/api/stickers":
             return self._handle_stickers_get()
+        if clean_path == "/api/scene-layout":
+            return self._handle_scene_layout_get()
+        if clean_path == "/api/melee/fighters":
+            return self._handle_melee_fighters()
+        if clean_path == "/api/melee/gcs-characters":
+            return self._handle_melee_gcs_characters()
+        if clean_path == "/api/mkd/frame":
+            return self._handle_mkd_frame()
+        if clean_path == "/api/mkd/status":
+            return self._handle_mkd_status()
         if self._try_serve_range(head_only=False):
+            return
+        if self._try_serve_gzip_static(head_only=False):
             return
         return super().do_GET()
 
@@ -1737,9 +3124,13 @@ def main():
     ensure_revcdos_vcsky(os.getcwd())
     ensure_revcdos_luis_player(os.getcwd())
     ensure_tkdr_assets(os.getcwd())
+    ensure_melee_assets(os.getcwd())
+    ensure_mkd_assets(os.getcwd())
+    ensure_mkd_runtime(os.getcwd())
     try:
         ensure_sticker_schema()
-        print("[skatealley-app-local] PostgreSQL skatealley_placed_stickers schema verified.", flush=True)
+        ensure_scene_layout_schema()
+        print("[skatealley-app-local] PostgreSQL skatealley_placed_stickers & skatealley_scene_layouts schemas verified.", flush=True)
     except Exception as db_err:
         print(f"[skatealley-app-local] WARNING: Initial PostgreSQL schema check deferred: {db_err}", flush=True)
     with ThreadingHTTPServer((args.host, args.port), SkateAlleyRequestHandler) as httpd:

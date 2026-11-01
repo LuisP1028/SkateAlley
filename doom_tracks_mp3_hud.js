@@ -1039,7 +1039,7 @@ function easeInOutCubic(t) {
 }
 
 export function createDoomTracksMp3HUD(options = {}) {
-  const sandboxAudio = options.audio || null;
+  let sandboxAudio = options.audio || null;
   const assetSrc = options.assetSrc || 'assets/mp3.jpeg';
   const glbSrc = options.glbSrc || MP3_3D_ASSET_URL;
   const manifestUrl = options.manifestUrl || 'assets/tracks/manifest.json';
@@ -1106,7 +1106,7 @@ export function createDoomTracksMp3HUD(options = {}) {
   // Single persistent HTMLAudioElement (§4.2 & §6.1)
   const audioEl = new Audio();
   audioEl.crossOrigin = 'anonymous';
-  audioEl.preload = 'auto';
+  audioEl.preload = 'metadata';
 
   let audioCtx = null;
   let mediaSourceNode = null;
@@ -1265,6 +1265,7 @@ export function createDoomTracksMp3HUD(options = {}) {
   }
 
   function playCurrentTrack() {
+    audioEl.preload = 'auto';
     ensureWebAudioGraph();
     syncEffectiveVolumeFromSandbox();
 
@@ -2870,6 +2871,89 @@ export function createDoomTracksMp3HUD(options = {}) {
     return state.tracks;
   }
 
+  async function fetchRangeChunkedArrayBuffer(url, { chunkSize = 1048576, maxChunkAttempts = 4 } = {}) {
+    let offset = 0;
+    let totalBytes = null;
+    let fullBytes = null;
+
+    while (totalBytes === null || offset < totalBytes) {
+      const endByte =
+        totalBytes !== null
+          ? Math.min(totalBytes - 1, offset + chunkSize - 1)
+          : offset + chunkSize - 1;
+      let chunkSucceeded = false;
+      let lastErr = null;
+
+      for (let attempt = 1; attempt <= maxChunkAttempts; attempt++) {
+        const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+        const timer = controller ? setTimeout(() => controller.abort(), 12000) : null;
+        try {
+          const resp = await fetch(url, {
+            headers: { Range: `bytes=${offset}-${endByte}` },
+            signal: controller ? controller.signal : undefined,
+          });
+          if (resp.status === 200 && offset === 0) {
+            return await resp.arrayBuffer();
+          }
+          if (resp.status !== 206) {
+            throw new Error(`HTTP ${resp.status} for '${url}' (range ${offset}-${endByte})`);
+          }
+          const cr = resp.headers.get('Content-Range') || '';
+          const match = /bytes\s+(\d+)-(\d+)\/(\d+)/i.exec(cr);
+          if (!match) {
+            throw new Error(`Invalid Content-Range '${cr}' for '${url}'`);
+          }
+          const respStart = Number(match[1]);
+          const respEnd = Number(match[2]);
+          const respTotal = Number(match[3]);
+          const expectedLen = respEnd - respStart + 1;
+          const part = new Uint8Array(await resp.arrayBuffer());
+          if (respStart !== offset || part.byteLength !== expectedLen || respTotal <= 0) {
+            throw new Error(
+              `Range mismatch for '${url}': got ${part.byteLength}B [${respStart}-${respEnd}/${respTotal}], expected ${expectedLen}B at ${offset}`
+            );
+          }
+          if (offset === 0 && part.byteLength === respTotal) {
+            return part.buffer;
+          }
+          if (fullBytes === null) {
+            totalBytes = respTotal;
+            fullBytes = new Uint8Array(respTotal);
+          }
+          fullBytes.set(part, offset);
+          offset += part.byteLength;
+          chunkSucceeded = true;
+          break;
+        } catch (err) {
+          lastErr = err;
+          if (attempt < maxChunkAttempts) {
+            const waitMs = 450 * attempt;
+            console.warn(
+              `[DOOM_TRACKS] Transient chunk error for '${url}' at byte ${offset} (attempt ${attempt}/${maxChunkAttempts}), retrying in ${waitMs}ms:`,
+              err && err.message ? err.message : err
+            );
+            await new Promise((resolve) => setTimeout(resolve, waitMs));
+          }
+        } finally {
+          if (timer) clearTimeout(timer);
+        }
+      }
+
+      if (!chunkSucceeded) {
+        throw new Error(
+          `Failed to load '${url}' at byte ${offset} after ${maxChunkAttempts} attempts: ${lastErr && lastErr.message ? lastErr.message : lastErr}`
+        );
+      }
+    }
+
+    return fullBytes ? fullBytes.buffer : new ArrayBuffer(0);
+  }
+
+  function setAudioSubsystem(nextAudio) {
+    sandboxAudio = nextAudio || null;
+    syncEffectiveVolumeFromSandbox();
+  }
+
   // Load assets/mp3.jpeg (for OLED screen sprites), assets/audiodevice_decimated.glb (3D mesh), and manifest.json
   async function init() {
     buildDOM();
@@ -2896,42 +2980,53 @@ export function createDoomTracksMp3HUD(options = {}) {
 
     loadTrackAtIndex(0, false);
 
-    const bitmapPromise = new Promise((resolve, reject) => {
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      img.onload = () => {
-        try {
-          processedAssets = processMp3ChassisBitmap(img);
-          resolve();
-        } catch (err) {
-          reject(err);
-        }
-      };
-      img.onerror = () => {
-        reject(new Error(`Failed to load MP3 reference asset at ${assetSrc}`));
-      };
-      img.src = assetSrc;
-    });
+    const bitmapPromise = (async () => {
+      const imgBuffer = await fetchRangeChunkedArrayBuffer(assetSrc);
+      const blobUrl = URL.createObjectURL(new Blob([imgBuffer], { type: 'image/jpeg' }));
+      try {
+        await new Promise((resolve, reject) => {
+          const img = new Image();
+          img.onload = () => {
+            try {
+              processedAssets = processMp3ChassisBitmap(img);
+              resolve();
+            } catch (err) {
+              reject(err);
+            }
+          };
+          img.onerror = () => {
+            reject(new Error(`Failed to decode MP3 reference asset at ${assetSrc}`));
+          };
+          img.src = blobUrl;
+        });
+      } finally {
+        URL.revokeObjectURL(blobUrl);
+      }
+    })();
 
     const glbLoader = new GLTFLoader();
-    const glbPromise = new Promise((resolve, reject) => {
-      glbLoader.load(
-        glbSrc,
-        (gltf) => {
-          try {
-            build3DSceneGraph(gltf.scene);
-            state.glbLoaded = true;
-            resolve();
-          } catch (err) {
-            reject(err);
+    const glbPromise = (async () => {
+      const glbBuffer = await fetchRangeChunkedArrayBuffer(glbSrc);
+      const resourcePath = THREE.LoaderUtils.extractUrlBase(glbSrc);
+      await new Promise((resolve, reject) => {
+        glbLoader.parse(
+          glbBuffer,
+          resourcePath,
+          (gltf) => {
+            try {
+              build3DSceneGraph(gltf.scene);
+              state.glbLoaded = true;
+              resolve();
+            } catch (err) {
+              reject(err);
+            }
+          },
+          (err) => {
+            reject(new Error(`Failed to parse decimated 3D MP3 asset at ${glbSrc}: ${err && err.message ? err.message : err}`));
           }
-        },
-        undefined,
-        (err) => {
-          reject(new Error(`Failed to load decimated 3D MP3 asset at ${glbSrc}: ${err && err.message ? err.message : err}`));
-        }
-      );
-    });
+        );
+      });
+    })();
 
     await Promise.all([bitmapPromise, glbPromise]);
     state.initialized = true;
@@ -2946,6 +3041,7 @@ export function createDoomTracksMp3HUD(options = {}) {
   const api = {
     state,
     initPromise,
+    setAudioSubsystem,
     audioElement: audioEl,
     get visible() {
       return state.visible;

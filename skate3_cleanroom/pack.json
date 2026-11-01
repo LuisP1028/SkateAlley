@@ -29,8 +29,8 @@
         "parts/core_tail_0.part",
         "parts/core_tail_1.part"
       ],
-      "size": 98650499,
-      "hash": "7fbdc36d25bbcfb7"
+      "size": 96283351,
+      "hash": "5cb0fc511a525700"
     },
     "luis_holo": {
       "name": "Luis (Holo)",
@@ -43,8 +43,21 @@
       ],
       "size": 100272707,
       "hash": "0efb37046e7845c5"
+    },
+    "nicotest": {
+      "name": "Nicotest",
+      "pack": "core_nicotest.pack",
+      "parts": [
+        "parts/core_head.part",
+        "parts/char_nicotest.part",
+        "parts/core_tail_0.part",
+        "parts/core_tail_1.part"
+      ],
+      "size": 96847559,
+      "hash": "d28693f253b34507"
     }
   },
+  "default_char": "nicotest",
   "maps": [
     {
       "name": "StartPark",

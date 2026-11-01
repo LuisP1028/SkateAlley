@@ -1329,11 +1329,11 @@ export const MATHPOD_CALLOUT_PROFILES = Object.freeze([
     podId: 'pod-01-graph',
     podCode: 'POD-01',
     concept: 'graph-theory',
-    defaultCorridorAnchor: { x: -0.78, yRel: 1.48, z: 6.80 },
+    defaultCorridorAnchor: { x: -1.2451, yRel: 2.0881, z: 5.8979 },
     headerBadge: 'POD-01 // GRAPH-THEORY',
     primaryTitle: '3D GRAPH THEORY HOLOGRAM',
     bodyDescription:
-      'Force-directed 18-node icosahedral network with 36 optical light-pipe filaments executing topological path traversal and collinear 3D laser alignment.',
+      'Modeling relational data as nodes and edges to analyze network topology, find shortest paths, and measure connectivity across complex systems.',
     tags: ['18-Node Icosahedron', '36 Light-Pipes', 'Collinear Lock'],
   }),
   Object.freeze({
@@ -1341,11 +1341,11 @@ export const MATHPOD_CALLOUT_PROFILES = Object.freeze([
     podId: 'pod-02-matrix',
     podCode: 'POD-02',
     concept: 'matrix-rank',
-    defaultCorridorAnchor: { x: 1.28, yRel: 1.9567, z: 11.8509 },
+    defaultCorridorAnchor: { x: 1.2786, yRel: 1.9715, z: 11.8504 },
     headerBadge: 'POD-02 // MATRIX-RANK',
     primaryTitle: 'MATRIX RANK SOLVER HOLOGRAM',
     bodyDescription:
-      'Volumetric 4x4x4 lattice of 64 binary glyphs (0/1) swept by a planar row-echelon laser scanner to isolate linearly independent rows and lock full rank.',
+      'Performing Gaussian elimination and row reduction to identify linearly independent features, determine matrix rank, and solve linear systems.',
     tags: ['4x4x4 Binary Lattice', 'Row-Echelon Scanner', 'Full Rank [4]'],
   }),
   Object.freeze({
@@ -1353,11 +1353,11 @@ export const MATHPOD_CALLOUT_PROFILES = Object.freeze([
     podId: 'pod-03-gradient',
     podCode: 'POD-03',
     concept: 'gradient-descent',
-    defaultCorridorAnchor: { x: -0.78, yRel: 1.46, z: 17.20 },
+    defaultCorridorAnchor: { x: -0.7782, yRel: 1.4727, z: 17.2003 },
     headerBadge: 'POD-03 // GRADIENT-DESCENT',
     primaryTitle: 'GRADIENT DESCENT HOLOGRAM',
     bodyDescription:
-      'Hyperbolic paraboloid saddle surface (z = x^2 - y^2) where SGD, Momentum, and Adam optimizer nuclei race down topographic contours toward the minimum beacon.',
+      'Visualizing how SGD, Momentum, and Adam optimizers navigate non-convex loss landscapes and escape saddle points to minimize model error.',
     tags: ['Saddle z=x^2-y^2', 'SGD / Momentum / Adam', 'Minimum Beacon'],
   }),
   Object.freeze({
@@ -1365,11 +1365,11 @@ export const MATHPOD_CALLOUT_PROFILES = Object.freeze([
     podId: 'pod-04-neural',
     podCode: 'POD-04',
     concept: 'neural-network',
-    defaultCorridorAnchor: { x: 0.78, yRel: 1.54, z: 22.40 },
+    defaultCorridorAnchor: { x: -0.1782, yRel: 1.4756, z: 22.3949 },
     headerBadge: 'POD-04 // NEURAL-NETWORK',
     primaryTitle: 'NEURAL NETWORK HOLOGRAM',
     bodyDescription:
-      'Three-layer (9 Input -> 16 Hidden -> 4 Output) holographic glass architecture firing weighted synaptic light pulses across 208 beams to lock a winning classification node.',
+      'Forward propagation through a multi-layer perceptron, applying linear weights and non-linear activations to map input features to class probabilities.',
     tags: ['9->16->4 Architecture', '208 Synaptic Beams', 'Winner Lock'],
   }),
   Object.freeze({
@@ -1377,11 +1377,11 @@ export const MATHPOD_CALLOUT_PROFILES = Object.freeze([
     podId: 'pod-05-clustering',
     podCode: 'POD-05',
     concept: 'clustering',
-    defaultCorridorAnchor: { x: -0.7502, yRel: 1.7176, z: 27.8776 },
+    defaultCorridorAnchor: { x: 0.5207, yRel: 1.1507, z: 27.9614 },
     headerBadge: 'POD-05 // CLUSTERING',
     primaryTitle: 'CLUSTERING ALGORITHM HOLOGRAM',
     bodyDescription:
-      '120-particle data swarm converging around 3 rotating octahedron centroid beacons inside Fresnel-rimmed Gaussian ellipsoid containment shells.',
+      'Unsupervised learning via K-Means and Gaussian Mixture Models to partition unlabeled data into distinct groups based on feature similarity.',
     tags: ['120-Particle Swarm', '3 Centroids', 'Gaussian Shells'],
   }),
   Object.freeze({
@@ -1389,11 +1389,11 @@ export const MATHPOD_CALLOUT_PROFILES = Object.freeze([
     podId: 'pod-07-poker',
     podCode: 'POD-07',
     concept: 'poker-game-theory',
-    defaultCorridorAnchor: { x: 0.00, yRel: 1.56, z: 35.40 },
+    defaultCorridorAnchor: { x: -0.3884, yRel: 1.7116, z: 34.6507 },
     headerBadge: 'POD-07 // POKER-GAME-THEORY',
     primaryTitle: 'POKER / GAME THEORY HOLOGRAM',
     bodyDescription:
-      '5-card holographic flop/turn/river arc paired with 3 volumetric expected-value (EV) probability bars (FOLD, CALL, RAISE ★) and a 9-node CFR decision tree.',
+      'Imperfect-information game solving using Counterfactual Regret Minimization (CFR) to compute Nash equilibrium strategies and maximize expected value (EV).',
     tags: ['5-Card Hologram Arc', '3 EV Bars (RAISE ★)', '9-Node CFR Tree'],
   }),
 ]);

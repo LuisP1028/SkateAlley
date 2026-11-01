@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mortal Kombat: Deception (GQNE5D) — Recompiled GameCube Runtime</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #08070a;
+      --panel: rgba(16, 13, 18, 0.90);
+      --border: rgba(212, 144, 52, 0.34);
+      --gold: #f0b44c;
+      --crimson: #c92a2a;
+      --text: #f3eee8;
+      --muted: #a89f94;
+      --ok: #5be38a;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(circle at 50% 20%, #1c1014 0%, #070609 75%);
+      color: var(--text);
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      overflow: hidden;
+      user-select: none;
+    }
+    .viewport {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #050406;
+    }
+    #canvas {
+      width: min(100vw, calc(100vh * (4 / 3)));
+      height: min(100vh, calc(100vw * (3 / 4)));
+      max-width: 1280px;
+      max-height: 960px;
+      aspect-ratio: 4 / 3;
+      background: #000;
+      box-shadow: 0 0 60px rgba(201, 42, 42, 0.28), 0 0 2px rgba(240, 180, 76, 0.5);
+      image-rendering: auto;
+      display: block;
+      outline: none;
+    }
+    .topbar {
+      position: fixed;
+      top: 10px;
+      left: 12px;
+      right: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 8px 14px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      backdrop-filter: blur(8px);
+      z-index: 20;
+      font-size: 12px;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      color: var(--gold);
+    }
+    .badge {
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 11px;
+      background: rgba(201, 42, 42, 0.25);
+      border: 1px solid rgba(240, 180, 76, 0.4);
+      color: var(--text);
+    }
+    .badge.ok {
+      background: rgba(32, 136, 68, 0.25);
+      border-color: rgba(91, 227, 138, 0.45);
+      color: var(--ok);
+    }
+    .stats {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 11px;
+      color: var(--muted);
+      flex-wrap: wrap;
+    }
+    .stats strong {
+      color: var(--text);
+    }
+    .controls-bar {
+      position: fixed;
+      bottom: 10px;
+      left: 12px;
+      right: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 8px 14px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      backdrop-filter: blur(8px);
+      z-index: 20;
+      font-size: 12px;
+      flex-wrap: wrap;
+    }
+    .btn-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    button {
+      background: rgba(38, 28, 36, 0.92);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      padding: 5px 10px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.12s, border-color 0.12s, transform 0.08s;
+    }
+    button:hover {
+      background: rgba(201, 42, 42, 0.35);
+      border-color: var(--gold);
+    }
+    button:active, button.active {
+      background: rgba(240, 180, 76, 0.28);
+      border-color: var(--gold);
+      color: var(--gold);
+      transform: translateY(1px);
+    }
+    .keyhint {
+      color: var(--muted);
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 11px;
+    }
+    .keyhint kbd {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 3px;
+      padding: 1px 5px;
+      color: var(--gold);
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar" id="topbar">
+    <div class="brand">
+      <span>MORTAL KOMBAT: DECEPTION</span>
+      <span class="badge" id="game-id-badge">GQNE5D</span>
+      <span class="badge ok" id="decomp-badge">ShulkMaster/mk-deception • 9,389 Recompiled Functions • Live GX XFB</span>
+    </div>
+    <div class="stats">
+      <span>State: <strong id="stat-scene">Booting…</strong></span>
+      <span>XFB Frame: <strong id="stat-runtime-frame">0</strong></span>
+      <span>GX Draws: <strong id="stat-draws">0</strong></span>
+      <span>FPS: <strong id="stat-fps">0.0</strong></span>
+      <span>Disc HTTP 206: <strong id="stat-disc">Connecting…</strong></span>
+      <span>DOL SHA-1: <strong id="stat-sha1">ef001212…9fcd</strong></span>
+    </div>
+  </header>
+
+  <main class="viewport">
+    <canvas id="canvas" width="640" height="480" tabindex="0" aria-label="Mortal Kombat: Deception GameCube XFB Viewport"></canvas>
+  </main>
+
+  <footer class="controls-bar" id="controls-bar">
+    <div class="btn-group" aria-label="GameCube Controller Pad">
+      <button type="button" data-pad-btn="0x1000" id="btn-start">START (Enter)</button>
+      <button type="button" data-pad-btn="0x0100" id="btn-a">A (Z / Space)</button>
+      <button type="button" data-pad-btn="0x0200" id="btn-b">B (X)</button>
+      <button type="button" data-pad-btn="0x0400" id="btn-x">X (C)</button>
+      <button type="button" data-pad-btn="0x0800" id="btn-y">Y (V)</button>
+      <button type="button" data-pad-btn="0x0010" id="btn-z">Z (Tab)</button>
+      <button type="button" data-pad-btn="0x0040" id="btn-l">L (Q)</button>
+      <button type="button" data-pad-btn="0x0020" id="btn-r">R (E)</button>
+      <button type="button" data-pad-btn="0x0008" id="btn-up">▲</button>
+      <button type="button" data-pad-btn="0x0004" id="btn-down">▼</button>
+      <button type="button" data-pad-btn="0x0001" id="btn-left">◀</button>
+      <button type="button" data-pad-btn="0x0002" id="btn-right">▶</button>
+    </div>
+    <div class="btn-group" aria-label="Runtime Boot Target">
+      <button type="button" data-boot-frame="535" id="boot-btn-menu" class="active">Main Menu (f535)</button>
+      <button type="button" data-boot-frame="600" id="boot-btn-select">Fighter Select (f600)</button>
+      <button type="button" data-boot-frame="750" id="boot-btn-tower">3D Tower / Match (f750)</button>
+      <button type="button" data-boot-frame="0" id="boot-btn-cold">Cold Boot (f0)</button>
+    </div>
+    <div class="keyhint">
+      Keys: <kbd>Enter</kbd> Start • <kbd>Z</kbd>/<kbd>Space</kbd> A • <kbd>X</kbd> B • <kbd>C</kbd> X • <kbd>V</kbd> Y • <kbd>Arrows</kbd>/<kbd>WASD</kbd> D-Pad/Stick
+    </div>
+  </footer>
+
+  <script type="module" src="./shell.mjs"></script>
+</body>
+</html>

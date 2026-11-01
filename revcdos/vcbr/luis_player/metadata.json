@@ -1,9 +1,9 @@
 {
-  "sourceGlb": "LUIS_TPOSE_STANDALONE_BACKUP.glb",
-  "sourceGlbBytes": 5285932,
+  "sourceGlb": "character_full.glb",
+  "sourceGlbBytes": 7412988,
   "unriggedSourceSkinsCount": 0,
-  "numVertices": 3337,
-  "numTriangles": 3202,
+  "numVertices": 4006,
+  "numTriangles": 2800,
   "numBones": 24,
   "activeBoneIndices": [
     1,
@@ -32,19 +32,23 @@
   ],
   "activeBoneCount": 23,
   "boundsMin": [
-    -0.8735,
-    -0.98,
+    -0.873,
+    -0.9814,
     -0.184
   ],
   "boundsMax": [
-    0.8735,
+    0.8686,
     0.8548,
-    0.1376
+    0.1107
   ],
   "weightSumMin": 0.9999998807907104,
   "weightSumMax": 1.0000001192092896,
-  "playerDffBytes": 270336,
+  "playerDffBytes": 292864,
   "playerTxdBytes": 45056,
   "playerBmpBytes": 66612,
-  "mirroredFilesCount": 36
+  "mirroredFilesCount": 36,
+  "elapsedSec": 1.8444,
+  "playerDffPath": "/Users/diesel/desktop/skatealley/revcdos/vcbr/luis_player/player.dff",
+  "playerTxdPath": "/Users/diesel/desktop/skatealley/revcdos/vcbr/luis_player/player.txd",
+  "playerBmpPath": "/Users/diesel/desktop/skatealley/revcdos/vcbr/luis_player/player.bmp"
 }

@@ -80,7 +80,7 @@ export const WATERCOLOR_DEFAULT_PARAMS = {
 export const WATERCOLOR_GALLERY_SPEC = {
   id: 'watercolor-gallery-01',
   title: 'Water Color',
-  anchorPosition: { x: 0.1341, yRel: 2.6648, z: 42.6182 },
+  anchorPosition: { x: 0.0065, yRel: 3.5987, z: 42.0129 },
   canvasRotationEuler: { x: 0.0, y: -0.0182, z: 0.0 },
   canvasScale: { x: 5.0, y: 5.0, z: 1.0 },
   scale: 5.0,

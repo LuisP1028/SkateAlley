@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { createMathPodPopupManager } from './mathpod_popup.js?v=058';
+import { createMathPodPopupManager } from './mathpod_popup.js?v=065';
 
 // ============================================================================
 // Authoritative Neon Dark Amber Palette Constants (math_pods.md §1)
@@ -42,7 +42,7 @@ export const HOLO_POD_SPECS = [
     code: 'POD-01',
     name: '3D Graph Theory Hologram',
     concept: 'graph-theory',
-    defaultOffset: { x: 1.04, yRel: 0.9149, z: 6.5979 },
+    defaultOffset: { x: -1.2451, yRel: 2.0881, z: 5.8979 },
     cycleDuration: 10.0,
     phaseOffset: 0.0,
   },
@@ -52,7 +52,7 @@ export const HOLO_POD_SPECS = [
     code: 'POD-02',
     name: 'Matrix Rank Solver Hologram',
     concept: 'matrix-rank',
-    defaultOffset: { x: 1.2786, yRel: 1.9576, z: 11.8503 },
+    defaultOffset: { x: 1.2786, yRel: 1.9715, z: 11.8504 },
     cycleDuration: 10.0,
     phaseOffset: 1.4,
   },
@@ -72,7 +72,7 @@ export const HOLO_POD_SPECS = [
     code: 'POD-04',
     name: 'Neural Network Hologram',
     concept: 'neural-network',
-    defaultOffset: { x: -0.1754, yRel: 1.4672, z: 22.397 },
+    defaultOffset: { x: -0.1782, yRel: 1.4756, z: 22.3949 },
     cycleDuration: 10.0,
     phaseOffset: 4.2,
   },
@@ -82,7 +82,7 @@ export const HOLO_POD_SPECS = [
     code: 'POD-05',
     name: 'Clustering Algorithm Hologram',
     concept: 'clustering',
-    defaultOffset: { x: 0.4896, yRel: 2.5361, z: 27.8826 },
+    defaultOffset: { x: 0.5207, yRel: 1.1507, z: 27.9614 },
     cycleDuration: 10.0,
     phaseOffset: 5.6,
   },
@@ -4008,6 +4008,47 @@ export function buildMathHologramPods(options = {}) {
     rootGroup.add(podImpl.rootGroup);
   }
 
+  function getTransformsMap() {
+    const payload = {};
+    for (const pod of pods) {
+      payload[pod.id] = {
+        x: Number(pod.anchorPos.x.toFixed(4)),
+        yRel: Number((pod.anchorPos.y - floorY).toFixed(4)),
+        z: Number(pod.anchorPos.z.toFixed(4)),
+      };
+    }
+    return payload;
+  }
+
+  function applyTransformsMap(transformsMap, { persistLocal = true, updatedAtMs = null } = {}) {
+    if (!transformsMap || typeof transformsMap !== 'object') return false;
+    let appliedCount = 0;
+    for (const pod of pods) {
+      const saved = transformsMap[pod.id];
+      if (saved && typeof saved === 'object') {
+        const x = Number.isFinite(saved.x) ? saved.x : pod.defaultOffset.x;
+        const yRel = Number.isFinite(saved.yRel) ? saved.yRel : pod.defaultOffset.yRel;
+        const z = Number.isFinite(saved.z) ? saved.z : pod.defaultOffset.z;
+        pod.rootGroup.position.set(x, floorY + yRel, z);
+        pod.anchorPos.copy(pod.rootGroup.position);
+        pod.dragTargetPos.copy(pod.rootGroup.position);
+        pod.worldPos.copy(pod.rootGroup.position);
+        appliedCount += 1;
+      }
+    }
+    if (persistLocal && typeof window !== 'undefined' && window.localStorage) {
+      try {
+        window.localStorage.setItem(storageKey, JSON.stringify(getTransformsMap()));
+        if (Number.isFinite(updatedAtMs) && updatedAtMs > 0) {
+          window.localStorage.setItem(`${storageKey}_ts`, String(Math.round(updatedAtMs)));
+        }
+      } catch (_err) {
+        // Ignore storage quota failure
+      }
+    }
+    return appliedCount > 0;
+  }
+
   function loadPodTransformsFromStorage() {
     if (typeof window === 'undefined' || !window.localStorage) return false;
     try {
@@ -4015,40 +4056,27 @@ export function buildMathHologramPods(options = {}) {
       if (!raw) return false;
       const parsed = JSON.parse(raw);
       if (!parsed || typeof parsed !== 'object') return false;
-      for (const pod of pods) {
-        const saved = parsed[pod.id];
-        if (saved && typeof saved === 'object') {
-          const x = Number.isFinite(saved.x) ? saved.x : pod.defaultOffset.x;
-          const yRel = Number.isFinite(saved.yRel) ? saved.yRel : pod.defaultOffset.yRel;
-          const z = Number.isFinite(saved.z) ? saved.z : pod.defaultOffset.z;
-          pod.rootGroup.position.set(x, floorY + yRel, z);
-          pod.anchorPos.copy(pod.rootGroup.position);
-          pod.dragTargetPos.copy(pod.rootGroup.position);
-          pod.worldPos.copy(pod.rootGroup.position);
-        }
-      }
-      return true;
+      return applyTransformsMap(parsed, { persistLocal: false });
     } catch (err) {
       return false;
     }
   }
 
   function savePodTransformsToStorage() {
-    if (typeof window === 'undefined' || !window.localStorage) return false;
-    try {
-      const payload = {};
-      for (const pod of pods) {
-        payload[pod.id] = {
-          x: Number(pod.anchorPos.x.toFixed(4)),
-          yRel: Number((pod.anchorPos.y - floorY).toFixed(4)),
-          z: Number(pod.anchorPos.z.toFixed(4)),
-        };
+    const payload = getTransformsMap();
+    const updatedAtMs = Date.now();
+    if (typeof window !== 'undefined' && window.localStorage) {
+      try {
+        window.localStorage.setItem(storageKey, JSON.stringify(payload));
+        window.localStorage.setItem(`${storageKey}_ts`, String(updatedAtMs));
+      } catch (err) {
+        return false;
       }
-      window.localStorage.setItem(storageKey, JSON.stringify(payload));
-      return true;
-    } catch (err) {
-      return false;
     }
+    if (typeof options.onTransformsMutated === 'function') {
+      options.onTransformsMutated(payload, { updatedAtMs });
+    }
+    return true;
   }
 
   if (options.loadSavedTransforms !== false) {
@@ -4271,9 +4299,16 @@ export function buildMathHologramPods(options = {}) {
       }
       if (typeof window !== 'undefined' && window.localStorage) {
         window.localStorage.removeItem(storageKey);
+        window.localStorage.removeItem(`${storageKey}_ts`);
+      }
+      if (typeof options.onTransformsMutated === 'function') {
+        options.onTransformsMutated(null, { deleted: true });
       }
       this._refreshAggregateTelemetry();
     },
+
+    getTransformsMap,
+    applyTransformsMap,
 
     _refreshAggregateTelemetry() {
       const activeGlitching = this.pods.filter(p => p.isWalkThroughGlitching);

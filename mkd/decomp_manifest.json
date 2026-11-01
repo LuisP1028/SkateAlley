@@ -1,0 +1,451 @@
+{
+  "schemaVersion": "1.0.0",
+  "gameId": "GQNE5D",
+  "title": "Mortal Kombat Deception",
+  "repository": "https://github.com/ShulkMaster/mk-deception",
+  "platform": "Nintendo GameCube (Gekko PowerPC 750CXe + Flipper GX)",
+  "compiler": "Metrowerks CodeWarrior C/C++ for Embedded PowerPC (GC/2.6)",
+  "buildSystem": "decomp-toolkit (dtk v1.8.0) + ninja + wibo + DolRecomp",
+  "decompilationStats": {
+    "matchedCodePct": 40.04,
+    "matchedCodeBytes": 1277196,
+    "totalCodeBytes": 3189444,
+    "matchedDataPct": 16.01,
+    "matchedDataBytes": 420801,
+    "totalDataBytes": 2627552,
+    "matchedFunctions": 4166,
+    "totalFunctions": 9389,
+    "decompiledTranslationUnits": 458,
+    "retailObjectSlices": 189,
+    "ninjaBuildSteps": 564
+  },
+  "executable": {
+    "path": "/mkd/main.dol",
+    "sizeBytes": 3843104,
+    "sha1": "ef001212c6cd4da3194c041d24956a61bc5e9fcd",
+    "expectedSha1": "ef001212c6cd4da3194c041d24956a61bc5e9fcd",
+    "verifiedMatch": true,
+    "entryPoint": "0x80003154",
+    "textSections": 7,
+    "dataSections": 11,
+    "bssAddress": "0x80400660",
+    "bssSize": 1264016
+  },
+  "disc": {
+    "path": "/mkd/game.iso",
+    "sizeBytes": 1459978240,
+    "sha1": "489c6b57b70390933dff7d8d9d12424f58a8f821",
+    "dolOffset": 131840,
+    "fstOffset": 3975168,
+    "fstSize": 13253,
+    "fstEntryCount": 475,
+    "sampleFiles": [
+      {
+        "entry": 2,
+        "path": "art/arttool.ssf",
+        "offset": 3997696,
+        "size": 53248
+      },
+      {
+        "entry": 3,
+        "path": "art/ashrah.ssf",
+        "offset": 4050944,
+        "size": 2179072
+      },
+      {
+        "entry": 4,
+        "path": "art/ashrah_alt.ssf",
+        "offset": 6230016,
+        "size": 2256896
+      },
+      {
+        "entry": 5,
+        "path": "art/attract.ssf",
+        "offset": 8486912,
+        "size": 2803712
+      },
+      {
+        "entry": 6,
+        "path": "art/baraka.ssf",
+        "offset": 11290624,
+        "size": 2254848
+      },
+      {
+        "entry": 7,
+        "path": "art/baraka_alt.ssf",
+        "offset": 13545472,
+        "size": 2254848
+      },
+      {
+        "entry": 8,
+        "path": "art/beetlelair.ssf",
+        "offset": 15800320,
+        "size": 2324480
+      },
+      {
+        "entry": 9,
+        "path": "art/bios.ssf",
+        "offset": 18124800,
+        "size": 20641792
+      },
+      {
+        "entry": 10,
+        "path": "art/bio_text.ssf",
+        "offset": 38766592,
+        "size": 290816
+      },
+      {
+        "entry": 11,
+        "path": "art/boraicho.ssf",
+        "offset": 39057408,
+        "size": 2369536
+      },
+      {
+        "entry": 12,
+        "path": "art/boraicho_alt.ssf",
+        "offset": 41426944,
+        "size": 2260992
+      },
+      {
+        "entry": 13,
+        "path": "art/cassius.ssf",
+        "offset": 43687936,
+        "size": 2185216
+      },
+      {
+        "entry": 14,
+        "path": "art/cassius_alt.ssf",
+        "offset": 45873152,
+        "size": 1964032
+      },
+      {
+        "entry": 15,
+        "path": "art/courtyard.ssf",
+        "offset": 47837184,
+        "size": 1245184
+      },
+      {
+        "entry": 16,
+        "path": "art/dairou.ssf",
+        "offset": 49082368,
+        "size": 2283520
+      },
+      {
+        "entry": 17,
+        "path": "art/dairou_alt.ssf",
+        "offset": 51365888,
+        "size": 2344960
+      },
+      {
+        "entry": 18,
+        "path": "art/darkprison.ssf",
+        "offset": 53710848,
+        "size": 3702784
+      },
+      {
+        "entry": 19,
+        "path": "art/deadpool.ssf",
+        "offset": 57413632,
+        "size": 1095680
+      },
+      {
+        "entry": 20,
+        "path": "art/dka.ssf",
+        "offset": 58509312,
+        "size": 1267712
+      },
+      {
+        "entry": 21,
+        "path": "art/dragonking.ssf",
+        "offset": 59777024,
+        "size": 1505280
+      },
+      {
+        "entry": 22,
+        "path": "art/dragonmountain.ssf",
+        "offset": 61282304,
+        "size": 1810432
+      },
+      {
+        "entry": 23,
+        "path": "art/endings.ssf",
+        "offset": 63092736,
+        "size": 21764096
+      },
+      {
+        "entry": 24,
+        "path": "art/ermac.ssf",
+        "offset": 84856832,
+        "size": 2367488
+      },
+      {
+        "entry": 25,
+        "path": "art/ermac_alt.ssf",
+        "offset": 87224320,
+        "size": 2385920
+      },
+      {
+        "entry": 26,
+        "path": "art/fallingcliff.ssf",
+        "offset": 89610240,
+        "size": 1292288
+      },
+      {
+        "entry": 27,
+        "path": "art/fatalityanims.ssf",
+        "offset": 90902528,
+        "size": 5312512
+      },
+      {
+        "entry": 28,
+        "path": "art/fortress.ssf",
+        "offset": 96215040,
+        "size": 1245184
+      },
+      {
+        "entry": 29,
+        "path": "art/freak.ssf",
+        "offset": 97460224,
+        "size": 1941504
+      },
+      {
+        "entry": 30,
+        "path": "art/galleryart.ssf",
+        "offset": 99401728,
+        "size": 2789376
+      },
+      {
+        "entry": 31,
+        "path": "art/gameart.ssf",
+        "offset": 102191104,
+        "size": 929792
+      },
+      {
+        "entry": 32,
+        "path": "art/goro.ssf",
+        "offset": 103120896,
+        "size": 2373632
+      },
+      {
+        "entry": 33,
+        "path": "art/goro_alt.ssf",
+        "offset": 105494528,
+        "size": 2394112
+      },
+      {
+        "entry": 34,
+        "path": "art/hellsfoundry.ssf",
+        "offset": 107888640,
+        "size": 1529856
+      },
+      {
+        "entry": 35,
+        "path": "art/hotaru.ssf",
+        "offset": 109418496,
+        "size": 2088960
+      },
+      {
+        "entry": 36,
+        "path": "art/hotaru_alt.ssf",
+        "offset": 111507456,
+        "size": 1929216
+      },
+      {
+        "entry": 37,
+        "path": "art/jade.ssf",
+        "offset": 113436672,
+        "size": 2113536
+      },
+      {
+        "entry": 38,
+        "path": "art/jade_alt.ssf",
+        "offset": 115550208,
+        "size": 2101248
+      },
+      {
+        "entry": 39,
+        "path": "art/kabal.ssf",
+        "offset": 117651456,
+        "size": 2340864
+      },
+      {
+        "entry": 40,
+        "path": "art/kabal_alt.ssf",
+        "offset": 119992320,
+        "size": 2385920
+      },
+      {
+        "entry": 41,
+        "path": "art/kamidogu_earth.ssf",
+        "offset": 122378240,
+        "size": 34816
+      },
+      {
+        "entry": 42,
+        "path": "art/kangtomb.ssf",
+        "offset": 122413056,
+        "size": 1454080
+      },
+      {
+        "entry": 43,
+        "path": "art/katakombs.ssf",
+        "offset": 123867136,
+        "size": 1882112
+      },
+      {
+        "entry": 44,
+        "path": "art/kenshi.ssf",
+        "offset": 125749248,
+        "size": 2166784
+      },
+      {
+        "entry": 45,
+        "path": "art/kenshi_alt.ssf",
+        "offset": 127916032,
+        "size": 2181120
+      },
+      {
+        "entry": 46,
+        "path": "art/kira.ssf",
+        "offset": 130097152,
+        "size": 2152448
+      },
+      {
+        "entry": 47,
+        "path": "art/kira_alt.ssf",
+        "offset": 132249600,
+        "size": 2193408
+      },
+      {
+        "entry": 48,
+        "path": "art/kobra.ssf",
+        "offset": 134443008,
+        "size": 2254848
+      },
+      {
+        "entry": 49,
+        "path": "art/kobra_alt.ssf",
+        "offset": 136697856,
+        "size": 2160640
+      },
+      {
+        "entry": 50,
+        "path": "art/konquest_common.ssf",
+        "offset": 138858496,
+        "size": 3553280
+      },
+      {
+        "entry": 51,
+        "path": "art/konquest_pui_award_tgas.ssf",
+        "offset": 142411776,
+        "size": 3506176
+      },
+      {
+        "entry": 52,
+        "path": "art/kon_chaosrealm_1.ssf",
+        "offset": 145917952,
+        "size": 8013824
+      },
+      {
+        "entry": 53,
+        "path": "art/kon_earthrealm_0.ssf",
+        "offset": 153931776,
+        "size": 4911104
+      },
+      {
+        "entry": 54,
+        "path": "art/kon_earthrealm_1.ssf",
+        "offset": 158842880,
+        "size": 10090496
+      },
+      {
+        "entry": 55,
+        "path": "art/kon_earthrealm_2.ssf",
+        "offset": 168933376,
+        "size": 12439552
+      },
+      {
+        "entry": 56,
+        "path": "art/kon_edenia_1.ssf",
+        "offset": 181372928,
+        "size": 7507968
+      },
+      {
+        "entry": 57,
+        "path": "art/kon_netherrealm_1.ssf",
+        "offset": 188880896,
+        "size": 12052480
+      },
+      {
+        "entry": 58,
+        "path": "art/kon_nexus_1.ssf",
+        "offset": 200933376,
+        "size": 5890048
+      },
+      {
+        "entry": 59,
+        "path": "art/kon_nexus_1_fight.ssf",
+        "offset": 206823424,
+        "size": 270336
+      },
+      {
+        "entry": 60,
+        "path": "art/kon_orderrealm_1.ssf",
+        "offset": 207093760,
+        "size": 9345024
+      },
+      {
+        "entry": 61,
+        "path": "art/kon_outworld_1.ssf",
+        "offset": 216438784,
+        "size": 8243200
+      },
+      {
+        "entry": 62,
+        "path": "art/kon_unique_npcs.ssf",
+        "offset": 224681984,
+        "size": 4100096
+      },
+      {
+        "entry": 63,
+        "path": "art/kq_cr1_fight.ssf",
+        "offset": 228782080,
+        "size": 2457600
+      },
+      {
+        "entry": 64,
+        "path": "art/kq_ed1_fight.ssf",
+        "offset": 231239680,
+        "size": 2209792
+      },
+      {
+        "entry": 65,
+        "path": "art/kq_er1_fight.ssf",
+        "offset": 233449472,
+        "size": 2512896
+      }
+    ]
+  },
+  "subsystems": [
+    {
+      "name": "mkdeception (Core Fighter, Camera, Konquest, Puzzle, Chess, UI)",
+      "files": 324,
+      "status": "Decompiled C/C++ + Linked"
+    },
+    {
+      "name": "RenderWare 3.6 GameCube Engine (rwsdk / baproto / world / skin)",
+      "files": 42,
+      "status": "Decompiled C + GX FIFO Hardware Bridge"
+    },
+    {
+      "name": "Dolphin OS / GX / DVD / VI / PAD / AR / AX / DSP SDK",
+      "files": 78,
+      "status": "Decompiled C + Host HLE Runtime"
+    },
+    {
+      "name": "CriWare Sofdec (.SFD MPEG) & ADX Audio Streaming",
+      "files": 14,
+      "status": "Static Recompiled PowerPC + YCbCr/RGBA8 Decode"
+    }
+  ]
+}

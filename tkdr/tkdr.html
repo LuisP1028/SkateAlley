@@ -111,7 +111,7 @@
 <div id="help">Arrows: move · <kbd>Enter</kbd> Start · <kbd>Space</kbd> Select · <kbd>Z</kbd> <kbd>X</kbd> <kbd>C</kbd> <kbd>S</kbd> □ ✕ ○ △ · <kbd>Q</kbd> <kbd>W</kbd> L/R · <kbd>F1</kbd> settings · <kbd>F2</kbd> fps · <kbd>F</kbd> full screen</div>
 <script>
   var statusEl = document.getElementById('status');
-  var tkdrStatus = window.__TKDR_STATUS__ = {
+  var tkdrStatus = window.__TKDR_STATUS__ = Object.assign(window.__TKDR_STATUS__ || {}, {
     crossOriginIsolated: Boolean(window.crossOriginIsolated),
     runtimeReady: false,
     isoReady: false,
@@ -122,7 +122,7 @@
     frames: 0,
     guestTimeSec: 0,
     errors: []
-  };
+  });
   function recordTkdrError(msg) {
     var text = String((msg && msg.message) || msg);
     if (tkdrStatus.errors.indexOf(text) === -1) tkdrStatus.errors.push(text);
@@ -589,6 +589,7 @@
     });
   });
 </script>
+<script src="./luis_fighter_bridge.js"></script>
 <script async src="tkdr.js"></script>
 </body>
 </html>

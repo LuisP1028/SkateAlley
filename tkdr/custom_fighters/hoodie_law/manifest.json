@@ -1,0 +1,339 @@
+{
+  "bundleId": "hoodie_law",
+  "label": "HOODIE (Marshall Law [LAW])",
+  "sourceGlbPath": "/Users/diesel/desktop/skatealley/character_hoodie.glb",
+  "sourceGlbName": "character_hoodie.glb",
+  "sourceGlbBytes": 10141168,
+  "sourceGlbSha256": "ab47fd31b123ac9a9160ea52a8b4de9089ceed426051944139678fb9db629617",
+  "sourceMeshCount": 2,
+  "sourcePrimitiveCount": 3,
+  "sourceSkinCount": 1,
+  "sourceMaterialCount": 3,
+  "inputTriangleCount": 23302,
+  "vertexCount": 2532,
+  "triangleCount": 2656,
+  "boneCount": 14,
+  "bones": [
+    {
+      "id": 0,
+      "name": "Pelvis",
+      "pivot": [
+        0.0,
+        0.475,
+        0.0
+      ]
+    },
+    {
+      "id": 1,
+      "name": "Chest_Spine",
+      "pivot": [
+        0.0,
+        0.545,
+        0.0
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Neck",
+      "pivot": [
+        0.0,
+        0.77,
+        0.0
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Head",
+      "pivot": [
+        0.0,
+        0.835,
+        0.005
+      ]
+    },
+    {
+      "id": 4,
+      "name": "L_UpperArm",
+      "pivot": [
+        0.108,
+        0.725,
+        -0.01
+      ]
+    },
+    {
+      "id": 5,
+      "name": "L_Forearm",
+      "pivot": [
+        0.19993,
+        0.80174,
+        -0.01205
+      ]
+    },
+    {
+      "id": 6,
+      "name": "L_Hand",
+      "pivot": [
+        0.25382,
+        0.81497,
+        -0.00132
+      ]
+    },
+    {
+      "id": 7,
+      "name": "R_UpperArm",
+      "pivot": [
+        -0.108,
+        0.725,
+        -0.01
+      ]
+    },
+    {
+      "id": 8,
+      "name": "R_Forearm",
+      "pivot": [
+        -0.19993,
+        0.80174,
+        -0.01205
+      ]
+    },
+    {
+      "id": 9,
+      "name": "R_Hand",
+      "pivot": [
+        -0.25382,
+        0.81497,
+        -0.00132
+      ]
+    },
+    {
+      "id": 10,
+      "name": "L_Thigh",
+      "pivot": [
+        0.05393,
+        0.475,
+        -0.005
+      ]
+    },
+    {
+      "id": 11,
+      "name": "L_Calf_Foot",
+      "pivot": [
+        0.05393,
+        0.265,
+        -0.015
+      ]
+    },
+    {
+      "id": 12,
+      "name": "R_Thigh",
+      "pivot": [
+        -0.05393,
+        0.475,
+        -0.005
+      ]
+    },
+    {
+      "id": 13,
+      "name": "R_Calf_Foot",
+      "pivot": [
+        -0.05393,
+        0.265,
+        -0.015
+      ]
+    }
+  ],
+  "targetFighterId": 1,
+  "targetFighterCode": "LAW",
+  "targetFighterShortName": "LAW",
+  "targetFighterName": "Marshall Law",
+  "targetFighterStyle": "Jeet Kune Do",
+  "proportions": {
+    "archetype": "standard_lean",
+    "heightScale": 0.98,
+    "shoulderScale": 0.96,
+    "limbWidthScale": 0.96
+  },
+  "normalization": {
+    "rawBoundsMin": [
+      -0.951058,
+      -1.0,
+      -1.0
+    ],
+    "rawBoundsMax": [
+      0.951058,
+      2.01252,
+      1.0
+    ],
+    "normalizedBoundsMin": [
+      -0.315702,
+      0.0,
+      -0.331948
+    ],
+    "normalizedBoundsMax": [
+      0.315702,
+      1.0,
+      0.331948
+    ],
+    "detectedPose": "A_POSE",
+    "armSpanNorm": 0.2908,
+    "landmarks": {
+      "shoulder": [
+        0.108,
+        0.725,
+        -0.01
+      ],
+      "elbow": [
+        0.19993,
+        0.80174,
+        -0.01205
+      ],
+      "wrist": [
+        0.25382,
+        0.81497,
+        -0.00132
+      ],
+      "handTip": [
+        0.29545,
+        0.49343,
+        0.0
+      ],
+      "legX": 0.05393
+    },
+    "measuredBones": [
+      {
+        "id": 0,
+        "name": "Pelvis",
+        "pivot": [
+          0.0,
+          0.475,
+          0.0
+        ]
+      },
+      {
+        "id": 1,
+        "name": "Chest_Spine",
+        "pivot": [
+          0.0,
+          0.545,
+          0.0
+        ]
+      },
+      {
+        "id": 2,
+        "name": "Neck",
+        "pivot": [
+          0.0,
+          0.77,
+          0.0
+        ]
+      },
+      {
+        "id": 3,
+        "name": "Head",
+        "pivot": [
+          0.0,
+          0.835,
+          0.005
+        ]
+      },
+      {
+        "id": 4,
+        "name": "L_UpperArm",
+        "pivot": [
+          0.108,
+          0.725,
+          -0.01
+        ]
+      },
+      {
+        "id": 5,
+        "name": "L_Forearm",
+        "pivot": [
+          0.19993,
+          0.80174,
+          -0.01205
+        ]
+      },
+      {
+        "id": 6,
+        "name": "L_Hand",
+        "pivot": [
+          0.25382,
+          0.81497,
+          -0.00132
+        ]
+      },
+      {
+        "id": 7,
+        "name": "R_UpperArm",
+        "pivot": [
+          -0.108,
+          0.725,
+          -0.01
+        ]
+      },
+      {
+        "id": 8,
+        "name": "R_Forearm",
+        "pivot": [
+          -0.19993,
+          0.80174,
+          -0.01205
+        ]
+      },
+      {
+        "id": 9,
+        "name": "R_Hand",
+        "pivot": [
+          -0.25382,
+          0.81497,
+          -0.00132
+        ]
+      },
+      {
+        "id": 10,
+        "name": "L_Thigh",
+        "pivot": [
+          0.05393,
+          0.475,
+          -0.005
+        ]
+      },
+      {
+        "id": 11,
+        "name": "L_Calf_Foot",
+        "pivot": [
+          0.05393,
+          0.265,
+          -0.015
+        ]
+      },
+      {
+        "id": 12,
+        "name": "R_Thigh",
+        "pivot": [
+          -0.05393,
+          0.475,
+          -0.005
+        ]
+      },
+      {
+        "id": 13,
+        "name": "R_Calf_Foot",
+        "pivot": [
+          -0.05393,
+          0.265,
+          -0.015
+        ]
+      }
+    ]
+  },
+  "atlasWidth": 512,
+  "atlasHeight": 512,
+  "rigBytes": 147808,
+  "rigSha256": "000334a334d45ba20eef839d54ffacf344124354fd85df0115b71af858cabe7b",
+  "atlasSha256": "01e11276c3108bdb00ac8c4ed1fede8d243bcc112fcf03da4f0d0c01c7a6557a",
+  "rigUrl": "./custom_fighters/hoodie_law/rig.bin",
+  "atlasUrl": "./custom_fighters/hoodie_law/atlas.png",
+  "manifestUrl": "./custom_fighters/hoodie_law/manifest.json",
+  "compileSeconds": 1.654
+}

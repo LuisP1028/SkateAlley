@@ -6,15 +6,19 @@ Projection, Quadric Surface Decimation, Isotropic Proportion Mapping, SVD Bone-S
 (Functional Specifications 045 & 046).
 """
 
+import argparse
 import hashlib
 import json
+import math
 import os
+import shutil
 import struct
 import subprocess
 import sys
 import tempfile
 import time
 import zipfile
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 GREEK_ENV_PYTHON = "/opt/anaconda3/envs/greek_env/bin/python"
 BLENDER_BIN = "/Applications/Blender.app/Contents/MacOS/Blender"
@@ -33,6 +37,12 @@ if SCRIPTS_DIR not in sys.path:
     sys.path.insert(0, SCRIPTS_DIR)
 
 import serve_skatealley  # noqa: E402
+from gcs_rig_intake import (  # noqa: E402
+    add_gcs_rig_cli_args,
+    intake_assembled_character_for_rigging,
+    select_pose_intake,
+    sync_target_rigged_deliverables,
+)
 
 SOURCE_GLB_PATH = os.path.join(REPO_ROOT, "LUIS_TPOSE_STANDALONE_BACKUP.glb")
 GAME_PK3_PATH = os.path.join(REPO_ROOT, "nzportable", "nzp", "game.pk3")
@@ -170,9 +180,103 @@ def compute_sha256(path):
     return h.hexdigest()
 
 
-def load_luis_glb(glb_path):
+def _normalize_and_lift_apose_to_tpose_2m(
+    pos_all: np.ndarray,
+    skeleton_metrics: Optional[Dict[str, Any]] = None,
+) -> np.ndarray:
+    """
+    Normalizes arbitrary glTF character coordinates to canonical `2.000m` height (`Y in [0.0, 2.0]`)
+    and automatically lifts downward A-pose arms (`x_arm_max < 0.75m` or `skeleton_metrics["is_apose"]`)
+    into the canonical horizontal T-pose (`|X| in [0.205, 0.895]`, `Y ~ 1.56m`) using the character's
+    measured shoulder/wrist landmarks from `skeleton_metrics["joints_y_up"]` when available.
+    Leaves already-horizontal T-pose `.glb` inputs unchanged.
+    """
+    pos = np.asarray(pos_all, dtype=np.float64).copy()
+    p_min = pos.min(axis=0)
+    p_max = pos.max(axis=0)
+    raw_h = max(1e-6, float(p_max[1] - p_min[1]))
+    if abs(raw_h - 2.0) > 0.02 or abs(float(p_min[1])) > 0.02:
+        s = 2.0 / raw_h
+        x_mid = 0.5 * float(p_min[0] + p_max[0])
+        z_mid = 0.5 * float(p_min[2] + p_max[2])
+        pos[:, 0] = (pos[:, 0] - x_mid) * s
+        pos[:, 1] = (pos[:, 1] - float(p_min[1])) * s
+        pos[:, 2] = (pos[:, 2] - z_mid) * s
+
+    if isinstance(skeleton_metrics, dict) and skeleton_metrics.get("is_apose") is False:
+        return pos.astype(np.float32)
+
+    jy = (skeleton_metrics or {}).get("joints_y_up") if isinstance(skeleton_metrics, dict) else None
+    x_g = pos[:, 0]
+    y_g = pos[:, 1]
+    arm_band = (np.abs(x_g) > 0.215) & (y_g >= 0.78) & (y_g <= 1.65)
+    if arm_band.any():
+        x_arm_max = float(np.abs(x_g[arm_band]).max())
+        is_apose_flag = (
+            bool(skeleton_metrics.get("is_apose"))
+            if isinstance(skeleton_metrics, dict) and "is_apose" in skeleton_metrics
+            else (x_arm_max < 0.75)
+        )
+        if is_apose_flag and x_arm_max < 0.78:
+            x_sh, y_sh = 0.195, 1.560
+            x_wr, y_wr = None, None
+            if isinstance(jy, dict):
+                sh_l = jy.get("shoulder_l")
+                sh_r = jy.get("shoulder_r")
+                wr_l = jy.get("wrist_l")
+                wr_r = jy.get("wrist_r")
+                if sh_l and sh_r and len(sh_l) == 3 and len(sh_r) == 3:
+                    x_sh = max(0.16, min(0.24, 0.5 * (abs(float(sh_l[0])) + abs(float(sh_r[0])))))
+                if wr_l and wr_r and len(wr_l) == 3 and len(wr_r) == 3:
+                    x_wr = 0.5 * (abs(float(wr_l[0])) + abs(float(wr_r[0])))
+                    y_wr = 0.5 * (float(wr_l[1]) + float(wr_r[1]))
+            if x_wr is None or y_wr is None:
+                wrist_mask = arm_band & (np.abs(x_g) >= 0.80 * x_arm_max)
+                if wrist_mask.any():
+                    x_wr = float(np.median(np.abs(x_g[wrist_mask])))
+                    y_wr = float(np.median(y_g[wrist_mask]))
+            if x_wr is not None and y_wr is not None:
+                theta_down = math.atan2(y_wr - y_sh, max(0.05, x_wr - x_sh))
+                if theta_down < -0.15:
+                    lift_angle = -theta_down
+                    ax_x = np.abs(x_g)
+                    y_arm_min = np.minimum(1.05, np.maximum(0.75, 1.18 - 1.50 * (ax_x - 0.215)))
+                    iso_arm = (ax_x > 0.185) & (y_g >= y_arm_min) & (y_g <= 1.64)
+                    idxs = np.where(iso_arm)[0]
+                    for i in idxs:
+                        xv, yv = float(pos[i, 0]), float(pos[i, 1])
+                        sgn = 1.0 if xv >= 0.0 else -1.0
+                        t_b = max(0.0, min(1.0, (abs(xv) - 0.185) / (0.245 - 0.185)))
+                        s_b = t_b * t_b * (3.0 - 2.0 * t_b)
+                        ang = sgn * lift_angle * s_b
+                        ca, sa = math.cos(ang), math.sin(ang)
+                        px_s = sgn * x_sh
+                        dx = xv - px_s
+                        dy = yv - y_sh
+                        pos[i, 0] = px_s + dx * ca - dy * sa
+                        pos[i, 1] = y_sh + dx * sa + dy * ca
+
+                    if len(idxs) > 0:
+                        x_lifted_max = float(np.abs(pos[idxs, 0]).max())
+                        if x_lifted_max > 0.26:
+                            scale_span = 0.690 / (x_lifted_max - 0.205)
+                            for i in idxs:
+                                xv = float(pos[i, 0])
+                                if abs(xv) > 0.205:
+                                    sgn = 1.0 if xv >= 0.0 else -1.0
+                                    pos[i, 0] = sgn * (0.205 + (abs(xv) - 0.205) * scale_span)
+
+    return pos.astype(np.float32)
+
+
+def load_luis_glb(
+    glb_path,
+    head_mat_indices: Optional[Sequence[int]] = None,
+    y_neck_norm: float = 1.640,
+    skeleton_metrics: Optional[Dict[str, Any]] = None,
+):
     if not os.path.isfile(glb_path):
-        raise FileNotFoundError(f"Missing un-rigged LUIS source asset: {glb_path}")
+        raise FileNotFoundError(f"Missing source GLB asset: {glb_path}")
     with open(glb_path, "rb") as f:
         buf = f.read()
     magic, version, _ = struct.unpack_from("<4sII", buf, 0)
@@ -180,43 +284,134 @@ def load_luis_glb(glb_path):
         raise ValueError(f"Invalid GLB header in {glb_path}: magic={magic!r}, version={version}")
     j_len = struct.unpack_from("<I", buf, 12)[0]
     gltf = json.loads(buf[20 : 20 + j_len].decode("utf-8"))
-    bin_buf = buf[28 + j_len :]
-
-    if gltf.get("skins"):
-        raise ValueError(f"Expected un-rigged GLB, but found skins in {glb_path}")
+    bin_buf = buf[28 + j_len :] if 28 + j_len <= len(buf) else b""
 
     def get_acc(acc_idx):
         acc = gltf["accessors"][acc_idx]
         bv = gltf["bufferViews"][acc["bufferView"]]
         offset = bv.get("byteOffset", 0) + acc.get("byteOffset", 0)
         ctype = acc["componentType"]
-        dtype = {5126: np.float32, 5123: np.uint16, 5125: np.uint32}[ctype]
+        dtype = {5126: np.float32, 5123: np.uint16, 5125: np.uint32, 5121: np.uint8}[ctype]
         cnt = acc["count"]
         dim = {"SCALAR": 1, "VEC2": 2, "VEC3": 3, "VEC4": 4}[acc["type"]]
         arr = np.frombuffer(bin_buf, dtype=dtype, count=cnt * dim, offset=offset)
         return arr.reshape(cnt, dim).copy() if dim > 1 else arr.copy()
 
-    prims = gltf["meshes"][0]["primitives"]
-    p0, p1 = prims[0], prims[1]
-    pos0 = get_acc(p0["attributes"]["POSITION"]).astype(np.float32)
-    uv0 = get_acc(p0["attributes"]["TEXCOORD_0"]).astype(np.float32)
-    tris0 = get_acc(p0["indices"]).reshape(-1, 3).astype(np.int32)
-
-    pos1 = get_acc(p1["attributes"]["POSITION"]).astype(np.float32)
-    uv1 = get_acc(p1["attributes"]["TEXCOORD_0"]).astype(np.float32)
-    tris1 = get_acc(p1["indices"]).reshape(-1, 3).astype(np.int32)
-
+    # Decode embedded images and resolve per-material RGB textures
     images_rgb = []
     for im in gltf.get("images", []):
-        bv = gltf["bufferViews"][im["bufferView"]]
-        raw = bin_buf[bv.get("byteOffset", 0) : bv.get("byteOffset", 0) + bv["byteLength"]]
-        arr = np.frombuffer(raw, dtype=np.uint8)
-        bgr = cv2.imdecode(arr, cv2.IMREAD_COLOR)
-        if bgr is None:
-            raise ValueError(f"Failed to decode PNG image {im.get('name')} from {glb_path}")
-        images_rgb.append(cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB))
+        if "bufferView" in im:
+            bv = gltf["bufferViews"][im["bufferView"]]
+            raw = bin_buf[bv.get("byteOffset", 0) : bv.get("byteOffset", 0) + bv["byteLength"]]
+            arr = np.frombuffer(raw, dtype=np.uint8)
+            bgr = cv2.imdecode(arr, cv2.IMREAD_COLOR)
+            if bgr is not None:
+                images_rgb.append(cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB))
+                continue
+        images_rgb.append(np.full((64, 64, 3), (200, 200, 200), dtype=np.uint8))
 
-    return pos0, uv0, tris0, pos1, uv1, tris1, images_rgb[0], images_rgb[1]
+    materials = gltf.get("materials") or []
+    textures = gltf.get("textures") or []
+    mat_rgb_list = []
+    detected_head_mats = set(head_mat_indices or [])
+    for m_idx, mat in enumerate(materials):
+        mname = str(mat.get("name") or "").lower()
+        if "head" in mname or "hair" in mname or "face" in mname:
+            detected_head_mats.add(m_idx)
+        pbr = mat.get("pbrMetallicRoughness") or {}
+        bct = pbr.get("baseColorTexture")
+        rgb_tex = None
+        if isinstance(bct, dict) and "index" in bct:
+            t_idx = int(bct["index"])
+            if 0 <= t_idx < len(textures):
+                s_idx = textures[t_idx].get("source")
+                if s_idx is not None and 0 <= int(s_idx) < len(images_rgb):
+                    rgb_tex = images_rgb[int(s_idx)]
+        if rgb_tex is None:
+            bcf = pbr.get("baseColorFactor") or [0.78, 0.78, 0.78, 1.0]
+            c8 = tuple(int(np.clip(round(float(bcf[k]) * 255.0), 0, 255)) for k in range(3))
+            rgb_tex = np.full((64, 64, 3), c8, dtype=np.uint8)
+        mat_rgb_list.append(rgb_tex)
+
+    if not mat_rgb_list:
+        mat_rgb_list = images_rgb if images_rgb else [np.full((64, 64, 3), (200, 200, 200), dtype=np.uint8)]
+
+    # Flatten all primitives across all meshes
+    raw_prims = []
+    all_pos_blocks = []
+    for mesh_obj in gltf.get("meshes", []):
+        for prim in mesh_obj.get("primitives", []):
+            attrs = prim["attributes"]
+            p_arr = get_acc(attrs["POSITION"]).astype(np.float32)
+            if "TEXCOORD_0" in attrs:
+                u_arr = get_acc(attrs["TEXCOORD_0"]).astype(np.float32)
+            else:
+                u_arr = np.full((len(p_arr), 2), 0.5, dtype=np.float32)
+            if "indices" in prim:
+                t_arr = get_acc(prim["indices"]).reshape(-1, 3).astype(np.int32)
+            else:
+                t_arr = np.arange(len(p_arr), dtype=np.int32).reshape(-1, 3)
+            m_idx = int(prim.get("material", 0))
+            raw_prims.append({"pos": p_arr, "uv": u_arr, "tris": t_arr, "mat": m_idx})
+            all_pos_blocks.append(p_arr)
+
+    combined_pos = np.vstack(all_pos_blocks)
+    conformed_pos = _normalize_and_lift_apose_to_tpose_2m(combined_pos, skeleton_metrics=skeleton_metrics)
+    cursor = 0
+    for rp in raw_prims:
+        n_v = len(rp["pos"])
+        rp["pos"] = conformed_pos[cursor : cursor + n_v]
+        cursor += n_v
+
+    # Separate primitives into body (pos0, uv0, tris0, body_rgb) and head (pos1, uv1, tris1, head_rgb)
+    if len(raw_prims) >= 2:
+        if not detected_head_mats:
+            for rp in raw_prims:
+                if float(rp["pos"][:, 1].min()) >= 1.40:
+                    detected_head_mats.add(rp["mat"])
+            if not detected_head_mats:
+                detected_head_mats.add(raw_prims[1]["mat"])
+
+        body_pos_l, body_uv_l, body_tris_l = [], [], []
+        head_pos_l, head_uv_l, head_tris_l = [], [], []
+        b_v_off = 0
+        h_v_off = 0
+        body_rgb = mat_rgb_list[0]
+        head_rgb = mat_rgb_list[min(1, len(mat_rgb_list) - 1)]
+
+        for rp in raw_prims:
+            m_i = rp["mat"]
+            tex_i = mat_rgb_list[m_i] if 0 <= m_i < len(mat_rgb_list) else mat_rgb_list[0]
+            if m_i in detected_head_mats:
+                head_pos_l.append(rp["pos"])
+                head_uv_l.append(rp["uv"])
+                head_tris_l.append(rp["tris"] + h_v_off)
+                h_v_off += len(rp["pos"])
+                head_rgb = tex_i
+            else:
+                body_pos_l.append(rp["pos"])
+                body_uv_l.append(rp["uv"])
+                body_tris_l.append(rp["tris"] + b_v_off)
+                b_v_off += len(rp["pos"])
+                body_rgb = tex_i
+
+        if head_pos_l and body_pos_l:
+            pos0 = np.vstack(body_pos_l)
+            uv0 = np.vstack(body_uv_l)
+            tris0 = np.vstack(body_tris_l)
+            pos1 = np.vstack(head_pos_l)
+            uv1 = np.vstack(head_uv_l)
+            tris1 = np.vstack(head_tris_l)
+            return pos0, uv0, tris0, pos1, uv1, tris1, body_rgb, head_rgb
+
+    # Single-primitive fallback: partition triangles geometrically at y_neck_norm
+    rp0 = raw_prims[0]
+    p_all, u_all, t_all = rp0["pos"], rp0["uv"], rp0["tris"]
+    tri_c = p_all[t_all].mean(axis=1)
+    h_mask = (tri_c[:, 1] >= float(y_neck_norm)) & (np.abs(tri_c[:, 0]) <= 0.22)
+    b_mask = ~h_mask
+    tex0 = mat_rgb_list[0]
+    return p_all, u_all, t_all[b_mask], p_all, u_all, t_all[h_mask], tex0, tex0
 
 
 def project_glb_to_atlas_st(pos_glb, kind, is_front):
@@ -354,24 +549,130 @@ def bake_continuous_orthographic_skin(pos0, uv0, tris0, pos1, uv1, tris1, body_r
     return indices, atlas_rgb
 
 
-def decimate_partitions_with_blender():
+def decimate_partitions_with_blender(
+    glb_path: str = SOURCE_GLB_PATH,
+    head_mat_indices: Optional[Sequence[int]] = None,
+    y_neck_norm: float = 1.640,
+    skeleton_metrics: Optional[Dict[str, Any]] = None,
+):
     """
-    Runs Blender 5.2 headless (`--background`) to weld photogrammetry UV seams (`remove_doubles`),
-    apply smooth deltoid shoulder relaxation, and decimate each anatomical partition using
-    Blender's Quadric Edge Collapse (`DECIMATE` `COLLAPSE`) modifier.
+    Runs Blender headless (`--background`) to join all mesh objects, normalize to `2.000m`,
+    lift downward A-pose arms into the canonical horizontal T-pose (`|X| in [0.205, 0.895]`),
+    weld photogrammetry UV seams (`remove_doubles`), apply smooth deltoid shoulder relaxation,
+    and decimate each anatomical partition to its target triangle budget (`head=258`, `l_arm=136`,
+    `r_arm=136`, `body=640`, `crawler_body=440`) using Blender's Quadric Edge Collapse modifier.
     """
+    y_crawler_cut = 0.665
+    x_sh_s = 0.195
+    if isinstance(skeleton_metrics, dict) and isinstance(skeleton_metrics.get("joints_y_up"), dict):
+        jy = skeleton_metrics["joints_y_up"]
+        cr = jy.get("crotch")
+        kn_l = jy.get("knee_l")
+        sh_l = jy.get("shoulder_l")
+        sh_r = jy.get("shoulder_r")
+        if cr and kn_l and len(cr) == 3 and len(kn_l) == 3:
+            y_crawler_cut = round(max(0.580, min(0.720, 0.5 * (float(cr[1]) + float(kn_l[1])) + 0.08)), 4)
+        if sh_l and sh_r and len(sh_l) == 3 and len(sh_r) == 3:
+            x_sh_s = round(max(0.160, min(0.240, 0.5 * (abs(float(sh_l[0])) + abs(float(sh_r[0]))))), 4)
+
     with tempfile.TemporaryDirectory() as tmpdir:
         out_npz = os.path.join(tmpdir, "decimated_parts.npz")
+        head_mats_list = list(head_mat_indices) if head_mat_indices is not None else []
         blender_code = f"""
-import bpy, bmesh, numpy as np
+import bpy, bmesh, math, numpy as np
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
-bpy.ops.import_scene.gltf(filepath={SOURCE_GLB_PATH!r})
-base_obj = [o for o in bpy.context.scene.objects if o.type == "MESH"][0]
+bpy.ops.import_scene.gltf(filepath={glb_path!r})
+meshes = [o for o in bpy.context.scene.objects if o.type == "MESH"]
+bpy.ops.object.select_all(action="DESELECT")
+for m in meshes:
+    m.select_set(True)
+bpy.context.view_layer.objects.active = meshes[0]
+if len(meshes) > 1:
+    bpy.ops.object.join()
+base_obj = bpy.context.view_layer.objects.active
+bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
 
-def build_part(name, filter_fn, ratio, relax_shoulders=False):
+# Normalize base_obj to 2.000m (gy in [0.0, 2.0]) and lift downward A-pose arms into horizontal T-pose
+pos_g = np.array([[v.co.x, v.co.z, -v.co.y] for v in base_obj.data.vertices], dtype=np.float64)
+p_min = pos_g.min(axis=0)
+p_max = pos_g.max(axis=0)
+raw_h = max(1e-6, float(p_max[1] - p_min[1]))
+if abs(raw_h - 2.0) > 0.02 or abs(float(p_min[1])) > 0.02:
+    s = 2.0 / raw_h
+    x_mid = 0.5 * float(p_min[0] + p_max[0])
+    z_mid = 0.5 * float(p_min[2] + p_max[2])
+    pos_g[:, 0] = (pos_g[:, 0] - x_mid) * s
+    pos_g[:, 1] = (pos_g[:, 1] - float(p_min[1])) * s
+    pos_g[:, 2] = (pos_g[:, 2] - z_mid) * s
+
+x_g = pos_g[:, 0]
+y_g = pos_g[:, 1]
+arm_band = (np.abs(x_g) > 0.215) & (y_g >= 0.78) & (y_g <= 1.65)
+if arm_band.any():
+    x_arm_max = float(np.abs(x_g[arm_band]).max())
+    if x_arm_max < 0.75:
+        wrist_mask = arm_band & (np.abs(x_g) >= 0.80 * x_arm_max)
+        if wrist_mask.any():
+            x_wr = float(np.median(np.abs(x_g[wrist_mask])))
+            y_wr = float(np.median(y_g[wrist_mask]))
+            x_sh, y_sh = {x_sh_s!r}, 1.560
+            theta_down = math.atan2(y_wr - y_sh, max(0.05, x_wr - x_sh))
+            if theta_down < -0.15:
+                lift_angle = -theta_down
+                ax_x = np.abs(x_g)
+                y_arm_min = np.minimum(1.05, np.maximum(0.75, 1.18 - 1.50 * (ax_x - 0.215)))
+                iso_arm = (ax_x > 0.185) & (y_g >= y_arm_min) & (y_g <= 1.64)
+                idxs = np.where(iso_arm)[0]
+                for i in idxs:
+                    xv, yv = float(pos_g[i, 0]), float(pos_g[i, 1])
+                    sgn = 1.0 if xv >= 0.0 else -1.0
+                    t_b = max(0.0, min(1.0, (abs(xv) - 0.185) / (0.245 - 0.185)))
+                    s_b = t_b * t_b * (3.0 - 2.0 * t_b)
+                    ang = sgn * lift_angle * s_b
+                    ca, sa = math.cos(ang), math.sin(ang)
+                    px_s = sgn * x_sh
+                    dx = xv - px_s
+                    dy = yv - y_sh
+                    pos_g[i, 0] = px_s + dx * ca - dy * sa
+                    pos_g[i, 1] = y_sh + dx * sa + dy * ca
+                if len(idxs) > 0:
+                    x_lifted_max = float(np.abs(pos_g[idxs, 0]).max())
+                    if x_lifted_max > 0.26:
+                        scale_span = 0.690 / (x_lifted_max - 0.205)
+                        for i in idxs:
+                            xv = float(pos_g[i, 0])
+                            if abs(xv) > 0.205:
+                                sgn = 1.0 if xv >= 0.0 else -1.0
+                                pos_g[i, 0] = sgn * (0.205 + (abs(xv) - 0.205) * scale_span)
+
+for idx_v, v in enumerate(base_obj.data.vertices):
+    v.co.x = float(pos_g[idx_v, 0])
+    v.co.y = float(-pos_g[idx_v, 2])
+    v.co.z = float(pos_g[idx_v, 1])
+base_obj.data.update()
+
+head_mats = set({head_mats_list!r})
+if not head_mats:
+    for m_idx, mat in enumerate(base_obj.data.materials):
+        if mat and any(k in mat.name.lower() for k in ("head", "hair", "face")):
+            head_mats.add(m_idx)
+    if not head_mats and len(base_obj.data.materials) >= 2:
+        head_mats.add(1)
+
+y_neck = float({float(y_neck_norm)!r})
+has_head_mat = len(head_mats) > 0
+
+def is_head_face(gx, gy, gz, m):
+    if has_head_mat:
+        return int(m) in head_mats
+    return (gy >= y_neck) and (abs(gx) <= 0.22)
+
+def build_part(name, filter_fn, target_tris, relax_shoulders=False):
     obj = base_obj.copy()
     obj.data = base_obj.data.copy()
+    while obj.data.uv_layers:
+        obj.data.uv_layers.remove(obj.data.uv_layers[0])
     bpy.context.collection.objects.link(obj)
     bm = bmesh.new()
     bm.from_mesh(obj.data)
@@ -396,17 +697,33 @@ def build_part(name, filter_fn, ratio, relax_shoulders=False):
                     v.co.z = y_env + 0.15 * (gy - y_env)
             if abs(gx) > 0.165 and gy > 1.38:
                 v.co.x = np.sign(gx) * (0.165 + 0.40 * (abs(gx) - 0.165))
+    bmesh.ops.triangulate(bm, faces=bm.faces[:])
     bm.to_mesh(obj.data)
     bm.free()
 
     bpy.ops.object.select_all(action="DESELECT")
     obj.select_set(True)
     bpy.context.view_layer.objects.active = obj
-    mod = obj.modifiers.new(name="Dec", type="DECIMATE")
-    mod.decimate_type = "COLLAPSE"
-    mod.ratio = ratio
-    mod.use_collapse_triangulate = True
-    bpy.ops.object.modifier_apply(modifier=mod.name)
+    for _pass in range(2):
+        part_tris = max(1, len(obj.data.polygons))
+        if part_tris <= int(target_tris * 1.15):
+            break
+        if _pass == 1:
+            bm_w = bmesh.new()
+            bm_w.from_mesh(obj.data)
+            bmesh.ops.remove_doubles(bm_w, verts=bm_w.verts[:], dist=0.016)
+            bmesh.ops.triangulate(bm_w, faces=bm_w.faces[:])
+            bm_w.to_mesh(obj.data)
+            bm_w.free()
+            part_tris = max(1, len(obj.data.polygons))
+            if part_tris <= int(target_tris * 1.15):
+                break
+        dyn_ratio = min(1.0, max(0.002, float(target_tris) / float(part_tris)))
+        mod = obj.modifiers.new(name="Dec", type="DECIMATE")
+        mod.decimate_type = "COLLAPSE"
+        mod.ratio = dyn_ratio
+        mod.use_collapse_triangulate = True
+        bpy.ops.object.modifier_apply(modifier=mod.name)
 
     bm2 = bmesh.new()
     bm2.from_mesh(obj.data)
@@ -419,14 +736,14 @@ def build_part(name, filter_fn, ratio, relax_shoulders=False):
     return verts, tris
 
 res = {{}}
-for p_name, fn, rat, rel in [
-    ("head", lambda x, y, z, m: (m == 1), 0.048, False),
-    ("l_arm", lambda x, y, z, m: (m == 0) and (x >= 0.205 and y >= 1.38), 0.050, False),
-    ("r_arm", lambda x, y, z, m: (m == 0) and (x <= -0.205 and y >= 1.38), 0.050, False),
-    ("body", lambda x, y, z, m: (m == 0) and not (abs(x) >= 0.205 and y >= 1.38), 0.068, True),
-    ("crawler_body", lambda x, y, z, m: (m == 0) and (y >= 0.665) and not (abs(x) >= 0.205 and y >= 1.38), 0.076, True),
+for p_name, fn, t_budget, rel in [
+    ("head", lambda x, y, z, m: is_head_face(x, y, z, m), 258, False),
+    ("l_arm", lambda x, y, z, m: (not is_head_face(x, y, z, m)) and (x >= 0.205 and y >= 1.38), 136, False),
+    ("r_arm", lambda x, y, z, m: (not is_head_face(x, y, z, m)) and (x <= -0.205 and y >= 1.38), 136, False),
+    ("body", lambda x, y, z, m: (not is_head_face(x, y, z, m)) and not (abs(x) >= 0.205 and y >= 1.38), 640, True),
+    ("crawler_body", lambda x, y, z, m: (not is_head_face(x, y, z, m)) and (y >= {y_crawler_cut!r}) and not (abs(x) >= 0.205 and y >= 1.38), 440, True),
 ]:
-    v, t = build_part(p_name, fn, rat, rel)
+    v, t = build_part(p_name, fn, t_budget, rel)
     res[p_name + "_v"] = v
     res[p_name + "_t"] = t
 
@@ -618,7 +935,10 @@ def deform_partition_svd(luis_f0, tris, ref_rest, ref_frames, kind):
 
     if kind in ("l_arm", "r_arm"):
         # Anchor rigid arm rotation at the upper shoulder socket and damp excessive vertical shoulder lift
-        sh_luis = luis_f0[luis_f0[:, 2] >= 20.5].mean(axis=0)
+        sh_luis_mask = luis_f0[:, 2] >= 20.5
+        if not np.any(sh_luis_mask):
+            sh_luis_mask = luis_f0[:, 2] >= np.percentile(luis_f0[:, 2], 70)
+        sh_luis = luis_f0[sh_luis_mask].mean(axis=0)
         sh_ref_mask = ref_rest[:, 2] >= np.percentile(ref_rest[:, 2], 70)
         sh_ref0 = ref_rest[sh_ref_mask].mean(axis=0)
         sh_reff = ref_frames[:, sh_ref_mask, :].mean(axis=1)
@@ -918,13 +1238,24 @@ def render_comparison_png(pos0, uv0, tris0, pos1, uv1, tris1, body_rgb, head_rgb
     cv2.imwrite(ROOT_COMPARISON_PNG, combined)
 
 
-def build_all_luis_zombie_models():
+def build_all_luis_zombie_models(
+    source_glb_path: str = SOURCE_GLB_PATH,
+    head_mat_indices: Optional[Sequence[int]] = None,
+    y_neck_norm: float = 1.640,
+    render_preview_png: bool = True,
+    skeleton_metrics: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
     t_start = time.time()
     serve_skatealley.ensure_nzportable_game_pk3(REPO_ROOT)
     if not os.path.isfile(GAME_PK3_PATH):
         raise FileNotFoundError(f"Missing reference archive: {GAME_PK3_PATH}")
 
-    pos0, uv0, tris0, pos1, uv1, tris1, body_rgb, head_rgb = load_luis_glb(SOURCE_GLB_PATH)
+    pos0, uv0, tris0, pos1, uv1, tris1, body_rgb, head_rgb = load_luis_glb(
+        source_glb_path,
+        head_mat_indices=head_mat_indices,
+        y_neck_norm=y_neck_norm,
+        skeleton_metrics=skeleton_metrics,
+    )
 
     with zipfile.ZipFile(GAME_PK3_PATH, "r") as zf:
         palette_bytes = zf.read("gfx/palette.lmp")
@@ -938,7 +1269,12 @@ def build_all_luis_zombie_models():
     pcx_bytes = encode_pcx_8bit(skin_pixels, palette_bytes)
 
     # 2. Quadric surface-preserving decimation in Blender + Front/Back hemisphere seam splitting
-    raw_parts = decimate_partitions_with_blender()
+    raw_parts = decimate_partitions_with_blender(
+        glb_path=source_glb_path,
+        head_mat_indices=head_mat_indices,
+        y_neck_norm=y_neck_norm,
+        skeleton_metrics=skeleton_metrics,
+    )
     hp_glb, h_st, h_tris = split_front_back_hemisphere_uvs(*raw_parts["head"], "head")
     lap_glb, la_st, la_tris = split_front_back_hemisphere_uvs(*raw_parts["l_arm"], "l_arm")
     rap_glb, ra_st, ra_tris = split_front_back_hemisphere_uvs(*raw_parts["r_arm"], "r_arm")
@@ -1000,14 +1336,21 @@ def build_all_luis_zombie_models():
     }
 
     compiled_mdls = {}
+    mdl_stats = {}
     for m_path, (fr, nm, st_c, tr) in specs.items():
         ref_meta = refs[m_path]
         mdl_bytes = compile_quake_mdl_binary(
             fr, nm, st_c, tr, skin_pixels, ref_meta["frame_names"], ref_meta
         )
         compiled_mdls[m_path] = mdl_bytes
+        mdl_stats[m_path] = {
+            "num_verts": int(fr.shape[1]),
+            "num_tris": int(len(tr)),
+            "num_frames": int(fr.shape[0]),
+            "size_bytes": len(mdl_bytes),
+        }
         print(
-            f"[LUIS MDL] Compiled {m_path:22s}: verts={fr.shape[1]:3d} tris={len(tr):4d} "
+            f"[ZOMBIES MDL] Compiled {m_path:22s}: verts={fr.shape[1]:3d} tris={len(tr):4d} "
             f"frames={fr.shape[0]:3d} ({len(mdl_bytes) / 1024:.1f} KB)"
         )
 
@@ -1018,6 +1361,13 @@ def build_all_luis_zombie_models():
         for i in range(4):
             out_zf.writestr(f"models/ai/zfull.mdl_{i}.pcx", pcx_bytes)
             out_zf.writestr(f"models/ai/zfull.mdl_{i}.palhint", palhints[i])
+
+    # Also write loose models/ai/*.mdl into nzportable/nzp/models/ai/
+    loose_ai_dir = os.path.join(REPO_ROOT, "nzportable", "nzp", "models", "ai")
+    os.makedirs(loose_ai_dir, exist_ok=True)
+    for m_path, m_bytes in compiled_mdls.items():
+        with open(os.path.join(REPO_ROOT, "nzportable", "nzp", m_path), "wb") as mf:
+            mf.write(m_bytes)
 
     pk3_size = os.path.getsize(OUTPUT_PK3_PATH)
     pk3_sha256 = compute_sha256(OUTPUT_PK3_PATH)
@@ -1035,16 +1385,130 @@ def build_all_luis_zombie_models():
         json.dump(pack_data, f, indent=2)
         f.write("\n")
 
-    render_comparison_png(
-        pos0, uv0, tris0, pos1, uv1, tris1, body_rgb, head_rgb, compiled_mdls["models/ai/zfull.mdl"], palette_bytes
+    if render_preview_png:
+        render_comparison_png(
+            pos0, uv0, tris0, pos1, uv1, tris1, body_rgb, head_rgb, compiled_mdls["models/ai/zfull.mdl"], palette_bytes
+        )
+
+    elapsed = round(time.time() - t_start, 4)
+    print(
+        f"[ZOMBIES MDL] Packaged {OUTPUT_PK3_PATH} ({pk3_size / (1024 * 1024):.2f} MB, "
+        f"sha256={pk3_sha256[:16]}...) in {elapsed:.2f}s"
+    )
+    return {
+        "source_glb": os.path.basename(source_glb_path),
+        "pk3_path": OUTPUT_PK3_PATH,
+        "pk3_size_bytes": pk3_size,
+        "pk3_sha256": pk3_sha256,
+        "zfull_mdl_path": os.path.join(REPO_ROOT, "nzportable", "nzp", "models", "ai", "zfull.mdl"),
+        "models": mdl_stats,
+        "elapsed_sec": elapsed,
+    }
+
+
+def rig_assembled_glb_for_zombies(
+    glb_path: Optional[str] = None,
+    telemetry_path: Optional[str] = None,
+    char_id: Optional[str] = None,
+    bucket_name: Optional[str] = None,
+    player_name: Optional[str] = None,
+    player_id: Optional[str] = None,
+    run_id: Optional[str] = None,
+    output_dir: Optional[str] = None,
+    credentials_path: Optional[str] = None,
+    precomputed_intake: Optional[Dict[str, Any]] = None,
+    sync_audit: bool = True,
+    return_sync_bundle: bool = False,
+) -> Dict[str, Any]:
+    """
+    Stage 5 `.glb`-agnostic Zombies (`/nzportable/`) rigger entrypoint (`INV-GCS-RIG-01`, `INV-NO-REASSEMBLE-01`):
+      1. Pulls and validates `03_meshes/assembled/character_full.glb` + `assembly_telemetry.json` from GCS (or local `--glb`),
+      2. Bakes continuous `256x256` Front/Back orthographic skin quantized to `gfx/palette.lmp`,
+      3. Decimates modular partitions (`head`, `l_arm`, `r_arm`, `body`, `crawler_body`) to target triangle budgets (`<= 1,500` total tris),
+      4. Synthesizes all `211` standing frames + `127` crawler frames via Kabsch SVD and packages `luis_zombies.pk3`,
+      5. Syncs `luis_zombies.pk3`, `ai_zombie.mdl`, and `rig_telemetry.json` to
+         `gs://<bucket>/players/{player_slug}_{player_id}/runs/{run_id}/04_rigged/zombies/`.
+    """
+    if precomputed_intake is not None:
+        intake = select_pose_intake(precomputed_intake, preferred_pose="tpose", target_game="zombies")
+    else:
+        intake = intake_assembled_character_for_rigging(
+            glb_path=glb_path,
+            telemetry_path=telemetry_path,
+            char_id=char_id,
+            bucket_name=bucket_name,
+            player_name=player_name,
+            player_id=player_id,
+            run_id=run_id,
+            output_dir=output_dir,
+            credentials_path=credentials_path,
+            preferred_pose="tpose",
+            target_game="zombies",
+        )
+    hb = intake["head_bounds_norm"]
+    # Skip full-res software preview PNG during Stage 5 80k-triangle automated runs to stay well inside the <12s budget
+    build_summary = build_all_luis_zombie_models(
+        source_glb_path=intake["local_glb_path"],
+        head_mat_indices=hb.get("head_material_indices"),
+        y_neck_norm=float(hb.get("y_neck_norm", 1.640)),
+        render_preview_png=False,
+        skeleton_metrics=intake.get("skeleton_metrics"),
     )
 
-    elapsed = time.time() - t_start
-    print(
-        f"[LUIS MDL] Packaged {OUTPUT_PK3_PATH} ({pk3_size / (1024 * 1024):.2f} MB, "
-        f"sha256={pk3_sha256[:16]}...) & updated root comparison PNGs in {elapsed:.2f}s"
+    stage5_dir = os.path.join(intake["output_dir"], "rigged", "zombies")
+    os.makedirs(stage5_dir, exist_ok=True)
+    stage5_pk3 = os.path.join(stage5_dir, "luis_zombies.pk3")
+    stage5_mdl = os.path.join(stage5_dir, "ai_zombie.mdl")
+    shutil.copy2(OUTPUT_PK3_PATH, stage5_pk3)
+    shutil.copy2(build_summary["zfull_mdl_path"], stage5_mdl)
+
+    telemetry_payload: Dict[str, Any] = {
+        "status": "SUCCESS",
+        "specification": "functional_specification_061",
+        "mdl_magic": "IDPO",
+        "mdl_version": 6,
+        "standing_frames": 211,
+        "crawler_frames": 127,
+        "build_summary": build_summary,
+        "head_bounds_norm": hb,
+    }
+    sync_res = sync_target_rigged_deliverables(
+        intake_info=intake,
+        target_game="zombies",
+        deliverables=[
+            ("zombies_pk3", stage5_pk3, "application/zip"),
+            ("ai_zombie_mdl", stage5_mdl, "application/octet-stream"),
+        ],
+        telemetry_payload=telemetry_payload,
+        sync_audit=sync_audit,
     )
+    return sync_res if return_sync_bundle else sync_res["telemetry"]
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(
+        description="Stage 5 .glb-agnostic Nazi Zombies: Portable (IDPO v6 .mdl) automated rigger."
+    )
+    add_gcs_rig_cli_args(parser)
+    args = parser.parse_args()
+
+    if args.glb or (args.player_name and args.player_id and args.run_id):
+        tel = rig_assembled_glb_for_zombies(
+            glb_path=args.glb,
+            telemetry_path=args.telemetry,
+            char_id=args.char_id,
+            bucket_name=args.gcs_bucket,
+            player_name=args.player_name,
+            player_id=args.player_id,
+            run_id=args.run_id,
+            output_dir=args.output_dir,
+            credentials_path=args.gcs_credentials,
+        )
+        print(json.dumps(tel, indent=2))
+        return
+
+    build_all_luis_zombie_models()
 
 
 if __name__ == "__main__":
-    build_all_luis_zombie_models()
+    main()

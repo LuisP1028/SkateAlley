@@ -93,6 +93,13 @@
       background: rgba(14, 17, 23, 0.92);
       border-color: rgba(56, 189, 248, 0.38);
     }
+    body:not(.dev-mode) #sandbox-hud,
+    body:not(.dev-mode) #scene-cutter-overlay,
+    body:not(.dev-mode) #director-pov-overlay {
+      display: none !important;
+      pointer-events: none !important;
+      visibility: hidden !important;
+    }
     .hud-header {
       display: flex;
       align-items: center;
@@ -302,7 +309,7 @@
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      z-index: 100;
+      z-index: 10000;
       background: rgba(127, 29, 29, 0.96);
       border: 2px solid #ef4444;
       color: #fef2f2;
@@ -409,7 +416,8 @@
       transition: left 0.24s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
-    body.sidebar-collapsed #holo-projection-stage {
+    body.sidebar-collapsed #holo-projection-stage,
+    body:not(.dev-mode) #holo-projection-stage {
       left: 24px;
     }
 
@@ -472,12 +480,16 @@
       border-color: rgba(252, 211, 77, 0.96);
       backdrop-filter: blur(10px);
       -webkit-backdrop-filter: blur(10px);
+      pointer-events: auto;
+      max-height: min(86dvh, 740px);
+      display: flex;
+      flex-direction: column;
       background:
         linear-gradient(
           135deg,
-          rgba(38, 18, 4, 0.42) 0%,
-          rgba(64, 30, 6, 0.38) 48%,
-          rgba(44, 20, 4, 0.44) 100%
+          rgba(38, 18, 4, 0.76) 0%,
+          rgba(64, 30, 6, 0.72) 48%,
+          rgba(44, 20, 4, 0.80) 100%
         );
     }
 
@@ -542,7 +554,17 @@
       flex-direction: column;
       justify-content: space-between;
       min-height: 368px;
+      max-height: 100%;
+      flex: 1 1 auto;
       gap: 16px;
+    }
+    .holo-window.mount-focus-active:not(#portal-game-holo-window) .holo-content {
+      min-height: 0;
+      overflow: hidden;
+    }
+    .holo-window.mount-focus-active:not(#portal-game-holo-window) .holo-top-bar,
+    .holo-window.mount-focus-active:not(#portal-game-holo-window) .holo-footer-bar {
+      flex-shrink: 0;
     }
 
     .holo-top-bar {
@@ -620,14 +642,63 @@
       display: grid;
       grid-template-columns: 1.25fr 0.9fr;
       gap: 22px;
-      align-items: center;
+      align-items: start;
       margin: 4px 0;
+    }
+    .holo-window.mount-focus-active:not(#portal-game-holo-window) .holo-body-grid {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      padding-right: 6px;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(251, 191, 36, 0.75) rgba(38, 18, 4, 0.45);
+    }
+    .holo-window.mount-focus-active:not(#portal-game-holo-window) .holo-body-grid::-webkit-scrollbar {
+      width: 6px;
+    }
+    .holo-window.mount-focus-active:not(#portal-game-holo-window) .holo-body-grid::-webkit-scrollbar-track {
+      background: rgba(38, 18, 4, 0.45);
+      border-radius: 999px;
+    }
+    .holo-window.mount-focus-active:not(#portal-game-holo-window) .holo-body-grid::-webkit-scrollbar-thumb {
+      background: rgba(251, 191, 36, 0.78);
+      border-radius: 999px;
     }
 
     @media (max-width: 860px) {
       .holo-body-grid {
         grid-template-columns: 1fr;
       }
+    }
+
+    .holo-narrative-callout {
+      margin: 0 0 14px 0;
+      padding: 12px 14px;
+      border-radius: 9px;
+      background: rgba(54, 22, 4, 0.76);
+      border: 1px solid rgba(251, 191, 36, 0.76);
+      border-left: 3.5px solid #fbbf24;
+      box-shadow: inset 0 0 16px rgba(245, 158, 11, 0.16);
+      user-select: text;
+      -webkit-user-select: text;
+    }
+    .holo-narrative-heading {
+      margin: 0 0 6px 0;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 0.03em;
+      color: #fbbf24;
+      text-shadow: 0 0 10px rgba(245, 158, 11, 0.55);
+    }
+    .holo-narrative-body {
+      margin: 0;
+      font-size: 13.2px;
+      line-height: 1.56;
+      color: #fffbeb;
+      white-space: pre-line;
+      text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
     }
 
     .holo-kicker {
@@ -1578,19 +1649,13 @@
         padding: 6px 10px;
       }
       #intro-dialogue-overlay {
-        top: 54px !important;
-        bottom: auto !important;
-        left: 10px !important;
-        right: 10px !important;
-        align-items: flex-start !important;
-        padding: 0 !important;
+        padding: 12px !important;
+        align-items: flex-end !important;
       }
       #intro-dialogue-card {
-        width: 100% !important;
-        max-width: 520px !important;
-        max-height: calc(100vh - 204px) !important;
-        overflow-y: auto !important;
-        padding: 12px 14px !important;
+        width: min(560px, calc(100vw - 24px)) !important;
+        max-height: min(74dvh, calc(100dvh - 24px)) !important;
+        padding: 14px 16px !important;
       }
       #holo-projection-stage,
       body.sidebar-collapsed #holo-projection-stage {
@@ -1652,18 +1717,13 @@
         font-size: 9px;
       }
       #intro-dialogue-overlay {
-        top: 48px !important;
-        bottom: 12px !important;
-        left: 186px !important;
-        right: 166px !important;
-        align-items: flex-start !important;
-        padding: 0 !important;
+        padding: 8px 12px !important;
+        align-items: center !important;
       }
       #intro-dialogue-card {
-        width: 100% !important;
-        max-height: 100% !important;
-        overflow-y: auto !important;
-        padding: 10px 12px !important;
+        width: min(540px, calc(100vw - 24px)) !important;
+        max-height: calc(100dvh - 16px) !important;
+        padding: 10px 14px !important;
         gap: 6px !important;
       }
       #holo-projection-stage,
@@ -1692,6 +1752,226 @@
         font-size: 10.5px;
         padding: 6px 12px;
       }
+    }
+
+    /* ==========================================================================
+       SCREEN_MOUNT Amber Holographic Startup Welcome Sequence (Spec 065 §5.3)
+       ========================================================================== */
+    body.intro-dialogue-active #mobile-touch-controls,
+    body.intro-dialogue-active #mobile-touch-controls *,
+    body.intro-dialogue-active #doom-tracks-mp3-hud,
+    body.intro-dialogue-active #doom-tracks-mp3-hud *,
+    body.intro-dialogue-active #doom-tracks-mp3-backdrop {
+      opacity: 0 !important;
+      visibility: hidden !important;
+      pointer-events: none !important;
+    }
+    #intro-dialogue-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 84;
+      pointer-events: none;
+      justify-content: center;
+      align-items: flex-end;
+      padding:
+        max(12px, env(safe-area-inset-top, 12px))
+        max(12px, env(safe-area-inset-right, 12px))
+        max(22px, env(safe-area-inset-bottom, 22px))
+        max(12px, env(safe-area-inset-left, 12px));
+    }
+    #intro-dialogue-card {
+      position: relative;
+      display: none;
+      pointer-events: auto;
+      cursor: pointer;
+      width: min(600px, calc(100vw - 24px));
+      max-width: calc(100vw - 24px);
+      max-height: min(68dvh, 420px);
+      background-color: rgba(20, 9, 2, 0.90);
+      background-image: linear-gradient(
+        135deg,
+        rgba(28, 12, 2, 0.92) 0%,
+        rgba(52, 24, 5, 0.89) 50%,
+        rgba(20, 9, 2, 0.94) 100%
+      );
+      border: 1.5px solid rgba(251, 191, 36, 0.88);
+      box-shadow:
+        0 14px 40px rgba(0, 0, 0, 0.82),
+        0 0 28px rgba(245, 158, 11, 0.30),
+        inset 0 0 24px rgba(245, 158, 11, 0.16);
+      border-radius: 13px;
+      padding: 16px 20px 15px;
+      flex-direction: column;
+      gap: 10px;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      overflow: hidden;
+      color: #fef3c7;
+      user-select: none;
+      -webkit-user-select: none;
+      transition: border-color 0.18s ease, box-shadow 0.18s ease;
+    }
+    #intro-dialogue-card.question-prompt-card {
+      cursor: default;
+    }
+    #intro-dialogue-card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        repeating-linear-gradient(
+          0deg,
+          rgba(245, 158, 11, 0.06) 0px,
+          rgba(245, 158, 11, 0.06) 1px,
+          transparent 1px,
+          transparent 4px
+        ),
+        linear-gradient(90deg, rgba(245, 158, 11, 0.04) 1px, transparent 1px),
+        linear-gradient(0deg, rgba(245, 158, 11, 0.04) 1px, transparent 1px);
+      background-size: 100% 4px, 36px 36px, 36px 36px;
+      pointer-events: none;
+      z-index: 0;
+    }
+    #intro-dialogue-card .holo-light-bar {
+      transform: scaleX(1);
+      opacity: 0.95;
+    }
+    .intro-card-header {
+      position: relative;
+      z-index: 3;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+      border-bottom: 1px solid rgba(245, 158, 11, 0.35);
+      padding-bottom: 8px;
+    }
+    .intro-card-header-left {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      min-width: 0;
+    }
+    #intro-dialogue-counter {
+      background: rgba(217, 119, 6, 0.26);
+      border: 1px solid rgba(251, 191, 36, 0.78);
+      color: #fef3c7;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 10.5px;
+      font-weight: 800;
+      padding: 3px 9px;
+      border-radius: 999px;
+      letter-spacing: 0.06em;
+      box-shadow: 0 0 10px rgba(245, 158, 11, 0.25);
+    }
+    #intro-dialogue-title {
+      color: #fffbeb;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-shadow: 0 0 10px rgba(245, 158, 11, 0.55);
+    }
+    #intro-dialogue-text {
+      position: relative;
+      z-index: 3;
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      margin: 0;
+      padding-right: 4px;
+      color: #fffbeb;
+      font-size: clamp(13px, 1.4vw, 14.2px);
+      line-height: 1.56;
+      font-weight: 450;
+      letter-spacing: 0.01em;
+      white-space: pre-line;
+      text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
+      scrollbar-width: thin;
+      scrollbar-color: rgba(251, 191, 36, 0.75) rgba(38, 18, 4, 0.45);
+    }
+    #intro-dialogue-text::-webkit-scrollbar {
+      width: 5px;
+    }
+    #intro-dialogue-text::-webkit-scrollbar-track {
+      background: rgba(38, 18, 4, 0.45);
+      border-radius: 999px;
+    }
+    #intro-dialogue-text::-webkit-scrollbar-thumb {
+      background: rgba(251, 191, 36, 0.78);
+      border-radius: 999px;
+    }
+    .intro-card-footer {
+      position: relative;
+      z-index: 3;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+      padding-top: 8px;
+      border-top: 1px solid rgba(245, 158, 11, 0.30);
+    }
+    .intro-card-pips-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    #intro-dialogue-pips {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .intro-holo-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 44px;
+      padding: 8px 16px;
+      border-radius: 9px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 11.5px;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      color: #fffbeb;
+      background: linear-gradient(90deg, rgba(217, 119, 6, 0.68), rgba(180, 83, 9, 0.68));
+      border: 1.5px solid rgba(252, 211, 77, 0.92);
+      box-shadow: 0 0 16px rgba(245, 158, 11, 0.34);
+      cursor: pointer;
+      transition: all 0.16s ease;
+    }
+    .intro-holo-btn:hover,
+    .intro-holo-btn:focus-visible {
+      background: linear-gradient(90deg, rgba(245, 158, 11, 0.88), rgba(217, 119, 6, 0.88));
+      border-color: #fffbeb;
+      box-shadow: 0 0 22px rgba(245, 158, 11, 0.65);
+      outline: none;
+    }
+    .intro-holo-btn.secondary {
+      background: rgba(68, 30, 6, 0.68);
+      border: 1.5px solid rgba(245, 158, 11, 0.72);
+      color: #fde68a;
+      box-shadow: 0 0 10px rgba(245, 158, 11, 0.18);
+    }
+    .intro-holo-btn.secondary:hover,
+    .intro-holo-btn.secondary:focus-visible {
+      background: rgba(146, 64, 14, 0.76);
+      border-color: #fcd34d;
+      color: #fffbeb;
+    }
+    #intro-dialogue-question-actions {
+      display: none;
+      align-items: center;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-left: auto;
     }
 
     /* ==========================================================================
@@ -2564,9 +2844,7 @@
   <!-- Proximity / Hover Wall Mount Interaction Prompt -->
   <div id="mount-proximity-prompt" role="status" aria-live="polite">
     <span class="prompt-key">E</span>
-    <span id="mount-prompt-label">
-      <span class="prompt-station">SCREEN_MOUNT_01</span> — Press E or Click Mount to Focus
-    </span>
+    <span id="mount-prompt-label">Press E or Click to Inspect</span>
   </div>
 
   <!-- Mobile Single-Thumbpad & Context Action Controls (Spec 040) -->
@@ -2612,7 +2890,7 @@
         <header class="holo-top-bar">
           <span class="holo-badge" data-holo-interactive="badge">
             <span class="holo-dot"></span>
-            <span id="holo-station-badge">HOLO-PROJ // 01 OF 06</span>
+            <span id="holo-station-badge">HOLO-PROJ // 01 OF 07</span>
           </span>
           <div
             id="holo-tether-bridge"
@@ -2654,11 +2932,15 @@
 
         <div class="holo-body-grid">
           <div id="holo-right-data-pane" class="holo-main-col" data-holo-interactive="data-pane">
-            <div id="holo-kicker" class="holo-kicker">STATION 01 // OBJ-200 &bull; GRAPHRAG POLICY ENGINE</div>
-            <h2 id="holo-title" class="holo-title">Lymphemeda Treatment Act Medicare Qualifications Chatbot</h2>
+            <div id="holo-kicker" class="holo-kicker">STATION 01 // GRAPHRAG POLICY ENGINE</div>
+            <h2 id="holo-title" class="holo-title">GRAPHRAG POLICY ENGINE</h2>
             <p id="holo-description" class="holo-description">
-              GraphRAG LLM for Lymphemeda Treatment Act Medicare Qualifications.
+              GRAPHRAG LLM for Lymphemeda Treatment Act Medicare Qualifications. Made as a tool for a friend working at a Durable Medical Goods company. Hi Eli!
             </p>
+            <div id="holo-narrative-callout" class="holo-narrative-callout" style="display: none;">
+              <h3 id="holo-narrative-heading" class="holo-narrative-heading"></h3>
+              <p id="holo-narrative-body" class="holo-narrative-body"></p>
+            </div>
             <div id="holo-tags" class="holo-tag-row"></div>
           </div>
 
@@ -2735,12 +3017,12 @@
         <header class="portal-minimal-header">
           <img
             id="portal-header-logo-img"
-            src="./assets/portal_games/platodoom_header.png"
+            data-src="./assets/portal_games/platodoom_header.png"
             alt="platodoom logo"
             width="1120"
             height="381"
-            loading="eager"
-            decoding="sync"
+            loading="lazy"
+            decoding="async"
           />
           <h2 id="portal-holo-header-title" class="sr-only">
             PLATO DOOM // PORTAL ARCADE SELECTOR
@@ -2774,12 +3056,12 @@
             <img
               id="portal-game-logo-skate3"
               class="portal-game-logo-img"
-              src="./assets/portal_games/skate3_logo.png"
+              data-src="./assets/portal_games/skate3_logo.png"
               alt="Skate 3 x PlatoDoom Logo"
               width="960"
               height="803"
-              loading="eager"
-              decoding="sync"
+              loading="lazy"
+              decoding="async"
             />
           </div>
 
@@ -2798,12 +3080,12 @@
             <img
               id="portal-game-logo-gta"
               class="portal-game-logo-img"
-              src="./assets/portal_games/gta_logo.png"
+              data-src="./assets/portal_games/gta_logo.png"
               alt="Grand Theft Auto PlatoDoom Logo"
               width="960"
               height="878"
-              loading="eager"
-              decoding="sync"
+              loading="lazy"
+              decoding="async"
             />
           </div>
 
@@ -2822,12 +3104,12 @@
             <img
               id="portal-game-logo-zombies"
               class="portal-game-logo-img"
-              src="./assets/portal_games/zombies_logo.png"
+              data-src="./assets/portal_games/zombies_logo.png"
               alt="PlatoDoom Zombies Logo"
               width="960"
               height="647"
-              loading="eager"
-              decoding="sync"
+              loading="lazy"
+              decoding="async"
             />
           </div>
         </div>
@@ -2847,77 +3129,62 @@
     aria-label="Cyber-Tactical Radial Command Menu"
   ></div>
 
-  <!-- Startup Talking Sequence & n-Dialogue-Box Gate Overlay -->
+  <!-- Startup Talking Sequence & 7-Card Amber Holographic Welcome Overlay (Spec 065 §5.3) -->
   <div
     id="intro-dialogue-overlay"
-    style="display: none; position: fixed; left: 0; right: 0; bottom: 26px; z-index: 84; pointer-events: none; justify-content: center; align-items: flex-end; padding: 0 18px;"
     aria-live="polite"
     aria-label="Intro Dialogue Sequence"
   >
-    <!-- Tap-to-Advance Dialogue Box Card (1 .. n) -->
     <div
       id="intro-dialogue-card"
-      role="button"
+      role="region"
       tabindex="0"
       title="Tap / Click or Press Space to Advance Dialogue"
-      style="display: none; pointer-events: auto; cursor: pointer; width: min(560px, 90vw); background: rgba(7, 12, 24, 0.90); border: 1.5px solid rgba(0, 213, 255, 0.68); box-shadow: 0 12px 36px rgba(0, 0, 0, 0.78), 0 0 22px rgba(0, 213, 255, 0.22); border-radius: 12px; padding: 14px 18px; flex-direction: column; gap: 10px; backdrop-filter: blur(10px); transition: border-color 0.18s ease, box-shadow 0.18s ease; user-select: none;"
     >
-      <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; border-bottom: 1px solid rgba(56, 189, 248, 0.24); padding-bottom: 7px;">
-        <div style="display: flex; align-items: center; gap: 8px;">
-          <span
-            id="intro-dialogue-counter"
-            style="background: rgba(0, 213, 255, 0.18); border: 1px solid rgba(0, 213, 255, 0.55); color: #38bdf8; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 999px; letter-spacing: 0.06em;"
-          >
-            DIALOGUE 1 / 3
-          </span>
-          <span
-            id="intro-dialogue-title"
-            style="color: #f8fafc; font-size: 12px; font-weight: 700; letter-spacing: 0.05em;"
-          >
-            01 // WELCOME
-          </span>
+      <div class="holo-light-bar top" aria-hidden="true"></div>
+      <div class="holo-light-bar bottom" aria-hidden="true"></div>
+      <span class="holo-corner tl" aria-hidden="true"></span>
+      <span class="holo-corner tr" aria-hidden="true"></span>
+      <span class="holo-corner bl" aria-hidden="true"></span>
+      <span class="holo-corner br" aria-hidden="true"></span>
+
+      <div class="intro-card-header">
+        <div class="intro-card-header-left">
+          <span id="intro-dialogue-counter">DIALOGUE 1 / 7</span>
+          <span id="intro-dialogue-title">01 // WELCOME</span>
         </div>
-        <span
-          id="intro-dialogue-clip-badge"
-          style="color: #fbbf24; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 10px; font-weight: 600; letter-spacing: 0.03em;"
-        >
-          🎙 TALK_CONVERSATION_06 (1/4)
-        </span>
       </div>
 
-      <p
-        id="intro-dialogue-text"
-        style="margin: 0; color: #e2e8f0; font-size: 13.5px; line-height: 1.52; font-weight: 400; letter-spacing: 0.01em;"
-      >
-        Welcome to Freeman Alley. I build interactive 3D spatial systems, real-time shaders, and full-stack engineering architectures.
-      </p>
+      <p id="intro-dialogue-text">Welcome to my portfolio! My name’s Luis, I’m 26 and I build software that feels like magic.</p>
 
-      <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 4px;">
-        <div style="display: flex; align-items: center; gap: 8px;">
-          <div id="intro-dialogue-pips" style="display: flex; align-items: center; gap: 5px;"></div>
-          <span style="font-size: 10px; color: #94a3b8; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;">
-            🔒 Scroll Locked Until Read
-          </span>
+      <div class="intro-card-footer">
+        <div class="intro-card-pips-wrap">
+          <div id="intro-dialogue-pips" aria-label="Intro Card Progress"></div>
         </div>
         <button
           id="intro-dialogue-next-btn"
-          class="hud-btn"
+          class="intro-holo-btn"
           type="button"
-          style="background: rgba(0, 213, 255, 0.24); border-color: #00d5ff; color: #e0f2fe; font-size: 11px; font-weight: 700; padding: 5px 12px; border-radius: 999px;"
         >
-          Tap to Continue (1/3) &rarr;
+          Continue (1/7) &rarr;
         </button>
+        <div id="intro-dialogue-question-actions" role="group" aria-label="Ask DOOM_HEAD a Question">
+          <button
+            id="intro-dialogue-yes-btn"
+            class="intro-holo-btn"
+            type="button"
+          >
+            Yes &mdash; Ask a Question
+          </button>
+          <button
+            id="intro-dialogue-no-btn"
+            class="intro-holo-btn secondary"
+            type="button"
+          >
+            No &mdash; Explore the Alley
+          </button>
+        </div>
       </div>
-    </div>
-
-    <!-- Scroll Unlocked Indicator Pill (shown after all n dialogue boxes are read while character continues talking) -->
-    <div
-      id="intro-scroll-unlocked-pill"
-      style="display: none; pointer-events: none; align-items: center; gap: 10px; background: rgba(7, 16, 28, 0.88); border: 1px solid rgba(74, 222, 128, 0.65); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.7), 0 0 16px rgba(74, 222, 128, 0.25); color: #bbf7d0; padding: 8px 18px; border-radius: 999px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px; font-weight: 700; letter-spacing: 0.05em; backdrop-filter: blur(8px);"
-    >
-      <span style="color: #4ade80;">&#10003; ALL DIALOGUE READ</span>
-      <span style="color: #f8fafc;">&bull;</span>
-      <span style="color: #38bdf8;">SCROLL DOWN TO WALK INTO ALLEY &darr;</span>
     </div>
   </div>
 
@@ -3758,6 +4025,7 @@
       <div class="hud-row" style="margin-bottom: 6px;">
         <select id="glb-variant-select" class="hud-select" aria-label="Select Individual GLB Variant to Test">
           <option value="luis_color">character_hoodie.glb (Full Color + DOOM Head)</option>
+          <option value="nicotest_color">characters/nicotest.glb (Nico Rigged)</option>
         </select>
         <button id="solo-character-btn" class="hud-btn secondary" type="button" title="Isolate Active Character GLB Alone">
           Solo: ON
@@ -4092,6 +4360,6 @@
 
   <div id="fatal-error-banner" role="alert"></div>
 
-  <script type="module" src="./sandbox.js?v=108"></script>
+  <script type="module" src="./sandbox.js?v=093"></script>
 </body>
 </html>

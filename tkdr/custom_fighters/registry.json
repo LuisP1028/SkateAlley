@@ -1,0 +1,1771 @@
+{
+  "version": 1,
+  "rosterFighterCount": 36,
+  "roster": [
+    {
+      "id": 0,
+      "code": "PAU",
+      "shortName": "PAUL",
+      "fullName": "Paul Phoenix",
+      "style": "Judo / Bajiquan",
+      "archetype": "standard_athletic",
+      "heightScale": 1.0,
+      "shoulderScale": 1.02,
+      "limbWidthScale": 1.02
+    },
+    {
+      "id": 1,
+      "code": "LAW",
+      "shortName": "LAW",
+      "fullName": "Marshall Law",
+      "style": "Jeet Kune Do",
+      "archetype": "standard_lean",
+      "heightScale": 0.98,
+      "shoulderScale": 0.96,
+      "limbWidthScale": 0.96
+    },
+    {
+      "id": 2,
+      "code": "LEI",
+      "shortName": "LEI",
+      "fullName": "Lei Wulong",
+      "style": "Five-Animal Kung Fu",
+      "archetype": "standard_lean",
+      "heightScale": 0.98,
+      "shoulderScale": 0.96,
+      "limbWidthScale": 0.96
+    },
+    {
+      "id": 3,
+      "code": "KIN",
+      "shortName": "KING",
+      "fullName": "King",
+      "style": "Lucha Libre / Pro Wrestling",
+      "archetype": "heavy_grappler",
+      "heightScale": 1.06,
+      "shoulderScale": 1.14,
+      "limbWidthScale": 1.12
+    },
+    {
+      "id": 4,
+      "code": "YOS",
+      "shortName": "YOSHIMITSU",
+      "fullName": "Yoshimitsu",
+      "style": "Manji Ninjutsu",
+      "archetype": "standard_athletic",
+      "heightScale": 1.0,
+      "shoulderScale": 1.0,
+      "limbWidthScale": 1.0
+    },
+    {
+      "id": 5,
+      "code": "NIN",
+      "shortName": "NINA",
+      "fullName": "Nina Williams",
+      "style": "Assassination Arts / Aikido",
+      "archetype": "slender_female",
+      "heightScale": 0.93,
+      "shoulderScale": 0.86,
+      "limbWidthScale": 0.88
+    },
+    {
+      "id": 6,
+      "code": "HWO",
+      "shortName": "HWOARANG",
+      "fullName": "Hwoarang",
+      "style": "ITF Taekwondo",
+      "archetype": "standard_athletic",
+      "heightScale": 1.01,
+      "shoulderScale": 0.98,
+      "limbWidthScale": 0.98
+    },
+    {
+      "id": 7,
+      "code": "XIA",
+      "shortName": "XIAOYU",
+      "fullName": "Ling Xiaoyu",
+      "style": "Baguazhang / Piguaquan",
+      "archetype": "compact_female",
+      "heightScale": 0.89,
+      "shoulderScale": 0.84,
+      "limbWidthScale": 0.85
+    },
+    {
+      "id": 8,
+      "code": "CHR",
+      "shortName": "CHRISTIE",
+      "fullName": "Christie Monteiro",
+      "style": "Capoeira",
+      "archetype": "slender_female",
+      "heightScale": 0.94,
+      "shoulderScale": 0.87,
+      "limbWidthScale": 0.88
+    },
+    {
+      "id": 9,
+      "code": "JIN",
+      "shortName": "JIN",
+      "fullName": "Jin Kazama",
+      "style": "Traditional Karate",
+      "archetype": "standard_athletic",
+      "heightScale": 1.0,
+      "shoulderScale": 1.02,
+      "limbWidthScale": 1.0
+    },
+    {
+      "id": 10,
+      "code": "JUL",
+      "shortName": "JULIA",
+      "fullName": "Julia Chang",
+      "style": "Xingyiquan / Baji",
+      "archetype": "slender_female",
+      "heightScale": 0.93,
+      "shoulderScale": 0.86,
+      "limbWidthScale": 0.88
+    },
+    {
+      "id": 11,
+      "code": "KUM",
+      "shortName": "KUMA",
+      "fullName": "Kuma",
+      "style": "Heihachi-Style Bear Karate",
+      "archetype": "super_heavy",
+      "heightScale": 1.18,
+      "shoulderScale": 1.3,
+      "limbWidthScale": 1.28
+    },
+    {
+      "id": 12,
+      "code": "PAN",
+      "shortName": "PANDA",
+      "fullName": "Panda",
+      "style": "Heihachi-Style Bear Karate",
+      "archetype": "super_heavy",
+      "heightScale": 1.18,
+      "shoulderScale": 1.3,
+      "limbWidthScale": 1.28
+    },
+    {
+      "id": 13,
+      "code": "BRY",
+      "shortName": "BRYAN",
+      "fullName": "Bryan Fury",
+      "style": "Kickboxing",
+      "archetype": "standard_athletic",
+      "heightScale": 1.03,
+      "shoulderScale": 1.05,
+      "limbWidthScale": 1.04
+    },
+    {
+      "id": 14,
+      "code": "HEI",
+      "shortName": "HEIHACHI",
+      "fullName": "Heihachi Mishima",
+      "style": "Mishima-Style Karate",
+      "archetype": "heavy_athletic",
+      "heightScale": 1.02,
+      "shoulderScale": 1.08,
+      "limbWidthScale": 1.06
+    },
+    {
+      "id": 15,
+      "code": "KAZ",
+      "shortName": "KAZUYA",
+      "fullName": "Kazuya Mishima",
+      "style": "Mishima-Style Karate",
+      "archetype": "standard_athletic",
+      "heightScale": 1.0,
+      "shoulderScale": 1.02,
+      "limbWidthScale": 1.01
+    },
+    {
+      "id": 16,
+      "code": "LEE",
+      "shortName": "LEE",
+      "fullName": "Lee Chaolan",
+      "style": "Martial Arts",
+      "archetype": "standard_lean",
+      "heightScale": 0.99,
+      "shoulderScale": 0.96,
+      "limbWidthScale": 0.96
+    },
+    {
+      "id": 17,
+      "code": "STE",
+      "shortName": "STEVE",
+      "fullName": "Steve Fox",
+      "style": "Boxing",
+      "archetype": "standard_athletic",
+      "heightScale": 0.99,
+      "shoulderScale": 1.0,
+      "limbWidthScale": 1.0
+    },
+    {
+      "id": 18,
+      "code": "MAR",
+      "shortName": "MARDUK",
+      "fullName": "Craig Marduk",
+      "style": "Vale Tudo",
+      "archetype": "heavy_grappler",
+      "heightScale": 1.12,
+      "shoulderScale": 1.2,
+      "limbWidthScale": 1.18
+    },
+    {
+      "id": 19,
+      "code": "MOK",
+      "shortName": "MOKUJIN",
+      "fullName": "Mokujin",
+      "style": "Mimicry",
+      "archetype": "standard_athletic",
+      "heightScale": 1.0,
+      "shoulderScale": 1.0,
+      "limbWidthScale": 1.0
+    },
+    {
+      "id": 20,
+      "code": "EDD",
+      "shortName": "EDDY",
+      "fullName": "Eddy Gordo",
+      "style": "Capoeira",
+      "archetype": "standard_athletic",
+      "heightScale": 1.0,
+      "shoulderScale": 1.01,
+      "limbWidthScale": 1.0
+    },
+    {
+      "id": 21,
+      "code": "JAC",
+      "shortName": "JACK-5",
+      "fullName": "Jack-5",
+      "style": "Brute Force",
+      "archetype": "super_heavy",
+      "heightScale": 1.16,
+      "shoulderScale": 1.28,
+      "limbWidthScale": 1.25
+    },
+    {
+      "id": 22,
+      "code": "ROG",
+      "shortName": "ROGER Jr.",
+      "fullName": "Roger Jr.",
+      "style": "Commando Wrestling",
+      "archetype": "compact_fighter",
+      "heightScale": 0.86,
+      "shoulderScale": 0.9,
+      "limbWidthScale": 0.92
+    },
+    {
+      "id": 23,
+      "code": "ANN",
+      "shortName": "ANNA",
+      "fullName": "Anna Williams",
+      "style": "Assassination Arts",
+      "archetype": "slender_female",
+      "heightScale": 0.93,
+      "shoulderScale": 0.86,
+      "limbWidthScale": 0.88
+    },
+    {
+      "id": 24,
+      "code": "WAN",
+      "shortName": "WANG",
+      "fullName": "Wang Jinrei",
+      "style": "Xingyiquan",
+      "archetype": "compact_fighter",
+      "heightScale": 0.92,
+      "shoulderScale": 0.92,
+      "limbWidthScale": 0.92
+    },
+    {
+      "id": 25,
+      "code": "GAN",
+      "shortName": "GANRYU",
+      "fullName": "Ganryu",
+      "style": "Sumo",
+      "archetype": "heavy_grappler",
+      "heightScale": 1.05,
+      "shoulderScale": 1.22,
+      "limbWidthScale": 1.2
+    },
+    {
+      "id": 26,
+      "code": "ASK",
+      "shortName": "ASUKA",
+      "fullName": "Asuka Kazama",
+      "style": "Kazama-Style Traditional Martial Arts",
+      "archetype": "slender_female",
+      "heightScale": 0.93,
+      "shoulderScale": 0.87,
+      "limbWidthScale": 0.88
+    },
+    {
+      "id": 27,
+      "code": "BRU",
+      "shortName": "BRUCE",
+      "fullName": "Bruce Irvin",
+      "style": "Muay Thai",
+      "archetype": "standard_athletic",
+      "heightScale": 1.04,
+      "shoulderScale": 1.05,
+      "limbWidthScale": 1.04
+    },
+    {
+      "id": 28,
+      "code": "BAE",
+      "shortName": "BAEK",
+      "fullName": "Baek Doo San",
+      "style": "Taekwondo",
+      "archetype": "standard_athletic",
+      "heightScale": 1.0,
+      "shoulderScale": 0.98,
+      "limbWidthScale": 0.98
+    },
+    {
+      "id": 29,
+      "code": "DVJ",
+      "shortName": "DEVIL JIN",
+      "fullName": "Devil Jin",
+      "style": "Advanced Mishima Karate",
+      "archetype": "standard_athletic",
+      "heightScale": 1.0,
+      "shoulderScale": 1.03,
+      "limbWidthScale": 1.01
+    },
+    {
+      "id": 30,
+      "code": "RAV",
+      "shortName": "RAVEN",
+      "fullName": "Raven",
+      "style": "Ninjutsu",
+      "archetype": "standard_athletic",
+      "heightScale": 1.02,
+      "shoulderScale": 1.03,
+      "limbWidthScale": 1.02
+    },
+    {
+      "id": 31,
+      "code": "FEN",
+      "shortName": "FENG",
+      "fullName": "Feng Wei",
+      "style": "God Fist Chinese Kenpo",
+      "archetype": "standard_athletic",
+      "heightScale": 1.02,
+      "shoulderScale": 1.06,
+      "limbWidthScale": 1.05
+    },
+    {
+      "id": 32,
+      "code": "AMK",
+      "shortName": "ARMOR KING",
+      "fullName": "Armor King",
+      "style": "Dark Lucha / Pro Wrestling",
+      "archetype": "heavy_grappler",
+      "heightScale": 1.06,
+      "shoulderScale": 1.15,
+      "limbWidthScale": 1.12
+    },
+    {
+      "id": 33,
+      "code": "LIL",
+      "shortName": "LILI",
+      "fullName": "Lili",
+      "style": "Street Fighting / Gymnastics",
+      "archetype": "slender_female",
+      "heightScale": 0.96,
+      "shoulderScale": 0.87,
+      "limbWidthScale": 0.88
+    },
+    {
+      "id": 34,
+      "code": "DRA",
+      "shortName": "DRAGUNOV",
+      "fullName": "Sergei Dragunov",
+      "style": "Commando Sambo",
+      "archetype": "standard_athletic",
+      "heightScale": 1.03,
+      "shoulderScale": 1.03,
+      "limbWidthScale": 1.02
+    },
+    {
+      "id": 35,
+      "code": "JPC",
+      "shortName": "JINPACHI",
+      "fullName": "Jinpachi Mishima",
+      "style": "Mishima Karate",
+      "archetype": "heavy_grappler",
+      "heightScale": 1.1,
+      "shoulderScale": 1.18,
+      "limbWidthScale": 1.16
+    }
+  ],
+  "bundles": {
+    "luis_jin": {
+      "bundleId": "luis_jin",
+      "label": "LUIS (Jin Kazama [JIN])",
+      "sourceGlbPath": "/Users/diesel/desktop/skatealley/LUIS.glb",
+      "sourceGlbName": "LUIS.glb",
+      "sourceGlbBytes": 5285932,
+      "sourceGlbSha256": "61000fe35889f37c65eb338c73e9c1b558e8687135473a5dda64e73a7051bcc4",
+      "sourceMeshCount": 1,
+      "sourcePrimitiveCount": 2,
+      "sourceSkinCount": 0,
+      "sourceMaterialCount": 2,
+      "inputTriangleCount": 20018,
+      "vertexCount": 3489,
+      "triangleCount": 3398,
+      "boneCount": 14,
+      "bones": [
+        {
+          "id": 0,
+          "name": "Pelvis",
+          "pivot": [
+            0.0,
+            0.475,
+            0.0
+          ]
+        },
+        {
+          "id": 1,
+          "name": "Chest_Spine",
+          "pivot": [
+            0.0,
+            0.545,
+            0.0
+          ]
+        },
+        {
+          "id": 2,
+          "name": "Neck",
+          "pivot": [
+            0.0,
+            0.77,
+            0.0
+          ]
+        },
+        {
+          "id": 3,
+          "name": "Head",
+          "pivot": [
+            0.0,
+            0.835,
+            0.005
+          ]
+        },
+        {
+          "id": 4,
+          "name": "L_UpperArm",
+          "pivot": [
+            0.12472,
+            0.73672,
+            0.02304
+          ]
+        },
+        {
+          "id": 5,
+          "name": "L_Forearm",
+          "pivot": [
+            0.26294,
+            0.77124,
+            0.01866
+          ]
+        },
+        {
+          "id": 6,
+          "name": "L_Hand",
+          "pivot": [
+            0.39132,
+            0.78142,
+            0.0275
+          ]
+        },
+        {
+          "id": 7,
+          "name": "R_UpperArm",
+          "pivot": [
+            -0.12472,
+            0.73672,
+            0.02304
+          ]
+        },
+        {
+          "id": 8,
+          "name": "R_Forearm",
+          "pivot": [
+            -0.26294,
+            0.77124,
+            0.01866
+          ]
+        },
+        {
+          "id": 9,
+          "name": "R_Hand",
+          "pivot": [
+            -0.39132,
+            0.78142,
+            0.0275
+          ]
+        },
+        {
+          "id": 10,
+          "name": "L_Thigh",
+          "pivot": [
+            0.07051,
+            0.475,
+            -0.005
+          ]
+        },
+        {
+          "id": 11,
+          "name": "L_Calf_Foot",
+          "pivot": [
+            0.07051,
+            0.265,
+            -0.015
+          ]
+        },
+        {
+          "id": 12,
+          "name": "R_Thigh",
+          "pivot": [
+            -0.07051,
+            0.475,
+            -0.005
+          ]
+        },
+        {
+          "id": 13,
+          "name": "R_Calf_Foot",
+          "pivot": [
+            -0.07051,
+            0.265,
+            -0.015
+          ]
+        }
+      ],
+      "targetFighterId": 9,
+      "targetFighterCode": "JIN",
+      "targetFighterShortName": "JIN",
+      "targetFighterName": "Jin Kazama",
+      "targetFighterStyle": "Traditional Karate",
+      "proportions": {
+        "archetype": "standard_athletic",
+        "heightScale": 1.0,
+        "shoulderScale": 1.02,
+        "limbWidthScale": 1.0
+      },
+      "normalization": {
+        "rawBoundsMin": [
+          -0.902334,
+          0.001375,
+          -0.220111
+        ],
+        "rawBoundsMax": [
+          0.902327,
+          2.000443,
+          0.221249
+        ],
+        "normalizedBoundsMin": [
+          -0.451375,
+          0.0,
+          -0.110391
+        ],
+        "normalizedBoundsMax": [
+          0.451375,
+          1.0,
+          0.110391
+        ],
+        "detectedPose": "T_POSE",
+        "armSpanNorm": 0.45063,
+        "landmarks": {
+          "shoulder": [
+            0.12472,
+            0.73672,
+            0.02304
+          ],
+          "elbow": [
+            0.26294,
+            0.77124,
+            0.01866
+          ],
+          "wrist": [
+            0.39132,
+            0.78142,
+            0.0275
+          ],
+          "handTip": [
+            0.44976,
+            0.79073,
+            0.01941
+          ],
+          "legX": 0.07051
+        },
+        "measuredBones": [
+          {
+            "id": 0,
+            "name": "Pelvis",
+            "pivot": [
+              0.0,
+              0.475,
+              0.0
+            ]
+          },
+          {
+            "id": 1,
+            "name": "Chest_Spine",
+            "pivot": [
+              0.0,
+              0.545,
+              0.0
+            ]
+          },
+          {
+            "id": 2,
+            "name": "Neck",
+            "pivot": [
+              0.0,
+              0.77,
+              0.0
+            ]
+          },
+          {
+            "id": 3,
+            "name": "Head",
+            "pivot": [
+              0.0,
+              0.835,
+              0.005
+            ]
+          },
+          {
+            "id": 4,
+            "name": "L_UpperArm",
+            "pivot": [
+              0.12472,
+              0.73672,
+              0.02304
+            ]
+          },
+          {
+            "id": 5,
+            "name": "L_Forearm",
+            "pivot": [
+              0.26294,
+              0.77124,
+              0.01866
+            ]
+          },
+          {
+            "id": 6,
+            "name": "L_Hand",
+            "pivot": [
+              0.39132,
+              0.78142,
+              0.0275
+            ]
+          },
+          {
+            "id": 7,
+            "name": "R_UpperArm",
+            "pivot": [
+              -0.12472,
+              0.73672,
+              0.02304
+            ]
+          },
+          {
+            "id": 8,
+            "name": "R_Forearm",
+            "pivot": [
+              -0.26294,
+              0.77124,
+              0.01866
+            ]
+          },
+          {
+            "id": 9,
+            "name": "R_Hand",
+            "pivot": [
+              -0.39132,
+              0.78142,
+              0.0275
+            ]
+          },
+          {
+            "id": 10,
+            "name": "L_Thigh",
+            "pivot": [
+              0.07051,
+              0.475,
+              -0.005
+            ]
+          },
+          {
+            "id": 11,
+            "name": "L_Calf_Foot",
+            "pivot": [
+              0.07051,
+              0.265,
+              -0.015
+            ]
+          },
+          {
+            "id": 12,
+            "name": "R_Thigh",
+            "pivot": [
+              -0.07051,
+              0.475,
+              -0.005
+            ]
+          },
+          {
+            "id": 13,
+            "name": "R_Calf_Foot",
+            "pivot": [
+              -0.07051,
+              0.265,
+              -0.015
+            ]
+          }
+        ]
+      },
+      "atlasWidth": 512,
+      "atlasHeight": 512,
+      "rigBytes": 202024,
+      "rigSha256": "7846dec23c2e20d7be035a6b0c6c318f5cc4de9f8ea2653f1650b907685371f0",
+      "atlasSha256": "a9cce647ba906f45f0f42ef22b84e4e063c733d788790f2d62d227f9d27f5e45",
+      "rigUrl": "./custom_fighters/luis_jin/rig.bin",
+      "atlasUrl": "./custom_fighters/luis_jin/atlas.png",
+      "manifestUrl": "./custom_fighters/luis_jin/manifest.json",
+      "compileSeconds": 1.095
+    },
+    "nicotest_pau": {
+      "bundleId": "nicotest_pau",
+      "label": "NICO A-Pose (Paul Phoenix [PAU])",
+      "sourceGlbPath": "/Users/diesel/desktop/skatealley/players_nicotest_nt01_runs_run_01_03_meshes_assembled_character_full.glb",
+      "sourceGlbName": "players_nicotest_nt01_runs_run_01_03_meshes_assembled_character_full.glb",
+      "sourceGlbBytes": 7412988,
+      "sourceGlbSha256": "658605cee4c4e53f6438d3f426e019fe47bc648f7d9d6b288d70922513bcae5d",
+      "sourceMeshCount": 1,
+      "sourcePrimitiveCount": 2,
+      "sourceSkinCount": 0,
+      "sourceMaterialCount": 2,
+      "inputTriangleCount": 79994,
+      "vertexCount": 3579,
+      "triangleCount": 2400,
+      "boneCount": 14,
+      "bones": [
+        {
+          "id": 0,
+          "name": "Pelvis",
+          "pivot": [
+            0.0,
+            0.475,
+            0.0
+          ]
+        },
+        {
+          "id": 1,
+          "name": "Chest_Spine",
+          "pivot": [
+            0.0,
+            0.545,
+            0.0
+          ]
+        },
+        {
+          "id": 2,
+          "name": "Neck",
+          "pivot": [
+            0.0,
+            0.77,
+            0.0
+          ]
+        },
+        {
+          "id": 3,
+          "name": "Head",
+          "pivot": [
+            0.0,
+            0.835,
+            0.005
+          ]
+        },
+        {
+          "id": 4,
+          "name": "L_UpperArm",
+          "pivot": [
+            0.11052,
+            0.72304,
+            -0.00796
+          ]
+        },
+        {
+          "id": 5,
+          "name": "L_Forearm",
+          "pivot": [
+            0.19958,
+            0.64317,
+            -0.02173
+          ]
+        },
+        {
+          "id": 6,
+          "name": "L_Hand",
+          "pivot": [
+            0.26242,
+            0.46893,
+            -0.00197
+          ]
+        },
+        {
+          "id": 7,
+          "name": "R_UpperArm",
+          "pivot": [
+            -0.11052,
+            0.72304,
+            -0.00796
+          ]
+        },
+        {
+          "id": 8,
+          "name": "R_Forearm",
+          "pivot": [
+            -0.19958,
+            0.64317,
+            -0.02173
+          ]
+        },
+        {
+          "id": 9,
+          "name": "R_Hand",
+          "pivot": [
+            -0.26242,
+            0.46893,
+            -0.00197
+          ]
+        },
+        {
+          "id": 10,
+          "name": "L_Thigh",
+          "pivot": [
+            0.09215,
+            0.475,
+            -0.005
+          ]
+        },
+        {
+          "id": 11,
+          "name": "L_Calf_Foot",
+          "pivot": [
+            0.09215,
+            0.265,
+            -0.015
+          ]
+        },
+        {
+          "id": 12,
+          "name": "R_Thigh",
+          "pivot": [
+            -0.09215,
+            0.475,
+            -0.005
+          ]
+        },
+        {
+          "id": 13,
+          "name": "R_Calf_Foot",
+          "pivot": [
+            -0.09215,
+            0.265,
+            -0.015
+          ]
+        }
+      ],
+      "targetFighterId": 0,
+      "targetFighterCode": "PAU",
+      "targetFighterShortName": "PAUL",
+      "targetFighterName": "Paul Phoenix",
+      "targetFighterStyle": "Judo / Bajiquan",
+      "proportions": {
+        "archetype": "standard_athletic",
+        "heightScale": 1.0,
+        "shoulderScale": 1.02,
+        "limbWidthScale": 1.02
+      },
+      "normalization": {
+        "rawBoundsMin": [
+          -0.609097,
+          -0.000699,
+          -0.188875
+        ],
+        "rawBoundsMax": [
+          0.613326,
+          2.000284,
+          0.180456
+        ],
+        "normalizedBoundsMin": [
+          -0.305456,
+          0.0,
+          -0.092288
+        ],
+        "normalizedBoundsMax": [
+          0.305456,
+          1.0,
+          0.092288
+        ],
+        "detectedPose": "A_POSE",
+        "armSpanNorm": 0.30475,
+        "landmarks": {
+          "shoulder": [
+            0.11052,
+            0.72304,
+            -0.00796
+          ],
+          "elbow": [
+            0.19958,
+            0.64317,
+            -0.02173
+          ],
+          "wrist": [
+            0.26242,
+            0.46893,
+            -0.00197
+          ],
+          "handTip": [
+            0.30546,
+            0.47052,
+            0.01794
+          ],
+          "legX": 0.09215
+        },
+        "measuredBones": [
+          {
+            "id": 0,
+            "name": "Pelvis",
+            "pivot": [
+              0.0,
+              0.475,
+              0.0
+            ]
+          },
+          {
+            "id": 1,
+            "name": "Chest_Spine",
+            "pivot": [
+              0.0,
+              0.545,
+              0.0
+            ]
+          },
+          {
+            "id": 2,
+            "name": "Neck",
+            "pivot": [
+              0.0,
+              0.77,
+              0.0
+            ]
+          },
+          {
+            "id": 3,
+            "name": "Head",
+            "pivot": [
+              0.0,
+              0.835,
+              0.005
+            ]
+          },
+          {
+            "id": 4,
+            "name": "L_UpperArm",
+            "pivot": [
+              0.11052,
+              0.72304,
+              -0.00796
+            ]
+          },
+          {
+            "id": 5,
+            "name": "L_Forearm",
+            "pivot": [
+              0.19958,
+              0.64317,
+              -0.02173
+            ]
+          },
+          {
+            "id": 6,
+            "name": "L_Hand",
+            "pivot": [
+              0.26242,
+              0.46893,
+              -0.00197
+            ]
+          },
+          {
+            "id": 7,
+            "name": "R_UpperArm",
+            "pivot": [
+              -0.11052,
+              0.72304,
+              -0.00796
+            ]
+          },
+          {
+            "id": 8,
+            "name": "R_Forearm",
+            "pivot": [
+              -0.19958,
+              0.64317,
+              -0.02173
+            ]
+          },
+          {
+            "id": 9,
+            "name": "R_Hand",
+            "pivot": [
+              -0.26242,
+              0.46893,
+              -0.00197
+            ]
+          },
+          {
+            "id": 10,
+            "name": "L_Thigh",
+            "pivot": [
+              0.09215,
+              0.475,
+              -0.005
+            ]
+          },
+          {
+            "id": 11,
+            "name": "L_Calf_Foot",
+            "pivot": [
+              0.09215,
+              0.265,
+              -0.015
+            ]
+          },
+          {
+            "id": 12,
+            "name": "R_Thigh",
+            "pivot": [
+              -0.09215,
+              0.475,
+              -0.005
+            ]
+          },
+          {
+            "id": 13,
+            "name": "R_Calf_Foot",
+            "pivot": [
+              -0.09215,
+              0.265,
+              -0.015
+            ]
+          }
+        ]
+      },
+      "atlasWidth": 512,
+      "atlasHeight": 512,
+      "rigBytes": 200716,
+      "rigSha256": "6d6d7b148f2c1fb839d6706d03892910f8dda5ab003361c867f935ba14fa3390",
+      "atlasSha256": "151ce1b51150d3be96f0a0683fa4cc6f1b5c0e230d49922c7cfd45b5e32a10b9",
+      "rigUrl": "./custom_fighters/nicotest_pau/rig.bin",
+      "atlasUrl": "./custom_fighters/nicotest_pau/atlas.png",
+      "manifestUrl": "./custom_fighters/nicotest_pau/manifest.json",
+      "compileSeconds": 2.817
+    },
+    "hoodie_law": {
+      "bundleId": "hoodie_law",
+      "label": "HOODIE (Marshall Law [LAW])",
+      "sourceGlbPath": "/Users/diesel/desktop/skatealley/character_hoodie.glb",
+      "sourceGlbName": "character_hoodie.glb",
+      "sourceGlbBytes": 10141168,
+      "sourceGlbSha256": "ab47fd31b123ac9a9160ea52a8b4de9089ceed426051944139678fb9db629617",
+      "sourceMeshCount": 2,
+      "sourcePrimitiveCount": 3,
+      "sourceSkinCount": 1,
+      "sourceMaterialCount": 3,
+      "inputTriangleCount": 23302,
+      "vertexCount": 2532,
+      "triangleCount": 2656,
+      "boneCount": 14,
+      "bones": [
+        {
+          "id": 0,
+          "name": "Pelvis",
+          "pivot": [
+            0.0,
+            0.475,
+            0.0
+          ]
+        },
+        {
+          "id": 1,
+          "name": "Chest_Spine",
+          "pivot": [
+            0.0,
+            0.545,
+            0.0
+          ]
+        },
+        {
+          "id": 2,
+          "name": "Neck",
+          "pivot": [
+            0.0,
+            0.77,
+            0.0
+          ]
+        },
+        {
+          "id": 3,
+          "name": "Head",
+          "pivot": [
+            0.0,
+            0.835,
+            0.005
+          ]
+        },
+        {
+          "id": 4,
+          "name": "L_UpperArm",
+          "pivot": [
+            0.108,
+            0.725,
+            -0.01
+          ]
+        },
+        {
+          "id": 5,
+          "name": "L_Forearm",
+          "pivot": [
+            0.19993,
+            0.80174,
+            -0.01205
+          ]
+        },
+        {
+          "id": 6,
+          "name": "L_Hand",
+          "pivot": [
+            0.25382,
+            0.81497,
+            -0.00132
+          ]
+        },
+        {
+          "id": 7,
+          "name": "R_UpperArm",
+          "pivot": [
+            -0.108,
+            0.725,
+            -0.01
+          ]
+        },
+        {
+          "id": 8,
+          "name": "R_Forearm",
+          "pivot": [
+            -0.19993,
+            0.80174,
+            -0.01205
+          ]
+        },
+        {
+          "id": 9,
+          "name": "R_Hand",
+          "pivot": [
+            -0.25382,
+            0.81497,
+            -0.00132
+          ]
+        },
+        {
+          "id": 10,
+          "name": "L_Thigh",
+          "pivot": [
+            0.05393,
+            0.475,
+            -0.005
+          ]
+        },
+        {
+          "id": 11,
+          "name": "L_Calf_Foot",
+          "pivot": [
+            0.05393,
+            0.265,
+            -0.015
+          ]
+        },
+        {
+          "id": 12,
+          "name": "R_Thigh",
+          "pivot": [
+            -0.05393,
+            0.475,
+            -0.005
+          ]
+        },
+        {
+          "id": 13,
+          "name": "R_Calf_Foot",
+          "pivot": [
+            -0.05393,
+            0.265,
+            -0.015
+          ]
+        }
+      ],
+      "targetFighterId": 1,
+      "targetFighterCode": "LAW",
+      "targetFighterShortName": "LAW",
+      "targetFighterName": "Marshall Law",
+      "targetFighterStyle": "Jeet Kune Do",
+      "proportions": {
+        "archetype": "standard_lean",
+        "heightScale": 0.98,
+        "shoulderScale": 0.96,
+        "limbWidthScale": 0.96
+      },
+      "normalization": {
+        "rawBoundsMin": [
+          -0.951058,
+          -1.0,
+          -1.0
+        ],
+        "rawBoundsMax": [
+          0.951058,
+          2.01252,
+          1.0
+        ],
+        "normalizedBoundsMin": [
+          -0.315702,
+          0.0,
+          -0.331948
+        ],
+        "normalizedBoundsMax": [
+          0.315702,
+          1.0,
+          0.331948
+        ],
+        "detectedPose": "A_POSE",
+        "armSpanNorm": 0.2908,
+        "landmarks": {
+          "shoulder": [
+            0.108,
+            0.725,
+            -0.01
+          ],
+          "elbow": [
+            0.19993,
+            0.80174,
+            -0.01205
+          ],
+          "wrist": [
+            0.25382,
+            0.81497,
+            -0.00132
+          ],
+          "handTip": [
+            0.29545,
+            0.49343,
+            0.0
+          ],
+          "legX": 0.05393
+        },
+        "measuredBones": [
+          {
+            "id": 0,
+            "name": "Pelvis",
+            "pivot": [
+              0.0,
+              0.475,
+              0.0
+            ]
+          },
+          {
+            "id": 1,
+            "name": "Chest_Spine",
+            "pivot": [
+              0.0,
+              0.545,
+              0.0
+            ]
+          },
+          {
+            "id": 2,
+            "name": "Neck",
+            "pivot": [
+              0.0,
+              0.77,
+              0.0
+            ]
+          },
+          {
+            "id": 3,
+            "name": "Head",
+            "pivot": [
+              0.0,
+              0.835,
+              0.005
+            ]
+          },
+          {
+            "id": 4,
+            "name": "L_UpperArm",
+            "pivot": [
+              0.108,
+              0.725,
+              -0.01
+            ]
+          },
+          {
+            "id": 5,
+            "name": "L_Forearm",
+            "pivot": [
+              0.19993,
+              0.80174,
+              -0.01205
+            ]
+          },
+          {
+            "id": 6,
+            "name": "L_Hand",
+            "pivot": [
+              0.25382,
+              0.81497,
+              -0.00132
+            ]
+          },
+          {
+            "id": 7,
+            "name": "R_UpperArm",
+            "pivot": [
+              -0.108,
+              0.725,
+              -0.01
+            ]
+          },
+          {
+            "id": 8,
+            "name": "R_Forearm",
+            "pivot": [
+              -0.19993,
+              0.80174,
+              -0.01205
+            ]
+          },
+          {
+            "id": 9,
+            "name": "R_Hand",
+            "pivot": [
+              -0.25382,
+              0.81497,
+              -0.00132
+            ]
+          },
+          {
+            "id": 10,
+            "name": "L_Thigh",
+            "pivot": [
+              0.05393,
+              0.475,
+              -0.005
+            ]
+          },
+          {
+            "id": 11,
+            "name": "L_Calf_Foot",
+            "pivot": [
+              0.05393,
+              0.265,
+              -0.015
+            ]
+          },
+          {
+            "id": 12,
+            "name": "R_Thigh",
+            "pivot": [
+              -0.05393,
+              0.475,
+              -0.005
+            ]
+          },
+          {
+            "id": 13,
+            "name": "R_Calf_Foot",
+            "pivot": [
+              -0.05393,
+              0.265,
+              -0.015
+            ]
+          }
+        ]
+      },
+      "atlasWidth": 512,
+      "atlasHeight": 512,
+      "rigBytes": 147808,
+      "rigSha256": "000334a334d45ba20eef839d54ffacf344124354fd85df0115b71af858cabe7b",
+      "atlasSha256": "01e11276c3108bdb00ac8c4ed1fede8d243bcc112fcf03da4f0d0c01c7a6557a",
+      "rigUrl": "./custom_fighters/hoodie_law/rig.bin",
+      "atlasUrl": "./custom_fighters/hoodie_law/atlas.png",
+      "manifestUrl": "./custom_fighters/hoodie_law/manifest.json",
+      "compileSeconds": 1.654
+    },
+    "nicotest_jin": {
+      "bundleId": "nicotest_jin",
+      "label": "NICOTEST (Jin Kazama [JIN])",
+      "sourceGlbPath": "/tmp/skatealley_stage5_nicotest_nt01_run_01/meshes/assembled/character_full.glb",
+      "sourceGlbName": "character_full.glb",
+      "sourceGlbBytes": 7412988,
+      "sourceGlbSha256": "658605cee4c4e53f6438d3f426e019fe47bc648f7d9d6b288d70922513bcae5d",
+      "sourceMeshCount": 1,
+      "sourcePrimitiveCount": 2,
+      "sourceSkinCount": 0,
+      "sourceMaterialCount": 2,
+      "inputTriangleCount": 79994,
+      "vertexCount": 3579,
+      "triangleCount": 2400,
+      "boneCount": 14,
+      "bones": [
+        {
+          "id": 0,
+          "name": "Pelvis",
+          "pivot": [
+            0.0,
+            0.475,
+            0.0
+          ]
+        },
+        {
+          "id": 1,
+          "name": "Chest_Spine",
+          "pivot": [
+            0.0,
+            0.545,
+            0.0
+          ]
+        },
+        {
+          "id": 2,
+          "name": "Neck",
+          "pivot": [
+            0.0,
+            0.77,
+            0.0
+          ]
+        },
+        {
+          "id": 3,
+          "name": "Head",
+          "pivot": [
+            0.0,
+            0.835,
+            0.005
+          ]
+        },
+        {
+          "id": 4,
+          "name": "L_UpperArm",
+          "pivot": [
+            0.11052,
+            0.72304,
+            -0.00796
+          ]
+        },
+        {
+          "id": 5,
+          "name": "L_Forearm",
+          "pivot": [
+            0.19958,
+            0.64317,
+            -0.02173
+          ]
+        },
+        {
+          "id": 6,
+          "name": "L_Hand",
+          "pivot": [
+            0.26242,
+            0.46893,
+            -0.00197
+          ]
+        },
+        {
+          "id": 7,
+          "name": "R_UpperArm",
+          "pivot": [
+            -0.11052,
+            0.72304,
+            -0.00796
+          ]
+        },
+        {
+          "id": 8,
+          "name": "R_Forearm",
+          "pivot": [
+            -0.19958,
+            0.64317,
+            -0.02173
+          ]
+        },
+        {
+          "id": 9,
+          "name": "R_Hand",
+          "pivot": [
+            -0.26242,
+            0.46893,
+            -0.00197
+          ]
+        },
+        {
+          "id": 10,
+          "name": "L_Thigh",
+          "pivot": [
+            0.09215,
+            0.475,
+            -0.005
+          ]
+        },
+        {
+          "id": 11,
+          "name": "L_Calf_Foot",
+          "pivot": [
+            0.09215,
+            0.265,
+            -0.015
+          ]
+        },
+        {
+          "id": 12,
+          "name": "R_Thigh",
+          "pivot": [
+            -0.09215,
+            0.475,
+            -0.005
+          ]
+        },
+        {
+          "id": 13,
+          "name": "R_Calf_Foot",
+          "pivot": [
+            -0.09215,
+            0.265,
+            -0.015
+          ]
+        }
+      ],
+      "targetFighterId": 9,
+      "targetFighterCode": "JIN",
+      "targetFighterShortName": "JIN",
+      "targetFighterName": "Jin Kazama",
+      "targetFighterStyle": "Traditional Karate",
+      "proportions": {
+        "archetype": "standard_athletic",
+        "heightScale": 1.0,
+        "shoulderScale": 1.02,
+        "limbWidthScale": 1.0
+      },
+      "normalization": {
+        "rawBoundsMin": [
+          -0.609097,
+          -0.000699,
+          -0.188875
+        ],
+        "rawBoundsMax": [
+          0.613326,
+          2.000284,
+          0.180456
+        ],
+        "normalizedBoundsMin": [
+          -0.305456,
+          0.0,
+          -0.092288
+        ],
+        "normalizedBoundsMax": [
+          0.305456,
+          1.0,
+          0.092288
+        ],
+        "detectedPose": "A_POSE",
+        "armSpanNorm": 0.30475,
+        "landmarks": {
+          "shoulder": [
+            0.11052,
+            0.72304,
+            -0.00796
+          ],
+          "elbow": [
+            0.19958,
+            0.64317,
+            -0.02173
+          ],
+          "wrist": [
+            0.26242,
+            0.46893,
+            -0.00197
+          ],
+          "handTip": [
+            0.30546,
+            0.47052,
+            0.01794
+          ],
+          "legX": 0.09215
+        },
+        "measuredBones": [
+          {
+            "id": 0,
+            "name": "Pelvis",
+            "pivot": [
+              0.0,
+              0.475,
+              0.0
+            ]
+          },
+          {
+            "id": 1,
+            "name": "Chest_Spine",
+            "pivot": [
+              0.0,
+              0.545,
+              0.0
+            ]
+          },
+          {
+            "id": 2,
+            "name": "Neck",
+            "pivot": [
+              0.0,
+              0.77,
+              0.0
+            ]
+          },
+          {
+            "id": 3,
+            "name": "Head",
+            "pivot": [
+              0.0,
+              0.835,
+              0.005
+            ]
+          },
+          {
+            "id": 4,
+            "name": "L_UpperArm",
+            "pivot": [
+              0.11052,
+              0.72304,
+              -0.00796
+            ]
+          },
+          {
+            "id": 5,
+            "name": "L_Forearm",
+            "pivot": [
+              0.19958,
+              0.64317,
+              -0.02173
+            ]
+          },
+          {
+            "id": 6,
+            "name": "L_Hand",
+            "pivot": [
+              0.26242,
+              0.46893,
+              -0.00197
+            ]
+          },
+          {
+            "id": 7,
+            "name": "R_UpperArm",
+            "pivot": [
+              -0.11052,
+              0.72304,
+              -0.00796
+            ]
+          },
+          {
+            "id": 8,
+            "name": "R_Forearm",
+            "pivot": [
+              -0.19958,
+              0.64317,
+              -0.02173
+            ]
+          },
+          {
+            "id": 9,
+            "name": "R_Hand",
+            "pivot": [
+              -0.26242,
+              0.46893,
+              -0.00197
+            ]
+          },
+          {
+            "id": 10,
+            "name": "L_Thigh",
+            "pivot": [
+              0.09215,
+              0.475,
+              -0.005
+            ]
+          },
+          {
+            "id": 11,
+            "name": "L_Calf_Foot",
+            "pivot": [
+              0.09215,
+              0.265,
+              -0.015
+            ]
+          },
+          {
+            "id": 12,
+            "name": "R_Thigh",
+            "pivot": [
+              -0.09215,
+              0.475,
+              -0.005
+            ]
+          },
+          {
+            "id": 13,
+            "name": "R_Calf_Foot",
+            "pivot": [
+              -0.09215,
+              0.265,
+              -0.015
+            ]
+          }
+        ]
+      },
+      "atlasWidth": 512,
+      "atlasHeight": 512,
+      "rigBytes": 200716,
+      "rigSha256": "b384a38f5af122d4cbed47f6f73cffbffd64ef7d57bfa4eac5c98ae70eb932e2",
+      "atlasSha256": "151ce1b51150d3be96f0a0683fa4cc6f1b5c0e230d49922c7cfd45b5e32a10b9",
+      "rigUrl": "./custom_fighters/nicotest_jin/rig.bin",
+      "atlasUrl": "./custom_fighters/nicotest_jin/atlas.png",
+      "manifestUrl": "./custom_fighters/nicotest_jin/manifest.json",
+      "compileSeconds": 2.784
+    }
+  },
+  "bindings": {
+    "p1BundleId": "nicotest_jin",
+    "p1FighterCode": "JIN",
+    "p2BundleId": null,
+    "p2FighterCode": "PAU",
+    "byFighterCode": {
+      "JIN": "nicotest_jin",
+      "PAU": "nicotest_pau",
+      "LAW": "hoodie_law"
+    }
+  }
+}

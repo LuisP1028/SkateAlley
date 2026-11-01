@@ -1,0 +1,339 @@
+{
+  "bundleId": "nicotest_pau",
+  "label": "NICO A-Pose (Paul Phoenix [PAU])",
+  "sourceGlbPath": "/Users/diesel/desktop/skatealley/players_nicotest_nt01_runs_run_01_03_meshes_assembled_character_full.glb",
+  "sourceGlbName": "players_nicotest_nt01_runs_run_01_03_meshes_assembled_character_full.glb",
+  "sourceGlbBytes": 7412988,
+  "sourceGlbSha256": "658605cee4c4e53f6438d3f426e019fe47bc648f7d9d6b288d70922513bcae5d",
+  "sourceMeshCount": 1,
+  "sourcePrimitiveCount": 2,
+  "sourceSkinCount": 0,
+  "sourceMaterialCount": 2,
+  "inputTriangleCount": 79994,
+  "vertexCount": 3579,
+  "triangleCount": 2400,
+  "boneCount": 14,
+  "bones": [
+    {
+      "id": 0,
+      "name": "Pelvis",
+      "pivot": [
+        0.0,
+        0.475,
+        0.0
+      ]
+    },
+    {
+      "id": 1,
+      "name": "Chest_Spine",
+      "pivot": [
+        0.0,
+        0.545,
+        0.0
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Neck",
+      "pivot": [
+        0.0,
+        0.77,
+        0.0
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Head",
+      "pivot": [
+        0.0,
+        0.835,
+        0.005
+      ]
+    },
+    {
+      "id": 4,
+      "name": "L_UpperArm",
+      "pivot": [
+        0.11052,
+        0.72304,
+        -0.00796
+      ]
+    },
+    {
+      "id": 5,
+      "name": "L_Forearm",
+      "pivot": [
+        0.19958,
+        0.64317,
+        -0.02173
+      ]
+    },
+    {
+      "id": 6,
+      "name": "L_Hand",
+      "pivot": [
+        0.26242,
+        0.46893,
+        -0.00197
+      ]
+    },
+    {
+      "id": 7,
+      "name": "R_UpperArm",
+      "pivot": [
+        -0.11052,
+        0.72304,
+        -0.00796
+      ]
+    },
+    {
+      "id": 8,
+      "name": "R_Forearm",
+      "pivot": [
+        -0.19958,
+        0.64317,
+        -0.02173
+      ]
+    },
+    {
+      "id": 9,
+      "name": "R_Hand",
+      "pivot": [
+        -0.26242,
+        0.46893,
+        -0.00197
+      ]
+    },
+    {
+      "id": 10,
+      "name": "L_Thigh",
+      "pivot": [
+        0.09215,
+        0.475,
+        -0.005
+      ]
+    },
+    {
+      "id": 11,
+      "name": "L_Calf_Foot",
+      "pivot": [
+        0.09215,
+        0.265,
+        -0.015
+      ]
+    },
+    {
+      "id": 12,
+      "name": "R_Thigh",
+      "pivot": [
+        -0.09215,
+        0.475,
+        -0.005
+      ]
+    },
+    {
+      "id": 13,
+      "name": "R_Calf_Foot",
+      "pivot": [
+        -0.09215,
+        0.265,
+        -0.015
+      ]
+    }
+  ],
+  "targetFighterId": 0,
+  "targetFighterCode": "PAU",
+  "targetFighterShortName": "PAUL",
+  "targetFighterName": "Paul Phoenix",
+  "targetFighterStyle": "Judo / Bajiquan",
+  "proportions": {
+    "archetype": "standard_athletic",
+    "heightScale": 1.0,
+    "shoulderScale": 1.02,
+    "limbWidthScale": 1.02
+  },
+  "normalization": {
+    "rawBoundsMin": [
+      -0.609097,
+      -0.000699,
+      -0.188875
+    ],
+    "rawBoundsMax": [
+      0.613326,
+      2.000284,
+      0.180456
+    ],
+    "normalizedBoundsMin": [
+      -0.305456,
+      0.0,
+      -0.092288
+    ],
+    "normalizedBoundsMax": [
+      0.305456,
+      1.0,
+      0.092288
+    ],
+    "detectedPose": "A_POSE",
+    "armSpanNorm": 0.30475,
+    "landmarks": {
+      "shoulder": [
+        0.11052,
+        0.72304,
+        -0.00796
+      ],
+      "elbow": [
+        0.19958,
+        0.64317,
+        -0.02173
+      ],
+      "wrist": [
+        0.26242,
+        0.46893,
+        -0.00197
+      ],
+      "handTip": [
+        0.30546,
+        0.47052,
+        0.01794
+      ],
+      "legX": 0.09215
+    },
+    "measuredBones": [
+      {
+        "id": 0,
+        "name": "Pelvis",
+        "pivot": [
+          0.0,
+          0.475,
+          0.0
+        ]
+      },
+      {
+        "id": 1,
+        "name": "Chest_Spine",
+        "pivot": [
+          0.0,
+          0.545,
+          0.0
+        ]
+      },
+      {
+        "id": 2,
+        "name": "Neck",
+        "pivot": [
+          0.0,
+          0.77,
+          0.0
+        ]
+      },
+      {
+        "id": 3,
+        "name": "Head",
+        "pivot": [
+          0.0,
+          0.835,
+          0.005
+        ]
+      },
+      {
+        "id": 4,
+        "name": "L_UpperArm",
+        "pivot": [
+          0.11052,
+          0.72304,
+          -0.00796
+        ]
+      },
+      {
+        "id": 5,
+        "name": "L_Forearm",
+        "pivot": [
+          0.19958,
+          0.64317,
+          -0.02173
+        ]
+      },
+      {
+        "id": 6,
+        "name": "L_Hand",
+        "pivot": [
+          0.26242,
+          0.46893,
+          -0.00197
+        ]
+      },
+      {
+        "id": 7,
+        "name": "R_UpperArm",
+        "pivot": [
+          -0.11052,
+          0.72304,
+          -0.00796
+        ]
+      },
+      {
+        "id": 8,
+        "name": "R_Forearm",
+        "pivot": [
+          -0.19958,
+          0.64317,
+          -0.02173
+        ]
+      },
+      {
+        "id": 9,
+        "name": "R_Hand",
+        "pivot": [
+          -0.26242,
+          0.46893,
+          -0.00197
+        ]
+      },
+      {
+        "id": 10,
+        "name": "L_Thigh",
+        "pivot": [
+          0.09215,
+          0.475,
+          -0.005
+        ]
+      },
+      {
+        "id": 11,
+        "name": "L_Calf_Foot",
+        "pivot": [
+          0.09215,
+          0.265,
+          -0.015
+        ]
+      },
+      {
+        "id": 12,
+        "name": "R_Thigh",
+        "pivot": [
+          -0.09215,
+          0.475,
+          -0.005
+        ]
+      },
+      {
+        "id": 13,
+        "name": "R_Calf_Foot",
+        "pivot": [
+          -0.09215,
+          0.265,
+          -0.015
+        ]
+      }
+    ]
+  },
+  "atlasWidth": 512,
+  "atlasHeight": 512,
+  "rigBytes": 200716,
+  "rigSha256": "6d6d7b148f2c1fb839d6706d03892910f8dda5ab003361c867f935ba14fa3390",
+  "atlasSha256": "151ce1b51150d3be96f0a0683fa4cc6f1b5c0e230d49922c7cfd45b5e32a10b9",
+  "rigUrl": "./custom_fighters/nicotest_pau/rig.bin",
+  "atlasUrl": "./custom_fighters/nicotest_pau/atlas.png",
+  "manifestUrl": "./custom_fighters/nicotest_pau/manifest.json",
+  "compileSeconds": 2.817
+}

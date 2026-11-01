@@ -1,0 +1,339 @@
+{
+  "bundleId": "luis_jin",
+  "label": "LUIS (Jin Kazama [JIN])",
+  "sourceGlbPath": "/Users/diesel/desktop/skatealley/LUIS.glb",
+  "sourceGlbName": "LUIS.glb",
+  "sourceGlbBytes": 5285932,
+  "sourceGlbSha256": "61000fe35889f37c65eb338c73e9c1b558e8687135473a5dda64e73a7051bcc4",
+  "sourceMeshCount": 1,
+  "sourcePrimitiveCount": 2,
+  "sourceSkinCount": 0,
+  "sourceMaterialCount": 2,
+  "inputTriangleCount": 20018,
+  "vertexCount": 3489,
+  "triangleCount": 3398,
+  "boneCount": 14,
+  "bones": [
+    {
+      "id": 0,
+      "name": "Pelvis",
+      "pivot": [
+        0.0,
+        0.475,
+        0.0
+      ]
+    },
+    {
+      "id": 1,
+      "name": "Chest_Spine",
+      "pivot": [
+        0.0,
+        0.545,
+        0.0
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Neck",
+      "pivot": [
+        0.0,
+        0.77,
+        0.0
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Head",
+      "pivot": [
+        0.0,
+        0.835,
+        0.005
+      ]
+    },
+    {
+      "id": 4,
+      "name": "L_UpperArm",
+      "pivot": [
+        0.12472,
+        0.73672,
+        0.02304
+      ]
+    },
+    {
+      "id": 5,
+      "name": "L_Forearm",
+      "pivot": [
+        0.26294,
+        0.77124,
+        0.01866
+      ]
+    },
+    {
+      "id": 6,
+      "name": "L_Hand",
+      "pivot": [
+        0.39132,
+        0.78142,
+        0.0275
+      ]
+    },
+    {
+      "id": 7,
+      "name": "R_UpperArm",
+      "pivot": [
+        -0.12472,
+        0.73672,
+        0.02304
+      ]
+    },
+    {
+      "id": 8,
+      "name": "R_Forearm",
+      "pivot": [
+        -0.26294,
+        0.77124,
+        0.01866
+      ]
+    },
+    {
+      "id": 9,
+      "name": "R_Hand",
+      "pivot": [
+        -0.39132,
+        0.78142,
+        0.0275
+      ]
+    },
+    {
+      "id": 10,
+      "name": "L_Thigh",
+      "pivot": [
+        0.07051,
+        0.475,
+        -0.005
+      ]
+    },
+    {
+      "id": 11,
+      "name": "L_Calf_Foot",
+      "pivot": [
+        0.07051,
+        0.265,
+        -0.015
+      ]
+    },
+    {
+      "id": 12,
+      "name": "R_Thigh",
+      "pivot": [
+        -0.07051,
+        0.475,
+        -0.005
+      ]
+    },
+    {
+      "id": 13,
+      "name": "R_Calf_Foot",
+      "pivot": [
+        -0.07051,
+        0.265,
+        -0.015
+      ]
+    }
+  ],
+  "targetFighterId": 9,
+  "targetFighterCode": "JIN",
+  "targetFighterShortName": "JIN",
+  "targetFighterName": "Jin Kazama",
+  "targetFighterStyle": "Traditional Karate",
+  "proportions": {
+    "archetype": "standard_athletic",
+    "heightScale": 1.0,
+    "shoulderScale": 1.02,
+    "limbWidthScale": 1.0
+  },
+  "normalization": {
+    "rawBoundsMin": [
+      -0.902334,
+      0.001375,
+      -0.220111
+    ],
+    "rawBoundsMax": [
+      0.902327,
+      2.000443,
+      0.221249
+    ],
+    "normalizedBoundsMin": [
+      -0.451375,
+      0.0,
+      -0.110391
+    ],
+    "normalizedBoundsMax": [
+      0.451375,
+      1.0,
+      0.110391
+    ],
+    "detectedPose": "T_POSE",
+    "armSpanNorm": 0.45063,
+    "landmarks": {
+      "shoulder": [
+        0.12472,
+        0.73672,
+        0.02304
+      ],
+      "elbow": [
+        0.26294,
+        0.77124,
+        0.01866
+      ],
+      "wrist": [
+        0.39132,
+        0.78142,
+        0.0275
+      ],
+      "handTip": [
+        0.44976,
+        0.79073,
+        0.01941
+      ],
+      "legX": 0.07051
+    },
+    "measuredBones": [
+      {
+        "id": 0,
+        "name": "Pelvis",
+        "pivot": [
+          0.0,
+          0.475,
+          0.0
+        ]
+      },
+      {
+        "id": 1,
+        "name": "Chest_Spine",
+        "pivot": [
+          0.0,
+          0.545,
+          0.0
+        ]
+      },
+      {
+        "id": 2,
+        "name": "Neck",
+        "pivot": [
+          0.0,
+          0.77,
+          0.0
+        ]
+      },
+      {
+        "id": 3,
+        "name": "Head",
+        "pivot": [
+          0.0,
+          0.835,
+          0.005
+        ]
+      },
+      {
+        "id": 4,
+        "name": "L_UpperArm",
+        "pivot": [
+          0.12472,
+          0.73672,
+          0.02304
+        ]
+      },
+      {
+        "id": 5,
+        "name": "L_Forearm",
+        "pivot": [
+          0.26294,
+          0.77124,
+          0.01866
+        ]
+      },
+      {
+        "id": 6,
+        "name": "L_Hand",
+        "pivot": [
+          0.39132,
+          0.78142,
+          0.0275
+        ]
+      },
+      {
+        "id": 7,
+        "name": "R_UpperArm",
+        "pivot": [
+          -0.12472,
+          0.73672,
+          0.02304
+        ]
+      },
+      {
+        "id": 8,
+        "name": "R_Forearm",
+        "pivot": [
+          -0.26294,
+          0.77124,
+          0.01866
+        ]
+      },
+      {
+        "id": 9,
+        "name": "R_Hand",
+        "pivot": [
+          -0.39132,
+          0.78142,
+          0.0275
+        ]
+      },
+      {
+        "id": 10,
+        "name": "L_Thigh",
+        "pivot": [
+          0.07051,
+          0.475,
+          -0.005
+        ]
+      },
+      {
+        "id": 11,
+        "name": "L_Calf_Foot",
+        "pivot": [
+          0.07051,
+          0.265,
+          -0.015
+        ]
+      },
+      {
+        "id": 12,
+        "name": "R_Thigh",
+        "pivot": [
+          -0.07051,
+          0.475,
+          -0.005
+        ]
+      },
+      {
+        "id": 13,
+        "name": "R_Calf_Foot",
+        "pivot": [
+          -0.07051,
+          0.265,
+          -0.015
+        ]
+      }
+    ]
+  },
+  "atlasWidth": 512,
+  "atlasHeight": 512,
+  "rigBytes": 202024,
+  "rigSha256": "7846dec23c2e20d7be035a6b0c6c318f5cc4de9f8ea2653f1650b907685371f0",
+  "atlasSha256": "a9cce647ba906f45f0f42ef22b84e4e063c733d788790f2d62d227f9d27f5e45",
+  "rigUrl": "./custom_fighters/luis_jin/rig.bin",
+  "atlasUrl": "./custom_fighters/luis_jin/atlas.png",
+  "manifestUrl": "./custom_fighters/luis_jin/manifest.json",
+  "compileSeconds": 1.095
+}

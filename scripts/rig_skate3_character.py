@@ -15,6 +15,7 @@ Governed by functional_specification_033.md, skate_port.md, and LANGUAGE.md.
 
 from __future__ import annotations
 
+import argparse
 import copy
 import hashlib
 import json
@@ -22,6 +23,9 @@ import math
 import os
 import shutil
 import struct
+import subprocess
+import sys
+import tempfile
 import time
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
@@ -35,6 +39,20 @@ except ImportError:
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 WORKSPACE_DIR = os.path.dirname(SCRIPT_DIR)
+if SCRIPT_DIR not in sys.path:
+    sys.path.insert(0, SCRIPT_DIR)
+
+from gcs_rig_intake import (
+    add_gcs_rig_cli_args,
+    intake_assembled_character_for_rigging,
+    select_pose_intake,
+    sync_target_rigged_deliverables,
+)
+
+BLENDER_BIN = "/Applications/Blender.app/Contents/MacOS/Blender"
+SKATE3_CLEANROOM_DIR = os.path.join(WORKSPACE_DIR, "skate3_cleanroom")
+SKATE3_PARTS_DIR = os.path.join(SKATE3_CLEANROOM_DIR, "parts")
+SKATE3_PACK_JSON_PATH = os.path.join(SKATE3_CLEANROOM_DIR, "pack.json")
 
 DEFAULT_RIG_CONTRACT_PATH = os.path.join(
     WORKSPACE_DIR,
@@ -658,12 +676,15 @@ def normalize_and_sanitize_mesh(
 def compute_skate3_skin_weights(
     positions: Any,
     rig_contract: Optional[Dict[str, Any]] = None,
+    skeleton_metrics: Optional[Dict[str, Any]] = None,
 ) -> Tuple[Any, Any]:
     """
     Computes anatomically partitioned, smooth, normalized 4-bone skinning weights
     (JOINTS_0 as uint16 VEC4, WEIGHTS_0 as float32 VEC4) across the 24 deforming
     humanoid bones (0..23) of Skate3_RX2_Rig while strictly locking the 11
     non-deforming vehicle/socket nodes (24..34) to 0.0 weight.
+    Uses character-specific `skeleton_metrics` (`joints_y_up` scaled by 0.90 to 1.8000m)
+    when provided while preserving all anatomical domain isolation invariants.
 
     Guaranteed anatomical invariants:
       - Rigid Head Lock: y > 1.62 m -> HEAD (7) weight == 1.0
@@ -678,6 +699,26 @@ def compute_skate3_skin_weights(
     """
     if rig_contract is None:
         rig_contract = load_skate3_rig_contract()
+
+    u_up_center = 0.26
+    u_fa_center = 0.60
+    y_knee_180 = 0.42
+    y_ankle_180 = 0.14
+    if isinstance(skeleton_metrics, dict) and isinstance(skeleton_metrics.get("joints_y_up"), dict):
+        jy = skeleton_metrics["joints_y_up"]
+        sh_l = jy.get("shoulder_l", [0.195, 1.460, -0.050])
+        el_l = jy.get("elbow_l", [0.350, 1.270, -0.045])
+        ht_l = jy.get("hand_tip_l", [0.580, 0.850, -0.040])
+        kn_l = jy.get("knee_l", [0.150, 0.440, -0.040])
+        kn_r = jy.get("knee_r", [-0.150, 0.440, -0.040])
+        ak_l = jy.get("ankle_l", [0.150, 0.120, -0.030])
+        ak_r = jy.get("ankle_r", [-0.150, 0.120, -0.030])
+        span_l = max(0.24, abs(float(ht_l[0])) - abs(float(sh_l[0])))
+        u_el = max(0.32, min(0.56, (abs(float(el_l[0])) - abs(float(sh_l[0]))) / span_l))
+        u_up_center = round(0.60 * u_el, 4)
+        u_fa_center = round(0.50 * (u_el + 0.78), 4)
+        y_knee_180 = max(0.34, min(0.45, 0.90 * 0.5 * (float(kn_l[1]) + float(kn_r[1]))))
+        y_ankle_180 = max(0.09, min(0.16, 0.90 * 0.5 * (float(ak_l[1]) + float(ak_r[1]))))
 
     if HAS_NUMPY:
         v = np.asarray(positions, dtype=np.float64).reshape(-1, 3)
@@ -714,8 +755,8 @@ def compute_skate3_skin_weights(
             u = np.clip((xa - 0.18) / xa_span, 0.0, 1.0)
 
             w_sh = np.exp(-((u - 0.00) ** 2) / (2.0 * 0.14 * 0.14)) * (u < 0.28)
-            w_up = np.exp(-((u - 0.26) ** 2) / (2.0 * 0.18 * 0.18))
-            w_fa = np.exp(-((u - 0.60) ** 2) / (2.0 * 0.18 * 0.18))
+            w_up = np.exp(-((u - u_up_center) ** 2) / (2.0 * 0.18 * 0.18))
+            w_fa = np.exp(-((u - u_fa_center) ** 2) / (2.0 * 0.18 * 0.18))
             w_hd = np.exp(-((u - 0.92) ** 2) / (2.0 * 0.18 * 0.18)) * (u > 0.52)
 
             # Smooth C1 wrist-to-hand transition across u in [0.72, 0.90] (eliminates sleeve cuff notch)
@@ -806,8 +847,8 @@ def compute_skate3_skin_weights(
             zl = z[dom_legs]
 
             t_left = np.clip((xl + 0.03) / 0.06, 0.0, 1.0)
-            w_th = np.clip((yl - 0.42) / 0.12, 0.0, 0.45)
-            w_ank = np.clip((0.14 - yl) / 0.065, 0.0, 1.0)
+            w_th = np.clip((yl - y_knee_180) / 0.12, 0.0, 0.45)
+            w_ank = np.clip((y_ankle_180 - yl) / 0.065, 0.0, 1.0)
             w_ca = np.maximum(0.0, 1.0 - w_th - w_ank)
 
             # In glTF Y-up, +Z is forward (RIGHTTOEBASE/LEFTTOEBASE at z = +0.1235 m)
@@ -2716,6 +2757,198 @@ def merge_apose_luis_body_and_head(
     return output_standalone_glb_path
 
 
+def decimate_glb_for_skate3_if_needed(
+    input_glb_path: str,
+    target_tris: int = 16000,
+    max_input_tris_without_decimate: int = 22000,
+) -> str:
+    """
+    Checks total triangle count of `input_glb_path`. If total triangles exceed
+    `max_input_tris_without_decimate` (e.g. Stage 4's ~80,000-triangle `character_full.glb`),
+    runs a headless Blender seam-preserving `DECIMATE` pass (`DELIMIT={'UV', 'MATERIAL'}`,
+    ratio = `target_tris / total_tris`) and caches the decimated `.glb` in `/tmp` so all
+    materials, UV islands, and embedded textures remain intact within Skate 3's 12k-20k
+    triangle budget.
+    """
+    src_gltf, _ = read_glb(input_glb_path)
+    total_tris = 0
+    for mesh_obj in src_gltf.get("meshes", []):
+        for prim in mesh_obj.get("primitives", []):
+            if "indices" in prim:
+                total_tris += int(src_gltf["accessors"][prim["indices"]]["count"]) // 3
+            elif "POSITION" in prim.get("attributes", {}):
+                total_tris += int(src_gltf["accessors"][prim["attributes"]["POSITION"]]["count"]) // 3
+
+    if total_tris <= max_input_tris_without_decimate:
+        return input_glb_path
+
+    src_sha = sha256_file(input_glb_path)[:16]
+    cached_dec_path = os.path.join(
+        tempfile.gettempdir(), f"skate3_decimated_{src_sha}_{target_tris}.glb"
+    )
+    if os.path.isfile(cached_dec_path) and os.path.getsize(cached_dec_path) > 1024:
+        return cached_dec_path
+
+    if not os.path.isfile(BLENDER_BIN):
+        raise RuntimeError(
+            f"Input GLB '{input_glb_path}' has {total_tris} triangles (> {max_input_tris_without_decimate}), "
+            f"but Blender binary was not found at '{BLENDER_BIN}'."
+        )
+
+    blender_py = (
+        "import bpy, sys\n"
+        "in_p, out_p, target_t = sys.argv[-3], sys.argv[-2], int(sys.argv[-1])\n"
+        "bpy.ops.wm.read_factory_settings(use_empty=True)\n"
+        "bpy.ops.import_scene.gltf(filepath=in_p)\n"
+        "meshes = [o for o in bpy.context.scene.objects if o.type == 'MESH']\n"
+        "bpy.ops.object.select_all(action='DESELECT')\n"
+        "for m in meshes:\n"
+        "    m.select_set(True)\n"
+        "bpy.context.view_layer.objects.active = meshes[0]\n"
+        "if len(meshes) > 1:\n"
+        "    bpy.ops.object.join()\n"
+        "obj = bpy.context.view_layer.objects.active\n"
+        "bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)\n"
+        "tot_faces = len(obj.data.polygons)\n"
+        "if tot_faces > target_t:\n"
+        "    mod = obj.modifiers.new(name='Skate3Decimate', type='DECIMATE')\n"
+        "    mod.decimate_type = 'COLLAPSE'\n"
+        "    mod.ratio = max(0.02, min(1.0, float(target_t) / float(tot_faces)))\n"
+        "    mod.use_collapse_triangulate = True\n"
+        "    try:\n"
+        "        mod.delimit = {'UV', 'MATERIAL'}\n"
+        "    except Exception:\n"
+        "        pass\n"
+        "    bpy.ops.object.modifier_apply(modifier=mod.name)\n"
+        "bpy.ops.export_scene.gltf(\n"
+        "    filepath=out_p,\n"
+        "    export_format='GLB',\n"
+        "    use_selection=True,\n"
+        "    export_apply=True,\n"
+        "    export_yup=True,\n"
+        "    export_texcoords=True,\n"
+        "    export_normals=True,\n"
+        "    export_materials='EXPORT',\n"
+        ")\n"
+    )
+    proc = subprocess.run(
+        [
+            BLENDER_BIN,
+            "--background",
+            "--factory-startup",
+            "--python-expr",
+            blender_py,
+            "--",
+            input_glb_path,
+            cached_dec_path,
+            str(target_tris),
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if proc.returncode != 0 or not os.path.isfile(cached_dec_path):
+        raise RuntimeError(
+            f"Blender decimation failed for '{input_glb_path}' (rc={proc.returncode}):\n"
+            f"{proc.stderr[-1200:]}\n{proc.stdout[-1200:]}"
+        )
+    return cached_dec_path
+
+
+def conform_arms_to_skate3_apose(
+    positions_180: Any,
+    skeleton_metrics: Optional[Dict[str, Any]] = None,
+) -> Any:
+    """
+    Given all character vertex positions normalized to `1.8000m` stature (`Y in [0.0, 1.8000]`),
+    automatically conforms downward A-pose forearms (`x_arm_max <= 0.66m` and wrist `y_wr < 0.98m`)
+    onto `Skate3_RX2_Rig`'s canonical `FOREARM -> HAND` corridor via a smooth SO(3) rotation around
+    the character's measured elbow pivot (from `skeleton_metrics["joints_y_up"]` scaled by 0.90,
+    or `(±0.340, 1.230, -0.020)` fallback). Leaves already-aligned meshes unchanged.
+    """
+    if HAS_NUMPY:
+        v = np.asarray(positions_180, dtype=np.float64).reshape(-1, 3).copy()
+        x = v[:, 0]
+        y = v[:, 1]
+        z = v[:, 2]
+        arm_band = (np.abs(x) > 0.24) & (y >= 0.70) & (y <= 1.58)
+        if not arm_band.any():
+            return v.astype(np.float32)
+        x_arm_max = float(np.abs(x[arm_band]).max())
+        if x_arm_max > 0.66:
+            return v.astype(np.float32)
+        wrist_band = arm_band & (np.abs(x) >= 0.80 * x_arm_max)
+        if not wrist_band.any():
+            return v.astype(np.float32)
+        y_wr_med = float(np.median(y[wrist_band]))
+        z_wr_med = float(np.median(z[wrist_band]))
+        # Only rotate forearm if hand hangs steeper downward/backward than Skate3_RX2_Rig's hand
+        if y_wr_med >= 0.98 and z_wr_med >= 0.05:
+            return v.astype(np.float32)
+
+        sh_x_180, sh_y_180 = 0.180, 1.430
+        el_x_180, el_y_180, el_z_180 = 0.340, 1.230, -0.020
+        u_dx, u_dy, u_dz = 0.175, -0.310, 0.045
+        if isinstance(skeleton_metrics, dict) and isinstance(skeleton_metrics.get("joints_y_up"), dict):
+            jy = skeleton_metrics["joints_y_up"]
+            sh_l = jy.get("shoulder_l")
+            el_l = jy.get("elbow_l")
+            wr_l = jy.get("wrist_l")
+            if sh_l and el_l and wr_l and len(sh_l) == 3 and len(el_l) == 3 and len(wr_l) == 3:
+                sh_x_180 = max(0.15, min(0.22, 0.90 * abs(float(sh_l[0]))))
+                sh_y_180 = max(1.24, min(1.48, 0.90 * float(sh_l[1])))
+                el_x_180 = max(0.26, min(0.42, 0.90 * abs(float(el_l[0]))))
+                el_y_180 = max(1.05, min(1.32, 0.90 * float(el_l[1])))
+                el_z_180 = max(-0.12, min(0.08, 0.90 * float(el_l[2])))
+                dx_m = 0.90 * (abs(float(wr_l[0])) - abs(float(el_l[0])))
+                dy_m = 0.90 * (float(wr_l[1]) - float(el_l[1]))
+                dz_m = 0.90 * (float(wr_l[2]) - float(el_l[2]))
+                if math.sqrt(dx_m * dx_m + dy_m * dy_m + dz_m * dz_m) > 0.08:
+                    u_dx, u_dy, u_dz = max(0.08, dx_m), min(-0.08, dy_m), dz_m
+
+        ax_x = np.abs(x)
+        arm_y_min = np.minimum(0.95, np.maximum(0.70, 1.08 - 1.50 * (ax_x - 0.22)))
+        mask = (ax_x > 0.24) & (y >= arm_y_min) & (y <= 1.58)
+        if not mask.any():
+            return v.astype(np.float32)
+
+        idx_m = np.where(mask)[0]
+        for i in idx_m:
+            xn, yn, zn = float(v[i, 0]), float(v[i, 1]), float(v[i, 2])
+            sgn = -1.0 if xn < 0.0 else 1.0
+            r_sh = math.sqrt((xn - sgn * sh_x_180) ** 2 + (yn - sh_y_180) ** 2)
+            t = max(0.0, min(1.0, (r_sh - 0.18) / (0.30 - 0.18)))
+            t_smooth = t * t * (3.0 - 2.0 * t)
+            if t_smooth <= 0.0:
+                continue
+            ex, ey, ez = sgn * el_x_180, el_y_180, el_z_180
+            ux, uy, uz = sgn * u_dx, u_dy, u_dz
+            ul = math.sqrt(ux * ux + uy * uy + uz * uz)
+            ux, uy, uz = ux / ul, uy / ul, uz / ul
+            vx, vy, vz = sgn * 0.245, -0.220, 0.155
+            vl = math.sqrt(vx * vx + vy * vy + vz * vz)
+            vx, vy, vz = vx / vl, vy / vl, vz / vl
+            dot = max(-1.0, min(1.0, ux * vx + uy * vy + uz * vz))
+            ang = math.acos(dot) * t_smooth
+            kx = uy * vz - uz * vy
+            ky = uz * vx - ux * vz
+            kz = ux * vy - uy * vx
+            kl = math.sqrt(kx * kx + ky * ky + kz * kz) or 1.0
+            kx, ky, kz = kx / kl, ky / kl, kz / kl
+            rx, ry, rz = xn - ex, yn - ey, zn - ez
+            ca, sa = math.cos(ang), math.sin(ang)
+            kdot = kx * rx + ky * ry + kz * rz
+            crx = ky * rz - kz * ry
+            cry = kz * rx - kx * rz
+            crz = kx * ry - ky * rx
+            v[i, 0] = ex + rx * ca + crx * sa + kx * kdot * (1.0 - ca)
+            v[i, 1] = ey + ry * ca + cry * sa + ky * kdot * (1.0 - ca)
+            v[i, 2] = ez + rz * ca + crz * sa + kz * kdot * (1.0 - ca)
+        return v.astype(np.float32)
+
+    return positions_180
+
+
 def rig_glb_to_skate3(
     input_glb_path: str,
     output_glb_path: str,
@@ -2723,94 +2956,97 @@ def rig_glb_to_skate3(
     preserve_all_vertices: bool = False,
     enforce_size_budget: bool = True,
     character_name: Optional[str] = None,
+    skeleton_metrics: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """
     Rigs a static or pre-assembled humanoid .glb mesh directly onto the 35-joint
     Skate 3 Clean-Room Master Rig (Skate3_RX2_Rig), preserving all PBR materials,
     textures, and extensions, and writes the standalone binary .glb to output_glb_path.
+    Adheres strictly to INV-NO-REASSEMBLE-01 and INV-AGNOSTIC-RIG-01.
     """
     t0 = time.perf_counter()
     if not os.path.exists(input_glb_path):
         raise FileNotFoundError(f"Input GLB not found at '{input_glb_path}'.")
 
+    raw_input_bytes = os.path.getsize(input_glb_path)
     effective_src_path = input_glb_path
-    if os.path.basename(input_glb_path) in ("45degreeLUIS.glb", "LUIS_DECIMATED_STANDALONE.glb"):
-        if os.path.exists(LUIS_APOSE_RAW_GLB_PATH):
-            effective_src_path = merge_apose_luis_body_and_head(
-                LUIS_APOSE_RAW_GLB_PATH,
-                output_standalone_glb_path=LUIS_STANDALONE_GLB_PATH,
-            )
-    elif (
+    if (
         os.path.basename(input_glb_path) == "PLATODOOM_RAW.glb"
         and enforce_size_budget
         and not preserve_all_vertices
         and os.path.exists(PLATODOOM_HOLOSYS_GLB_PATH)
     ):
-        # Use assembled textured decimated PLATODOOM surface when enforcing size budget
         effective_src_path = PLATODOOM_HOLOSYS_GLB_PATH
+    elif enforce_size_budget and not preserve_all_vertices:
+        effective_src_path = decimate_glb_for_skate3_if_needed(
+            input_glb_path, target_tris=16000, max_input_tris_without_decimate=22000
+        )
 
-    baseline_bytes = os.path.getsize(effective_src_path)
+    baseline_bytes = max(raw_input_bytes, os.path.getsize(effective_src_path))
 
     src_gltf, src_bin = read_glb(effective_src_path)
     rig_contract = load_skate3_rig_contract()
     ibm_res = compute_skate3_ibms(rig_contract)
 
-    # Extract all primitives from mesh 0
-    src_mesh = src_gltf["meshes"][0]
-    mesh_name = character_name or src_mesh.get("name") or "PLATODOOM"
+    # Flatten all primitives across all meshes in the GLB
+    src_meshes = src_gltf.get("meshes", [])
+    if not src_meshes:
+        raise ValueError(f"No meshes found in '{effective_src_path}'.")
+    mesh_name = character_name or src_meshes[0].get("name") or "CharacterMesh"
 
     prim_raw_list: List[Dict[str, Any]] = []
     all_raw_positions: List[Any] = []
 
-    for prim in src_mesh["primitives"]:
-        attrs = prim["attributes"]
-        pos_acc, pos_bytes = _extract_accessor_bytes(src_gltf, src_bin, attrs["POSITION"])
-        v_cnt = pos_acc["count"]
-        if HAS_NUMPY:
-            pos_np = np.frombuffer(pos_bytes, dtype=np.float32).reshape(v_cnt, 3).copy()
-            all_raw_positions.append(pos_np)
-        else:
-            floats = struct.unpack(f"<{v_cnt * 3}f", pos_bytes)
-            pos_lst = [
-                (floats[i * 3], floats[i * 3 + 1], floats[i * 3 + 2]) for i in range(v_cnt)
-            ]
-            all_raw_positions.extend(pos_lst)
-
-        norm_data = None
-        if "NORMAL" in attrs:
-            _, norm_bytes = _extract_accessor_bytes(src_gltf, src_bin, attrs["NORMAL"])
+    for src_mesh in src_meshes:
+        for prim in src_mesh.get("primitives", []):
+            attrs = prim["attributes"]
+            pos_acc, pos_bytes = _extract_accessor_bytes(src_gltf, src_bin, attrs["POSITION"])
+            v_cnt = pos_acc["count"]
             if HAS_NUMPY:
-                norm_data = np.frombuffer(norm_bytes, dtype=np.float32).reshape(v_cnt, 3).copy()
+                pos_np = np.frombuffer(pos_bytes, dtype=np.float32).reshape(v_cnt, 3).copy()
+                all_raw_positions.append(pos_np)
             else:
-                nf = struct.unpack(f"<{v_cnt * 3}f", norm_bytes)
-                norm_data = [(nf[i * 3], nf[i * 3 + 1], nf[i * 3 + 2]) for i in range(v_cnt)]
+                floats = struct.unpack(f"<{v_cnt * 3}f", pos_bytes)
+                pos_lst = [
+                    (floats[i * 3], floats[i * 3 + 1], floats[i * 3 + 2]) for i in range(v_cnt)
+                ]
+                all_raw_positions.extend(pos_lst)
 
-        uv_data = None
-        if "TEXCOORD_0" in attrs:
-            _, uv_bytes = _extract_accessor_bytes(src_gltf, src_bin, attrs["TEXCOORD_0"])
+            norm_data = None
+            if "NORMAL" in attrs:
+                _, norm_bytes = _extract_accessor_bytes(src_gltf, src_bin, attrs["NORMAL"])
+                if HAS_NUMPY:
+                    norm_data = np.frombuffer(norm_bytes, dtype=np.float32).reshape(v_cnt, 3).copy()
+                else:
+                    nf = struct.unpack(f"<{v_cnt * 3}f", norm_bytes)
+                    norm_data = [(nf[i * 3], nf[i * 3 + 1], nf[i * 3 + 2]) for i in range(v_cnt)]
+
+            uv_data = None
+            if "TEXCOORD_0" in attrs:
+                _, uv_bytes = _extract_accessor_bytes(src_gltf, src_bin, attrs["TEXCOORD_0"])
+                if HAS_NUMPY:
+                    uv_data = np.frombuffer(uv_bytes, dtype=np.float32).reshape(v_cnt, 2).copy()
+                else:
+                    uf = struct.unpack(f"<{v_cnt * 2}f", uv_bytes)
+                    uv_data = [(uf[i * 2], uf[i * 2 + 1]) for i in range(v_cnt)]
+
+            ind_acc, ind_bytes = _extract_accessor_bytes(src_gltf, src_bin, prim["indices"])
+            i_cnt = ind_acc["count"]
+            i_ctype = ind_acc["componentType"]
             if HAS_NUMPY:
-                uv_data = np.frombuffer(uv_bytes, dtype=np.float32).reshape(v_cnt, 2).copy()
+                dt = np.uint16 if i_ctype == 5123 else (np.uint32 if i_ctype == 5125 else np.uint8)
+                ind_data = np.frombuffer(ind_bytes, dtype=dt).astype(np.uint32).copy()
             else:
-                uf = struct.unpack(f"<{v_cnt * 2}f", uv_bytes)
-                uv_data = [(uf[i * 2], uf[i * 2 + 1]) for i in range(v_cnt)]
+                fmt = f"<{i_cnt}H" if i_ctype == 5123 else f"<{i_cnt}I"
+                ind_data = list(struct.unpack(fmt, ind_bytes))
 
-        ind_acc, ind_bytes = _extract_accessor_bytes(src_gltf, src_bin, prim["indices"])
-        i_cnt = ind_acc["count"]
-        i_ctype = ind_acc["componentType"]
-        if HAS_NUMPY:
-            dt = np.uint16 if i_ctype == 5123 else (np.uint32 if i_ctype == 5125 else np.uint8)
-            ind_data = np.frombuffer(ind_bytes, dtype=dt).astype(np.uint32).copy()
-        else:
-            fmt = f"<{i_cnt}H" if i_ctype == 5123 else f"<{i_cnt}I"
-            ind_data = list(struct.unpack(fmt, ind_bytes))
-
-        prim_raw_list.append({
-            "pos": pos_np if HAS_NUMPY else pos_lst,
-            "norm": norm_data,
-            "uv": uv_data,
-            "ind": ind_data,
-            "material": prim.get("material", 0),
-        })
+            prim_raw_list.append({
+                "pos": pos_np if HAS_NUMPY else pos_lst,
+                "norm": norm_data,
+                "uv": uv_data,
+                "ind": ind_data,
+                "material": prim.get("material", 0),
+            })
 
     # Compute unified bounding box across all primitives of the character mesh
     if HAS_NUMPY:
@@ -2835,6 +3071,19 @@ def rig_glb_to_skate3(
     z_mid = 0.5 * float(g_min[2] + g_max[2])
     y_min_raw = float(g_min[1])
 
+    # Pre-conform all normalized positions together so A-pose forearm detection uses the whole body
+    if HAS_NUMPY:
+        combined_norm = np.empty_like(combined_pos)
+        combined_norm[:, 0] = (combined_pos[:, 0] - x_mid) * scale_factor
+        combined_norm[:, 1] = np.maximum(0.0, (combined_pos[:, 1] - y_min_raw) * scale_factor)
+        combined_norm[:, 2] = (combined_pos[:, 2] - z_mid) * scale_factor
+        combined_conformed = conform_arms_to_skate3_apose(combined_norm, skeleton_metrics=skeleton_metrics)
+        slice_cursor = 0
+        for p_info in prim_raw_list:
+            vc_p = p_info["pos"].shape[0]
+            p_info["pos_conformed_180"] = combined_conformed[slice_cursor : slice_cursor + vc_p]
+            slice_cursor += vc_p
+
     out_bvs: List[Dict[str, Any]] = []
     out_accs: List[Dict[str, Any]] = []
     out_bin = bytearray()
@@ -2849,12 +3098,7 @@ def rig_glb_to_skate3(
 
     for p_info in prim_raw_list:
         if HAS_NUMPY:
-            p_raw = p_info["pos"].astype(np.float64)
-            p_scaled = np.empty_like(p_raw)
-            p_scaled[:, 0] = (p_raw[:, 0] - x_mid) * scale_factor
-            p_scaled[:, 1] = np.maximum(0.0, (p_raw[:, 1] - y_min_raw) * scale_factor)
-            p_scaled[:, 2] = (p_raw[:, 2] - z_mid) * scale_factor
-            p_f32 = p_scaled.astype(np.float32)
+            p_f32 = p_info["pos_conformed_180"].astype(np.float32)
 
             san = normalize_and_sanitize_mesh(
                 p_f32,
@@ -2871,7 +3115,7 @@ def rig_glb_to_skate3(
             tris_final = san["triangles"]
             total_degen_removed += san["degenerate_triangles_removed"]
 
-            j0, w0 = compute_skate3_skin_weights(pos_final, rig_contract)
+            j0, w0 = compute_skate3_skin_weights(pos_final, rig_contract, skeleton_metrics=skeleton_metrics)
 
             v_cnt = pos_final.shape[0]
             pos_min = [float(x) for x in pos_final.min(axis=0)]
@@ -2975,7 +3219,7 @@ def rig_glb_to_skate3(
             uv_final = san["uvs"]
             ind_final = san["indices"]
             total_degen_removed += san["degenerate_triangles_removed"]
-            j0, w0 = compute_skate3_skin_weights(pos_final, rig_contract)
+            j0, w0 = compute_skate3_skin_weights(pos_final, rig_contract, skeleton_metrics=skeleton_metrics)
             v_cnt = len(pos_final)
 
             pos_flat = [c for pt in pos_final for c in pt]
@@ -3297,6 +3541,8 @@ def rig_glb_to_skate3(
         "input_glb_path": input_glb_path,
         "effective_source_glb_path": effective_src_path,
         "output_glb_path": output_glb_path,
+        "joint_count": 35,
+        "skeleton_metrics": skeleton_metrics,
         "vertex_count": vert_offset,
         "primitive_count": len(out_primitives),
         "degenerate_triangles_removed": total_degen_removed,
@@ -3721,7 +3967,223 @@ def build_all_skate3_deliverables() -> Dict[str, Any]:
     return report
 
 
+def write_skate3_part_and_update_pack_json(
+    glb_path: str,
+    char_id: str,
+    display_name: Optional[str] = None,
+) -> Dict[str, Any]:
+    """
+    Packages a rigged Skate 3 `.glb` into `/skate3_cleanroom/parts/char_<char_id>.part`
+    with the canonical 33-byte SKPK entry header (`\\x19\\x00\\x00\\x00assets/private/skater.glb` + `<Q` size)
+    and registers/updates `characters.<char_id>` in `/skate3_cleanroom/pack.json`.
+    """
+    if not os.path.isfile(glb_path):
+        raise FileNotFoundError(f"Rigged Skate 3 GLB missing at '{glb_path}'.")
+
+    slug = "".join(c.lower() if c.isalnum() else "_" for c in str(char_id)).strip("_") or "custom"
+    with open(glb_path, "rb") as gf:
+        glb_bytes = gf.read()
+
+    os.makedirs(SKATE3_PARTS_DIR, exist_ok=True)
+    part_rel = f"parts/char_{slug}.part"
+    part_abs = os.path.join(SKATE3_CLEANROOM_DIR, part_rel)
+    entry_path_bytes = b"assets/private/skater.glb"
+    header = struct.pack("<I", len(entry_path_bytes)) + entry_path_bytes + struct.pack("<Q", len(glb_bytes))
+    part_payload = header + glb_bytes
+    with open(part_abs, "wb") as pf:
+        pf.write(part_payload)
+
+    part_sha16 = hashlib.sha256(part_payload).hexdigest()[:16]
+    part_size = len(part_payload)
+
+    total_pack_size = part_size
+    for sib in ("parts/core_head.part", "parts/core_tail_0.part", "parts/core_tail_1.part"):
+        sib_abs = os.path.join(SKATE3_CLEANROOM_DIR, sib)
+        if os.path.isfile(sib_abs):
+            total_pack_size += os.path.getsize(sib_abs)
+
+    if os.path.isfile(SKATE3_PACK_JSON_PATH):
+        with open(SKATE3_PACK_JSON_PATH, "r", encoding="utf-8") as jf:
+            pack_data = json.load(jf)
+    else:
+        pack_data = {"version": 1, "characters": {}}
+
+    if "characters" not in pack_data or not isinstance(pack_data["characters"], dict):
+        pack_data["characters"] = {}
+
+    nice_name = display_name or slug.replace("_", " ").title()
+    pack_data["characters"][slug] = {
+        "name": nice_name,
+        "pack": f"core_{slug}.pack",
+        "parts": [
+            "parts/core_head.part",
+            part_rel,
+            "parts/core_tail_0.part",
+            "parts/core_tail_1.part",
+        ],
+        "size": total_pack_size,
+        "hash": part_sha16,
+    }
+    pack_data["default_char"] = slug
+    with open(SKATE3_PACK_JSON_PATH, "w", encoding="utf-8") as jf:
+        json.dump(pack_data, jf, indent=2)
+        jf.write("\n")
+
+    return {
+        "char_id": slug,
+        "part_path": part_abs,
+        "part_size_bytes": part_size,
+        "part_hash16": part_sha16,
+        "pack_json_path": SKATE3_PACK_JSON_PATH,
+        "total_pack_size_bytes": total_pack_size,
+    }
+
+
+def rig_assembled_glb_for_skate3(
+    glb_path: Optional[str] = None,
+    telemetry_path: Optional[str] = None,
+    char_id: Optional[str] = None,
+    bucket_name: Optional[str] = None,
+    player_name: Optional[str] = None,
+    player_id: Optional[str] = None,
+    run_id: Optional[str] = None,
+    output_dir: Optional[str] = None,
+    credentials_path: Optional[str] = None,
+    out_glb_path: Optional[str] = None,
+    precomputed_intake: Optional[Dict[str, Any]] = None,
+    sync_audit: bool = True,
+    return_sync_bundle: bool = False,
+) -> Dict[str, Any]:
+    """
+    Stage 5 `.glb`-agnostic Skate 3 rigger entrypoint (`INV-GCS-RIG-01`, `INV-NO-REASSEMBLE-01`):
+      1. Pulls and validates `03_meshes/assembled/character_full.glb` + `assembly_telemetry.json` from GCS (or local `--glb`),
+      2. Adaptively decimates (`> 22,000` tris -> `~16,000` tris) while preserving UV/material seams,
+      3. Rigs onto the 35-joint `Skate3_RX2_Rig` (`1.8000m` stature, 24 deform bones + 11 zero-weight sockets),
+      4. Verifies all 7 `.abin` animation maneuvers (`verify_skate3_glb`),
+      5. Packages `/skate3_cleanroom/parts/char_<char_id>.part` and updates `pack.json`,
+      6. Syncs `character_skate3_rigged.glb`, `char_<char_id>.part`, and `rig_telemetry.json` to
+         `gs://<bucket>/players/{player_slug}_{player_id}/runs/{run_id}/04_rigged/skate3/`.
+    """
+    t0 = time.perf_counter()
+    if precomputed_intake is not None:
+        intake = select_pose_intake(precomputed_intake, preferred_pose="apose", target_game="skate3")
+    else:
+        intake = intake_assembled_character_for_rigging(
+            glb_path=glb_path,
+            telemetry_path=telemetry_path,
+            char_id=char_id,
+            bucket_name=bucket_name,
+            player_name=player_name,
+            player_id=player_id,
+            run_id=run_id,
+            output_dir=output_dir,
+            credentials_path=credentials_path,
+            preferred_pose="apose",
+            target_game="skate3",
+        )
+    resolved_char_id = intake["char_id"]
+    local_in_glb = intake["local_glb_path"]
+    local_out_glb = os.path.abspath(
+        out_glb_path
+        or os.path.join(WORKSPACE_DIR, f"{resolved_char_id.upper()}_SKATE3_RIGGED.glb")
+    )
+
+    build_res = rig_glb_to_skate3(
+        input_glb_path=local_in_glb,
+        output_glb_path=local_out_glb,
+        target_height=TARGET_STATURE_M,
+        preserve_all_vertices=False,
+        enforce_size_budget=True,
+        character_name=resolved_char_id.upper(),
+        skeleton_metrics=intake.get("skeleton_metrics"),
+    )
+    audit_res = verify_skate3_glb(
+        local_out_glb,
+        baseline_size_bytes=intake["preflight"]["size_bytes"],
+    )
+    if not audit_res["passed"]:
+        raise RuntimeError(
+            f"Skate3_RX2_Rig verification failed for '{local_out_glb}': "
+            f"orphans={audit_res['orphan_vertex_count']}, "
+            f"socket_w={audit_res['non_deform_socket_weight_sum']}, "
+            f"stature={audit_res['stature_m']}, "
+            f"drift_mm={audit_res['rest_pose_max_drift_mm']}"
+        )
+
+    part_res = write_skate3_part_and_update_pack_json(
+        glb_path=local_out_glb,
+        char_id=resolved_char_id,
+        display_name=player_name or resolved_char_id.title(),
+    )
+
+    # Also copy to `character_skate3_rigged.glb` in output_dir/rigged/skate3 for canonical Stage 5 GCS naming
+    stage5_dir = os.path.join(intake["output_dir"], "rigged", "skate3")
+    os.makedirs(stage5_dir, exist_ok=True)
+    canonical_stage5_glb = os.path.join(stage5_dir, "character_skate3_rigged.glb")
+    if os.path.abspath(local_out_glb) != os.path.abspath(canonical_stage5_glb):
+        shutil.copy2(local_out_glb, canonical_stage5_glb)
+
+    total_elapsed = round(time.perf_counter() - t0, 4)
+    telemetry_payload: Dict[str, Any] = {
+        "status": "SUCCESS",
+        "specification": "functional_specification_061",
+        "rig_name": "Skate3_RX2_Rig",
+        "joint_count": 35,
+        "deforming_humanoid_joints_count": 24,
+        "non_deforming_socket_joints_count": 11,
+        "local_rigged_glb_path": local_out_glb,
+        "part_packaging": part_res,
+        "build_summary": build_res,
+        "verification_audit": audit_res,
+        "head_bounds_2m": intake["head_bounds_norm"],
+        "total_elapsed_sec": total_elapsed,
+    }
+
+    sync_res = sync_target_rigged_deliverables(
+        intake_info=intake,
+        target_game="skate3",
+        deliverables=[
+            ("rigged_glb", canonical_stage5_glb, "model/gltf-binary"),
+            ("cleanroom_part", part_res["part_path"], "application/octet-stream"),
+        ],
+        telemetry_payload=telemetry_payload,
+        sync_audit=sync_audit,
+    )
+    return sync_res if return_sync_bundle else sync_res["telemetry"]
+
+
 def main() -> None:
+    parser = argparse.ArgumentParser(
+        description="Stage 5 .glb-agnostic Skate 3 (Skate3_RX2_Rig) automated rigger."
+    )
+    add_gcs_rig_cli_args(parser)
+    parser.add_argument("--out-glb", default=None, help="Optional output .glb path override.")
+    args = parser.parse_args()
+
+    if args.glb or (args.player_name and args.player_id and args.run_id):
+        tel = rig_assembled_glb_for_skate3(
+            glb_path=args.glb,
+            telemetry_path=args.telemetry,
+            char_id=args.char_id,
+            bucket_name=args.gcs_bucket,
+            player_name=args.player_name,
+            player_id=args.player_id,
+            run_id=args.run_id,
+            output_dir=args.output_dir,
+            credentials_path=args.gcs_credentials,
+            out_glb_path=args.out_glb,
+        )
+        va = tel["verification_audit"]
+        print(
+            f"[OK] Skate 3 Rigged ({tel['char_id']}): {va['total_vertices']} verts, "
+            f"{va['primitive_count']} prims, 35 joints, stature={va['stature_m']}m, "
+            f"drift={va['rest_pose_max_drift_mm']}mm, part={tel['part_packaging']['part_path']}, "
+            f"elapsed={tel['total_elapsed_sec']}s"
+        )
+        if tel.get("gcs_rigged_uris"):
+            print(f"[OK] Synced to GCS: {json.dumps(tel['gcs_rigged_uris'], indent=2)}")
+        return
+
     report = build_all_skate3_deliverables()
     p_audit = report["deliverables"]["PLATODOOM_SKATE3_RIGGED.glb"]
     l_audit = report["deliverables"]["LUIS_SKATE3_RIGGED.glb"]

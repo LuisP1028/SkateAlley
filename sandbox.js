@@ -1,15 +1,15 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { TransformControls } from 'three/addons/controls/TransformControls.js';
-import { buildMathHologramPods, HOLO_POD_PALETTE, HOLO_POD_SPECS } from './math_pods.js?v=074';
-import { WALK_THROUGH_GLITCH_SPEC, evaluatePodWalkThroughGlitch } from './math_pods.js?v=074';
+import { buildMathHologramPods, HOLO_POD_PALETTE, HOLO_POD_SPECS } from './math_pods.js?v=090';
+import { WALK_THROUGH_GLITCH_SPEC, evaluatePodWalkThroughGlitch } from './math_pods.js?v=090';
 import {
   createMathPodPopupManager,
   MathPodPopupCallout,
   MATHPOD_CALLOUT_PROFILES,
   CALLOUT_PALETTE_THEMES,
   UNIVERSAL_ASSET_CALLOUT_PRESETS,
-} from './mathpod_popup.js?v=058';
+} from './mathpod_popup.js?v=090';
 import {
   buildWaterColorGallerySystem,
   buildWaterColorSkyboxSystem,
@@ -23,7 +23,7 @@ import {
   normalizePortalGameEntry,
   resolvePortalGameSpec,
   solvePortalGameGridLayout,
-} from './watercolor_shader.js?v=082';
+} from './watercolor_shader.js?v=090';
 import {
   BINARY_TRAIL_PALETTE,
   RUNNING_EFFECTS_SPEC,
@@ -43,7 +43,7 @@ import {
   OVERHEAD_CABLE_SCHEDULE,
   evaluateOverheadCableCatenaryPoint,
   buildOverheadHangingCablesSubsystem,
-} from './alley_atmosphere_023.js?v=075';
+} from './alley_atmosphere_023.js?v=076';
 import {
   RadialMenu,
   createCyberRadialMenuHUD,
@@ -74,6 +74,7 @@ import {
 } from './radial_menu_hud.js?v=047';
 import {
   buildHologramColumnsSystem,
+  HOLO_COLUMNS_STORAGE_KEY,
   HOLO_MEDIA_MANIFEST,
   HOLO_MEDIA_BY_ID,
   HOLO_CAROUSEL_DEFAULT_SLIDES,
@@ -95,7 +96,7 @@ import {
   HologramColumnInstance,
   HoloVideoStreamController,
   HoloScrollableDocumentController,
-} from './hologram_columns.js?v=084';
+} from './hologram_columns.js?v=092';
 
 import {
   STICKER_ASSET_MANIFEST,
@@ -168,7 +169,7 @@ import {
 } from './alley_metal_pipes.js?v=074';
 import {
   buildSceneCutterSubsystem,
-} from './scene_cutter.js?v=076';
+} from './scene_cutter.js?v=090';
 import {
   createDoomTracksMp3HUD,
   DOOM_TRACKS_DEFAULT_CATALOG,
@@ -182,7 +183,12 @@ import {
   processMp3ChassisBitmap,
   drawTechnoVectorText,
   measureTechnoVectorText,
-} from './doom_tracks_mp3_hud.js?v=088';
+} from './doom_tracks_mp3_hud.js?v=092';
+
+const IS_DEV_MODE =
+  typeof window !== 'undefined' &&
+  Boolean(window.location) &&
+  new URLSearchParams(window.location.search || '').get('dev') === '1';
 
 // ============================================================================
 // Constants & Deterministic Configuration (functional_specification_013 & 014)
@@ -192,8 +198,9 @@ const ASSET_PATHS = {
   alarmLight: './alarm_light.glb',
   alleyPipes: './assets/pipes/alley_metal_pipes.glb?v=051',
   villainySign: './villainy_inc_textured.glb?v=045',
-  hoodie: './character_hoodie.glb?v=050',
-  hoodieColor: './character_hoodie.glb?v=050',
+  hoodie: './character_hoodie.glb?v=051',
+  hoodieColor: './character_hoodie.glb?v=051',
+  nicotest: './characters/nicotest.glb?v=051',
 };
 
 // ============================================================================
@@ -415,6 +422,14 @@ const GLB_VARIANT_CATALOG = {
     defaultHoloShader: false,
     baseColor: 0xe2e8f0,
   },
+  nicotest_color: {
+    key: 'nicotest_color',
+    label: 'characters/nicotest.glb (Nico Rigged)',
+    url: ASSET_PATHS.nicotest,
+    characterSlot: 'hoodie',
+    defaultHoloShader: false,
+    baseColor: 0xe2e8f0,
+  },
 };
 
 const REQUIRED_COLLIDER_NAMES = [
@@ -545,7 +560,7 @@ const ONCE_STATES = new Set([
 ]);
 
 // ============================================================================
-// Scroll-Driven Holographic Project Stations & Bound Wall Mounts (Spec 014 §2)
+// Scroll-Driven Holographic Project Stations & Bound Wall Mounts (Spec 014 §2 & Spec 065 §5.1)
 // ============================================================================
 const HOLO_PROJECT_STATIONS = [
   {
@@ -560,11 +575,11 @@ const HOLO_PROJECT_STATIONS = [
     mountedRotationY: Math.PI / 2,
     mountedRotationDeg: 90,
     startProgress: 0.05,
-    endProgress: 0.18,
-    kicker: 'STATION 01 // OBJ-200 • GRAPHRAG POLICY ENGINE',
-    title: 'Lymphemeda Treatment Act Medicare Qualifications Chatbot',
+    endProgress: 0.16,
+    kicker: 'STATION 01 // GRAPHRAG POLICY ENGINE',
+    title: 'GRAPHRAG POLICY ENGINE',
     description:
-      'GraphRAG LLM for Lymphemeda Treatment Act Medicare Qualifications.',
+      'GRAPHRAG LLM for Lymphemeda Treatment Act Medicare Qualifications. Made as a tool for a friend working at a Durable Medical Goods company. Hi Eli!',
     tags: ['OBJ-200', 'GraphRAG LLM', '8-Hop Lineage', '17 Cat / 18 Edge'],
     metrics: [
       { value: '8-Hop', label: 'Lineage' },
@@ -591,10 +606,10 @@ const HOLO_PROJECT_STATIONS = [
     expectedNormalX: -1.0,
     mountedRotationY: -Math.PI / 2,
     mountedRotationDeg: -90,
-    startProgress: 0.21,
-    endProgress: 0.34,
-    kicker: 'STATION 02 // OBJ-04 • FINETUNED PERSONA ENGINE',
-    title: 'EVIL DIGITAL TWIN',
+    startProgress: 0.19,
+    endProgress: 0.30,
+    kicker: 'STATION 02 // DIGITAL TWIN PERSONA',
+    title: 'DIGITAL TWIN PERSONA',
     description:
       'Digital persona finetuned on philosophy and MF DOOM, with Twitter and LinkedIn accounts.',
     tags: ['OBJ-04', 'Philosophy + MF DOOM', 'Finetuned LLM', 'Twitter & LinkedIn'],
@@ -623,15 +638,15 @@ const HOLO_PROJECT_STATIONS = [
     expectedNormalX: 1.0,
     mountedRotationY: Math.PI / 2,
     mountedRotationDeg: 90,
-    startProgress: 0.37,
-    endProgress: 0.50,
-    kicker: 'STATION 03 // OBJ-01 • QUANTITATIVE ECONOMETRICS',
-    title: 'STATE SPACE MODEL WITH BAYESIAN INFERENCE',
+    startProgress: 0.33,
+    endProgress: 0.44,
+    kicker: 'STATION 03 // QUANTITATIVE MODELING AND STATISTICAL ARBITRAGE',
+    title: 'QUANTITATIVE MODELING AND STATISTICAL ARBITRAGE',
     description:
-      'Bayesian state space model of mean reverting, cointegrated financial assets.',
-    tags: ['OBJ-01', 'Bayesian SSM', 'Ornstein-Uhlenbeck', 'Cointegration'],
+      'Bayesian state space model of mean reverting, cointegrated financial assets. The model passed a $50,000 TopStepXFA application. See video for details.',
+    tags: ['Bayesian SSM', '$50K TopStepXFA', 'Mean Reversion', 'Cointegration'],
     metrics: [
-      { value: '4.2', label: 'OU Kappa' },
+      { value: '$50K', label: 'TopStepXFA' },
       { value: 'p < 0.05', label: 'ADF Test' },
       { value: '9', label: 'HMM Regimes' },
     ],
@@ -646,9 +661,44 @@ const HOLO_PROJECT_STATIONS = [
     },
   },
   {
-    id: 'proj-04',
+    id: 'proj-07',
     index: 4,
     code: '04',
+    mountName: 'SCREEN_MOUNT_07',
+    isProceduralLocator: true,
+    wallSide: 'R',
+    expectedZ: 16.35,
+    expectedY: 1.75,
+    expectedNormalX: -1.0,
+    mountedRotationY: -Math.PI / 2,
+    mountedRotationDeg: -90,
+    startProgress: 0.46,
+    endProgress: 0.56,
+    kicker: 'REJECTION STATION // MACHINE LEARNING',
+    title: 'REJECTION STATION // MACHINE LEARNING',
+    description:
+      'Applying feature engineering and high-dimensional embeddings to train models for classification, regression, clustering, and anomaly detection. Built and deployed a Hugging Face resume classifier that extracts 1,024-dimensional feature vectors from a frozen bge-large-en-v1.5 backbone and dynamically swaps lightweight Linear SVM heads (LinearSVC) to evaluate candidates across 9 distinct job roles.',
+    canvasSummary:
+      'Applying feature engineering and high-dimensional embeddings for classification, regression, clustering & anomaly detection. Built a Hugging Face resume classifier extracting 1,024-D bge-large-en-v1.5 vectors across 9 dynamic LinearSVC role heads.',
+    canvasInspectCue: '[PRESS E OR CLICK — READ "WHAT THE HELL DOES THIS MEAN, LUIS?"]',
+    narrativeCallout: {
+      heading: 'What the hell does this mean, Luis?',
+      body:
+        'I cold emailed the CEO of a data analytics company asking for a job and was redirected to their talent acquisition team. The talent acquisition team rejected my application within minutes, so I built a resume scanner using classical machine learning, and sent it back to them within the hour. I found one of the people in charge of talent acquisition through LinkedIn, and they were a film major from NYU. Talent Acquisition is very likely hiding really good engineers from you. MAKE IT MAKE SENSE!',
+    },
+    tags: ['bge-large-en-v1.5', '1,024-D Embeddings', 'LinearSVC Heads', '9 Job Roles'],
+    metrics: [
+      { value: '1,024-D', label: 'BGE Vectors' },
+      { value: '9 Roles', label: 'LinearSVC' },
+      { value: '< 1 Hr', label: 'Turnaround' },
+    ],
+    primaryLink: null,
+    secondaryLink: null,
+  },
+  {
+    id: 'proj-04',
+    index: 5,
+    code: '05',
     mountName: 'SCREEN_MOUNT_04',
     wallSide: 'R',
     expectedZ: 20.00,
@@ -656,31 +706,25 @@ const HOLO_PROJECT_STATIONS = [
     expectedNormalX: -1.0,
     mountedRotationY: -Math.PI / 2,
     mountedRotationDeg: -90,
-    startProgress: 0.53,
-    endProgress: 0.66,
-    kicker: 'STATION 04 // QUANTITATIVE MACRO & AI POLICY ENGINE',
-    title: 'Lag-Policy Engine & Bartending AI Systems',
+    startProgress: 0.59,
+    endProgress: 0.70,
+    kicker: 'STATION 04 // AI DATA ANALYTICS DASHBOARDS AND ALIGNMENT RESEARCH',
+    title: 'STATION 04 // AI DATA ANALYTICS DASHBOARDS AND ALIGNMENT RESEARCH',
     description:
-      'Production-hosted quantitative macro lag-policy engine and full-stack AI cocktail mixology platform running live on the dedicated Server Mac cluster with zero-config HTTPS Cloudflare tunnels.',
-    tags: ['Lag-Policy Engine', 'Bartending AI', 'Server Mac Cluster', 'Cloudflare HTTPS'],
+      'Turning structured/unstructured datasets into live analytics and structured context to guide, coordinate, and align autonomous agent swarms.',
+    tags: ['Live Analytics', 'Structured Context', 'Agent Swarms', 'Alignment Research'],
     metrics: [
-      { value: 'Live', label: 'HTTPS Tunnels' },
-      { value: '100%', label: 'Self-Hosted' },
-      { value: 'SHA-256', label: 'Verified' },
+      { value: 'Live', label: 'Analytics' },
+      { value: 'Swarm', label: 'Coordination' },
+      { value: 'Aligned', label: 'Context' },
     ],
-    primaryLink: {
-      label: 'Launch Lag-Policy Showcase',
-      url: 'https://luisp1028.github.io/lag-policy-engine-showcase/',
-    },
-    secondaryLink: {
-      label: 'Launch Bartending AI App',
-      url: 'https://luisp1028.github.io/Bartending/',
-    },
+    primaryLink: null,
+    secondaryLink: null,
   },
   {
     id: 'proj-05',
-    index: 5,
-    code: '05',
+    index: 6,
+    code: '06',
     mountName: 'SCREEN_MOUNT_05',
     wallSide: 'R',
     expectedZ: 26.00,
@@ -688,31 +732,25 @@ const HOLO_PROJECT_STATIONS = [
     expectedNormalX: -1.0,
     mountedRotationY: -Math.PI / 2,
     mountedRotationDeg: -90,
-    startProgress: 0.69,
-    endProgress: 0.81,
-    kicker: 'STATION 05 // DIEGETIC AUDIO & DOOM TRACKS DECK',
-    title: 'SYS-990-AMBER MP3 Deck & Procedural Spray Loader',
+    startProgress: 0.73,
+    endProgress: 0.84,
+    kicker: 'STATION 05 // GENERATIVE PIPELINES',
+    title: 'STATION 05 // GENERATIVE PIPELINES',
     description:
-      'Interactive hardware-cropped MP3 audio deck with real-time WebAudio FFT spectrum visualization, 3D spatial footsteps, and a 60 FPS particle-choreographed PLATO DOOM spray-paint intro.',
-    tags: ['WebAudio FFT', 'SYS-990-AMBER', 'Spray-Paint Intro', 'Fail-Fast Audit'],
+      'Feeding extracted data and context into chained AI models to automate content production, code generation, and workflow execution.',
+    tags: ['Chained AI Models', 'Content Production', 'Code Generation', 'Workflow Execution'],
     metrics: [
-      { value: '1:1', label: 'Scene Bridge' },
-      { value: '0', label: 'Console Errors' },
-      { value: 'Live', label: 'Telemetry' },
+      { value: 'Chained', label: 'AI Models' },
+      { value: 'Auto', label: 'Code & Media' },
+      { value: 'E2E', label: 'Pipelines' },
     ],
-    primaryLink: {
-      label: 'Read DOOM TRACKS Spec 035',
-      url: './functional_specification_035.md',
-    },
-    secondaryLink: {
-      label: 'Read Spray-Paint Spec',
-      url: './spray_paint.md',
-    },
+    primaryLink: null,
+    secondaryLink: null,
   },
   {
     id: 'proj-06',
-    index: 6,
-    code: '06',
+    index: 7,
+    code: '07',
     mountName: 'SCREEN_MOUNT_06',
     wallSide: 'R',
     expectedZ: 32.00,
@@ -720,38 +758,33 @@ const HOLO_PROJECT_STATIONS = [
     expectedNormalX: -1.0,
     mountedRotationY: -Math.PI / 2,
     mountedRotationDeg: -90,
-    startProgress: 0.84,
-    endProgress: 0.95,
-    kicker: 'STATION 06 // HYBRID STATIC PAGES & SERVER MAC DEPLOY',
-    title: 'Freeman Alley Interactive Free-Roam & Dual-Host Architecture',
+    startProgress: 0.86,
+    endProgress: 0.96,
+    kicker: 'STATION 06 // MULTI-MODAL DEEP LEARNING',
+    title: 'STATION 06 // MULTI-MODAL DEEP LEARNING',
     description:
-      'Bidirectional scroll-driven corridor walk and WASD free-roam sandbox deployed simultaneously across GitHub Static Pages and the dedicated Server SSH Mac cluster.',
-    tags: ['Scrolly-Walk', 'Wall Mount Focus', '360° Orbit', 'Dual-Host Architecture'],
+      'Working with diverse open-source deep learning models (Transformers, CNNs, Autoencoders, and Diffusion) for tasks ranging from anomaly detection and unstructured data mining to computer vision, audio cloning, and 3D synthesis.',
+    tags: ['Transformers & CNNs', 'Autoencoders', 'Diffusion & 3D', 'Audio Cloning'],
     metrics: [
-      { value: '6 / 6', label: 'Wall Mounts' },
-      { value: '360°', label: 'Camera Orbit' },
-      { value: '26 Tris', label: 'Collider Cage' },
+      { value: 'Vision', label: 'CNNs & ViT' },
+      { value: 'Audio', label: 'Voice Clone' },
+      { value: '3D', label: 'Diffusion' },
     ],
-    primaryLink: {
-      label: 'View Deployment Spec 037',
-      url: './functional_specification_037.md',
-    },
-    secondaryLink: {
-      label: 'Inspect Sandbox Runtime',
-      url: './sandbox.js',
-    },
+    primaryLink: null,
+    secondaryLink: null,
   },
 ];
 
 // Monotonic corridor knots mapping each station's endProgress to its exact SCREEN_MOUNT_0X Z coordinate
 const CORRIDOR_PROGRESS_KNOTS = [
   { p: 0.00, z: 3.00 },
-  { p: 0.18, z: 5.00 },
-  { p: 0.34, z: 10.00 },
-  { p: 0.50, z: 15.00 },
-  { p: 0.66, z: 20.00 },
-  { p: 0.81, z: 26.00 },
-  { p: 0.95, z: 32.00 },
+  { p: 0.16, z: 5.00 },
+  { p: 0.30, z: 10.00 },
+  { p: 0.44, z: 15.00 },
+  { p: 0.56, z: 16.35 },
+  { p: 0.70, z: 20.00 },
+  { p: 0.84, z: 26.00 },
+  { p: 0.96, z: 32.00 },
   { p: 1.00, z: SCROLL_TERMINAL_Z },
 ];
 
@@ -1371,6 +1404,14 @@ function adaptSharedClipsForSkate3Rig(sharedClips, root, bonesByName) {
 function raiseFatalError(message) {
   const banner = typeof document !== 'undefined' ? document.getElementById('fatal-error-banner') : null;
   const badge = typeof document !== 'undefined' ? document.getElementById('hud-status-badge') : null;
+  const sprayOverlay =
+    typeof document !== 'undefined' ? document.getElementById('spray-paint-loader-overlay') : null;
+  if (typeof window !== 'undefined' && window.sprayPaintLoader && typeof window.sprayPaintLoader.pause === 'function') {
+    window.sprayPaintLoader.pause();
+  }
+  if (sprayOverlay) {
+    sprayOverlay.classList.add('hidden');
+  }
   if (banner) {
     banner.style.display = 'block';
     banner.textContent = `FATAL ERROR: ${message}`;
@@ -1810,8 +1851,9 @@ function createProjectScreenTexture(st) {
   const rightEdge = W - 56; // 1224
 
   // 6. Header Zone (.holo-top-bar)
-  // 6a. Row 1 Left: Pill Badge "● WALL MOUNT // SCREEN_MOUNT_0X (0X OF 06)"
-  const badgeText = `WALL MOUNT // ${st.mountName} (${st.code} OF 06)`;
+  // 6a. Row 1 Left: Pill Badge "● WALL MOUNT // SCREEN_MOUNT_0X (0X OF 07)"
+  const totalStationsCode = String(HOLO_PROJECT_STATIONS.length).padStart(2, '0');
+  const badgeText = `WALL MOUNT // ${st.mountName} (${st.code} OF ${totalStationsCode})`;
   ctx.font = 'bold 15px ui-monospace, SFMono-Regular, Menlo, monospace';
   const badgeTextW = ctx.measureText(badgeText).width;
   const pillX = padX;
@@ -1931,19 +1973,19 @@ function createProjectScreenTexture(st) {
 
   // 7a. Left Column — Kicker
   ctx.save();
-  ctx.font = 'bold 16px ui-monospace, SFMono-Regular, Menlo, monospace';
+  ctx.font = 'bold 15px ui-monospace, SFMono-Regular, Menlo, monospace';
   ctx.fillStyle = '#fbbf24';
   ctx.shadowColor = 'rgba(245, 158, 11, 0.70)';
   ctx.shadowBlur = 10;
   ctx.textAlign = 'left';
   ctx.textBaseline = 'alphabetic';
-  ctx.fillText(st.kicker, leftX, 214);
+  ctx.fillText(st.kicker, leftX, 204);
   ctx.restore();
 
   // 7b. Left Column — Multi-Line Station Title
   ctx.save();
-  const titleFontSize = st.title.length > 42 ? 34 : 38;
-  const titleLineHeight = st.title.length > 42 ? 40 : 45;
+  const titleFontSize = st.title.length > 52 ? 28 : st.title.length > 38 ? 33 : 38;
+  const titleLineHeight = st.title.length > 52 ? 34 : st.title.length > 38 ? 39 : 44;
   ctx.font = `800 ${titleFontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
   ctx.fillStyle = '#fffbeb';
   ctx.shadowColor = 'rgba(245, 158, 11, 0.75)';
@@ -1951,41 +1993,67 @@ function createProjectScreenTexture(st) {
   ctx.textAlign = 'left';
   ctx.textBaseline = 'alphabetic';
   const titleLines = wrapCanvasTextLines(ctx, st.title, leftW, 2);
-  let curTitleY = 264;
+  let curTitleY = 248;
   for (let i = 0; i < titleLines.length; i++) {
     ctx.fillText(titleLines[i], leftX, curTitleY + i * titleLineHeight);
   }
   ctx.restore();
 
-  // 7c. Left Column — Description Paragraph
-  const descStartY = 264 + (titleLines.length - 1) * titleLineHeight + 44;
+  // 7c. Left Column — Description Paragraph (up to 5 lines, or 4-line summary + amber inspect cue)
+  const descStartY = curTitleY + (titleLines.length - 1) * titleLineHeight + 38;
+  const canvasBodyCopy = st.canvasSummary || st.description;
+  const maxBodyLines = st.canvasInspectCue ? 4 : 5;
   ctx.save();
-  ctx.font = '500 19.5px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+  ctx.font = '500 18.5px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
   ctx.fillStyle = '#fef3c7';
   ctx.shadowColor = 'rgba(0, 0, 0, 0.90)';
   ctx.shadowBlur = 6;
   ctx.textAlign = 'left';
   ctx.textBaseline = 'alphabetic';
-  const descLines = wrapCanvasTextLines(ctx, st.description, leftW, 3);
-  const descLineHeight = 30;
+  const descLines = wrapCanvasTextLines(ctx, canvasBodyCopy, leftW, maxBodyLines);
+  const descLineHeight = 27;
   for (let i = 0; i < descLines.length; i++) {
     ctx.fillText(descLines[i], leftX, descStartY + i * descLineHeight);
   }
   ctx.restore();
 
-  // 7d. Left Column — Technology Tag Chips (1–2 wrapped rows, Spec 036 §7.2)
+  let postBodyBottomY = descStartY + Math.max(0, descLines.length - 1) * descLineHeight;
+  if (st.canvasInspectCue) {
+    const cueY = postBodyBottomY + 16;
+    const cueH = 30;
+    ctx.save();
+    ctx.font = 'bold 13px ui-monospace, SFMono-Regular, Menlo, monospace';
+    const cueW = Math.min(leftW, Math.ceil(ctx.measureText(st.canvasInspectCue).width + 24));
+    ctx.fillStyle = 'rgba(217, 119, 6, 0.34)';
+    ctx.strokeStyle = 'rgba(251, 191, 36, 0.92)';
+    ctx.lineWidth = 1.5;
+    ctx.shadowColor = 'rgba(245, 158, 11, 0.45)';
+    ctx.shadowBlur = 10;
+    drawRoundedRectPath(ctx, leftX, cueY, cueW, cueH, 6);
+    ctx.fill();
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = '#fffbeb';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(st.canvasInspectCue, leftX + 12, cueY + cueH * 0.5 + 1);
+    ctx.restore();
+    postBodyBottomY = cueY + cueH - 6;
+  }
+
+  // 7d. Left Column — Technology Tag Chips (dynamically positioned below wrapped description/cue)
   let tagX = leftX;
-  let tagY = descStartY + (descLines.length - 1) * descLineHeight + 24;
-  const chipH = 32;
+  let tagY = postBodyBottomY + 20;
+  const chipH = 30;
   ctx.save();
-  ctx.font = '600 15px ui-monospace, SFMono-Regular, Menlo, monospace';
+  ctx.font = '600 14.5px ui-monospace, SFMono-Regular, Menlo, monospace';
   ctx.textAlign = 'left';
   ctx.textBaseline = 'middle';
   for (const tag of st.tags) {
-    const tw = Math.ceil(ctx.measureText(tag).width + 24);
+    const tw = Math.ceil(ctx.measureText(tag).width + 22);
     if (tagX + tw > leftX + leftW && tagX > leftX) {
       tagX = leftX;
-      tagY += chipH + 10;
+      tagY += chipH + 8;
     }
     ctx.fillStyle = 'rgba(68, 30, 6, 0.78)';
     ctx.strokeStyle = 'rgba(245, 158, 11, 0.68)';
@@ -1995,7 +2063,7 @@ function createProjectScreenTexture(st) {
     ctx.stroke();
 
     ctx.fillStyle = '#fde68a';
-    ctx.fillText(tag, tagX + 12, tagY + chipH * 0.5 + 1);
+    ctx.fillText(tag, tagX + 11, tagY + chipH * 0.5 + 1);
     tagX += tw + 10;
   }
   ctx.restore();
@@ -2004,7 +2072,9 @@ function createProjectScreenTexture(st) {
   const rightPanelX = 732;
   const rightPanelW = rightEdge - rightPanelX; // 492
   const panelY = 252;
-  const panelH = 294;
+  const hasPrimaryCta = Boolean(st.primaryLink && st.primaryLink.label);
+  const hasSecondaryCta = Boolean(st.secondaryLink && st.secondaryLink.label);
+  const panelH = hasPrimaryCta && hasSecondaryCta ? 294 : hasPrimaryCta || hasSecondaryCta ? 216 : 126;
 
   ctx.save();
   ctx.fillStyle = 'rgba(28, 12, 2, 0.74)';
@@ -2042,52 +2112,48 @@ function createProjectScreenTexture(st) {
     ctx.fillText(m.label.toUpperCase(), bx + metricBoxW * 0.5, metricBoxY + 60);
   });
 
-  // Primary CTA Button (a.holo-link-btn)
+  // Primary CTA Button (a.holo-link-btn) — rendered only when primaryLink is assigned
   const cta1Y = metricBoxY + metricBoxH + 20; // 374
   const cta1H = 54;
-  const cta1Grad = ctx.createLinearGradient(innerX, 0, innerX + innerW, 0);
-  cta1Grad.addColorStop(0.0, 'rgba(217, 119, 6, 0.62)');
-  cta1Grad.addColorStop(1.0, 'rgba(180, 83, 9, 0.62)');
-  ctx.fillStyle = cta1Grad;
-  ctx.strokeStyle = 'rgba(252, 211, 77, 0.88)';
-  ctx.lineWidth = 1.5;
-  drawRoundedRectPath(ctx, innerX, cta1Y, innerW, cta1H, 10);
-  ctx.fill();
-  ctx.stroke();
+  if (hasPrimaryCta) {
+    const cta1Grad = ctx.createLinearGradient(innerX, 0, innerX + innerW, 0);
+    cta1Grad.addColorStop(0.0, 'rgba(217, 119, 6, 0.62)');
+    cta1Grad.addColorStop(1.0, 'rgba(180, 83, 9, 0.62)');
+    ctx.fillStyle = cta1Grad;
+    ctx.strokeStyle = 'rgba(252, 211, 77, 0.88)';
+    ctx.lineWidth = 1.5;
+    drawRoundedRectPath(ctx, innerX, cta1Y, innerW, cta1H, 10);
+    ctx.fill();
+    ctx.stroke();
 
-  ctx.fillStyle = '#fffbeb';
-  ctx.font = 'bold 17.5px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-  ctx.textAlign = 'left';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(
-    st.primaryLink ? st.primaryLink.label : 'Launch Environment Spec',
-    innerX + 18,
-    cta1Y + cta1H * 0.5 + 1
-  );
-  ctx.textAlign = 'right';
-  ctx.fillText('↗', innerX + innerW - 18, cta1Y + cta1H * 0.5 + 1);
+    ctx.fillStyle = '#fffbeb';
+    ctx.font = 'bold 17.5px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(st.primaryLink.label, innerX + 18, cta1Y + cta1H * 0.5 + 1);
+    ctx.textAlign = 'right';
+    ctx.fillText('↗', innerX + innerW - 18, cta1Y + cta1H * 0.5 + 1);
+  }
 
-  // Secondary CTA Button (a.holo-link-btn.secondary)
-  const cta2Y = cta1Y + cta1H + 12; // 440
-  const cta2H = 48;
-  ctx.fillStyle = 'rgba(68, 30, 6, 0.50)';
-  ctx.strokeStyle = 'rgba(245, 158, 11, 0.58)';
-  ctx.lineWidth = 1.5;
-  drawRoundedRectPath(ctx, innerX, cta2Y, innerW, cta2H, 10);
-  ctx.fill();
-  ctx.stroke();
+  // Secondary CTA Button (a.holo-link-btn.secondary) — rendered only when secondaryLink is assigned
+  if (hasSecondaryCta) {
+    const cta2Y = hasPrimaryCta ? cta1Y + cta1H + 12 : cta1Y; // 440 when both exist
+    const cta2H = 48;
+    ctx.fillStyle = 'rgba(68, 30, 6, 0.50)';
+    ctx.strokeStyle = 'rgba(245, 158, 11, 0.58)';
+    ctx.lineWidth = 1.5;
+    drawRoundedRectPath(ctx, innerX, cta2Y, innerW, cta2H, 10);
+    ctx.fill();
+    ctx.stroke();
 
-  ctx.fillStyle = '#fde68a';
-  ctx.font = 'bold 16px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-  ctx.textAlign = 'left';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(
-    st.secondaryLink ? st.secondaryLink.label : 'Inspect Blender Pipeline',
-    innerX + 18,
-    cta2Y + cta2H * 0.5 + 1
-  );
-  ctx.textAlign = 'right';
-  ctx.fillText('↗', innerX + innerW - 18, cta2Y + cta2H * 0.5 + 1);
+    ctx.fillStyle = '#fde68a';
+    ctx.font = 'bold 16px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(st.secondaryLink.label, innerX + 18, cta2Y + cta2H * 0.5 + 1);
+    ctx.textAlign = 'right';
+    ctx.fillText('↗', innerX + innerW - 18, cta2Y + cta2H * 0.5 + 1);
+  }
   ctx.restore();
 
   // 8. Footer Zone (.holo-footer-bar)
@@ -2110,8 +2176,8 @@ function createProjectScreenTexture(st) {
     650
   );
 
-  // Footer Row 2: Station Pips Bar ([← Prev] [01] [02] [03] [04] [05] [06] [Next →])
-  const navItems = ['← Prev', '01', '02', '03', '04', '05', '06', 'Next →'];
+  // Footer Row 2: Station Pips Bar ([← Prev] [01] .. [07] [Next →])
+  const navItems = ['← Prev', ...HOLO_PROJECT_STATIONS.map((s) => s.code), 'Next →'];
   let navX = padX;
   const navY = 672;
   const navH = 34;
@@ -2122,7 +2188,7 @@ function createProjectScreenTexture(st) {
   for (const item of navItems) {
     const isCurrent = item === st.code;
     const isArrow = item.length > 2;
-    const itemW = isArrow ? 78 : 42;
+    const itemW = isArrow ? 78 : 38;
 
     ctx.fillStyle = isCurrent ? 'rgba(217, 119, 6, 0.74)' : 'rgba(68, 30, 6, 0.52)';
     ctx.strokeStyle = isCurrent ? '#fef3c7' : 'rgba(245, 158, 11, 0.52)';
@@ -2356,23 +2422,37 @@ function buildWallScreenMounts(markers, hologramGLTF = null) {
   }
 
   for (const st of HOLO_PROJECT_STATIONS) {
-    const locatorNode = markers[st.mountName];
-    if (!locatorNode) {
-      raiseFatalError(`Missing required wall mount locator '${st.mountName}' in freeman_alley.glb.`);
-    }
-
+    let locatorNode = markers[st.mountName] || null;
     const locatorPosition = new THREE.Vector3();
-    const locatorQuaternion = new THREE.Quaternion();
-    locatorNode.getWorldPosition(locatorPosition);
-    locatorNode.getWorldQuaternion(locatorQuaternion);
+    let outwardNormal;
 
-    // In freeman_alley.glb, each SCREEN_MOUNT_0X rotates local (0, 0, -1) to its outward wall normal (+X or -X)
-    const outwardNormal = new THREE.Vector3(0, 0, -1).applyQuaternion(locatorQuaternion).normalize();
+    if (st.isProceduralLocator) {
+      locatorPosition.set(0, st.expectedY, st.expectedZ);
+      outwardNormal = new THREE.Vector3(st.expectedNormalX, 0, 0).normalize();
+      if (!locatorNode) {
+        locatorNode = new THREE.Object3D();
+        locatorNode.name = st.mountName;
+      }
+    } else {
+      if (!locatorNode) {
+        raiseFatalError(`Missing required wall mount locator '${st.mountName}' in freeman_alley.glb.`);
+      }
+      const locatorQuaternion = new THREE.Quaternion();
+      locatorNode.getWorldPosition(locatorPosition);
+      locatorNode.getWorldQuaternion(locatorQuaternion);
+      // In freeman_alley.glb, each SCREEN_MOUNT_0X rotates local (0, 0, -1) to its outward wall normal (+X or -X)
+      outwardNormal = new THREE.Vector3(0, 0, -1).applyQuaternion(locatorQuaternion).normalize();
+    }
 
     // Align locatorPosition.x flush to the actual VISUAL_ALLEY_MESH wall profile
     locatorPosition.x = Number(
       (resolveAlleyWallProfileX(st.wallSide, locatorPosition.z) + outwardNormal.x * 0.04).toFixed(4)
     );
+    if (st.isProceduralLocator && locatorNode) {
+      locatorNode.position.copy(locatorPosition);
+      locatorNode.rotation.set(0, st.mountedRotationY, 0);
+      locatorNode.updateMatrixWorld(true);
+    }
 
     if (
       Math.abs(locatorPosition.y - st.expectedY) > 0.08 ||
@@ -3876,18 +3956,29 @@ function buildEntranceLamppostLightSystem(visualAlleyMesh) {
       this.syncConeGeometry();
       if (persist && typeof window !== 'undefined' && window.localStorage) {
         window.localStorage.removeItem(LAMPPOST_STORAGE_KEY);
+        window.localStorage.removeItem(`${LAMPPOST_STORAGE_KEY}_ts`);
+      }
+      if (persist && sandbox && !sandbox._hydratingSceneLayouts && typeof sandbox.deletePersistedSceneLayout === 'function') {
+        sandbox.deletePersistedSceneLayout('lamppost_light');
       }
       return this.getState();
     },
 
     saveToStorage() {
-      if (typeof window === 'undefined' || !window.localStorage) return false;
-      try {
-        window.localStorage.setItem(LAMPPOST_STORAGE_KEY, JSON.stringify(this.getState()));
-        return true;
-      } catch (err) {
-        return false;
+      const statePayload = this.getState();
+      const updatedAtMs = Date.now();
+      if (typeof window !== 'undefined' && window.localStorage) {
+        try {
+          window.localStorage.setItem(LAMPPOST_STORAGE_KEY, JSON.stringify(statePayload));
+          window.localStorage.setItem(`${LAMPPOST_STORAGE_KEY}_ts`, String(updatedAtMs));
+        } catch (err) {
+          return false;
+        }
       }
+      if (sandbox && !sandbox._hydratingSceneLayouts && typeof sandbox.persistSceneLayout === 'function') {
+        sandbox.persistSceneLayout('lamppost_light', statePayload, updatedAtMs);
+      }
+      return true;
     },
 
     loadFromStorage() {
@@ -3993,25 +4084,208 @@ const STARTUP_TALKING_SEQUENCE_CLIPS = Object.freeze([
   'TALK_EMPHASIS',
 ]);
 
-const INTRO_DIALOGUE_STORAGE_KEY = 'skatealley_intro_dialogue_boxes_v1';
+const INTRO_DIALOGUE_STORAGE_KEY = 'skatealley_intro_dialogue_boxes_v2';
+const INTRO_POST_PAN_GRACE_MS = 600;
+const INTRO_PREFETCH_CLIENT_TIMEOUT_MS = 8500;
 
 const DEFAULT_INTRO_DIALOGUE_BOXES = Object.freeze([
   Object.freeze({
-    id: 'dialogue_1',
+    id: 'card_01',
     title: '01 // WELCOME',
-    text: 'Welcome to Freeman Alley. I build interactive 3D spatial systems, real-time shaders, and full-stack engineering architectures.',
+    text: 'Welcome to my portfolio! My name’s Luis, I’m 26 and I build software that feels like magic.',
+    requires_question_prompt: false,
   }),
   Object.freeze({
-    id: 'dialogue_2',
-    title: '02 // PROJECTS & ARCHITECTURE',
-    text: 'Down this alley you will find interactive holographic projections showcasing my core engineering projects and technical specs.',
+    id: 'card_02',
+    title: '02 // ABOUT ME',
+    text: 'My free time is split between hiking, swimming, eating good food and building. I studied corporate finance and accounting in college, but changed my major to Philosophy and Religion during the COVID era. I speedran AI psychosis with GPT3.5 back in 2022, and have been accelerating ever since. e/acc, baby.',
+    requires_question_prompt: false,
   }),
   Object.freeze({
-    id: 'dialogue_3',
-    title: '03 // EXPLORE THE ALLEY',
-    text: 'Tap once more to finish this intro — then scroll down at your own pace to walk into the alley and explore.',
+    id: 'card_03',
+    title: '03 // PROJECTS & ARCHITECTURE',
+    text: 'Down this alley you will find some of my work on display, alongside descriptions of where I excel in the technical stack.',
+    requires_question_prompt: false,
+  }),
+  Object.freeze({
+    id: 'card_04',
+    title: '04 // EXPLORE THE ALLEY',
+    text: 'Recently, a “reverse engineer anything” repo popped up on Github that led me and a bunch of other nerds to reverse-engineer— well— everything. From toilet sensors and smartTVs, to video games and critical infrastructure.',
+    requires_question_prompt: false,
+  }),
+  Object.freeze({
+    id: 'card_05',
+    title: '05 // GAMES',
+    text: 'Let’s steer clear of reverse engineering critical infrastructure for now, and stick to games. Down the alleyway, you’ll find some decompiled games you can play, as well as a generative pipeline I created to put yourself in-game!',
+    requires_question_prompt: false,
+  }),
+  Object.freeze({
+    id: 'card_06',
+    title: '06 // GENERATIVE PIPELINE',
+    text: 'You can skate, commit grand theft auto, fight in Super Smash Bros, kill zombies, or just join me in the alleyway.',
+    requires_question_prompt: false,
+  }),
+  Object.freeze({
+    id: 'card_07',
+    title: '07 // MENU',
+    text: 'You can use the menu to leave a message in the alleyway for myself and others to see. Job recruiters will be visiting the alleyway so TREAD LIGHTLY. I MEAN IT. DON’T BE A DICKHEAD, DEVON! You can also check out my GitHub, send me an email, or follow me on Twitter.\n\nOh and by the way, this conversation is generative. Do you have any questions for me?',
+    requires_question_prompt: true,
   }),
 ]);
+
+const introGenerationTelemetry = {
+  status: 'idle',
+  introSource: 'anchor_default',
+  source: 'anchor_default',
+  model: null,
+  latencyMs: null,
+  schemaValid: false,
+  datasetVersion: null,
+  error: null,
+  errorCode: null,
+  startedAtMs: 0,
+  completedAtMs: 0,
+  graceWaitMs: 0,
+  adoptedAtCardIndex: null,
+  cards: null,
+};
+
+let _introPrefetchPromise = null;
+let _lastRenderedIntroCardIdx = -1;
+
+function normalizeGenerativeIntroCards(rawCards) {
+  if (!Array.isArray(rawCards) || rawCards.length !== 7) return null;
+  const normalized = [];
+  for (let i = 0; i < 7; i++) {
+    const item = rawCards[i];
+    if (!item || typeof item !== 'object') return null;
+    const header = typeof item.header === 'string' ? item.header.trim() : typeof item.title === 'string' ? item.title.trim() : '';
+    const body = typeof item.body === 'string' ? item.body.trim() : typeof item.text === 'string' ? item.text.trim() : '';
+    if (!header || body.length < 40) return null;
+    normalized.push({
+      id: typeof item.id === 'string' && item.id.trim() ? item.id.trim() : `card_0${i + 1}`,
+      title: header,
+      text: body,
+      requires_question_prompt: i === 6 ? true : Boolean(item.requires_question_prompt),
+    });
+  }
+  return normalized;
+}
+
+function applyLateResolvedIntroCardsIfSafe(mappedCards) {
+  if (!Array.isArray(mappedCards) || mappedCards.length !== 7 || !sandbox || !sandbox.director) {
+    return false;
+  }
+  const intro = sandbox.director.introSequenceState;
+  if (!intro) return false;
+  if (intro.phase === 'pan-playing') {
+    sandbox.director.setDialogueBoxes(mappedCards, false);
+    introGenerationTelemetry.source = 'hf_json_schema';
+    introGenerationTelemetry.introSource = 'hf_json_schema';
+    introGenerationTelemetry.adoptedAtCardIndex = 0;
+    return true;
+  }
+  // Spec 065 §7.1: If visitor is still reading Card 01 after the 600ms grace fallback, seamlessly adopt Cards 02..07 without mutating Card 01 mid-read
+  if (intro.phase === 'dialogue-active' && intro.currentBoxIndex === 0 && intro.boxes.length === 7) {
+    const merged = [
+      { ...intro.boxes[0] },
+      ...mappedCards.slice(1).map((c) => ({ ...c })),
+    ];
+    intro.boxes = merged;
+    introGenerationTelemetry.source = 'hf_json_schema';
+    introGenerationTelemetry.introSource = 'hf_json_schema_cards_02_07';
+    introGenerationTelemetry.adoptedAtCardIndex = 1;
+    syncDirectorHUDInputs();
+    return true;
+  }
+  return false;
+}
+
+function prefetchGenerativeIntroDeck() {
+  if (_introPrefetchPromise) return _introPrefetchPromise;
+  if (typeof fetch !== 'function') {
+    introGenerationTelemetry.status = 'fallback';
+    introGenerationTelemetry.source = 'anchor_fallback';
+    introGenerationTelemetry.introSource = 'anchor_fallback';
+    introGenerationTelemetry.errorCode = 'FETCH_UNAVAILABLE';
+    introGenerationTelemetry.error = 'Fetch API unavailable in runtime environment';
+    _introPrefetchPromise = Promise.resolve(null);
+    return _introPrefetchPromise;
+  }
+
+  introGenerationTelemetry.status = 'in_flight';
+  introGenerationTelemetry.startedAtMs = Date.now();
+  introGenerationTelemetry.error = null;
+  introGenerationTelemetry.errorCode = null;
+  const t0 = typeof performance !== 'undefined' ? performance.now() : Date.now();
+
+  _introPrefetchPromise = (async () => {
+    const urls = resolveDoomApiCandidateUrls('api/intro/generate');
+    let lastErr = null;
+    let lastCode = 'NETWORK_UNREACHABLE';
+
+    for (const url of urls) {
+      const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+      const timer = controller ? setTimeout(() => controller.abort(), INTRO_PREFETCH_CLIENT_TIMEOUT_MS) : null;
+      try {
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({}),
+          signal: controller ? controller.signal : undefined,
+        });
+        const rawText = await res.text();
+        let data = null;
+        try {
+          data = rawText ? JSON.parse(rawText) : null;
+        } catch (_parseErr) {
+          lastCode = 'INVALID_JSON_RESPONSE';
+          throw new Error(`HTTP ${res.status} non-JSON response from ${url}`);
+        }
+        if (!res.ok || !data || !data.ok) {
+          lastCode = (data && (data.code || data.error_code)) || `HTTP_${res.status}`;
+          throw new Error((data && (data.error || data.message)) || `HTTP ${res.status} from ${url}`);
+        }
+        const mapped = normalizeGenerativeIntroCards(data.cards);
+        if (!mapped) {
+          lastCode = 'CLIENT_SCHEMA_REJECTED';
+          throw new Error(`Invalid 7-card payload returned by ${url}`);
+        }
+
+        const elapsedMs = Math.round((typeof performance !== 'undefined' ? performance.now() : Date.now()) - t0);
+        introGenerationTelemetry.status = 'resolved';
+        introGenerationTelemetry.completedAtMs = Date.now();
+        introGenerationTelemetry.model = data.model || null;
+        introGenerationTelemetry.latencyMs = Number(data.latencyMs) || elapsedMs;
+        introGenerationTelemetry.schemaValid = data.schemaValid !== false;
+        introGenerationTelemetry.datasetVersion = data.datasetVersion || null;
+        introGenerationTelemetry.cards = mapped;
+        applyLateResolvedIntroCardsIfSafe(mapped);
+        return mapped;
+      } catch (err) {
+        if (err && err.name === 'AbortError') {
+          lastCode = 'UPSTREAM_TIMEOUT';
+          lastErr = new Error(`Intro generation timed out after ${INTRO_PREFETCH_CLIENT_TIMEOUT_MS}ms (${url})`);
+        } else {
+          lastErr = err;
+        }
+      } finally {
+        if (timer) clearTimeout(timer);
+      }
+    }
+
+    introGenerationTelemetry.status = 'fallback';
+    introGenerationTelemetry.completedAtMs = Date.now();
+    introGenerationTelemetry.source = 'anchor_fallback';
+    introGenerationTelemetry.introSource = 'anchor_fallback';
+    introGenerationTelemetry.schemaValid = false;
+    introGenerationTelemetry.errorCode = lastCode;
+    introGenerationTelemetry.error = lastErr ? lastErr.message || String(lastErr) : 'Failed to reach /api/intro/generate';
+    return null;
+  })();
+
+  return _introPrefetchPromise;
+}
 
 function directorCubicEaseInOut(t) {
   return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
@@ -4361,6 +4635,19 @@ function buildSpawnAndCameraDirectorSystem(floorY = 0.0) {
       }
 
       introSequenceState.currentBoxIndex = 0;
+      _lastRenderedIntroCardIdx = -1;
+      if (
+        introGenerationTelemetry.status === 'resolved' &&
+        Array.isArray(introGenerationTelemetry.cards) &&
+        introGenerationTelemetry.cards.length === 7
+      ) {
+        introSequenceState.boxes = introGenerationTelemetry.cards.map((b) => ({ ...b }));
+        introGenerationTelemetry.source = 'hf_json_schema';
+        introGenerationTelemetry.introSource = 'hf_json_schema';
+        if (introGenerationTelemetry.adoptedAtCardIndex === null) {
+          introGenerationTelemetry.adoptedAtCardIndex = 0;
+        }
+      }
       if (introSequenceState.boxes.length > 0) {
         introSequenceState.phase = 'dialogue-active';
         introSequenceState.scrollLocked = true;
@@ -4376,18 +4663,54 @@ function buildSpawnAndCameraDirectorSystem(floorY = 0.0) {
       return this.getIntroSequenceState();
     },
 
+    completeIntroDialogue({ openDoomChat = false } = {}) {
+      introSequenceState.currentBoxIndex = introSequenceState.boxes.length;
+      introSequenceState.phase = 'ready-to-scroll';
+      introSequenceState.scrollLocked = false;
+      _lastRenderedIntroCardIdx = -1;
+
+      if (!openDoomChat) {
+        const activeChar = sandbox.getActiveCharacter ? sandbox.getActiveCharacter() : null;
+        if (activeChar && activeChar.dialogueActive) {
+          activeChar.stopDialogue();
+          activeChar.mixer.update(0.0);
+          activeChar.root.updateMatrixWorld(true);
+        }
+      }
+
+      syncIntroDialogueOverlayUI();
+      syncDirectorHUDInputs();
+      updateTelemetryHUD();
+
+      if (openDoomChat && sandbox && typeof sandbox.enterDoomChatMode === 'function') {
+        sandbox.enterDoomChatMode({ resetToStarters: true });
+        if (typeof requestAnimationFrame === 'function' && typeof document !== 'undefined') {
+          requestAnimationFrame(() => {
+            const chatInputEl = document.getElementById('doom-chat-input');
+            if (chatInputEl) {
+              try {
+                chatInputEl.focus({ preventScroll: true });
+              } catch (_e) {
+                chatInputEl.focus();
+              }
+            }
+          });
+        }
+      } else {
+        renderer.render(scene, camera);
+      }
+      return this.getIntroSequenceState();
+    },
+
     advanceDialogueBox() {
       if (introSequenceState.phase !== 'dialogue-active') {
         return this.getIntroSequenceState();
       }
       introSequenceState.currentBoxIndex += 1;
       if (introSequenceState.currentBoxIndex >= introSequenceState.boxes.length) {
-        introSequenceState.currentBoxIndex = introSequenceState.boxes.length;
-        introSequenceState.phase = 'ready-to-scroll';
-        introSequenceState.scrollLocked = false;
-      } else {
-        introSequenceState.selectedEditBoxIndex = introSequenceState.currentBoxIndex;
+        return this.completeIntroDialogue({ openDoomChat: false });
       }
+      introSequenceState.selectedEditBoxIndex = introSequenceState.currentBoxIndex;
       syncIntroDialogueOverlayUI();
       syncDirectorHUDInputs();
       updateTelemetryHUD();
@@ -4395,19 +4718,26 @@ function buildSpawnAndCameraDirectorSystem(floorY = 0.0) {
     },
 
     setDialogueBoxCount(count, persist = true) {
-      const n = Math.max(1, Math.min(12, Math.round(Number(count) || 3)));
+      const n = Math.max(1, Math.min(12, Math.round(Number(count) || 7)));
       const nextBoxes = [];
       for (let i = 0; i < n; i++) {
         if (i < introSequenceState.boxes.length && introSequenceState.boxes[i]) {
-          nextBoxes.push({ ...introSequenceState.boxes[i] });
+          nextBoxes.push({
+            ...introSequenceState.boxes[i],
+            requires_question_prompt: i === n - 1,
+          });
         } else if (i < DEFAULT_INTRO_DIALOGUE_BOXES.length) {
-          nextBoxes.push({ ...DEFAULT_INTRO_DIALOGUE_BOXES[i] });
+          nextBoxes.push({
+            ...DEFAULT_INTRO_DIALOGUE_BOXES[i],
+            requires_question_prompt: i === n - 1,
+          });
         } else {
           const numStr = String(i + 1).padStart(2, '0');
           nextBoxes.push({
-            id: `dialogue_${i + 1}`,
+            id: `card_${numStr}`,
             title: `${numStr} // DIALOGUE`,
-            text: `Dialogue box ${i + 1} of ${n}. Tap this box to continue.`,
+            text: `Dialogue box ${i + 1} of ${n}.`,
+            requires_question_prompt: i === n - 1,
           });
         }
       }
@@ -4426,12 +4756,26 @@ function buildSpawnAndCameraDirectorSystem(floorY = 0.0) {
 
     setDialogueBoxes(boxes, persist = true) {
       if (!Array.isArray(boxes) || boxes.length === 0) return this.getIntroSequenceState();
-      introSequenceState.boxes = boxes.slice(0, 12).map((b, idx) => {
+      const sliced = boxes.slice(0, 12);
+      introSequenceState.boxes = sliced.map((b, idx) => {
         const numStr = String(idx + 1).padStart(2, '0');
         return {
-          id: b && b.id ? String(b.id) : `dialogue_${idx + 1}`,
-          title: b && typeof b.title === 'string' ? b.title : `${numStr} // DIALOGUE`,
-          text: b && typeof b.text === 'string' ? b.text : '',
+          id: b && b.id ? String(b.id) : `card_${numStr}`,
+          title:
+            b && typeof b.title === 'string'
+              ? b.title
+              : b && typeof b.header === 'string'
+              ? b.header
+              : `${numStr} // DIALOGUE`,
+          text:
+            b && typeof b.text === 'string'
+              ? b.text
+              : b && typeof b.body === 'string'
+              ? b.body
+              : '',
+          requires_question_prompt: Boolean(
+            (b && b.requires_question_prompt) || idx === sliced.length - 1
+          ),
         };
       });
       introSequenceState.selectedEditBoxIndex = Math.min(
@@ -4604,9 +4948,13 @@ function buildSpawnAndCameraDirectorSystem(floorY = 0.0) {
         y: floorY,
         z: DEFAULT_PLAYER_SPAWN.z,
         yawRad: DEFAULT_PLAYER_SPAWN.yawRad,
-      }, persist);
+      }, false);
       if (persist && typeof window !== 'undefined' && window.localStorage) {
         window.localStorage.removeItem(SPAWN_STORAGE_KEY);
+        window.localStorage.removeItem(`${SPAWN_STORAGE_KEY}_ts`);
+      }
+      if (persist && sandbox && !sandbox._hydratingSceneLayouts && typeof sandbox.deletePersistedSceneLayout === 'function') {
+        sandbox.deletePersistedSceneLayout('player_spawn');
       }
       return this.getSpawnTransform();
     },
@@ -4680,9 +5028,13 @@ function buildSpawnAndCameraDirectorSystem(floorY = 0.0) {
         endPos: DEFAULT_STARTUP_PAN.endPos,
         endLookAt: DEFAULT_STARTUP_PAN.endLookAt,
         durationSec: DEFAULT_STARTUP_PAN.durationSec,
-      }, persist);
+      }, false);
       if (persist && typeof window !== 'undefined' && window.localStorage) {
         window.localStorage.removeItem(STARTUP_PAN_STORAGE_KEY);
+        window.localStorage.removeItem(`${STARTUP_PAN_STORAGE_KEY}_ts`);
+      }
+      if (persist && sandbox && !sandbox._hydratingSceneLayouts && typeof sandbox.deletePersistedSceneLayout === 'function') {
+        sandbox.deletePersistedSceneLayout('startup_camera_pan');
       }
       return this.getCameraPan();
     },
@@ -4862,10 +5214,62 @@ function buildSpawnAndCameraDirectorSystem(floorY = 0.0) {
       if (t >= 1.0) {
         pan.mode = 'settled';
         pan.playing = false;
-        this.startIntroTalkingSequence();
+        this.completeStartupPanWithIntroGrace();
         return;
       }
       syncDirectorHUDInputs();
+    },
+
+    completeStartupPanWithIntroGrace() {
+      camera.position.copy(cameraPanState.endPos);
+      if (mountFocusCameraState) {
+        mountFocusCameraState.currentLookAt.copy(cameraPanState.endLookAt);
+      }
+      camera.lookAt(cameraPanState.endLookAt);
+      camera.updateMatrixWorld(true);
+
+      const activeChar = sandbox.getActiveCharacter ? sandbox.getActiveCharacter() : null;
+      if (activeChar) {
+        activeChar.position.set(spawnState.x, spawnState.y, spawnState.z);
+        activeChar.yaw = spawnState.yawRad;
+        activeChar.velocity.set(0, 0, 0);
+        activeChar.isGrounded = true;
+        activeChar.root.position.copy(activeChar.position);
+        activeChar.root.rotation.set(0, activeChar.yaw, 0);
+        activeChar.startOrderedDialogueSequence(introSequenceState.talkingSequence);
+        activeChar.mixer.update(0.0);
+        activeChar.root.updateMatrixWorld(true);
+      }
+
+      if (
+        introGenerationTelemetry.status !== 'in_flight' ||
+        !_introPrefetchPromise
+      ) {
+        this.startIntroTalkingSequence();
+        return;
+      }
+
+      // Bounded 600ms post-pan grace window (Spec 065 §6 & §7.1)
+      introSequenceState.phase = 'pan-playing';
+      introSequenceState.scrollLocked = true;
+      const graceStartMs = typeof performance !== 'undefined' ? performance.now() : Date.now();
+      const handoffToken = (this._panHandoffToken = (this._panHandoffToken || 0) + 1);
+
+      Promise.race([
+        _introPrefetchPromise,
+        new Promise((resolve) => setTimeout(() => resolve('__GRACE_TIMEOUT__'), INTRO_POST_PAN_GRACE_MS)),
+      ]).then((raceOutcome) => {
+        if (this._panHandoffToken !== handoffToken) return;
+        if (sandbox.mode !== 'scroll' || introSequenceState.phase !== 'pan-playing') return;
+        introGenerationTelemetry.graceWaitMs = Math.round(
+          (typeof performance !== 'undefined' ? performance.now() : Date.now()) - graceStartMs
+        );
+        if (raceOutcome === '__GRACE_TIMEOUT__' && introGenerationTelemetry.status === 'in_flight') {
+          introGenerationTelemetry.source = 'anchor_fallback';
+          introGenerationTelemetry.introSource = 'anchor_fallback_grace_timeout';
+        }
+        this.startIntroTalkingSequence();
+      });
     },
 
     toggleCameraPOVMode(forceState = undefined) {
@@ -5178,6 +5582,10 @@ function buildSpawnAndCameraDirectorSystem(floorY = 0.0) {
       introSequenceState.selectedEditBoxIndex = 0;
       if (persist && typeof window !== 'undefined' && window.localStorage) {
         window.localStorage.removeItem(INTRO_DIALOGUE_STORAGE_KEY);
+        window.localStorage.removeItem(`${INTRO_DIALOGUE_STORAGE_KEY}_ts`);
+      }
+      if (persist && sandbox && !sandbox._hydratingSceneLayouts && typeof sandbox.deletePersistedSceneLayout === 'function') {
+        sandbox.deletePersistedSceneLayout('intro_dialogue_boxes');
       }
       syncIntroDialogueOverlayUI();
       syncDirectorHUDInputs();
@@ -5185,18 +5593,38 @@ function buildSpawnAndCameraDirectorSystem(floorY = 0.0) {
     },
 
     saveToStorage() {
-      if (typeof window === 'undefined' || !window.localStorage) return false;
-      try {
-        window.localStorage.setItem(SPAWN_STORAGE_KEY, JSON.stringify(this.getSpawnTransform()));
-        window.localStorage.setItem(STARTUP_PAN_STORAGE_KEY, JSON.stringify(this.getCameraPan()));
-        window.localStorage.setItem(INTRO_DIALOGUE_STORAGE_KEY, JSON.stringify(introSequenceState.boxes));
-        return true;
-      } catch (err) {
-        return false;
+      const spawnPayload = this.getSpawnTransform();
+      const panPayload = this.getCameraPan();
+      const boxesPayload = introSequenceState.boxes.map((b) => ({ ...b }));
+      const updatedAtMs = Date.now();
+      if (typeof window !== 'undefined' && window.localStorage) {
+        try {
+          window.localStorage.setItem(SPAWN_STORAGE_KEY, JSON.stringify(spawnPayload));
+          window.localStorage.setItem(`${SPAWN_STORAGE_KEY}_ts`, String(updatedAtMs));
+          window.localStorage.setItem(STARTUP_PAN_STORAGE_KEY, JSON.stringify(panPayload));
+          window.localStorage.setItem(`${STARTUP_PAN_STORAGE_KEY}_ts`, String(updatedAtMs));
+          window.localStorage.setItem(INTRO_DIALOGUE_STORAGE_KEY, JSON.stringify(boxesPayload));
+          window.localStorage.setItem(`${INTRO_DIALOGUE_STORAGE_KEY}_ts`, String(updatedAtMs));
+        } catch (err) {
+          return false;
+        }
       }
+      if (sandbox && !sandbox._hydratingSceneLayouts && typeof sandbox.persistSceneLayoutBatch === 'function') {
+        sandbox.persistSceneLayoutBatch(
+          {
+            player_spawn: spawnPayload,
+            startup_camera_pan: panPayload,
+            intro_dialogue_boxes: boxesPayload,
+          },
+          updatedAtMs
+        );
+      }
+      return true;
     },
 
     loadFromStorage() {
+      // Spec 065 §5.3.1, §5.7.1, §7.4: In production (!IS_DEV_MODE), authoritative player spawn, startup camera pan, and 7-card intro sequence are never overridden by stale localStorage authoring snapshots.
+      if (!IS_DEV_MODE) return false;
       if (typeof window === 'undefined' || !window.localStorage) return false;
       try {
         const rawSpawn = window.localStorage.getItem(SPAWN_STORAGE_KEY);
@@ -5216,7 +5644,7 @@ function buildSpawnAndCameraDirectorSystem(floorY = 0.0) {
         const rawBoxes = window.localStorage.getItem(INTRO_DIALOGUE_STORAGE_KEY);
         if (rawBoxes) {
           const parsed = JSON.parse(rawBoxes);
-          if (Array.isArray(parsed) && parsed.length > 0) {
+          if (Array.isArray(parsed) && parsed.length >= 7) {
             this.setDialogueBoxes(parsed, false);
           }
         }
@@ -5246,17 +5674,15 @@ function syncIntroDialogueOverlayUI() {
   if (typeof document === 'undefined' || !sandbox.director) return;
   const d = sandbox.director;
   const intro = d.introSequenceState;
-  const activeChar = sandbox.getActiveCharacter ? sandbox.getActiveCharacter() : null;
 
   const overlay = document.getElementById('intro-dialogue-overlay');
   const card = document.getElementById('intro-dialogue-card');
   const counterEl = document.getElementById('intro-dialogue-counter');
   const titleEl = document.getElementById('intro-dialogue-title');
-  const clipBadgeEl = document.getElementById('intro-dialogue-clip-badge');
   const textEl = document.getElementById('intro-dialogue-text');
   const pipsEl = document.getElementById('intro-dialogue-pips');
   const nextBtnEl = document.getElementById('intro-dialogue-next-btn');
-  const unlockedPill = document.getElementById('intro-scroll-unlocked-pill');
+  const questionActionsEl = document.getElementById('intro-dialogue-question-actions');
 
   const isScrollMode = sandbox.mode === 'scroll';
   const isDialogueActive =
@@ -5265,42 +5691,44 @@ function syncIntroDialogueOverlayUI() {
     d.cameraPanState.mode !== 'playing' &&
     !d.cameraPOVMode &&
     intro.currentBoxIndex < intro.boxes.length;
-  const isReadyToScroll =
-    isScrollMode &&
-    intro.phase === 'ready-to-scroll' &&
-    !d.cameraPOVMode &&
-    sandbox.scrollProgress <= 0.005;
 
+  if (document.body) {
+    document.body.classList.toggle('intro-dialogue-active', isDialogueActive);
+  }
   if (overlay) {
-    overlay.style.display = isDialogueActive || isReadyToScroll ? 'flex' : 'none';
+    overlay.style.display = isDialogueActive ? 'flex' : 'none';
   }
   if (card) {
     card.style.display = isDialogueActive ? 'flex' : 'none';
-  }
-  if (unlockedPill) {
-    unlockedPill.style.display = isReadyToScroll ? 'inline-flex' : 'none';
   }
 
   if (isDialogueActive) {
     const total = intro.boxes.length;
     const idx = Math.max(0, Math.min(total - 1, intro.currentBoxIndex));
     const currentBox = intro.boxes[idx];
+    const isQuestionCard = Boolean(
+      (currentBox && currentBox.requires_question_prompt) || idx + 1 >= total
+    );
+
+    if (card) {
+      card.classList.toggle('question-prompt-card', isQuestionCard);
+    }
 
     if (counterEl) {
       counterEl.textContent = `DIALOGUE ${idx + 1} / ${total}`;
     }
     if (titleEl && currentBox) {
-      titleEl.textContent = currentBox.title || `0${idx + 1} // DIALOGUE`;
+      const codeStr = String(idx + 1).padStart(2, '0');
+      titleEl.textContent = currentBox.title || `${codeStr} // DIALOGUE`;
     }
     if (textEl && currentBox) {
       textEl.textContent = currentBox.text || '';
+      if (_lastRenderedIntroCardIdx !== idx) {
+        textEl.scrollTop = 0;
+      }
     }
-    if (clipBadgeEl && activeChar) {
-      const seqIdx = Array.isArray(activeChar.orderedDialogueSequence)
-        ? `${activeChar.orderedDialogueIndex + 1}/${activeChar.orderedDialogueSequence.length}`
-        : '';
-      clipBadgeEl.textContent = `🎙 ${activeChar.currentClipName || 'TALK_CONVERSATION_06'}${seqIdx ? ` (${seqIdx})` : ''}`;
-    }
+    _lastRenderedIntroCardIdx = idx;
+
     if (pipsEl) {
       pipsEl.innerHTML = '';
       for (let i = 0; i < total; i++) {
@@ -5312,20 +5740,37 @@ function syncIntroDialogueOverlayUI() {
         pip.style.transition = 'all 0.2s ease';
         pip.style.background =
           i < idx
-            ? 'rgba(56, 189, 248, 0.55)'
+            ? 'rgba(217, 119, 6, 0.68)'
             : i === idx
-            ? '#00d5ff'
-            : 'rgba(148, 163, 184, 0.30)';
-        pip.style.boxShadow = i === idx ? '0 0 8px rgba(0, 213, 255, 0.75)' : 'none';
+            ? '#fbbf24'
+            : 'rgba(120, 53, 15, 0.52)';
+        pip.style.border =
+          i === idx
+            ? '1px solid rgba(254, 243, 199, 0.72)'
+            : '1px solid rgba(245, 158, 11, 0.35)';
+        pip.style.boxShadow = i === idx ? '0 0 8px rgba(245, 158, 11, 0.78)' : 'none';
         pipsEl.appendChild(pip);
       }
     }
-    if (nextBtnEl) {
-      const isLast = idx + 1 >= total;
-      nextBtnEl.textContent = isLast
-        ? `Tap to Finish & Unlock Scroll (${idx + 1}/${total}) ✓`
-        : `Tap to Continue (${idx + 1}/${total}) →`;
+
+    if (isQuestionCard) {
+      if (nextBtnEl) {
+        nextBtnEl.style.display = 'none';
+      }
+      if (questionActionsEl) {
+        questionActionsEl.style.display = 'inline-flex';
+      }
+    } else {
+      if (questionActionsEl) {
+        questionActionsEl.style.display = 'none';
+      }
+      if (nextBtnEl) {
+        nextBtnEl.style.display = 'inline-flex';
+        nextBtnEl.textContent = `Continue (${idx + 1}/${total}) →`;
+      }
     }
+  } else {
+    _lastRenderedIntroCardIdx = -1;
   }
 }
 
@@ -5815,7 +6260,16 @@ function bindDirectorHUDListeners() {
   if (introCardEl) {
     introCardEl.addEventListener('click', (e) => {
       e.stopPropagation();
-      if (sandbox.director) sandbox.director.advanceDialogueBox();
+      if (!sandbox.director) return;
+      const intro = sandbox.director.introSequenceState;
+      const curBox = intro && intro.boxes ? intro.boxes[intro.currentBoxIndex] : null;
+      const isQuestionCard = Boolean(
+        (curBox && curBox.requires_question_prompt) ||
+          (intro && intro.currentBoxIndex + 1 >= intro.boxes.length)
+      );
+      // Spec 065 §5.3.5: Whole-card tap-to-dismiss is disabled on Card 07 so visitor explicitly chooses Yes or No
+      if (isQuestionCard) return;
+      sandbox.director.advanceDialogueBox();
     });
   }
 
@@ -5824,6 +6278,26 @@ function bindDirectorHUDListeners() {
     introNextBtnEl.addEventListener('click', (e) => {
       e.stopPropagation();
       if (sandbox.director) sandbox.director.advanceDialogueBox();
+    });
+  }
+
+  const introYesBtnEl = document.getElementById('intro-dialogue-yes-btn');
+  if (introYesBtnEl) {
+    introYesBtnEl.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (sandbox.director) {
+        sandbox.director.completeIntroDialogue({ openDoomChat: true });
+      }
+    });
+  }
+
+  const introNoBtnEl = document.getElementById('intro-dialogue-no-btn');
+  if (introNoBtnEl) {
+    introNoBtnEl.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (sandbox.director) {
+        sandbox.director.completeIntroDialogue({ openDoomChat: false });
+      }
     });
   }
 
@@ -9582,9 +10056,6 @@ class CharacterController {
     for (const [bKey, bNode] of this.bonesByName.entries()) {
       this.bones[bKey] = bNode;
     }
-    if (id === 'hoodie' && this.rigProfile !== 'SKATE3_RX2_RIG' && !this.companionMesh) {
-      raiseFatalError(`Character '${id}' is missing required 'DOOM_Companion' mesh node.`);
-    }
     this.companionCurrentAnchor.copy(this.companionAnchor);
     if (this.companionMesh) {
       const proxyGeo = new THREE.SphereGeometry(0.28, 16, 12);
@@ -10783,27 +11254,7 @@ function updateDoomHoloChatTether() {
 }
 
 function resolveDoomApiCandidateUrls(endpointPath) {
-  const cleanPath = String(endpointPath || '').replace(/^\/+/, '');
-  const candidates = [];
-  if (typeof window !== 'undefined' && window.location) {
-    const host = window.location.hostname || '';
-    const port = window.location.port || '';
-    const isLocal3000 = (host === 'localhost' || host === '127.0.0.1') && port === '3000';
-    if (isLocal3000) {
-      candidates.push(`./${cleanPath}`);
-    } else {
-      // When opened from github.io or another port on the same machine, try local server port 3000 first, then tunnel.json
-      candidates.push(`http://localhost:3000/${cleanPath}`);
-      if (sandbox && sandbox.tunnelConfig && typeof sandbox.tunnelConfig.url === 'string' && sandbox.tunnelConfig.url.trim()) {
-        const base = sandbox.tunnelConfig.url.trim().replace(/\/+$/, '');
-        candidates.push(`${base}/${cleanPath}`);
-      }
-      candidates.push(`./${cleanPath}`);
-    }
-  } else {
-    candidates.push(`./${cleanPath}`);
-  }
-  return candidates;
+  return resolveStickerApiCandidateUrls(endpointPath);
 }
 
 async function postDoomApiWithFallback(endpointPath, payloadObj) {
@@ -10859,6 +11310,9 @@ async function fetchDoomStartersFromHF({ silentFallback = false } = {}) {
     doomChatState.startersLoadedFromHF = true;
     doomChatState.activeStartersModelResolved = data.model || doomChatState.startersModelId;
     doomChatState.startersLatencyMs = Number(data.latencyMs ?? data.latency_ms) || 0;
+    if (data.graphrag && typeof data.graphrag === 'object') {
+      doomChatState.lastGraphRag = data.graphrag;
+    }
     return doomChatState.starters;
   } catch (err) {
     if (!silentFallback) {
@@ -10922,12 +11376,16 @@ async function sendDoomChatMessageToHF(rawText) {
     const replyText = data.reply.trim();
     doomChatState.activeChatModelResolved = data.model || doomChatState.chatModelId;
     doomChatState.lastChatLatencyMs = Number(data.latencyMs ?? data.latency_ms) || 0;
+    if (data.graphrag && typeof data.graphrag === 'object') {
+      doomChatState.lastGraphRag = data.graphrag;
+    }
     doomChatState.speakingTimerSec = 2.8;
     doomChatState.messages.push({
       role: 'assistant',
       content: replyText,
       model: doomChatState.activeChatModelResolved,
       latencyMs: doomChatState.lastChatLatencyMs,
+      graphrag: data.graphrag || null,
       timestamp: Date.now(),
     });
 
@@ -11360,6 +11818,413 @@ async function hydrateStickersFromBackend() {
     renderer.render(scene, camera);
   }
   return sys.placedStickers;
+}
+
+const sceneLayoutPersistenceState = {
+  hydrated: false,
+  hydrating: false,
+  dbConnected: false,
+  storageBackend: 'uninitialized',
+  persistedKeys: [],
+  pendingWrites: 0,
+  lastSyncAt: 0,
+  lastSyncError: null,
+};
+
+const _sceneLayoutWriteChains = new Map();
+
+function queueSceneLayoutWriteTask(chainKey, taskFn) {
+  const key = String(chainKey || '__scene_layout__');
+  const prev = _sceneLayoutWriteChains.get(key) || Promise.resolve();
+  sceneLayoutPersistenceState.pendingWrites += 1;
+  const next = prev
+    .catch(() => {})
+    .then(() => taskFn())
+    .finally(() => {
+      sceneLayoutPersistenceState.pendingWrites = Math.max(0, sceneLayoutPersistenceState.pendingWrites - 1);
+    });
+  _sceneLayoutWriteChains.set(key, next);
+  if (sandbox) {
+    sandbox.lastSceneLayoutPersistPromise = next;
+  }
+  return next;
+}
+
+function persistSceneLayoutBatchRecords(layoutsMap, updatedAtMs = Date.now()) {
+  if (!layoutsMap || typeof layoutsMap !== 'object' || Object.keys(layoutsMap).length === 0) {
+    return Promise.resolve(null);
+  }
+  const ts = Number.isFinite(updatedAtMs) && updatedAtMs > 0 ? Math.round(updatedAtMs) : Date.now();
+  const keysSig = Object.keys(layoutsMap).sort().join(',');
+  return queueSceneLayoutWriteTask(keysSig, async () => {
+    const urls = resolveStickerApiCandidateUrls('api/scene-layout');
+    let lastErr = null;
+    for (const url of urls) {
+      try {
+        const res = await fetch(url, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ layouts: layoutsMap, updatedAtMs: ts }),
+        });
+        const text = await res.text();
+        const data = text ? JSON.parse(text) : null;
+        if (!res.ok || !data || !data.ok) {
+          throw new Error((data && (data.message || data.error)) || `HTTP ${res.status} from ${url}`);
+        }
+        sceneLayoutPersistenceState.dbConnected = Boolean(data.dbConnected !== false);
+        sceneLayoutPersistenceState.storageBackend = data.storage || 'postgres';
+        sceneLayoutPersistenceState.lastSyncAt = Date.now();
+        sceneLayoutPersistenceState.lastSyncError = null;
+        if (Array.isArray(data.savedKeys)) {
+          const merged = new Set([...sceneLayoutPersistenceState.persistedKeys, ...data.savedKeys]);
+          sceneLayoutPersistenceState.persistedKeys = Array.from(merged);
+        }
+        return data;
+      } catch (err) {
+        lastErr = err;
+      }
+    }
+    sceneLayoutPersistenceState.dbConnected = false;
+    sceneLayoutPersistenceState.lastSyncError = lastErr ? lastErr.message || String(lastErr) : 'Failed to persist scene layout';
+    return null;
+  });
+}
+
+function persistSceneLayoutRecord(layoutKey, payload, updatedAtMs = Date.now()) {
+  if (!layoutKey || payload === undefined) return Promise.resolve(null);
+  return persistSceneLayoutBatchRecords({ [String(layoutKey)]: payload }, updatedAtMs);
+}
+
+function deletePersistedSceneLayoutRecord(layoutKey) {
+  if (!layoutKey) return Promise.resolve(false);
+  const cleanKey = String(layoutKey);
+  return queueSceneLayoutWriteTask(cleanKey, async () => {
+    const encodedKey = encodeURIComponent(cleanKey);
+    const urls = resolveStickerApiCandidateUrls(`api/scene-layout/${encodedKey}`);
+    let lastErr = null;
+    for (const url of urls) {
+      try {
+        const res = await fetch(url, {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+        });
+        const text = await res.text();
+        const data = text ? JSON.parse(text) : null;
+        if (!res.ok || !data || !data.ok) {
+          throw new Error((data && (data.message || data.error)) || `HTTP ${res.status} from ${url}`);
+        }
+        sceneLayoutPersistenceState.dbConnected = Boolean(data.dbConnected !== false);
+        sceneLayoutPersistenceState.storageBackend = data.storage || 'postgres';
+        sceneLayoutPersistenceState.lastSyncAt = Date.now();
+        sceneLayoutPersistenceState.lastSyncError = null;
+        sceneLayoutPersistenceState.persistedKeys = sceneLayoutPersistenceState.persistedKeys.filter(
+          (k) => k !== cleanKey
+        );
+        return true;
+      } catch (err) {
+        lastErr = err;
+      }
+    }
+    sceneLayoutPersistenceState.lastSyncError = lastErr ? lastErr.message || String(lastErr) : 'Failed to delete scene layout';
+    return false;
+  });
+}
+
+async function hydrateSceneLayoutsFromBackend({ isBackgroundRefresh = false } = {}) {
+  if (!sandbox || sceneLayoutPersistenceState.hydrating) {
+    return sceneLayoutPersistenceState.persistedKeys;
+  }
+  if (
+    isBackgroundRefresh &&
+    ((sandbox.hologramColumns && sandbox.hologramColumns.activeDragColumnId) ||
+      (sandbox.mathPods && sandbox.mathPods.activeDragPodId) ||
+      (sandbox.transformControls && sandbox.transformControls.dragging) ||
+      (sandbox.lamppostLight && sandbox.lamppostLight.isDraggingTarget))
+  ) {
+    return sceneLayoutPersistenceState.persistedKeys;
+  }
+
+  sceneLayoutPersistenceState.hydrating = true;
+  const urls = resolveStickerApiCandidateUrls('api/scene-layout');
+  let lastErr = null;
+
+  const host =
+    typeof window !== 'undefined' && window.location && window.location.hostname
+      ? window.location.hostname.toLowerCase()
+      : '';
+  const isLocalhostOrigin = host === 'localhost' || host === '127.0.0.1';
+
+  const layoutAdapters = [
+    {
+      layoutKey: 'holo_columns',
+      storageKey: HOLO_COLUMNS_STORAGE_KEY,
+      readLivePayload(parsedLocal) {
+        if (sandbox.hologramColumns && typeof sandbox.hologramColumns.getTransformsMap === 'function') {
+          return sandbox.hologramColumns.getTransformsMap();
+        }
+        return parsedLocal;
+      },
+      applyRemotePayload(remotePayload, remoteTs) {
+        if (sandbox.hologramColumns && typeof sandbox.hologramColumns.applyTransformsMap === 'function') {
+          return sandbox.hologramColumns.applyTransformsMap(remotePayload, {
+            persistLocal: true,
+            updatedAtMs: remoteTs,
+          });
+        }
+        return false;
+      },
+    },
+    {
+      layoutKey: 'math_pods',
+      storageKey: 'skatealley_mathpods_transforms_v1',
+      readLivePayload(parsedLocal) {
+        if (sandbox.mathPods && typeof sandbox.mathPods.getTransformsMap === 'function') {
+          return sandbox.mathPods.getTransformsMap();
+        }
+        return parsedLocal;
+      },
+      applyRemotePayload(remotePayload, remoteTs) {
+        if (sandbox.mathPods && typeof sandbox.mathPods.applyTransformsMap === 'function') {
+          return sandbox.mathPods.applyTransformsMap(remotePayload, {
+            persistLocal: true,
+            updatedAtMs: remoteTs,
+          });
+        }
+        return false;
+      },
+    },
+    {
+      layoutKey: 'lamppost_light',
+      storageKey: LAMPPOST_STORAGE_KEY,
+      readLivePayload(parsedLocal) {
+        if (sandbox.lamppostLight && typeof sandbox.lamppostLight.getState === 'function') {
+          return sandbox.lamppostLight.getState();
+        }
+        return parsedLocal;
+      },
+      applyRemotePayload(remotePayload, remoteTs) {
+        if (sandbox.lamppostLight && typeof sandbox.lamppostLight.setState === 'function') {
+          sandbox.lamppostLight.setState(remotePayload, false);
+          if (typeof window !== 'undefined' && window.localStorage) {
+            try {
+              window.localStorage.setItem(LAMPPOST_STORAGE_KEY, JSON.stringify(sandbox.lamppostLight.getState()));
+              if (remoteTs > 0) {
+                window.localStorage.setItem(`${LAMPPOST_STORAGE_KEY}_ts`, String(Math.round(remoteTs)));
+              }
+            } catch (_e) {}
+          }
+          return true;
+        }
+        return false;
+      },
+    },
+    ...(IS_DEV_MODE
+      ? [
+          {
+            layoutKey: 'player_spawn',
+            storageKey: SPAWN_STORAGE_KEY,
+            readLivePayload(parsedLocal) {
+              if (sandbox.director && typeof sandbox.director.getSpawnTransform === 'function') {
+                return sandbox.director.getSpawnTransform();
+              }
+              return parsedLocal;
+            },
+            applyRemotePayload(remotePayload, remoteTs) {
+              if (sandbox.director && typeof sandbox.director.setSpawnTransform === 'function') {
+                sandbox.director.setSpawnTransform(remotePayload, false);
+                if (typeof window !== 'undefined' && window.localStorage) {
+                  try {
+                    window.localStorage.setItem(SPAWN_STORAGE_KEY, JSON.stringify(sandbox.director.getSpawnTransform()));
+                    if (remoteTs > 0) {
+                      window.localStorage.setItem(`${SPAWN_STORAGE_KEY}_ts`, String(Math.round(remoteTs)));
+                    }
+                  } catch (_e) {}
+                }
+                return true;
+              }
+              return false;
+            },
+          },
+          {
+            layoutKey: 'startup_camera_pan',
+            storageKey: STARTUP_PAN_STORAGE_KEY,
+            readLivePayload(parsedLocal) {
+              if (sandbox.director && typeof sandbox.director.getCameraPan === 'function') {
+                return sandbox.director.getCameraPan();
+              }
+              return parsedLocal;
+            },
+            applyRemotePayload(remotePayload, remoteTs) {
+              if (sandbox.director && typeof sandbox.director.setCameraPan === 'function') {
+                sandbox.director.setCameraPan(remotePayload, false);
+                if (typeof window !== 'undefined' && window.localStorage) {
+                  try {
+                    window.localStorage.setItem(STARTUP_PAN_STORAGE_KEY, JSON.stringify(sandbox.director.getCameraPan()));
+                    if (remoteTs > 0) {
+                      window.localStorage.setItem(`${STARTUP_PAN_STORAGE_KEY}_ts`, String(Math.round(remoteTs)));
+                    }
+                  } catch (_e) {}
+                }
+                return true;
+              }
+              return false;
+            },
+          },
+          {
+            layoutKey: 'intro_dialogue_boxes',
+            storageKey: INTRO_DIALOGUE_STORAGE_KEY,
+            readLivePayload(parsedLocal) {
+              return parsedLocal;
+            },
+            applyRemotePayload(remotePayload, remoteTs) {
+              if (
+                Array.isArray(remotePayload) &&
+                remotePayload.length >= 7 &&
+                sandbox.director &&
+                typeof sandbox.director.setDialogueBoxes === 'function'
+              ) {
+                sandbox.director.setDialogueBoxes(remotePayload, false);
+                if (typeof window !== 'undefined' && window.localStorage) {
+                  try {
+                    window.localStorage.setItem(INTRO_DIALOGUE_STORAGE_KEY, JSON.stringify(remotePayload));
+                    if (remoteTs > 0) {
+                      window.localStorage.setItem(`${INTRO_DIALOGUE_STORAGE_KEY}_ts`, String(Math.round(remoteTs)));
+                    }
+                  } catch (_e) {}
+                }
+                return true;
+              }
+              return false;
+            },
+          },
+        ]
+      : []),
+  ];
+
+  for (const url of urls) {
+    try {
+      const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+      const timer = controller ? setTimeout(() => controller.abort(), 3200) : null;
+      let res;
+      try {
+        res = await fetch(url, {
+          method: 'GET',
+          cache: 'no-store',
+          signal: controller ? controller.signal : undefined,
+        });
+      } finally {
+        if (timer) clearTimeout(timer);
+      }
+      const text = await res.text();
+      const data = text ? JSON.parse(text) : null;
+      if (!res.ok || !data || !data.ok || typeof data.layouts !== 'object' || data.layouts === null) {
+        throw new Error((data && (data.message || data.error)) || `HTTP ${res.status} from ${url}`);
+      }
+
+      const remoteLayouts = data.layouts || {};
+      const remoteUpdatedMap = data.updatedAtMs || {};
+      const pendingUploads = {};
+      const pendingUploadStorageKeys = [];
+      let anyAppliedFromRemote = false;
+
+      sandbox._hydratingSceneLayouts = true;
+      try {
+        for (const adapter of layoutAdapters) {
+          let localRaw = null;
+          let localParsed = null;
+          let localTs = 0;
+          if (typeof window !== 'undefined' && window.localStorage) {
+            try {
+              localRaw = window.localStorage.getItem(adapter.storageKey);
+              if (localRaw) {
+                localParsed = JSON.parse(localRaw);
+              }
+              const tsRaw = window.localStorage.getItem(`${adapter.storageKey}_ts`);
+              if (tsRaw) {
+                const n = Number(tsRaw);
+                if (Number.isFinite(n) && n > 0) localTs = n;
+              }
+            } catch (_e) {
+              localParsed = null;
+            }
+          }
+
+          const hasValidLocal = localParsed !== null && typeof localParsed === 'object';
+          const remotePayload = remoteLayouts[adapter.layoutKey];
+          const hasRemote = remotePayload !== undefined && remotePayload !== null;
+          const remoteTs = Number(remoteUpdatedMap[adapter.layoutKey] || 0);
+
+          const shouldSeedFromLocalhost =
+            hasValidLocal &&
+            ((isLocalhostOrigin && localTs === 0) ||
+              (isLocalhostOrigin && !hasRemote) ||
+              (localTs > 0 && localTs > remoteTs));
+
+          if (shouldSeedFromLocalhost) {
+            const livePayload = adapter.readLivePayload(localParsed);
+            if (livePayload !== null && livePayload !== undefined) {
+              pendingUploads[adapter.layoutKey] = livePayload;
+              pendingUploadStorageKeys.push(adapter.storageKey);
+            }
+          } else if (hasRemote) {
+            const shouldApplyRemote = !isBackgroundRefresh || localTs === 0 || remoteTs > localTs || !hasValidLocal;
+            if (shouldApplyRemote) {
+              const applied = adapter.applyRemotePayload(remotePayload, remoteTs);
+              if (applied) {
+                anyAppliedFromRemote = true;
+              }
+            }
+          }
+        }
+      } finally {
+        sandbox._hydratingSceneLayouts = false;
+      }
+
+      if (Object.keys(pendingUploads).length > 0) {
+        const uploadTs = Date.now();
+        if (typeof window !== 'undefined' && window.localStorage) {
+          for (const sk of pendingUploadStorageKeys) {
+            try {
+              window.localStorage.setItem(`${sk}_ts`, String(uploadTs));
+            } catch (_e) {}
+          }
+        }
+        await persistSceneLayoutBatchRecords(pendingUploads, uploadTs);
+      }
+
+      const finalKeys = new Set([
+        ...Object.keys(remoteLayouts),
+        ...Object.keys(pendingUploads),
+      ]);
+      sceneLayoutPersistenceState.hydrated = true;
+      sceneLayoutPersistenceState.hydrating = false;
+      sceneLayoutPersistenceState.dbConnected = Boolean(data.dbConnected !== false);
+      sceneLayoutPersistenceState.storageBackend = data.storage || 'postgres';
+      sceneLayoutPersistenceState.persistedKeys = Array.from(finalKeys);
+      sceneLayoutPersistenceState.lastSyncAt = Date.now();
+      sceneLayoutPersistenceState.lastSyncError = null;
+
+      if (anyAppliedFromRemote) {
+        syncHoloEditorHUDInputs();
+        syncLamppostEditorHUDInputs();
+        syncDirectorHUDInputs();
+        updateTelemetryHUD();
+        if (sandbox.ready) {
+          renderer.render(scene, camera);
+        }
+      }
+      return sceneLayoutPersistenceState.persistedKeys;
+    } catch (err) {
+      lastErr = err;
+    }
+  }
+
+  sceneLayoutPersistenceState.hydrated = true;
+  sceneLayoutPersistenceState.hydrating = false;
+  sceneLayoutPersistenceState.dbConnected = false;
+  sceneLayoutPersistenceState.storageBackend = 'local_fallback';
+  sceneLayoutPersistenceState.lastSyncError = lastErr ? lastErr.message || String(lastErr) : null;
+  return sceneLayoutPersistenceState.persistedKeys;
 }
 
 function getActiveOrSelectedStickerRecord() {
@@ -12295,15 +13160,11 @@ function updateProximityAndHoverWallMounts() {
     )
   );
 
-  // 3. Update on-screen interaction prompt
+  // 3. Update on-screen interaction prompt (Spec 065 §5.5: visitor-facing copy strictly "Press E or Click to Inspect")
   const promptMount = sandbox.hoveredMount || sandbox.proximityMount;
   if (promptEl && promptLabelEl) {
     if (promptMount) {
-      const distStr =
-        sandbox.proximityMount === promptMount
-          ? ` (${nearestDist.toFixed(1)}m)`
-          : '';
-      promptLabelEl.innerHTML = `<span class="prompt-station">${promptMount.mountName}${distStr}</span> — ${promptMount.station.title} &bull; Press <strong>E</strong> or Click Mount to Inspect`;
+      promptLabelEl.textContent = 'Press E or Click to Inspect';
       promptEl.dataset.mountName = promptMount.mountName;
       promptEl.classList.add('visible');
     } else {
@@ -12376,10 +13237,11 @@ function updateHolographicPopupUI() {
   const footerStatusEl = document.getElementById('holo-footer-status');
   const badgeEl = document.getElementById('holo-station-badge');
 
+  const totalStationsCode = String(HOLO_PROJECT_STATIONS.length).padStart(2, '0');
   if (isMountFocus) {
     const m = sandbox.focusedMount;
     if (badgeEl) {
-      badgeEl.textContent = `WALL MOUNT // ${m.mountName} (${activeStation.code} OF 06)`;
+      badgeEl.textContent = `WALL MOUNT // ${m.mountName} (${activeStation.code} OF ${totalStationsCode})`;
     }
     if (coordsEl) {
       coordsEl.textContent = `${m.wallSide === 'L' ? 'LEFT' : 'RIGHT'} WALL // Z: ${m.locatorPosition.z.toFixed(1)}m • Y: ${m.locatorPosition.y.toFixed(2)}m • NORMAL: ${m.wallSide === 'L' ? '+X' : '-X'}`;
@@ -12397,7 +13259,7 @@ function updateHolographicPopupUI() {
       .toString()
       .padStart(2, '0');
     if (badgeEl) {
-      badgeEl.textContent = `HOLO-PROJ // ${activeStation.code} OF 0${HOLO_PROJECT_STATIONS.length}`;
+      badgeEl.textContent = `HOLO-PROJ // ${activeStation.code} OF ${totalStationsCode}`;
     }
     if (coordsEl) {
       coordsEl.textContent = `ALLEY CORRIDOR Z: ${zCoord}m // SCROLL WINDOW: ${startPct}%–${endPct}%`;
@@ -12414,14 +13276,24 @@ function updateHolographicPopupUI() {
     lastRenderedHoloStationId !== activeStation.id ||
     lastRenderedHoloMode !== sandbox.mode
   ) {
+    const stationChanged = lastRenderedHoloStationId !== activeStation.id;
     lastRenderedHoloStationId = activeStation.id;
     lastRenderedHoloMode = sandbox.mode;
+
+    const bodyGridEl = winEl.querySelector('.holo-body-grid');
+    if (bodyGridEl && stationChanged) {
+      bodyGridEl.scrollTop = 0;
+    }
 
     const kickerEl = document.getElementById('holo-kicker');
     const titleEl = document.getElementById('holo-title');
     const descEl = document.getElementById('holo-description');
+    const narrativeBoxEl = document.getElementById('holo-narrative-callout');
+    const narrativeHeadingEl = document.getElementById('holo-narrative-heading');
+    const narrativeBodyEl = document.getElementById('holo-narrative-body');
     const tagsEl = document.getElementById('holo-tags');
     const metricsEl = document.getElementById('holo-metrics');
+    const ctaStackEl = winEl.querySelector('.holo-cta-stack');
     const primaryLinkEl = document.getElementById('holo-primary-link');
     const primaryTextEl = document.getElementById('holo-primary-link-text');
     const secondaryLinkEl = document.getElementById('holo-secondary-link');
@@ -12430,6 +13302,27 @@ function updateHolographicPopupUI() {
     if (kickerEl) kickerEl.textContent = activeStation.kicker;
     if (titleEl) titleEl.textContent = activeStation.title;
     if (descEl) descEl.textContent = activeStation.description;
+
+    if (narrativeBoxEl) {
+      if (
+        activeStation.narrativeCallout &&
+        typeof activeStation.narrativeCallout.body === 'string' &&
+        activeStation.narrativeCallout.body.trim().length > 0
+      ) {
+        if (narrativeHeadingEl) {
+          narrativeHeadingEl.textContent =
+            activeStation.narrativeCallout.heading || 'What the hell does this mean, Luis?';
+        }
+        if (narrativeBodyEl) {
+          narrativeBodyEl.textContent = activeStation.narrativeCallout.body;
+        }
+        narrativeBoxEl.style.display = 'flex';
+      } else {
+        if (narrativeHeadingEl) narrativeHeadingEl.textContent = '';
+        if (narrativeBodyEl) narrativeBodyEl.textContent = '';
+        narrativeBoxEl.style.display = 'none';
+      }
+    }
 
     if (tagsEl) {
       tagsEl.innerHTML = '';
@@ -12458,19 +13351,45 @@ function updateHolographicPopupUI() {
       }
     }
 
-    if (primaryLinkEl) primaryLinkEl.href = activeStation.primaryLink.url;
-    if (primaryTextEl) primaryTextEl.textContent = activeStation.primaryLink.label;
-    if (secondaryLinkEl) {
-      secondaryLinkEl.href = activeStation.secondaryLink.url;
-      if (activeStation.secondaryLink.action) {
-        secondaryLinkEl.dataset.holoAction = activeStation.secondaryLink.action;
-        secondaryLinkEl.removeAttribute('target');
+    const hasPrimary = Boolean(activeStation.primaryLink && activeStation.primaryLink.url);
+    const hasSecondary = Boolean(activeStation.secondaryLink && activeStation.secondaryLink.url);
+
+    if (primaryLinkEl) {
+      if (hasPrimary) {
+        primaryLinkEl.href = activeStation.primaryLink.url;
+        primaryLinkEl.style.display = '';
       } else {
-        delete secondaryLinkEl.dataset.holoAction;
-        secondaryLinkEl.setAttribute('target', '_blank');
+        primaryLinkEl.removeAttribute('href');
+        primaryLinkEl.style.display = 'none';
       }
     }
-    if (secondaryTextEl) secondaryTextEl.textContent = activeStation.secondaryLink.label;
+    if (primaryTextEl) {
+      primaryTextEl.textContent = hasPrimary ? activeStation.primaryLink.label : '';
+    }
+
+    if (secondaryLinkEl) {
+      if (hasSecondary) {
+        secondaryLinkEl.href = activeStation.secondaryLink.url;
+        secondaryLinkEl.style.display = '';
+        if (activeStation.secondaryLink.action) {
+          secondaryLinkEl.dataset.holoAction = activeStation.secondaryLink.action;
+          secondaryLinkEl.removeAttribute('target');
+        } else {
+          delete secondaryLinkEl.dataset.holoAction;
+          secondaryLinkEl.setAttribute('target', '_blank');
+        }
+      } else {
+        secondaryLinkEl.removeAttribute('href');
+        delete secondaryLinkEl.dataset.holoAction;
+        secondaryLinkEl.style.display = 'none';
+      }
+    }
+    if (secondaryTextEl) {
+      secondaryTextEl.textContent = hasSecondary ? activeStation.secondaryLink.label : '';
+    }
+    if (ctaStackEl) {
+      ctaStackEl.style.display = hasPrimary || hasSecondary ? 'flex' : 'none';
+    }
 
     const pipsContainer = document.getElementById('holo-station-pips');
     if (pipsContainer) {
@@ -12628,6 +13547,26 @@ function startPortalPopupCloseAnimation({ immediate = false } = {}) {
   }, PORTAL_HOLO_CLOSE_DURATION_MS);
 }
 
+let _portalGameImagesHydrated = false;
+function hydratePortalGameStageImages(stageEl) {
+  if (_portalGameImagesHydrated || !stageEl) return;
+  _portalGameImagesHydrated = true;
+  const deferredImgs = Array.from(stageEl.querySelectorAll('img[data-src]'));
+  runBoundedTaskPool(
+    deferredImgs.map((imgEl) => async () => {
+      const targetUrl = imgEl.getAttribute('data-src');
+      if (!targetUrl) return;
+      try {
+        const buf = await fetchRangeChunkedArrayBuffer(targetUrl, { chunkSize: 786432 });
+        imgEl.src = URL.createObjectURL(new Blob([buf], { type: 'image/png' }));
+      } catch (_err) {
+        imgEl.src = targetUrl;
+      }
+    }),
+    2
+  ).catch(() => {});
+}
+
 function syncPortalGamePopupDOM() {
   if (typeof document === 'undefined') return;
   const stageEl = document.getElementById('portal-game-holo-stage');
@@ -12637,6 +13576,9 @@ function syncPortalGamePopupDOM() {
 
   const catalog = getActivePortalGameCatalog();
   const isOpen = Boolean(sandbox.isPortalPopupOpen && sandbox.waterColor && sandbox.waterColor.isPopupOpen);
+  if (isOpen) {
+    hydratePortalGameStageImages(stageEl);
+  }
   const rawSelectedId = (sandbox.waterColor && sandbox.waterColor.selectedGameId) || catalog[0]?.id || 'skate3';
   const resolvedSelected = resolvePortalGameSpec(rawSelectedId, catalog) || catalog[0];
   const selectedId = resolvedSelected ? resolvedSelected.id : 'skate3';
@@ -13325,6 +14267,21 @@ const sandbox = {
   loadPersistedStickers() {
     return hydrateStickersFromBackend();
   },
+  sceneLayoutPersistenceState,
+  lastSceneLayoutPersistPromise: null,
+  _hydratingSceneLayouts: false,
+  loadPersistedSceneLayouts(opts = {}) {
+    return hydrateSceneLayoutsFromBackend(opts);
+  },
+  persistSceneLayout(layoutKey, payload, updatedAtMs = Date.now()) {
+    return persistSceneLayoutRecord(layoutKey, payload, updatedAtMs);
+  },
+  persistSceneLayoutBatch(layoutsMap, updatedAtMs = Date.now()) {
+    return persistSceneLayoutBatchRecords(layoutsMap, updatedAtMs);
+  },
+  deletePersistedSceneLayout(layoutKey) {
+    return deletePersistedSceneLayoutRecord(layoutKey);
+  },
   commitStickerPlacementAtClientPoint(clientX, clientY, meta = {}) {
     if (!this.holographicStickers || !this.holographicStickers.isPlacementActive()) return null;
     const canvas = renderer.domElement;
@@ -13928,11 +14885,27 @@ const sandbox = {
   sfxGroup: sfxRootGroup,
   sfx: null,
   audio: null,
+  isDevMode: IS_DEV_MODE,
+  introGenerationTelemetry,
+  prefetchGenerativeIntroDeck,
   glbVariantCatalog: GLB_VARIANT_CATALOG,
   currentVariantKey: 'luis_color',
   soloCharacterMode: true,
-  sidebarCollapsed: false,
+  sidebarCollapsed: !IS_DEV_MODE,
   toggleSidebar(forceCollapsed) {
+    if (!IS_DEV_MODE) {
+      this.sidebarCollapsed = true;
+      const hudEl = typeof document !== 'undefined' ? document.getElementById('sandbox-hud') : null;
+      if (hudEl) {
+        hudEl.classList.add('collapsed');
+        hudEl.style.display = 'none';
+        hudEl.setAttribute('aria-hidden', 'true');
+      }
+      if (typeof document !== 'undefined' && document.body) {
+        document.body.classList.add('sidebar-collapsed');
+      }
+      return true;
+    }
     const nextState = typeof forceCollapsed === 'boolean' ? forceCollapsed : !this.sidebarCollapsed;
     this.sidebarCollapsed = nextState;
     const hudEl = typeof document !== 'undefined' ? document.getElementById('sandbox-hud') : null;
@@ -14238,6 +15211,7 @@ const sandbox = {
       chatLoading: Boolean(doomChatState.chatLoading),
       lastChatLatencyMs: doomChatState.lastChatLatencyMs,
       messages: doomChatState.messages.map((m) => ({ ...m })),
+      lastGraphRag: doomChatState.lastGraphRag || null,
       lastError: doomChatState.lastError,
       cameraTransitionProgress: doomChatCameraState.transitionProgress,
       companionChatWeight: char ? Number(char.companionChatWeight.toFixed(4)) : 0.0,
@@ -14305,7 +15279,7 @@ const sandbox = {
     const fwdZ = -dz / horizDist;
     const camRightX = -fwdZ;
     const camRightZ = fwdX;
-    const hudClearanceOffset = this.sidebarCollapsed ? 0.0 : 0.18;
+    const hudClearanceOffset = !IS_DEV_MODE || this.sidebarCollapsed ? 0.0 : 0.18;
     const destLookAt = calloutCenter.clone();
     destLookAt.x -= camRightX * hudClearanceOffset;
     destLookAt.z -= camRightZ * hudClearanceOffset;
@@ -16186,7 +17160,7 @@ function updateCameraController(dt = 1 / 60) {
       const fwdZ = -dz / horizDist;
       const camRightX = -fwdZ;
       const camRightZ = fwdX;
-      const hudClearanceOffset = sandbox.sidebarCollapsed ? 0.0 : 0.18;
+      const hudClearanceOffset = !IS_DEV_MODE || sandbox.sidebarCollapsed ? 0.0 : 0.18;
 
       popupFocusCameraState.toPos.set(
         calloutCenterX + dx,
@@ -16867,6 +17841,27 @@ function bindSidebarCollapseControls() {
   if (sandbox._sidebarControlsBound) return;
   sandbox._sidebarControlsBound = true;
 
+  if (typeof document !== 'undefined' && document.body) {
+    document.body.classList.toggle('dev-mode', IS_DEV_MODE);
+  }
+
+  if (!IS_DEV_MODE) {
+    sandbox.toggleSidebar(true);
+    if (typeof document !== 'undefined') {
+      for (const suppressedId of ['sandbox-hud', 'scene-cutter-overlay', 'director-pov-overlay']) {
+        const el = document.getElementById(suppressedId);
+        if (el) {
+          el.style.display = 'none';
+          el.setAttribute('aria-hidden', 'true');
+        }
+      }
+    }
+    if (detectInitialMobileTouchMode()) {
+      mobileTouch.setEnabled(true);
+    }
+    return;
+  }
+
   if (detectInitialMobileTouchMode()) {
     sandbox.toggleSidebar(true);
     mobileTouch.setEnabled(true);
@@ -16896,7 +17891,7 @@ function bindSidebarCollapseControls() {
     if (activeTag === 'INPUT' || activeTag === 'SELECT' || activeTag === 'TEXTAREA') {
       return;
     }
-    if (e.code === 'KeyB' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+    if (IS_DEV_MODE && e.code === 'KeyB' && !e.ctrlKey && !e.metaKey && !e.altKey) {
       e.preventDefault();
       sandbox._userManuallyToggledSidebar = true;
       sandbox.toggleSidebar();
@@ -17096,20 +18091,24 @@ function bindInputListeners() {
       sandbox.audio.unlock();
     }
 
-    if (e.code === 'KeyK') {
+    if (IS_DEV_MODE && e.code === 'KeyK') {
       e.preventDefault();
       sandbox.toggleDirectorGizmos();
       return;
     }
 
-    if (e.code === 'KeyC' && !(sandbox.freeRoamFlyMode && (keysPressed.KeyW || keysPressed.KeyS || keysPressed.KeyA || keysPressed.KeyD))) {
+    if (
+      IS_DEV_MODE &&
+      e.code === 'KeyC' &&
+      !(sandbox.freeRoamFlyMode && (keysPressed.KeyW || keysPressed.KeyS || keysPressed.KeyA || keysPressed.KeyD))
+    ) {
       e.preventDefault();
       sandbox.toggleCameraPOVMode();
       return;
     }
 
-    // When in First-Person Camera POV Mode, '[' captures Pan Start, ']' captures Pan End, and WASD/Space/E/Q/Z fly the camera
-    if (sandbox.director && sandbox.director.cameraPOVMode) {
+    // When in First-Person Camera POV Mode (dev only), '[' captures Pan Start, ']' captures Pan End, and WASD/Space/E/Q/Z fly the camera
+    if (IS_DEV_MODE && sandbox.director && sandbox.director.cameraPOVMode) {
       if (e.code === 'Escape') {
         e.preventDefault();
         sandbox.toggleCameraPOVMode(false);
@@ -17143,13 +18142,13 @@ function bindInputListeners() {
       }
     }
 
-    if (e.code === 'KeyG') {
+    if (IS_DEV_MODE && e.code === 'KeyG') {
       e.preventDefault();
       sandbox.toggleHoloEditMode();
       return;
     }
 
-    if (e.code === 'KeyL') {
+    if (IS_DEV_MODE && e.code === 'KeyL') {
       e.preventDefault();
       sandbox.toggleLamppostEditMode();
       return;
@@ -17163,7 +18162,7 @@ function bindInputListeners() {
       }
     }
 
-    if (e.code === 'KeyX') {
+    if (IS_DEV_MODE && e.code === 'KeyX') {
       if (sandbox.sceneCutter) {
         e.preventDefault();
         sandbox.sceneCutter.toggleActive();
@@ -17171,7 +18170,7 @@ function bindInputListeners() {
       }
     }
 
-    if (sandbox.sceneCutter && sandbox.sceneCutter.active) {
+    if (IS_DEV_MODE && sandbox.sceneCutter && sandbox.sceneCutter.active) {
       if (e.code === 'Tab') {
         e.preventDefault();
         sandbox.sceneCutter.flipCutSide();
@@ -17215,7 +18214,7 @@ function bindInputListeners() {
       sandbox.rotateStickerByDeg(isRotateRightKey ? 5 : -5);
       return;
     }
-    if ((isRotateLeftKey || isRotateRightKey) && sandbox.hologramColumns) {
+    if (IS_DEV_MODE && (isRotateLeftKey || isRotateRightKey) && sandbox.hologramColumns) {
       e.preventDefault();
       let targetColId = sandbox.hologramColumns.activeDragColumnId || null;
       if (!targetColId && pointerNDC.x >= -1.0 && pointerNDC.x <= 1.0 && pointerNDC.y >= -1.0 && pointerNDC.y <= 1.0) {
@@ -17276,7 +18275,7 @@ function bindInputListeners() {
       return;
     }
 
-    if ((isScaleUpKey || isScaleDownKey) && sandbox.hologramColumns) {
+    if (IS_DEV_MODE && (isScaleUpKey || isScaleDownKey) && sandbox.hologramColumns) {
       e.preventDefault();
       // If hovering over a hologram in the 3D scene, select it automatically before scaling
       let targetColId = sandbox.hologramColumns.activeDragColumnId || null;
@@ -17413,7 +18412,7 @@ function bindInputListeners() {
       return;
     }
 
-    if (e.code === 'Tab') {
+    if (IS_DEV_MODE && e.code === 'Tab') {
       e.preventDefault();
       sandbox.swapCharacter();
       return;
@@ -17499,19 +18498,19 @@ function bindInputListeners() {
       return;
     }
 
-    if (e.code === 'KeyH') {
+    if (IS_DEV_MODE && e.code === 'KeyH') {
       e.preventDefault();
       sandbox.toggleHolographicShader();
       return;
     }
 
-    if (e.code === 'KeyF') {
+    if (IS_DEV_MODE && e.code === 'KeyF') {
       e.preventDefault();
       sandbox.toggleFreeRoamFlyMode();
       return;
     }
 
-    if (e.code === 'KeyP') {
+    if (IS_DEV_MODE && e.code === 'KeyP') {
       e.preventDefault();
       if (sandbox.replaySprayPaintIntro) {
         sandbox.replaySprayPaintIntro();
@@ -17519,14 +18518,14 @@ function bindInputListeners() {
       return;
     }
 
-    if (e.code === 'KeyT') {
+    if (IS_DEV_MODE && e.code === 'KeyT') {
       e.preventDefault();
       sandbox.toggleDialogue();
       return;
     }
 
     if (e.code === 'KeyE') {
-      if (sandbox.freeRoamFlyMode) {
+      if (IS_DEV_MODE && sandbox.freeRoamFlyMode) {
         e.preventDefault();
         keysPressed.KeyE = true;
         return;
@@ -17543,9 +18542,29 @@ function bindInputListeners() {
       }
     }
 
-    if (e.code in HOTKEY_CLIPS) {
+    if (IS_DEV_MODE && e.code in HOTKEY_CLIPS) {
       e.preventDefault();
       sandbox.playAnimation(HOTKEY_CLIPS[e.code]);
+      return;
+    }
+
+    // Pressing Space or Enter while Intro Dialogue Cards 01..06 are active advances to the next card (Card 07 requires explicit Yes / No choice)
+    if (
+      sandbox.mode === 'scroll' &&
+      sandbox.director &&
+      sandbox.director.introSequenceState.phase === 'dialogue-active' &&
+      (e.code === 'Space' || e.code === 'Enter' || e.code === 'NumpadEnter')
+    ) {
+      e.preventDefault();
+      const intro = sandbox.director.introSequenceState;
+      const curBox = intro && intro.boxes ? intro.boxes[intro.currentBoxIndex] : null;
+      const isQuestionCard = Boolean(
+        (curBox && curBox.requires_question_prompt) ||
+          (intro && intro.currentBoxIndex + 1 >= intro.boxes.length)
+      );
+      if (!isQuestionCard) {
+        sandbox.director.advanceDialogueBox();
+      }
       return;
     }
 
@@ -17569,18 +18588,6 @@ function bindInputListeners() {
         e.code === 'ArrowDown' ||
         e.code === 'ArrowLeft' ||
         e.code === 'ArrowRight';
-
-      // Pressing Space or Enter while Intro Dialogue Boxes are active advances to the next dialogue box
-      if (
-        sandbox.mode === 'scroll' &&
-        sandbox.director &&
-        sandbox.director.introSequenceState.phase === 'dialogue-active' &&
-        (e.code === 'Space' || e.code === 'Enter')
-      ) {
-        e.preventDefault();
-        sandbox.director.advanceDialogueBox();
-        return;
-      }
 
       // Pressing any movement key exits DOOM_HEAD Dialogue Mode, Sticker Popup Mode, Popup Focus Mode, Mount Focus Mode, or hands off Scroll-Walk Mode to Free-Roam Mode (§5.2 & §5.3)
       if (sandbox.isDoomChatOpen && isMoveKey) {
@@ -17784,11 +18791,11 @@ function bindInputListeners() {
           hasPodHit &&
           (!hasHoloHit || podHits[0].distance <= holoHits[0].distance);
 
-        // Stage 1 Click: Click a MathPod -> Reveal/Toggle its Holographic Pop-Up (or drag pod on desktop)
+        // Stage 1 Click: Click a MathPod -> Reveal/Toggle its Holographic Pop-Up (or drag pod in dev authoring mode)
         if (podIsCloser) {
           const podId = podHits[0].object.userData.podId;
           podPointerDownState = { pointerId: e.pointerId, podId, clientX: e.clientX, clientY: e.clientY };
-          if (e.pointerType !== 'touch' || sandbox.holoEditMode) {
+          if (IS_DEV_MODE && (e.pointerType !== 'touch' || sandbox.holoEditMode)) {
             activeSceneObjectPointerId = e.pointerId;
             const pod = sandbox.mathPods.beginDrag(podId, pointerRaycaster.ray, camera);
             sandbox.draggedMathPod = pod;
@@ -17799,11 +18806,13 @@ function bindInputListeners() {
           }
         }
 
-        // Click-and-swipe Carousel Hologram Columns (or 3D placement drag when Holo Edit Mode is ON or asset supports direct drag)
+        // Click-and-swipe Carousel Hologram Columns (or 3D placement drag in dev authoring mode)
         if (hasHoloHit) {
           const hitId = holoHits[0].object.userData.holoColumnId;
           const hitCol = sandbox.hologramColumns.getColumn(hitId);
-          sandbox.selectHologramColumnForEdit(hitId);
+          if (IS_DEV_MODE) {
+            sandbox.selectHologramColumnForEdit(hitId);
+          }
           if (!sandbox.holoEditMode && hitCol && hitCol.isScrollableDocument) {
             activeSceneObjectPointerId = e.pointerId;
             hitCol.beginDocumentDrag(e.clientX, e.clientY, holoHits[0].uv || null);
@@ -17817,7 +18826,7 @@ function bindInputListeners() {
             }
             return;
           }
-          if (sandbox.holoEditMode || (hitCol && hitCol.allowDirectDrag)) {
+          if (IS_DEV_MODE && (sandbox.holoEditMode || (hitCol && hitCol.allowDirectDrag))) {
             activeSceneObjectPointerId = e.pointerId;
             // Start direct coplanar 3D placement drag when Holo Edit Mode is ON (or direct drag is enabled) unless gizmo is in 'rotate' or 'scale'
             const isGizmoRotateOrScale =
@@ -18355,7 +19364,9 @@ function bindInputListeners() {
         e.target.closest &&
         (e.target.closest('#sandbox-hud') ||
           e.target.closest('#sticker-holo-popup-panel') ||
-          e.target.closest('#doom-holo-chat-panel'))
+          e.target.closest('#doom-holo-chat-panel') ||
+          e.target.closest('#intro-dialogue-card') ||
+          (sandbox.mode === 'mount-focus' && e.target.closest('#holo-popup-window')))
       ) {
         return;
       }
@@ -18383,8 +19394,8 @@ function bindInputListeners() {
         return;
       }
 
-      // Shift + Scroll (or Scroll while dragging a hologram / in Edit Mode over a hologram) resizes the hologram directly in-scene!
-      if (sandbox.hologramColumns && (e.shiftKey || sandbox.hologramColumns.activeDragColumnId || sandbox.holoEditMode)) {
+      // Shift + Scroll (or Scroll while dragging a hologram / in Edit Mode over a hologram) resizes the hologram directly in-scene (dev mode only)!
+      if (IS_DEV_MODE && sandbox.hologramColumns && (e.shiftKey || sandbox.hologramColumns.activeDragColumnId || sandbox.holoEditMode)) {
         let targetColId = sandbox.hologramColumns.activeDragColumnId || (e.shiftKey ? sandbox.selectedHoloColumnId : null);
         if (!targetColId) {
           const rect = canvas.getBoundingClientRect();
@@ -18581,6 +19592,28 @@ function bindInputListeners() {
       e.stopPropagation();
       sandbox.exitMountFocusMode();
     });
+  }
+
+  const holoPopupWinEl = document.getElementById('holo-popup-window');
+  if (holoPopupWinEl) {
+    holoPopupWinEl.addEventListener(
+      'wheel',
+      (e) => {
+        if (sandbox.mode === 'mount-focus') {
+          e.stopPropagation();
+        }
+      },
+      { passive: true }
+    );
+    holoPopupWinEl.addEventListener(
+      'touchmove',
+      (e) => {
+        if (sandbox.mode === 'mount-focus') {
+          e.stopPropagation();
+        }
+      },
+      { passive: true }
+    );
   }
 
   const holoSecondaryLinkEl = document.getElementById('holo-secondary-link');
@@ -19431,20 +20464,119 @@ function bindStickerToolAndPopupListeners() {
 // ============================================================================
 // Asset Ingestion & Scene Staging
 // ============================================================================
-function loadGLB(loader, url, onAssetDone = null) {
-  return new Promise((resolve, reject) => {
-    loader.load(
-      url,
-      (gltf) => {
-        if (typeof onAssetDone === 'function') {
-          onAssetDone();
+async function fetchRangeChunkedArrayBuffer(url, { chunkSize = 1048576, maxChunkAttempts = 4 } = {}) {
+  let offset = 0;
+  let totalBytes = null;
+  let fullBytes = null;
+
+  while (totalBytes === null || offset < totalBytes) {
+    const endByte =
+      totalBytes !== null
+        ? Math.min(totalBytes - 1, offset + chunkSize - 1)
+        : offset + chunkSize - 1;
+    let chunkSucceeded = false;
+    let lastErr = null;
+
+    for (let attempt = 1; attempt <= maxChunkAttempts; attempt++) {
+      const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+      const timer = controller ? setTimeout(() => controller.abort(), 12000) : null;
+      try {
+        const resp = await fetch(url, {
+          headers: { Range: `bytes=${offset}-${endByte}` },
+          signal: controller ? controller.signal : undefined,
+        });
+        if (resp.status === 200 && offset === 0) {
+          return await resp.arrayBuffer();
         }
-        resolve(gltf);
-      },
-      undefined,
-      (err) => reject(new Error(`Failed to load GLB asset '${url}': ${err?.message || err}`))
+        if (resp.status !== 206) {
+          throw new Error(`HTTP ${resp.status} for '${url}' (range ${offset}-${endByte})`);
+        }
+        const cr = resp.headers.get('Content-Range') || '';
+        const match = /bytes\s+(\d+)-(\d+)\/(\d+)/i.exec(cr);
+        if (!match) {
+          throw new Error(`Invalid Content-Range '${cr}' for '${url}'`);
+        }
+        const respStart = Number(match[1]);
+        const respEnd = Number(match[2]);
+        const respTotal = Number(match[3]);
+        const expectedLen = respEnd - respStart + 1;
+        const part = new Uint8Array(await resp.arrayBuffer());
+        if (respStart !== offset || part.byteLength !== expectedLen || respTotal <= 0) {
+          throw new Error(
+            `Range mismatch for '${url}': got ${part.byteLength}B [${respStart}-${respEnd}/${respTotal}], expected ${expectedLen}B at ${offset}`
+          );
+        }
+        if (offset === 0 && part.byteLength === respTotal) {
+          return part.buffer;
+        }
+        if (fullBytes === null) {
+          totalBytes = respTotal;
+          fullBytes = new Uint8Array(respTotal);
+        }
+        fullBytes.set(part, offset);
+        offset += part.byteLength;
+        chunkSucceeded = true;
+        break;
+      } catch (err) {
+        lastErr = err;
+        if (attempt < maxChunkAttempts) {
+          const waitMs = 450 * attempt;
+          console.warn(
+            `[Sandbox] Transient chunk error for '${url}' at byte ${offset} (attempt ${attempt}/${maxChunkAttempts}), retrying in ${waitMs}ms:`,
+            err?.message || err
+          );
+          await new Promise((resolve) => setTimeout(resolve, waitMs));
+        }
+      } finally {
+        if (timer) clearTimeout(timer);
+      }
+    }
+
+    if (!chunkSucceeded) {
+      throw new Error(
+        `Failed to load GLB asset '${url}' at byte ${offset} after ${maxChunkAttempts} attempts: ${lastErr?.message || lastErr}`
+      );
+    }
+  }
+
+  return fullBytes ? fullBytes.buffer : new ArrayBuffer(0);
+}
+
+async function runBoundedTaskPool(taskFns, concurrency = 4) {
+  const results = new Array(taskFns.length);
+  let nextIdx = 0;
+  const workerCount = Math.max(1, Math.min(concurrency, taskFns.length));
+  const workers = Array.from({ length: workerCount }, async () => {
+    while (true) {
+      const idx = nextIdx++;
+      if (idx >= taskFns.length) break;
+      results[idx] = await taskFns[idx]();
+    }
+  });
+  await Promise.all(workers);
+  return results;
+}
+
+async function loadGLB(loader, url, onAssetDone = null) {
+  const arrayBuffer = await fetchRangeChunkedArrayBuffer(url);
+  const resourcePath =
+    loader.resourcePath !== ''
+      ? loader.resourcePath
+      : loader.path !== ''
+        ? THREE.LoaderUtils.resolveURL(THREE.LoaderUtils.extractUrlBase(url), loader.path)
+        : THREE.LoaderUtils.extractUrlBase(url);
+  const gltf = await new Promise((resolve, reject) => {
+    loader.parse(
+      arrayBuffer,
+      resourcePath,
+      (loaded) => resolve(loaded),
+      (err) => reject(new Error(`Failed to parse GLB asset '${url}': ${err?.message || err}`))
     );
   });
+  if (typeof onAssetDone === 'function') {
+    onAssetDone();
+  }
+  return gltf;
 }
 
 function initSprayPaintLoadingScreen() {
@@ -19985,6 +21117,8 @@ function buildVillainyNeonSignSubsystem(villainySignGLTF, floorY = 0.0) {
 
 async function initSandbox() {
   bindSidebarCollapseControls();
+  // Spec 065 §5.3 & §6: Dispatch 7-card generative intro pre-fetch at t = 0ms in parallel with GLTF loading & spray-paint intro
+  prefetchGenerativeIntroDeck();
   const sprayLoader = initSprayPaintLoadingScreen();
   const loader = new GLTFLoader();
   sandbox.variantLoader = loader;
@@ -20006,14 +21140,27 @@ async function initSandbox() {
     alleyPipesGLTF,
     villainySignGLTF,
     ...rpmAnimGLTFs
-  ] = await Promise.all([
-    loadGLB(loader, ASSET_PATHS.alley, handleAssetProgress),
-    loadGLB(loader, ASSET_PATHS.hoodie, handleAssetProgress),
-    loadGLB(loader, ASSET_PATHS.alarmLight, handleAssetProgress),
-    loadGLB(loader, ASSET_PATHS.alleyPipes, handleAssetProgress),
-    loadGLB(loader, ASSET_PATHS.villainySign, handleAssetProgress),
-    ...RPM_ANIMATION_CATALOG.map((spec) => loadGLB(loader, spec.url, handleAssetProgress)),
-  ]);
+  ] = await runBoundedTaskPool(
+    [
+      () => loadGLB(loader, ASSET_PATHS.alley, handleAssetProgress),
+      () => loadGLB(loader, ASSET_PATHS.hoodie, handleAssetProgress),
+      () => loadGLB(loader, ASSET_PATHS.alarmLight, handleAssetProgress),
+      () => loadGLB(loader, ASSET_PATHS.alleyPipes, handleAssetProgress),
+      () => loadGLB(loader, ASSET_PATHS.villainySign, handleAssetProgress),
+      ...RPM_ANIMATION_CATALOG.map((spec) => () => loadGLB(loader, spec.url, handleAssetProgress)),
+    ],
+    4
+  );
+
+  // Complete critical-path 3D "DOOM TRACKS" MP3 HUD assets ahead of non-blocking hologram column texture bursts
+  const earlyMp3Player = createDoomTracksMp3HUD({
+    audio: null,
+    assetSrc: 'assets/mp3.jpeg',
+    glbSrc: 'assets/audiodevice_decimated.glb?v=087',
+    manifestUrl: 'assets/tracks/manifest.json',
+    initiallyVisible: true,
+  });
+  await earlyMp3Player.initPromise;
 
   if (hoodieGLTF.animations && hoodieGLTF.animations.length > 0) {
     raiseFatalError(
@@ -20123,6 +21270,14 @@ async function initSandbox() {
     floorY,
     uTimeUniform: holoShaderUniforms.uHoloTime,
     applyStencilReject: applyCharacterOcclusionStencilReject,
+    onTransformsMutated: (payload, meta = {}) => {
+      if (sandbox._hydratingSceneLayouts) return;
+      if (meta && meta.deleted) {
+        sandbox.deletePersistedSceneLayout('math_pods');
+      } else if (payload) {
+        sandbox.persistSceneLayout('math_pods', payload, meta && meta.updatedAtMs);
+      }
+    },
     getInteractionContext: () => {
       const activeChar = sandbox.getActiveCharacter ? sandbox.getActiveCharacter() : null;
       const companion = sandbox.companion || null;
@@ -20233,6 +21388,14 @@ async function initSandbox() {
     floorY,
     uTimeUniform: holoShaderUniforms.uHoloTime,
     applyStencilReject: applyCharacterOcclusionStencilReject,
+    onTransformsMutated: (payload, meta = {}) => {
+      if (sandbox._hydratingSceneLayouts) return;
+      if (meta && meta.deleted) {
+        sandbox.deletePersistedSceneLayout('holo_columns');
+      } else if (payload) {
+        sandbox.persistSceneLayout('holo_columns', payload, meta && meta.updatedAtMs);
+      }
+    },
   });
   sandbox.hologramColumns = hologramColumnsSystem;
 
@@ -20724,14 +21887,11 @@ async function initSandbox() {
     window.radialMenuController = radialController;
   }
 
-  // Initialize Interactive 3D "DOOM TRACKS" (SYS-990-AMBER) MP3 HUD Deck (functional_specification_035.md & 038.md)
-  const mp3Player = createDoomTracksMp3HUD({
-    audio: sandbox.audio,
-    assetSrc: 'assets/mp3.jpeg',
-    glbSrc: 'assets/audiodevice_decimated.glb?v=087',
-    manifestUrl: 'assets/tracks/manifest.json',
-    initiallyVisible: true,
-  });
+  // Finalize Interactive 3D "DOOM TRACKS" (SYS-990-AMBER) MP3 HUD Deck (functional_specification_035.md & 038.md)
+  const mp3Player = earlyMp3Player;
+  if (typeof mp3Player.setAudioSubsystem === 'function') {
+    mp3Player.setAudioSubsystem(sandbox.audio);
+  }
   await mp3Player.initPromise;
   sandbox.mp3Player = mp3Player;
   if (typeof window !== 'undefined') {
@@ -20757,12 +21917,33 @@ async function initSandbox() {
           if (!doomChatState.startersLoadedFromHF && !doomChatState.startersLoading) {
             fetchDoomStartersFromHF({ silentFallback: true }).catch(() => {});
           }
+          if (introGenerationTelemetry.status === 'fallback') {
+            _introPrefetchPromise = null;
+            prefetchGenerativeIntroDeck();
+          }
         }
       }
     } catch (_err) {
       // Ignore tunnel.json fetch errors in offline/static contexts
     }
     await sandbox.loadPersistedStickers().catch(() => {});
+    await sandbox.loadPersistedSceneLayouts().catch(() => {});
+  }
+
+  if (typeof document !== 'undefined' && typeof window !== 'undefined') {
+    let lastVisibilityLayoutSyncMs = 0;
+    const triggerBackgroundLayoutRefresh = () => {
+      const now = Date.now();
+      if (now - lastVisibilityLayoutSyncMs < 3000) return;
+      lastVisibilityLayoutSyncMs = now;
+      sandbox.loadPersistedSceneLayouts({ isBackgroundRefresh: true }).catch(() => {});
+    };
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        triggerBackgroundLayoutRefresh();
+      }
+    });
+    window.addEventListener('focus', triggerBackgroundLayoutRefresh);
   }
 
   sandbox.ready = true;
