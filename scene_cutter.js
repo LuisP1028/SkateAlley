@@ -563,6 +563,7 @@ export function buildSceneCutterSubsystem({
   function evaluateDiscreteChildWorldCenter(child, outVec) {
     if (
       child.name === 'PipeSteamPlumeBatchMesh' ||
+      child.name.startsWith('AlleyMetalPipesBatchMesh') ||
       child.name === 'EntranceStreetLamppostLight' ||
       child.name === 'EntranceStreetLamppostTarget' ||
       child.name === 'EntranceLamppostVolumetricConeMesh' ||

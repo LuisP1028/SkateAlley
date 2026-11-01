@@ -1126,46 +1126,49 @@ export function createProceduralSlideCardTexture(slideSpec, slideIndex = 0, tota
     return createDeterministicPlaceholderTexture(slideSpec);
   }
   const canvas = document.createElement('canvas');
-  canvas.width = 960;
-  canvas.height = 1200;
+  canvas.width = 819;
+  canvas.height = 1024;
   const ctx = canvas.getContext('2d');
+  ctx.scale(819 / 960, 1024 / 1200);
+  const canvasW = 960;
+  const canvasH = 1200;
   const tint = HOLO_SPECTRAL_TINT_PRESETS[slideSpec.defaultTintPreset] || HOLO_SPECTRAL_TINT_PRESETS.cyan;
 
   // Luminous holographic gradient backdrop so AdditiveBlending projects a vivid, high-contrast panel
   const grad = ctx.createRadialGradient(
-    canvas.width * 0.5,
-    canvas.height * 0.46,
+    canvasW * 0.5,
+    canvasH * 0.46,
     60,
-    canvas.width * 0.5,
-    canvas.height * 0.5,
-    canvas.height * 0.65
+    canvasW * 0.5,
+    canvasH * 0.5,
+    canvasH * 0.65
   );
   grad.addColorStop(0, 'rgba(0, 195, 255, 0.52)');
   grad.addColorStop(0.55, 'rgba(8, 85, 125, 0.36)');
   grad.addColorStop(1, 'rgba(4, 24, 42, 0.24)');
   ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillRect(0, 0, canvasW, canvasH);
 
   // Subtle holographic coordinate grid
   ctx.strokeStyle = 'rgba(165, 243, 252, 0.28)';
   ctx.lineWidth = 2.0;
-  for (let x = 60; x < canvas.width; x += 60) {
+  for (let x = 60; x < canvasW; x += 60) {
     ctx.beginPath();
     ctx.moveTo(x, 0);
-    ctx.lineTo(x, canvas.height);
+    ctx.lineTo(x, canvasH);
     ctx.stroke();
   }
-  for (let y = 60; y < canvas.height; y += 60) {
+  for (let y = 60; y < canvasH; y += 60) {
     ctx.beginPath();
     ctx.moveTo(0, y);
-    ctx.lineTo(canvas.width, y);
+    ctx.lineTo(canvasW, y);
     ctx.stroke();
   }
 
   // Outer tactical frame
   ctx.strokeStyle = tint.primaryHex;
   ctx.lineWidth = 6;
-  ctx.strokeRect(44, 44, canvas.width - 88, canvas.height - 88);
+  ctx.strokeRect(44, 44, canvasW - 88, canvasH - 88);
 
   // Inner corner brackets
   ctx.strokeStyle = '#ffffff';
@@ -1179,21 +1182,21 @@ export function createProceduralSlideCardTexture(slideSpec, slideIndex = 0, tota
   ctx.stroke();
   // Top-right
   ctx.beginPath();
-  ctx.moveTo(canvas.width - 68 - bLen, 68);
-  ctx.lineTo(canvas.width - 68, 68);
-  ctx.lineTo(canvas.width - 68, 68 + bLen);
+  ctx.moveTo(canvasW - 68 - bLen, 68);
+  ctx.lineTo(canvasW - 68, 68);
+  ctx.lineTo(canvasW - 68, 68 + bLen);
   ctx.stroke();
   // Bottom-left
   ctx.beginPath();
-  ctx.moveTo(68, canvas.height - 68 - bLen);
-  ctx.lineTo(68, canvas.height - 68);
-  ctx.lineTo(68 + bLen, canvas.height - 68);
+  ctx.moveTo(68, canvasH - 68 - bLen);
+  ctx.lineTo(68, canvasH - 68);
+  ctx.lineTo(68 + bLen, canvasH - 68);
   ctx.stroke();
   // Bottom-right
   ctx.beginPath();
-  ctx.moveTo(canvas.width - 68 - bLen, canvas.height - 68);
-  ctx.lineTo(canvas.width - 68, canvas.height - 68);
-  ctx.lineTo(canvas.width - 68, canvas.height - 68 - bLen);
+  ctx.moveTo(canvasW - 68 - bLen, canvasH - 68);
+  ctx.lineTo(canvasW - 68, canvasH - 68);
+  ctx.lineTo(canvasW - 68, canvasH - 68 - bLen);
   ctx.stroke();
 
   // Header badge
@@ -1201,11 +1204,11 @@ export function createProceduralSlideCardTexture(slideSpec, slideIndex = 0, tota
   ctx.font = 'bold 30px ui-monospace, SFMono-Regular, Menlo, monospace';
   ctx.textAlign = 'center';
   const badgeText = slideSpec.kicker || `HOLO-COLUMN CAROUSEL // SLIDE 0${slideIndex + 1} OF 0${totalSlides}`;
-  ctx.fillText(badgeText, canvas.width * 0.5, 165);
+  ctx.fillText(badgeText, canvasW * 0.5, 165);
 
   // Center holographic reticle emblem
-  const cx = canvas.width * 0.5;
-  const cy = canvas.height * 0.45;
+  const cx = canvasW * 0.5;
+  const cy = canvasH * 0.45;
   ctx.strokeStyle = tint.primaryHex;
   ctx.lineWidth = 4;
   ctx.beginPath();
@@ -1253,10 +1256,11 @@ export function createProceduralSlideCardTexture(slideSpec, slideIndex = 0, tota
   // Bottom status bar
   ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
   ctx.font = 'bold 24px ui-monospace, SFMono-Regular, Menlo, monospace';
-  ctx.fillText('SWIPE LEFT / RIGHT  •  CLICK EDGES  •  UPLOAD CUSTOM MEDIA IN HUD', cx, canvas.height - 125);
+  ctx.fillText('SWIPE LEFT / RIGHT  •  CLICK EDGES  •  UPLOAD CUSTOM MEDIA IN HUD', cx, canvasH - 125);
 
   const tex = new THREE.CanvasTexture(canvas);
   tex.colorSpace = THREE.SRGBColorSpace;
+  tex.generateMipmaps = false;
   tex.minFilter = THREE.LinearFilter;
   tex.magFilter = THREE.LinearFilter;
   tex.wrapS = THREE.ClampToEdgeWrapping;
@@ -1708,16 +1712,17 @@ export class HoloScrollableDocumentController {
 
     if (typeof document !== 'undefined') {
       this.canvas = document.createElement('canvas');
-      this.canvas.width = this.viewportWidth;
-      this.canvas.height = this.viewportHeight;
+      this.canvas.width = 788;
+      this.canvas.height = 1024;
       this.ctx = this.canvas.getContext('2d');
       this.texture = new THREE.CanvasTexture(this.canvas);
       this.texture.colorSpace = THREE.SRGBColorSpace;
+      this.texture.generateMipmaps = false;
       this.texture.minFilter = THREE.LinearFilter;
       this.texture.magFilter = THREE.LinearFilter;
       this.texture.wrapS = THREE.ClampToEdgeWrapping;
       this.texture.wrapT = THREE.ClampToEdgeWrapping;
-      this.texture.anisotropy = 4;
+      this.texture.anisotropy = 1;
 
       for (const page of this.pages) {
         if (typeof Image !== 'undefined') {
@@ -1816,10 +1821,14 @@ export class HoloScrollableDocumentController {
   renderViewport() {
     if (!this.ctx || !this.canvas) return;
     const ctx = this.ctx;
+    const canvasW = this.canvas.width;
+    const canvasH = this.canvas.height;
     const w = this.viewportWidth;
     const h = this.viewportHeight;
 
-    ctx.clearRect(0, 0, w, h);
+    ctx.clearRect(0, 0, canvasW, canvasH);
+    ctx.save();
+    ctx.scale(canvasW / w, canvasH / h);
 
     // 1. Deep holographic obsidian backing
     ctx.fillStyle = '#07121e';
@@ -2011,6 +2020,7 @@ export class HoloScrollableDocumentController {
     ctx.strokeStyle = '#00d5ff';
     ctx.lineWidth = 4;
     ctx.strokeRect(2, 2, w - 4, h - 4);
+    ctx.restore();
 
     if (this.texture) {
       this.texture.needsUpdate = true;

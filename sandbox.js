@@ -1466,7 +1466,7 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined' && containe
     powerPreference: 'high-performance',
   });
   renderer.setSize(window.innerWidth, window.innerHeight);
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.25));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 0.72;
@@ -1711,16 +1711,17 @@ function wrapCanvasText(ctx, text, x, y, maxWidth, lineHeight, maxLines = 3) {
 }
 
 function createStandbyDockTexture(st) {
-  return createProjectScreenTexture(st);
+  return null;
 }
 
 function createProjectScreenTexture(st) {
   const canvas = document.createElement('canvas');
-  canvas.width = 1280;
-  canvas.height = 784;
+  canvas.width = 1024;
+  canvas.height = 627;
   const ctx = canvas.getContext('2d');
-  const W = canvas.width;
-  const H = canvas.height;
+  ctx.scale(1024 / 1280, 627 / 784);
+  const W = 1280;
+  const H = 784;
 
   // 1. Clear exterior canvas margin to 100% transparent (Spec 036 §3.1)
   ctx.clearRect(0, 0, W, H);
@@ -2212,7 +2213,10 @@ function createProjectScreenTexture(st) {
 
   const tex = new THREE.CanvasTexture(canvas);
   tex.colorSpace = THREE.SRGBColorSpace;
-  tex.anisotropy = 4;
+  tex.generateMipmaps = false;
+  tex.minFilter = THREE.LinearFilter;
+  tex.magFilter = THREE.LinearFilter;
+  tex.anisotropy = 1;
   tex.needsUpdate = true;
   return tex;
 }
@@ -2481,10 +2485,9 @@ function buildWallScreenMounts(markers, hologramGLTF = null) {
     standbyHoloInstance.root.position.set(0, -0.5 * screenHeight, MOUNT_BRICK_CLEARANCE - 0.006);
     standbyHoloInstance.root.visible = false;
 
-    const standbyTex = createStandbyDockTexture(st);
     const standbyPlateMat = new THREE.MeshBasicMaterial({
       name: `${st.mountName}_StandbyPlateMat`,
-      map: standbyTex,
+      map: null,
       transparent: true,
       opacity: 0.22,
       depthTest: true,
@@ -19573,6 +19576,7 @@ function bindInputListeners() {
   window.addEventListener('resize', () => {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.25));
     renderer.setSize(window.innerWidth, window.innerHeight);
     if (!isMobileTouchForceDisabled()) {
       const shouldBeMobile = detectInitialMobileTouchMode();
@@ -20710,6 +20714,7 @@ function initSprayPaintLoadingScreen() {
       dismissTimer = setTimeout(() => {
         if (overlayEl && !sprayLoader.keepVisibleForTest) {
           overlayEl.classList.add('hidden');
+          sprayLoader.teardownContext();
         }
         if (sandbox.director && sandbox.mode === 'scroll' && sandbox.scrollProgress <= 0.01) {
           sandbox.director.playStartupPan();
@@ -20725,11 +20730,15 @@ function initSprayPaintLoadingScreen() {
 
   sandbox.skipSprayPaintIntro = () => {
     if (dismissTimer) clearTimeout(dismissTimer);
+    sprayLoader.isSkipped = true;
     sprayLoader.setProgress(1.0, { immediate: true });
     sprayLoader.pause();
     updateSprayDOMLabels(sprayLoader);
     if (overlayEl) {
       overlayEl.classList.add('hidden');
+    }
+    if (!sprayLoader.keepVisibleForTest) {
+      sprayLoader.teardownContext();
     }
     if (sandbox.director && sandbox.mode === 'scroll' && sandbox.scrollProgress <= 0.01) {
       sandbox.director.playStartupPan();
@@ -20738,6 +20747,7 @@ function initSprayPaintLoadingScreen() {
 
   sandbox.replaySprayPaintIntro = (mode = 'autoplay') => {
     if (dismissTimer) clearTimeout(dismissTimer);
+    sprayLoader.isSkipped = false;
     if (overlayEl) {
       overlayEl.classList.remove('hidden');
     }
@@ -21218,7 +21228,7 @@ async function initSandbox() {
   let loadedAssets = 0;
   const handleAssetProgress = () => {
     loadedAssets++;
-    if (sprayLoader && sprayLoader.mode === 'deterministic') {
+    if (sprayLoader && sprayLoader.mode === 'deterministic' && !sprayLoader.isSkipped && sprayLoader.targetProgress < 0.999) {
       const frac = Math.min(0.92, (loadedAssets / totalAssets) * 0.92);
       sprayLoader.setProgress(frac);
     }

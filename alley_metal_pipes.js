@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
 export const ALLEY_METAL_PIPES_ASSET_URL = './assets/pipes/alley_metal_pipes.glb?v=052';
 
@@ -361,6 +362,23 @@ function countObjectTriangles(rootObject) {
   return triangles;
 }
 
+function applyMatteRustySurfaceOptics(mat) {
+  mat.envMapIntensity = 0.0;
+  mat.onBeforeCompile = (shader) => {
+    shader.fragmentShader = shader.fragmentShader.replace(
+      '#include <lights_fragment_end>',
+      `#include <lights_fragment_end>
+      // Eliminate grazing-angle Fresnel specular glare and apply warm rusty wrap-diffuse
+      reflectedLight.directSpecular *= 0.02;
+      reflectedLight.indirectSpecular *= 0.0;
+      float wrapNdotV = clamp(abs(dot(normalize(geometryNormal), normalize(geometryViewDir))), 0.0, 1.0);
+      reflectedLight.indirectDiffuse += diffuseColor.rgb * (0.42 + 0.36 * wrapNdotV);`
+    );
+  };
+  mat.customProgramCacheKey = () => 'matte_corroded_rust_pipe_v1';
+  return mat;
+}
+
 /**
  * Extracts normalized Sketchfab kit meshes and creates shared PBR material palettes
  * for the 8 variations.
@@ -401,23 +419,6 @@ function extractKitCatalogAndMaterials(pipeGLTF) {
         `[AlleyMetalPipes] Required Sketchfab kit mesh "${reqName}" missing inside ${ALLEY_METAL_PIPES_ASSET_URL}.`
       );
     }
-  }
-
-  function applyMatteRustySurfaceOptics(mat) {
-    mat.envMapIntensity = 0.0;
-    mat.onBeforeCompile = (shader) => {
-      shader.fragmentShader = shader.fragmentShader.replace(
-        '#include <lights_fragment_end>',
-        `#include <lights_fragment_end>
-        // Eliminate grazing-angle Fresnel specular glare and apply warm rusty wrap-diffuse
-        reflectedLight.directSpecular *= 0.02;
-        reflectedLight.indirectSpecular *= 0.0;
-        float wrapNdotV = clamp(abs(dot(normalize(geometryNormal), normalize(geometryViewDir))), 0.0, 1.0);
-        reflectedLight.indirectDiffuse += diffuseColor.rgb * (0.42 + 0.36 * wrapNdotV);`
-      );
-    };
-    mat.customProgramCacheKey = () => 'matte_corroded_rust_pipe_v1';
-    return mat;
   }
 
   const variationMaterials = {};
@@ -478,7 +479,7 @@ function extractKitCatalogAndMaterials(pipeGLTF) {
     };
   }
 
-  return { kitMeshes, bakedVariationNodes, variationMaterials };
+  return { kitMeshes, bakedVariationNodes, variationMaterials, baseMaps };
 }
 
 function spawnKitPart(kitMeshes, pieceName, material, pos, rotEuler, scaleVec) {
@@ -683,7 +684,7 @@ export function buildAlleyMetalPipesSubsystem({
     throw new Error('[AlleyMetalPipes] Missing rootGroup container.');
   }
 
-  const { kitMeshes, bakedVariationNodes, variationMaterials } =
+  const { kitMeshes, bakedVariationNodes, variationMaterials, baseMaps } =
     extractKitCatalogAndMaterials(pipeGLTF);
 
   const pipesRootGroup = new THREE.Group();
@@ -716,6 +717,10 @@ export function buildAlleyMetalPipesSubsystem({
   let minCrossWallClearanceY = Infinity;
   let totalTriangles = 0;
 
+  const primaryGeoms = [];
+  const secondaryGeoms = [];
+  const accentGeoms = [];
+
   for (const entry of ALLEY_PIPE_PLACEMENT_SCHEDULE) {
     const varSpec = variations[entry.variationId];
     if (!varSpec) {
@@ -735,18 +740,19 @@ export function buildAlleyMetalPipesSubsystem({
     let anchorX = 0;
     let spanWidthM = 0;
     let undersideClearanceRelY = entry.relY;
+    let instance = null;
 
     if (entry.mountMode === 'L') {
       leftWallCount += 1;
       anchorX = xLeftWall + entry.standoffX;
-      const instance = buildWallVariationInstance(entry.variationId, kitMeshes, matPalette);
+      instance = buildWallVariationInstance(entry.variationId, kitMeshes, matPalette);
       placementGroup.position.set(anchorX, worldY, entry.z);
       placementGroup.add(instance);
       spanWidthM = varSpec.nominalDimensions.depthX || 0.20;
     } else if (entry.mountMode === 'R') {
       rightWallCount += 1;
       anchorX = xRightWall - entry.standoffX;
-      const instance = buildWallVariationInstance(entry.variationId, kitMeshes, matPalette);
+      instance = buildWallVariationInstance(entry.variationId, kitMeshes, matPalette);
       // Mirror across X so wall brackets extend in +X into x_R(z) and valves face -X into the alley
       instance.scale.x = -1;
       placementGroup.position.set(anchorX, worldY, entry.z);
@@ -756,7 +762,7 @@ export function buildAlleyMetalPipesSubsystem({
       crossWallCount += 1;
       spanWidthM = Number((xRightWall - xLeftWall).toFixed(4));
       anchorX = Number((0.5 * (xLeftWall + xRightWall)).toFixed(4));
-      const instance = buildCrossWallBridgeInstance(
+      instance = buildCrossWallBridgeInstance(
         entry.variationId,
         xLeftWall,
         xRightWall,
@@ -776,6 +782,48 @@ export function buildAlleyMetalPipesSubsystem({
 
     const triangleCount = countObjectTriangles(placementGroup);
     totalTriangles += triangleCount;
+
+    // Extract geometry for corridor-wide material batching
+    placementGroup.updateMatrix();
+    placementGroup.updateMatrixWorld(true);
+    instance.traverse((child) => {
+      if (child.isMesh) {
+        child.updateMatrixWorld(true);
+        const g = child.geometry.clone();
+        g.applyMatrix4(child.matrixWorld);
+
+        const col = (child.material && child.material.color) ? child.material.color : new THREE.Color(0xffffff);
+        const vCount = g.attributes.position.count;
+        const colorArray = new Float32Array(vCount * 3);
+        for (let vi = 0; vi < vCount; vi++) {
+          colorArray[vi * 3] = col.r;
+          colorArray[vi * 3 + 1] = col.g;
+          colorArray[vi * 3 + 2] = col.b;
+        }
+        g.setAttribute('color', new THREE.BufferAttribute(colorArray, 3));
+
+        const matName = (child.material && child.material.name) ? child.material.name : '';
+        if (matName.includes('Primary')) {
+          primaryGeoms.push(g);
+        } else if (matName.includes('Accent')) {
+          accentGeoms.push(g);
+        } else {
+          secondaryGeoms.push(g);
+        }
+      }
+    });
+
+    placementGroup.remove(instance);
+    const proxyMesh = new THREE.Mesh(
+      new THREE.BoxGeometry(
+        Math.max(0.2, varSpec.nominalDimensions.depthX || 0.2),
+        Math.max(0.4, varSpec.nominalDimensions.heightY || 1.0),
+        Math.max(0.4, varSpec.nominalDimensions.lengthZ || 1.0)
+      )
+    );
+    proxyMesh.name = `${entry.id}_BoundingProxy`;
+    proxyMesh.visible = false;
+    placementGroup.add(proxyMesh);
 
     const record = {
       id: entry.id,
@@ -802,6 +850,93 @@ export function buildAlleyMetalPipesSubsystem({
     placements.push(record);
     placementsById[entry.id] = record;
     placementsById[entry.index] = record;
+  }
+
+  // Batch corridor-wide static pipe meshes into 3 shared draw calls
+  const batchPrimaryMat = applyMatteRustySurfaceOptics(
+    new THREE.MeshStandardMaterial({
+      name: 'AlleyMetalPipes_Batch_PrimaryMat',
+      vertexColors: true,
+      map: baseMaps.map,
+      roughnessMap: baseMaps.metalnessRoughnessMap,
+      normalMap: baseMaps.normalMap,
+      normalScale: new THREE.Vector2(0.45, 0.45),
+      emissive: new THREE.Color(0x381506),
+      emissiveMap: baseMaps.map,
+      emissiveIntensity: 0.42,
+      metalness: 0.12,
+      roughness: 0.92,
+      depthTest: true,
+      depthWrite: true,
+    })
+  );
+  const batchSecondaryMat = applyMatteRustySurfaceOptics(
+    new THREE.MeshStandardMaterial({
+      name: 'AlleyMetalPipes_Batch_SecondaryMat',
+      vertexColors: true,
+      map: baseMaps.map,
+      roughnessMap: baseMaps.metalnessRoughnessMap,
+      normalMap: baseMaps.normalMap,
+      normalScale: new THREE.Vector2(0.50, 0.50),
+      emissive: new THREE.Color(0x220e04),
+      emissiveMap: baseMaps.map,
+      emissiveIntensity: 0.35,
+      metalness: 0.14,
+      roughness: 0.94,
+      depthTest: true,
+      depthWrite: true,
+    })
+  );
+  const batchAccentMat = applyMatteRustySurfaceOptics(
+    new THREE.MeshStandardMaterial({
+      name: 'AlleyMetalPipes_Batch_AccentMat',
+      vertexColors: true,
+      map: baseMaps.map,
+      roughnessMap: baseMaps.metalnessRoughnessMap,
+      normalMap: baseMaps.normalMap,
+      normalScale: new THREE.Vector2(0.55, 0.55),
+      emissive: new THREE.Color(0x401008),
+      emissiveMap: baseMaps.map,
+      emissiveIntensity: 0.50,
+      metalness: 0.18,
+      roughness: 0.88,
+      depthTest: true,
+      depthWrite: true,
+    })
+  );
+
+  if (typeof applyStencilReject === 'function') {
+    applyStencilReject(batchPrimaryMat);
+    applyStencilReject(batchSecondaryMat);
+    applyStencilReject(batchAccentMat);
+  }
+
+  if (primaryGeoms.length > 0) {
+    const mergedPrimary = mergeGeometries(primaryGeoms, false);
+    if (mergedPrimary) {
+      const meshPrimary = new THREE.Mesh(mergedPrimary, batchPrimaryMat);
+      meshPrimary.name = 'AlleyMetalPipesBatchMesh_Primary';
+      meshPrimary.renderOrder = 2;
+      pipesRootGroup.add(meshPrimary);
+    }
+  }
+  if (secondaryGeoms.length > 0) {
+    const mergedSecondary = mergeGeometries(secondaryGeoms, false);
+    if (mergedSecondary) {
+      const meshSecondary = new THREE.Mesh(mergedSecondary, batchSecondaryMat);
+      meshSecondary.name = 'AlleyMetalPipesBatchMesh_Secondary';
+      meshSecondary.renderOrder = 2;
+      pipesRootGroup.add(meshSecondary);
+    }
+  }
+  if (accentGeoms.length > 0) {
+    const mergedAccent = mergeGeometries(accentGeoms, false);
+    if (mergedAccent) {
+      const meshAccent = new THREE.Mesh(mergedAccent, batchAccentMat);
+      meshAccent.name = 'AlleyMetalPipesBatchMesh_Accent';
+      meshAccent.renderOrder = 2;
+      pipesRootGroup.add(meshAccent);
+    }
   }
 
   const steamSystem = buildPipeSteamSubsystem({

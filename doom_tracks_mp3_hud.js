@@ -1015,13 +1015,28 @@ export function processMp3ChassisBitmap(sourceImage) {
     widthScale: 1.05,
   });
 
+  // Extract clean 1308x396 OLED screen substrate crop and reclaim the 2752x1536 rawCanvas (16.9 MB)
+  const scr = MP3_SCREEN_ONLY_CROP;
+  const screenSubstrateCanvas = document.createElement('canvas');
+  screenSubstrateCanvas.width = scr.w;
+  screenSubstrateCanvas.height = scr.h;
+  screenSubstrateCanvas.getContext('2d').drawImage(
+    rawCanvas,
+    scr.x, scr.y, scr.w, scr.h,
+    0, 0, scr.w, scr.h
+  );
+
+  // Immediately reclaim 2752x1536 raw canvas memory
+  rawCanvas.width = 0;
+  rawCanvas.height = 0;
+
   return {
-    baseCanvas: rawCanvas,
+    screenSubstrateCanvas,
+    baseCanvas: screenSubstrateCanvas,
     cdSpriteCanvas,
     origPlayingCanvas,
     origWaveformCanvas,
     buttonCapSprites,
-    exteriorMask: visited,
   };
 }
 
@@ -1125,6 +1140,70 @@ export function createDoomTracksMp3HUD(options = {}) {
   let scene3d = null;
   let camera3d = null;
   let renderer3d = null;
+  let glbLoadingPromise = null;
+
+  function ensureRenderer3D() {
+    if (renderer3d) return renderer3d;
+    renderer3d = new THREE.WebGLRenderer({
+      alpha: true,
+      antialias: true,
+      powerPreference: 'high-performance',
+      preserveDrawingBuffer: false,
+    });
+    renderer3d.outputColorSpace = THREE.SRGBColorSpace;
+    renderer3d.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer3d.toneMappingExposure = 1.22;
+    renderer3d.setPixelRatio(1);
+    // Capped secondary buffer resolution (980x654) saving 75% memory
+    renderer3d.setSize(980, 654, false);
+    return renderer3d;
+  }
+
+  function disposeRenderer3D() {
+    if (renderer3d) {
+      try {
+        renderer3d.dispose();
+        renderer3d.forceContextLoss();
+        if (renderer3d.domElement) {
+          renderer3d.domElement.width = 1;
+          renderer3d.domElement.height = 1;
+        }
+      } catch (_e) {}
+      renderer3d = null;
+    }
+  }
+
+  function ensure3DLoaded() {
+    if (state.glbLoaded) return Promise.resolve();
+    if (glbLoadingPromise) return glbLoadingPromise;
+    glbLoadingPromise = (async () => {
+      const glbLoader = new GLTFLoader();
+      const glbBuffer = await fetchRangeChunkedArrayBuffer(glbSrc);
+      const resourcePath = THREE.LoaderUtils.extractUrlBase(glbSrc);
+      await new Promise((resolve, reject) => {
+        glbLoader.parse(
+          glbBuffer,
+          resourcePath,
+          (gltf) => {
+            try {
+              build3DSceneGraph(gltf.scene);
+              state.glbLoaded = true;
+              if (state.targetMorphProgress > 0) {
+                ensureRenderer3D();
+              }
+              resolve();
+            } catch (err) {
+              reject(err);
+            }
+          },
+          (err) => {
+            reject(new Error(`Failed to parse decimated 3D MP3 asset at ${glbSrc}: ${err && err.message ? err.message : err}`));
+          }
+        );
+      });
+    })();
+    return glbLoadingPromise;
+  }
   let pivotGroup = null;
   let landscapeGroup = null;
   let audiodeviceMesh = null;
@@ -1756,18 +1835,6 @@ export function createDoomTracksMp3HUD(options = {}) {
       landscapeGroup.add(hitMesh);
       buttonHitMeshes.set(ctrl.id, hitMesh);
     }
-
-    renderer3d = new THREE.WebGLRenderer({
-      alpha: true,
-      antialias: true,
-      powerPreference: 'high-performance',
-      preserveDrawingBuffer: false,
-    });
-    renderer3d.outputColorSpace = THREE.SRGBColorSpace;
-    renderer3d.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer3d.toneMappingExposure = 1.22;
-    renderer3d.setPixelRatio(1);
-    renderer3d.setSize(MP3_CHASSIS_CROP.w, MP3_CHASSIS_CROP.h, false);
   }
 
   function renderOledScreen2D(nowMs, dt) {
@@ -1779,8 +1846,12 @@ export function createDoomTracksMp3HUD(options = {}) {
     ctx.save();
     ctx.translate(-scr.x, -scr.y);
 
-    // 1. Draw clean inpainted OLED screen substrate from processedAssets.baseCanvas
-    ctx.drawImage(processedAssets.baseCanvas, 0, 0);
+    // 1. Draw clean inpainted OLED screen substrate
+    if (processedAssets.screenSubstrateCanvas) {
+      ctx.drawImage(processedAssets.screenSubstrateCanvas, scr.x, scr.y);
+    } else if (processedAssets.baseCanvas) {
+      ctx.drawImage(processedAssets.baseCanvas, scr.x, scr.y);
+    }
 
     const activeTrack = state.tracks[state.currentTrackIndex] || DOOM_TRACKS_DEFAULT_CATALOG[0];
 
@@ -2240,12 +2311,14 @@ export function createDoomTracksMp3HUD(options = {}) {
 
     const shouldMount3D = state.morphProgress > 0.0 || state.targetMorphProgress > 0.0;
     if (pivotGroup && landscapeGroup) {
-      if (shouldMount3D && !state.mounted3D) {
+      if (shouldMount3D && !state.mounted3D && state.glbLoaded) {
+        ensureRenderer3D();
         pivotGroup.add(landscapeGroup);
         state.mounted3D = true;
       } else if (!shouldMount3D && state.mounted3D) {
         pivotGroup.remove(landscapeGroup);
         state.mounted3D = false;
+        disposeRenderer3D();
       }
     }
 
@@ -2791,6 +2864,9 @@ export function createDoomTracksMp3HUD(options = {}) {
     state.expanded = Boolean(expandedBool);
 
     if (expandedBool) {
+      ensure3DLoaded().catch((err) => {
+        console.error('[MP3 HUD] Failed to lazily load 3D GLB:', err);
+      });
       if (changed) {
         state.targetTiltYaw = -0.28;
         state.targetTiltPitch = 0.14;
@@ -2814,6 +2890,13 @@ export function createDoomTracksMp3HUD(options = {}) {
     if (immediate) {
       state.morphProgress = target;
       state.displayMode = target >= 1.0 ? 'FULL_TAKEOVER' : 'SCREEN_ONLY';
+      if (!expandedBool) {
+        if (pivotGroup && landscapeGroup) {
+          pivotGroup.remove(landscapeGroup);
+        }
+        state.mounted3D = false;
+        disposeRenderer3D();
+      }
     } else if (state.morphProgress !== target) {
       state.displayMode = target >= 1.0 ? 'EXPANDING' : 'COLLAPSING';
     } else {
@@ -3004,31 +3087,11 @@ export function createDoomTracksMp3HUD(options = {}) {
       }
     })();
 
-    const glbLoader = new GLTFLoader();
-    const glbPromise = (async () => {
-      const glbBuffer = await fetchRangeChunkedArrayBuffer(glbSrc);
-      const resourcePath = THREE.LoaderUtils.extractUrlBase(glbSrc);
-      await new Promise((resolve, reject) => {
-        glbLoader.parse(
-          glbBuffer,
-          resourcePath,
-          (gltf) => {
-            try {
-              build3DSceneGraph(gltf.scene);
-              state.glbLoaded = true;
-              resolve();
-            } catch (err) {
-              reject(err);
-            }
-          },
-          (err) => {
-            reject(new Error(`Failed to parse decimated 3D MP3 asset at ${glbSrc}: ${err && err.message ? err.message : err}`));
-          }
-        );
-      });
-    })();
-
-    await Promise.all([bitmapPromise, glbPromise]);
+    if (options && options.initiallyExpanded) {
+      await Promise.all([bitmapPromise, ensure3DLoaded()]);
+    } else {
+      await bitmapPromise;
+    }
     state.initialized = true;
     applyMorphLayout();
     renderFrame(performance.now());
@@ -3041,6 +3104,7 @@ export function createDoomTracksMp3HUD(options = {}) {
   const api = {
     state,
     initPromise,
+    ensure3DLoaded,
     setAudioSubsystem,
     audioElement: audioEl,
     get visible() {

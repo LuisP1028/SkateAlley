@@ -1787,6 +1787,7 @@ export class SprayPaintLoader {
 
   play() {
     if (this.isDestroyed || this.isPlaying) return;
+    this._ensureContext();
     this.isPlaying = true;
     this.lastFrameTimeMs = typeof performance !== 'undefined' ? performance.now() : 0;
     this.rafId = requestAnimationFrame((t) => this._tick(t));
@@ -1805,6 +1806,7 @@ export class SprayPaintLoader {
   reset() {
     if (this.isDestroyed) return;
     this.pause();
+    this._ensureContext();
     this.renderedProgress = 0.0;
     this.targetProgress = 0.0;
     this.masterOpacity = 1.0;
@@ -1868,6 +1870,59 @@ export class SprayPaintLoader {
     this._renderFrame();
   }
 
+  teardownContext() {
+    if (this.keepVisibleForTest || !this.gl || this.isDestroyed) return;
+    const gl = this.gl;
+    if (this.logoTex) gl.deleteTexture(this.logoTex);
+    if (this.maskTex) gl.deleteTexture(this.maskTex);
+    if (this.maskFBO) gl.deleteFramebuffer(this.maskFBO);
+    if (this.quadVBO) gl.deleteBuffer(this.quadVBO);
+    if (this.stampInstanceVBO) gl.deleteBuffer(this.stampInstanceVBO);
+    if (this.mistInstanceVBO) gl.deleteBuffer(this.mistInstanceVBO);
+    if (this.stampVAO) gl.deleteVertexArray(this.stampVAO);
+    if (this.compositeVAO) gl.deleteVertexArray(this.compositeVAO);
+    if (this.mistVAO) gl.deleteVertexArray(this.mistVAO);
+    if (this.stampProgram) gl.deleteProgram(this.stampProgram);
+    if (this.compositeProgram) gl.deleteProgram(this.compositeProgram);
+    if (this.mistProgram) gl.deleteProgram(this.mistProgram);
+
+    this.logoTex = null;
+    this.maskTex = null;
+    this.maskFBO = null;
+    this.quadVBO = null;
+    this.stampInstanceVBO = null;
+    this.mistInstanceVBO = null;
+    this.stampVAO = null;
+    this.compositeVAO = null;
+    this.mistVAO = null;
+    this.stampProgram = null;
+    this.compositeProgram = null;
+    this.mistProgram = null;
+
+    try {
+      const ext = gl.getExtension('WEBGL_lose_context');
+      if (ext) ext.loseContext();
+    } catch (_e) {}
+
+    this.gl = null;
+  }
+
+  _ensureContext() {
+    if (this.gl && !this.contextLost) return true;
+    if (this.isDestroyed) return false;
+    try {
+      this.contextLost = false;
+      this._initWebGL2();
+      this.resize();
+      this._rebuildMaskUpToProgress(this.renderedProgress);
+      this._renderFrame();
+      return true;
+    } catch (err) {
+      console.warn('SprayPaintLoader: failed to restore WebGL2 context', err);
+      return false;
+    }
+  }
+
   destroy() {
     if (this.isDestroyed) return;
     this.pause();
@@ -1883,22 +1938,7 @@ export class SprayPaintLoader {
       this.audioEngine.destroy();
     }
 
-    if (this.gl && !this.contextLost) {
-      const gl = this.gl;
-      if (this.logoTex) gl.deleteTexture(this.logoTex);
-      if (this.maskTex) gl.deleteTexture(this.maskTex);
-      if (this.maskFBO) gl.deleteFramebuffer(this.maskFBO);
-      if (this.quadVBO) gl.deleteBuffer(this.quadVBO);
-      if (this.stampInstanceVBO) gl.deleteBuffer(this.stampInstanceVBO);
-      if (this.mistInstanceVBO) gl.deleteBuffer(this.mistInstanceVBO);
-      if (this.stampVAO) gl.deleteVertexArray(this.stampVAO);
-      if (this.compositeVAO) gl.deleteVertexArray(this.compositeVAO);
-      if (this.mistVAO) gl.deleteVertexArray(this.mistVAO);
-      if (this.stampProgram) gl.deleteProgram(this.stampProgram);
-      if (this.compositeProgram) gl.deleteProgram(this.compositeProgram);
-      if (this.mistProgram) gl.deleteProgram(this.mistProgram);
-    }
-    this.gl = null;
+    this.teardownContext();
   }
 
   _handleContextLost(event) {
@@ -1944,7 +1984,9 @@ export class SprayPaintLoader {
    * [uMin, vMin, uMax, vMax] to verify visual acceptance criteria (§8).
    */
   sampleLogoRegionTelemetry(uMin, vMin, uMax, vMax) {
-    if (!this.gl || this.contextLost) return null;
+    if (!this.gl || this.contextLost) {
+      if (!this._ensureContext()) return null;
+    }
     const gl = this.gl;
     const [rx, ry, rw, rh] = this.logoRect;
     const cw = this.canvas.width;
