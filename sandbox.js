@@ -1519,11 +1519,11 @@ const ENTRANCE_LAMPPOST_LIGHT_LOCAL_POS = Object.freeze({
   z: -4.0442681,
 });
 const ENTRANCE_LAMPPOST_DEFAULT_TARGET = Object.freeze({
-  x: 0.40,
-  y: 0.00,
-  z: 1.50,
+  x: 5.25,
+  y: -1.00,
+  z: -1.15,
 });
-const entranceLamppostLight = new THREE.SpotLight(0xffaa44, 18.0, 26.0, 0.56, 0.52, 1.45);
+const entranceLamppostLight = new THREE.SpotLight(0xffaa44, 18.0, 26.0, 0.3491, 0.72, 1.45);
 entranceLamppostLight.name = 'EntranceStreetLamppostLight';
 entranceLamppostLight.position.set(
   ENTRANCE_LAMPPOST_LIGHT_LOCAL_POS.x,
@@ -3676,7 +3676,7 @@ function updateAlleyAlarmLightFixtures(timeSec) {
 // ============================================================================
 // Entrance Street Lamppost Cone Light Fixture (SpotLight + Volumetric Beam + Target Editor)
 // ============================================================================
-const LAMPPOST_STORAGE_KEY = 'skatealley_lamppost_cone_light_v1';
+const LAMPPOST_STORAGE_KEY = 'skatealley_lamppost_cone_light_v2';
 
 function buildEntranceLamppostLightSystem(visualAlleyMesh) {
   if (!visualAlleyMesh) {
@@ -3695,8 +3695,8 @@ function buildEntranceLamppostLightSystem(visualAlleyMesh) {
   entranceLamppostLight.color.setHex(0xffaa44);
   entranceLamppostLight.intensity = 18.0;
   entranceLamppostLight.distance = 26.0;
-  entranceLamppostLight.angle = 0.56;
-  entranceLamppostLight.penumbra = 0.52;
+  entranceLamppostLight.angle = 0.3491;
+  entranceLamppostLight.penumbra = 0.72;
   entranceLamppostLight.decay = 1.45;
   entranceLamppostLight.visible = true;
 
@@ -3810,8 +3810,8 @@ function buildEntranceLamppostLightSystem(visualAlleyMesh) {
     coneOpacity: 0.16,
     shimmerAmplitude: 0.015,
     distance: 26.0,
-    angleRad: 0.56,
-    penumbra: 0.52,
+    angleRad: 0.3491,
+    penumbra: 0.72,
     decay: 1.45,
     localPosition: {
       x: Number(localPos.x.toFixed(6)),
@@ -3946,10 +3946,10 @@ function buildEntranceLamppostLightSystem(visualAlleyMesh) {
       this.intensity = 18.0;
       this.currentIntensity = 18.0;
       this.light.intensity = 18.0;
-      this.angleRad = 0.56;
-      this.light.angle = 0.56;
-      this.penumbra = 0.52;
-      this.light.penumbra = 0.52;
+      this.angleRad = 0.3491;
+      this.light.angle = 0.3491;
+      this.penumbra = 0.72;
+      this.light.penumbra = 0.72;
       this.distance = 26.0;
       this.light.distance = 26.0;
       this.coneOpacity = 0.16;
@@ -3982,6 +3982,7 @@ function buildEntranceLamppostLightSystem(visualAlleyMesh) {
     },
 
     loadFromStorage() {
+      if (!IS_DEV_MODE) return false;
       if (typeof window === 'undefined' || !window.localStorage) return false;
       try {
         const raw = window.localStorage.getItem(LAMPPOST_STORAGE_KEY);
@@ -4057,23 +4058,23 @@ function updateEntranceLamppostLight(elapsedSec = 0.0) {
 // ============================================================================
 // Player Spawn Coordinates & Startup Camera Pan Director System (Spec 034)
 // ============================================================================
-const SPAWN_STORAGE_KEY = 'skatealley_player_spawn_v1';
-const STARTUP_PAN_STORAGE_KEY = 'skatealley_startup_camera_pan_v1';
+const SPAWN_STORAGE_KEY = 'skatealley_player_spawn_v2';
+const STARTUP_PAN_STORAGE_KEY = 'skatealley_startup_camera_pan_v2';
 
 const DEFAULT_PLAYER_SPAWN = Object.freeze({
-  x: 0.00,
+  x: 5.192,
   y: 0.00,
-  z: 3.00,
-  yawRad: 0.00,
+  z: -0.802,
+  yawRad: -3.1416,
 });
 
 const DEFAULT_STARTUP_PAN = Object.freeze({
-  startPos: Object.freeze({ x: 0.00, y: 2.40, z: -1.50 }),
-  startLookAt: Object.freeze({ x: 0.00, y: 1.40, z: 3.00 }),
-  midPos: Object.freeze({ x: 0.18, y: 2.15, z: 0.025 }),
-  useCustomMidpoint: false,
-  endPos: Object.freeze({ x: 0.36, y: 1.50, z: 1.55 }),
-  endLookAt: Object.freeze({ x: 0.00, y: 1.45, z: 3.00 }),
+  startPos: Object.freeze({ x: 9.048, y: 4.972, z: -7.585 }),
+  startLookAt: Object.freeze({ x: 1.744, y: -1.179, z: 2.684 }),
+  midPos: Object.freeze({ x: 6.231, y: 4.286, z: -7.455 }),
+  useCustomMidpoint: true,
+  endPos: Object.freeze({ x: 5.258, y: 1.584, z: -2.020 }),
+  endLookAt: Object.freeze({ x: 5.182, y: 1.748, z: -0.849 }),
   durationSec: 2.60,
 });
 
@@ -4530,14 +4531,14 @@ function buildSpawnAndCameraDirectorSystem(floorY = 0.0) {
     y: floorY,
     z: DEFAULT_PLAYER_SPAWN.z,
     yawRad: DEFAULT_PLAYER_SPAWN.yawRad,
-    yawDeg: 0,
+    yawDeg: Math.round(THREE.MathUtils.radToDeg(DEFAULT_PLAYER_SPAWN.yawRad)),
   };
 
   const cameraPanState = {
     startPos: new THREE.Vector3(DEFAULT_STARTUP_PAN.startPos.x, DEFAULT_STARTUP_PAN.startPos.y, DEFAULT_STARTUP_PAN.startPos.z),
     startLookAt: new THREE.Vector3(DEFAULT_STARTUP_PAN.startLookAt.x, DEFAULT_STARTUP_PAN.startLookAt.y, DEFAULT_STARTUP_PAN.startLookAt.z),
     midPos: new THREE.Vector3(DEFAULT_STARTUP_PAN.midPos.x, DEFAULT_STARTUP_PAN.midPos.y, DEFAULT_STARTUP_PAN.midPos.z),
-    useCustomMidpoint: false,
+    useCustomMidpoint: Boolean(DEFAULT_STARTUP_PAN.useCustomMidpoint),
     endPos: new THREE.Vector3(DEFAULT_STARTUP_PAN.endPos.x, DEFAULT_STARTUP_PAN.endPos.y, DEFAULT_STARTUP_PAN.endPos.z),
     endLookAt: new THREE.Vector3(DEFAULT_STARTUP_PAN.endLookAt.x, DEFAULT_STARTUP_PAN.endLookAt.y, DEFAULT_STARTUP_PAN.endLookAt.z),
     durationSec: DEFAULT_STARTUP_PAN.durationSec,
@@ -5055,7 +5056,7 @@ function buildSpawnAndCameraDirectorSystem(floorY = 0.0) {
         startPos: DEFAULT_STARTUP_PAN.startPos,
         startLookAt: DEFAULT_STARTUP_PAN.startLookAt,
         midPos: DEFAULT_STARTUP_PAN.midPos,
-        useCustomMidpoint: false,
+        useCustomMidpoint: Boolean(DEFAULT_STARTUP_PAN.useCustomMidpoint),
         endPos: DEFAULT_STARTUP_PAN.endPos,
         endLookAt: DEFAULT_STARTUP_PAN.endLookAt,
         durationSec: DEFAULT_STARTUP_PAN.durationSec,
@@ -11032,10 +11033,22 @@ function computeDoomChatCameraPose(targetChar) {
 
   const camWorldXRaw = midWorldX + dirWorldX * shotDist;
   const camWorldY = midWorldY + 0.04;
-  const camWorldZ = midWorldZ + dirWorldZ * shotDist;
+  let camWorldZ = midWorldZ + dirWorldZ * shotDist;
 
-  const minWallX = resolveAlleyWallProfileX('left', camWorldZ) + 0.24;
-  const maxWallX = resolveAlleyWallProfileX('right', camWorldZ) - 0.24;
+  // Prevent camera from clipping the Z = 0.0 exterior brick facade if pair is in the forecourt outside the alley mouth
+  if (midWorldZ < -0.20 && Math.abs(camWorldXRaw) > 2.00 && camWorldZ > -0.28) {
+    camWorldZ = -0.28;
+  }
+
+  let minWallX;
+  let maxWallX;
+  if (camWorldZ < -0.24) {
+    minWallX = -9.10;
+    maxWallX = 9.90;
+  } else {
+    minWallX = resolveAlleyWallProfileX('left', camWorldZ) + 0.24;
+    maxWallX = resolveAlleyWallProfileX('right', camWorldZ) - 0.24;
+  }
   const camWorldX = Math.max(minWallX, Math.min(maxWallX, camWorldXRaw));
 
   _doomTempWorldPos.set(camWorldX, camWorldY, camWorldZ);
@@ -12025,33 +12038,33 @@ async function hydrateSceneLayoutsFromBackend({ isBackgroundRefresh = false } = 
         return false;
       },
     },
-    {
-      layoutKey: 'lamppost_light',
-      storageKey: LAMPPOST_STORAGE_KEY,
-      readLivePayload(parsedLocal) {
-        if (sandbox.lamppostLight && typeof sandbox.lamppostLight.getState === 'function') {
-          return sandbox.lamppostLight.getState();
-        }
-        return parsedLocal;
-      },
-      applyRemotePayload(remotePayload, remoteTs) {
-        if (sandbox.lamppostLight && typeof sandbox.lamppostLight.setState === 'function') {
-          sandbox.lamppostLight.setState(remotePayload, false);
-          if (typeof window !== 'undefined' && window.localStorage) {
-            try {
-              window.localStorage.setItem(LAMPPOST_STORAGE_KEY, JSON.stringify(sandbox.lamppostLight.getState()));
-              if (remoteTs > 0) {
-                window.localStorage.setItem(`${LAMPPOST_STORAGE_KEY}_ts`, String(Math.round(remoteTs)));
-              }
-            } catch (_e) {}
-          }
-          return true;
-        }
-        return false;
-      },
-    },
     ...(IS_DEV_MODE
       ? [
+          {
+            layoutKey: 'lamppost_light',
+            storageKey: LAMPPOST_STORAGE_KEY,
+            readLivePayload(parsedLocal) {
+              if (sandbox.lamppostLight && typeof sandbox.lamppostLight.getState === 'function') {
+                return sandbox.lamppostLight.getState();
+              }
+              return parsedLocal;
+            },
+            applyRemotePayload(remotePayload, remoteTs) {
+              if (sandbox.lamppostLight && typeof sandbox.lamppostLight.setState === 'function') {
+                sandbox.lamppostLight.setState(remotePayload, false);
+                if (typeof window !== 'undefined' && window.localStorage) {
+                  try {
+                    window.localStorage.setItem(LAMPPOST_STORAGE_KEY, JSON.stringify(sandbox.lamppostLight.getState()));
+                    if (remoteTs > 0) {
+                      window.localStorage.setItem(`${LAMPPOST_STORAGE_KEY}_ts`, String(Math.round(remoteTs)));
+                    }
+                  } catch (_e) {}
+                }
+                return true;
+              }
+              return false;
+            },
+          },
           {
             layoutKey: 'player_spawn',
             storageKey: SPAWN_STORAGE_KEY,
@@ -12803,6 +12816,28 @@ function resolveScrollEntranceProgressWindow(xStart, zStart, zAlleyMouth = 3.00)
   return Math.max(0.06, Math.min(0.22, approachDist / (approachDist + 48.0)));
 }
 
+function getCurrentScrollEntranceProgressWindow() {
+  const env = sandbox.environment;
+  const spawnState = sandbox.director ? sandbox.director.spawnState : null;
+  const xStart = spawnState ? spawnState.x : (env ? env.spawnPlayerPos.x : 0.0);
+  const zStart = spawnState ? spawnState.z : (env ? env.spawnPlayerPos.z : 3.00);
+  return resolveScrollEntranceProgressWindow(xStart, zStart, 3.00);
+}
+
+function mapRawScrollToCorridorProgress(rawProgress) {
+  const p = Math.max(0.0, Math.min(1.0, rawProgress));
+  const pEntrance = getCurrentScrollEntranceProgressWindow();
+  if (pEntrance <= 0.0) return p;
+  return (p - pEntrance) / Math.max(1e-5, 1.0 - pEntrance);
+}
+
+function mapCorridorToRawScrollProgress(corridorProgress) {
+  const pc = Math.max(0.0, Math.min(1.0, corridorProgress));
+  const pEntrance = getCurrentScrollEntranceProgressWindow();
+  if (pEntrance <= 0.0) return pc;
+  return Math.max(0.0, Math.min(1.0, pEntrance + pc * (1.0 - pEntrance)));
+}
+
 function evaluateScrollCorridorPath(progress, overrideSpawnState = null) {
   const env = sandbox.environment;
   const p = Math.max(0.0, Math.min(1.0, progress));
@@ -12934,9 +12969,11 @@ function getActiveHoloStationForProgress(progress, mode) {
     return sandbox.focusedMount.station;
   }
   if (mode !== 'scroll') return null;
+  const corridorProgress = mapRawScrollToCorridorProgress(progress);
+  if (corridorProgress < 0.0) return null;
   for (let i = 0; i < HOLO_PROJECT_STATIONS.length; i++) {
     const st = HOLO_PROJECT_STATIONS[i];
-    if (progress >= st.startProgress && progress <= st.endProgress) {
+    if (corridorProgress >= st.startProgress && corridorProgress <= st.endProgress) {
       return st;
     }
   }
@@ -12950,7 +12987,7 @@ function updateWallScreenMounts(clampedDt = 1 / 60) {
   if (!sandbox.ready || !sandbox.wallMounts) return;
 
   const isScrollMode = sandbox.mode === 'scroll';
-  const effectiveProgress = isScrollMode ? sandbox.scrollProgress : 1.0;
+  const effectiveProgress = isScrollMode ? mapRawScrollToCorridorProgress(sandbox.scrollProgress) : 1.0;
   const activeChar = sandbox.getActiveCharacter();
 
   for (let i = 0; i < sandbox.wallMounts.length; i++) {
@@ -13050,7 +13087,7 @@ function updateWallScreenMounts(clampedDt = 1 / 60) {
         m.triggerGlitchSpike(0.18);
       }
 
-      const endPose = evaluateScrollCorridorPath(st.endProgress);
+      const endPose = evaluateScrollCorridorPath(mapCorridorToRawScrollProgress(st.endProgress));
       const startX = endPose.x + (st.wallSide === 'L' ? -0.92 : 0.92);
       const startY = st.expectedY;
       const startZ = st.expectedZ;
@@ -13284,10 +13321,10 @@ function updateHolographicPopupUI() {
   } else {
     const activeChar = sandbox.getActiveCharacter();
     const zCoord = activeChar ? activeChar.position.z.toFixed(1) : '0.0';
-    const startPct = Math.round(activeStation.startProgress * 100)
+    const startPct = Math.round(mapCorridorToRawScrollProgress(activeStation.startProgress) * 100)
       .toString()
       .padStart(2, '0');
-    const endPct = Math.round(activeStation.endProgress * 100)
+    const endPct = Math.round(mapCorridorToRawScrollProgress(activeStation.endProgress) * 100)
       .toString()
       .padStart(2, '0');
     if (badgeEl) {
@@ -15152,20 +15189,20 @@ const sandbox = {
       inputEl.blur();
     }
 
-    const orbitState = computeThirdPersonCameraPose();
+    const returnTargetPose = resolveScrollRestOrOrbitCameraPose();
     if (immediate) {
       doomChatCameraState.returningToOrbit = false;
       doomChatCameraState.transitionProgress = 1.0;
-      camera.position.copy(orbitState.cameraPos);
-      camera.lookAt(orbitState.pivotPos);
+      camera.position.copy(returnTargetPose.cameraPos);
+      camera.lookAt(returnTargetPose.pivotPos);
       camera.updateMatrixWorld(true);
-      mountFocusCameraState.currentLookAt.copy(orbitState.pivotPos);
+      mountFocusCameraState.currentLookAt.copy(returnTargetPose.pivotPos);
     } else {
       doomChatCameraState.returningToOrbit = true;
       doomChatCameraState.fromPos.copy(camera.position);
       doomChatCameraState.fromLookAt.copy(mountFocusCameraState.currentLookAt);
-      doomChatCameraState.toPos.copy(orbitState.cameraPos);
-      doomChatCameraState.toLookAt.copy(orbitState.pivotPos);
+      doomChatCameraState.toPos.copy(returnTargetPose.cameraPos);
+      doomChatCameraState.toLookAt.copy(returnTargetPose.pivotPos);
       doomChatCameraState.transitionProgress = 0.0;
     }
 
@@ -15887,8 +15924,8 @@ const sandbox = {
     if (!this.ready) return null;
     const st = HOLO_PROJECT_STATIONS.find((s) => s.index === Number(stationIndex));
     if (!st) return null;
-    const midProgress = 0.5 * (st.startProgress + st.endProgress);
-    this.setScrollProgress(midProgress);
+    const midCorridorProgress = 0.5 * (st.startProgress + st.endProgress);
+    this.setScrollProgress(mapCorridorToRawScrollProgress(midCorridorProgress));
     return st;
   },
   setScrollProgress(fraction, { smooth = false } = {}) {
@@ -16023,10 +16060,15 @@ const sandbox = {
     let destProgress;
     if (typeof targetFraction === 'number' && !Number.isNaN(targetFraction)) {
       destProgress = Math.max(0.0, Math.min(0.99, targetFraction));
+    } else if (activeChar.position.z < 2.95 && getCurrentScrollEntranceProgressWindow() > 0.0) {
+      destProgress = 0.0;
     } else {
       destProgress = Math.max(
         0.0,
-        Math.min(0.96, interpolateProgressFromCorridorZ(activeChar.position.z))
+        Math.min(
+          0.98,
+          mapCorridorToRawScrollProgress(interpolateProgressFromCorridorZ(activeChar.position.z))
+        )
       );
     }
 
@@ -17049,6 +17091,22 @@ function computeThirdPersonCameraPose() {
   };
 }
 
+function resolveScrollRestOrOrbitCameraPose(orbitState = computeThirdPersonCameraPose()) {
+  if (
+    sandbox.mode === 'scroll' &&
+    sandbox.director &&
+    sandbox.director.cameraPanState &&
+    sandbox.director.cameraPanState.mode === 'settled' &&
+    sandbox.scrollProgress <= 0.0005
+  ) {
+    return {
+      cameraPos: sandbox.director.cameraPanState.endPos,
+      pivotPos: sandbox.director.cameraPanState.endLookAt,
+    };
+  }
+  return orbitState;
+}
+
 function updateCameraController(dt = 1 / 60) {
   const activeChar = sandbox.getActiveCharacter();
   const orbitState = computeThirdPersonCameraPose();
@@ -17081,8 +17139,9 @@ function updateCameraController(dt = 1 / 60) {
     camera.lookAt(mountFocusCameraState.currentLookAt);
     camera.updateMatrixWorld(true);
   } else if (doomChatCameraState.returningToOrbit) {
-    doomChatCameraState.toPos.copy(orbitState.cameraPos);
-    doomChatCameraState.toLookAt.copy(orbitState.pivotPos);
+    const returnTargetPose = resolveScrollRestOrOrbitCameraPose(orbitState);
+    doomChatCameraState.toPos.copy(returnTargetPose.cameraPos);
+    doomChatCameraState.toLookAt.copy(returnTargetPose.pivotPos);
     doomChatCameraState.transitionProgress = Math.min(
       1.0,
       doomChatCameraState.transitionProgress + dt / DOOM_CHAT_TRANSITION_DURATION
