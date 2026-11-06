@@ -4,3 +4,5 @@ worktrees/
 patches/
 .current-run-id
 .DS_Store
+bin/python*
+bin/pip*

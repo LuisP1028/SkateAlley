@@ -1,16 +1,12 @@
 #!/usr/bin/env bash
 # Auto-generated Sandcastle POSIX-compatible grep shim
-# Prevents agents from hanging by respecting .gitignore on recursive searches while preserving POSIX/BSD grep flags
-
-# 1. Locate the real system grep (bypassing this shim) to avoid infinite fork loops
 REAL_GREP="/usr/bin/grep"
 if [ ! -x "$REAL_GREP" ]; then
     REAL_GREP=$(PATH=$(getconf PATH 2>/dev/null || echo "/usr/bin:/bin") command -v grep || echo "/usr/bin/grep")
 fi
 
-# 2. Detect whether grep was invoked with recursive directory flags (-r, -R, --recursive, -d recurse)
 IS_RECURSIVE=0
- prev_arg=""
+prev_arg=""
 for arg in "$@"; do
     if [[ "$arg" == "--" ]]; then
         break
@@ -25,7 +21,6 @@ for arg in "$@"; do
             break
             ;;
         -[!-]*)
-            # Short flag cluster (e.g. -r, -rn, -RnE); ignore values attached to -e/-f/-m/-A/-B/-C/-d
             short_flags="${arg#-}"
             case "$short_flags" in
                 e*|f*|m*|A*|B*|C*|d*) ;;
@@ -39,12 +34,10 @@ for arg in "$@"; do
     prev_arg="$arg"
 done
 
-# If not a recursive search (e.g. grepping an explicit file or stdin pipe), execute real grep directly
 if [[ "$IS_RECURSIVE" -eq 0 ]]; then
     exec "$REAL_GREP" "$@"
 fi
 
-# 3. Parse .gitignore to build exclusion flags for recursive grep (honoring !-negated file patterns)
 GIT_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || echo ".")
 EXCLUDES=("--exclude-dir=.git" "--exclude-dir=node_modules" "--exclude-dir=.venv" "--exclude-dir=__pycache__")
 
@@ -79,5 +72,4 @@ if [ -f "$GIT_ROOT/.gitignore" ]; then
     done < "$GIT_ROOT/.gitignore"
 fi
 
-# 4. Execute the system grep with the injected exclusions
 exec "$REAL_GREP" "${EXCLUDES[@]}" "$@"
