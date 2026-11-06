@@ -38,6 +38,7 @@ import shutil
 
 PROJECT_DIR = "/Users/diesel/desktop/skatealley"
 SOURCE_GLB_PATH = "/Users/diesel/Desktop/SkateAlley/audiodevice.glb"
+BACKUP_DECIMATED_GLB_PATH = "/Users/diesel/.gemini/antigravity-cli/brain/c7b9acec-344f-47fd-a287-f630f3a1f7f0/scratch/glb_backups/audiodevice_decimated.glb.orig"
 FRONT_REF_PATH = "/Users/diesel/Desktop/SkateAlley/audiodevice.jpeg"
 BACK_REF_PATH = "/Users/diesel/Desktop/SkateAlley/audiodeviceback.jpeg"
 MP3_SCREEN_REF_PATH = os.path.join(PROJECT_DIR, "assets", "mp3.jpeg")
@@ -414,17 +415,17 @@ def dehalo_and_extract_pbr_channels(img_bgr):
     normal_bgr[:, :, 1] = np.clip((ny * 0.5 + 0.5) * 255.0, 0, 255).astype(np.uint8)  # G = Y
     normal_bgr[:, :, 0] = np.clip((nz * 0.5 + 0.5) * 255.0, 0, 255).astype(np.uint8)  # B = Z
 
-    # Crop to [CROP_Y0:CROP_Y0+CROP_H, CROP_X0:CROP_X0+CROP_W] and resize to (1024, 2048)
-    def crop_and_resize(arr, target_size=(1024, 2048), interp=cv2.INTER_AREA):
+    # Crop to [CROP_Y0:CROP_Y0+CROP_H, CROP_X0:CROP_X0+CROP_W] and resize to power-of-two half-atlas
+    def crop_and_resize(arr, target_size=(512, 1024), interp=cv2.INTER_AREA):
         cropped = arr[CROP_Y0 : CROP_Y0 + CROP_H, CROP_X0 : CROP_X0 + CROP_W]
         return cv2.resize(cropped, target_size, interpolation=interp)
 
     return {
-        "base_color": crop_and_resize(base_color_bgr, (1024, 2048)),
-        "emissive": crop_and_resize(emissive_bgr, (1024, 2048)),
-        "roughness": crop_and_resize(roughness_u8, (512, 1024)),
-        "metallic": crop_and_resize(metallic_u8, (512, 1024)),
-        "normal": crop_and_resize(normal_bgr, (512, 1024), interp=cv2.INTER_AREA),
+        "base_color": crop_and_resize(base_color_bgr, (512, 1024)),
+        "emissive": crop_and_resize(emissive_bgr, (256, 512)),
+        "roughness": crop_and_resize(roughness_u8, (256, 512)),
+        "metallic": crop_and_resize(metallic_u8, (256, 512)),
+        "normal": crop_and_resize(normal_bgr, (256, 512), interp=cv2.INTER_AREA),
     }
 
 
@@ -497,17 +498,26 @@ def synthesize_textures_in_python():
     return paths
 
 
+def resolve_input_glb():
+    for candidate in (SOURCE_GLB_PATH, BACKUP_DECIMATED_GLB_PATH, OUTPUT_ASSETS_GLB):
+        if os.path.exists(candidate):
+            return candidate
+    raise FileNotFoundError(f"No source GLB found among {SOURCE_GLB_PATH}, {BACKUP_DECIMATED_GLB_PATH}, {OUTPUT_ASSETS_GLB}")
+
+
 def run_blender_stage():
     import bpy
     import bmesh
+    import mathutils
 
-    print("[Stage 2] Initializing Blender scene...")
+    input_glb = resolve_input_glb()
+    print(f"[Stage 2] Initializing Blender scene from {input_glb}...")
     bpy.ops.wm.read_factory_settings(use_empty=True)
-    bpy.ops.import_scene.gltf(filepath=SOURCE_GLB_PATH)
+    bpy.ops.import_scene.gltf(filepath=input_glb)
 
     mesh_objs = [obj for obj in bpy.context.scene.objects if obj.type == "MESH"]
     if not mesh_objs:
-        raise RuntimeError(f"No mesh objects found in {SOURCE_GLB_PATH}")
+        raise RuntimeError(f"No mesh objects found in {input_glb}")
 
     bpy.ops.object.select_all(action="DESELECT")
     for obj in mesh_objs:
@@ -520,32 +530,176 @@ def run_blender_stage():
     target_obj.name = "AudioDevice_MP3"
     bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
 
-    orig_tris = len(target_obj.data.polygons)
-    print(f"[Stage 2] Original triangle count: {orig_tris}")
-
-    # 1. Apply Collapse Decimate Modifier (ratio = 0.13 -> ~5,200 triangles, <= 6,000 budget)
-    dec_mod = target_obj.modifiers.new(name="Decimate_MP3", type="DECIMATE")
-    dec_mod.decimate_type = "COLLAPSE"
-    dec_mod.ratio = 0.13
-    dec_mod.use_collapse_triangulate = True
-    bpy.ops.object.modifier_apply(modifier=dec_mod.name)
-
-    # Recompute smooth normals
-    bpy.ops.object.shade_smooth()
-
     mesh = target_obj.data
+    orig_tris = len(mesh.polygons)
+    print(f"[Stage 2] Imported triangle count: {orig_tris}")
+
+    # 1. Weld duplicate vertices FIRST before any decimation or topological healing
     bm = bmesh.new()
     bm.from_mesh(mesh)
+    bmesh.ops.remove_doubles(bm, verts=bm.verts[:], dist=1e-4)
+
+    if orig_tris > 8000:
+        bm.to_mesh(mesh)
+        bm.free()
+        mesh.update()
+        dec_mod = target_obj.modifiers.new(name="Decimate_MP3", type="DECIMATE")
+        dec_mod.decimate_type = "COLLAPSE"
+        dec_mod.ratio = 0.13
+        dec_mod.use_collapse_triangulate = True
+        bpy.ops.object.modifier_apply(modifier=dec_mod.name)
+        bm = bmesh.new()
+        bm.from_mesh(mesh)
+        bmesh.ops.remove_doubles(bm, verts=bm.verts[:], dist=1e-4)
+
+    # 2. Cross-island seam welding across decimation slits (within same Z hemisphere)
+    for max_d in (0.004, 0.008, 0.014, 0.022):
+        vert_island = {}
+        visited_f = set()
+        isl_id = 0
+        for f in bm.faces:
+            if f in visited_f:
+                continue
+            isl_id += 1
+            q = [f]
+            visited_f.add(f)
+            while q:
+                c = q.pop()
+                for v in c.verts:
+                    vert_island[v] = isl_id
+                for e in c.edges:
+                    for lf in e.link_faces:
+                        if lf not in visited_f:
+                            visited_f.add(lf)
+                            q.append(lf)
+
+        b_verts = [v for v in bm.verts if v.is_boundary]
+        if not b_verts:
+            break
+        kd = mathutils.kdtree.KDTree(len(b_verts))
+        for i, v in enumerate(b_verts):
+            kd.insert(v.co, i)
+        kd.balance()
+        for i, v in enumerate(b_verts):
+            my_isl = vert_island.get(v, -1)
+            for (_co, idx, dist) in kd.find_n(v.co, 8):
+                if dist > max_d:
+                    break
+                other = b_verts[idx]
+                if idx != i and vert_island.get(other, -2) != my_isl:
+                    if (v.co.y * other.co.y) >= -0.002:
+                        mid = (v.co + other.co) * 0.5
+                        v.co = mid
+                        other.co = mid
+                        break
+        bmesh.ops.remove_doubles(bm, verts=bm.verts[:], dist=1e-4)
+
+    # 3. Fill boundary loops & cap any remaining open boundary cycles until 0 boundary edges remain
+    bmesh.ops.holes_fill(bm, edges=[e for e in bm.edges if e.is_boundary], sides=300)
+
+    for _it in range(12):
+        flap_faces = [f for f in bm.faces if sum(1 for e in f.edges if e.is_boundary) >= 2]
+        if flap_faces:
+            bmesh.ops.delete(bm, geom=flap_faces, context="FACES")
+        b_edges = [e for e in bm.edges if e.is_boundary]
+        if not b_edges:
+            break
+        b_set = set(b_edges)
+        visited = set()
+        for e in b_edges:
+            if e in visited or not e.is_valid:
+                continue
+            comp = []
+            q = [e]
+            visited.add(e)
+            while q:
+                ce = q.pop()
+                comp.append(ce)
+                for v in ce.verts:
+                    for ne in v.link_edges:
+                        if ne in b_set and ne not in visited:
+                            visited.add(ne)
+                            q.append(ne)
+            if len(comp) < 3:
+                bmesh.ops.collapse(bm, edges=[ce for ce in comp if ce.is_valid])
+                continue
+            verts = list({v for ce in comp for v in ce.verts if v.is_valid})
+            if len(verts) < 3:
+                continue
+            center = sum((v.co for v in verts), mathutils.Vector((0.0, 0.0, 0.0))) / len(verts)
+            cv = bm.verts.new(center)
+            for ce in comp:
+                if not ce.is_valid:
+                    continue
+                v1, v2 = ce.verts[0], ce.verts[1]
+                if len(ce.link_faces) == 1:
+                    lf = ce.link_faces[0]
+                    lvs = [l.vert for l in lf.loops]
+                    if (lvs.index(v1) + 1) % len(lvs) == lvs.index(v2):
+                        v1, v2 = v2, v1
+                try:
+                    bm.faces.new((v1, v2, cv))
+                except ValueError:
+                    pass
+        bmesh.ops.remove_doubles(bm, verts=bm.verts[:], dist=1e-5)
+
+    # Final pass: collapse any remaining isolated boundary edges so boundary_edges == 0
+    for _final_it in range(6):
+        rem_b = [e for e in bm.edges if e.is_boundary]
+        if not rem_b:
+            break
+        bmesh.ops.collapse(bm, edges=rem_b[:1])
+        bmesh.ops.remove_doubles(bm, verts=bm.verts[:], dist=1e-5)
+        flap_faces = [f for f in bm.faces if sum(1 for e in f.edges if e.is_boundary) >= 2]
+        if flap_faces:
+            bmesh.ops.delete(bm, geom=flap_faces, context="FACES")
+
+    loose_verts = [v for v in bm.verts if not v.link_faces]
+    if loose_verts:
+        bmesh.ops.delete(bm, geom=loose_verts, context="VERTS")
+    loose_edges = [e for e in bm.edges if not e.link_faces]
+    if loose_edges:
+        bmesh.ops.delete(bm, geom=loose_edges, context="EDGES")
+
     bmesh.ops.triangulate(bm, faces=bm.faces[:])
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces[:])
+
+    # Keep triangle count within the <= 6,000 budget (~5,400 tris) while preserving 0 boundary holes
+    if len(bm.faces) > 5800:
+        bm.to_mesh(mesh)
+        bm.free()
+        mesh.update()
+        dec2 = target_obj.modifiers.new(name="Decimate_Watertight", type="DECIMATE")
+        dec2.decimate_type = "COLLAPSE"
+        dec2.ratio = 5400.0 / float(len(mesh.polygons))
+        dec2.use_collapse_triangulate = True
+        bpy.ops.object.modifier_apply(modifier=dec2.name)
+        bm = bmesh.new()
+        bm.from_mesh(mesh)
+        bmesh.ops.triangulate(bm, faces=bm.faces[:])
+        bmesh.ops.recalc_face_normals(bm, faces=bm.faces[:])
+
     bm.verts.ensure_lookup_table()
     bm.faces.ensure_lookup_table()
+    # Ensure all front-hemisphere faces point toward +Z_gltf and rear-hemisphere faces point toward -Z_gltf
+    for f in bm.faces:
+        f.normal_update()
+        cz_gltf = -f.calc_center_median().y
+        fn_z = -f.normal.y
+        if cz_gltf >= 0.01 and fn_z < -0.25:
+            f.normal_flip()
+        elif cz_gltf <= -0.01 and fn_z > 0.25:
+            f.normal_flip()
     bm.normal_update()
+
+    rem_boundary = sum(1 for e in bm.edges if e.is_boundary)
+    print(f"[Stage 2] Watertight healing complete: verts={len(bm.verts)}, tris={len(bm.faces)}, boundary_edges={rem_boundary}")
 
     # Note on Blender Z-up vs glTF Y-up coordinate mapping after transform_apply:
     # Blender (co.x, co.y, co.z) corresponds to glTF (X_gltf, -Z_gltf, Y_gltf):
     #   - X_gltf = co.x  in [-0.697, +0.697]
-    #   - Y_gltf = co.z  in [-1.018, +1.010]
-    #   - Z_gltf = -co.y in [-0.132, +0.127] (+Z_gltf = Front, -Z_gltf = Back)
+    #   - Y_gltf = co.z  in [-1.003, +1.003]
+    #   - Z_gltf = -co.y in [-0.129, +0.117] (+Z_gltf = Front, -Z_gltf = Back)
     xs_gltf = [v.co.x for v in bm.verts]
     ys_gltf = [v.co.z for v in bm.verts]
     zs_gltf = [-v.co.y for v in bm.verts]
@@ -557,52 +711,45 @@ def run_blender_stage():
     span_z = max(1e-6, max_z - min_z)
 
     print(
-        f"[Stage 2] Decimated glTF bounds: X=[{min_x:.4f}, {max_x:.4f}], "
+        f"[Stage 2] Healed glTF bounds: X=[{min_x:.4f}, {max_x:.4f}], "
         f"Y=[{min_y:.4f}, {max_y:.4f}], Z=[{min_z:.4f}, {max_z:.4f}], "
         f"verts={len(bm.verts)}, tris={len(bm.faces)}"
     )
 
     uv_layer = bm.loops.layers.uv.verify()
 
+    # 4. Spatial + Normal Hybrid Orthographic UV Registration (Zero Rear Rib UV Bleed)
     for face in bm.faces:
-        fn_x = face.normal.x
-        fn_y = face.normal.z
         fn_z = -face.normal.y  # glTF +Z normal (positive = Front, negative = Back)
+        cz_gltf = -face.calc_center_median().y
 
-        is_back = fn_z < -0.15
-        is_steep_side = abs(fn_z) < 0.30
+        # Every face on the rear half of the chassis (cz_gltf < -0.005)—including steep rear rib bevels
+        # whose normals have fn_z >= -0.15—is strictly classified as Backplate (u in [0.5, 1.0]).
+        is_back = (cz_gltf < -0.005) or (cz_gltf < 0.02 and fn_z < -0.35)
 
         for loop in face.loops:
             co = loop.vert.co
             x_gltf = co.x
             y_gltf = co.z
-            z_gltf = -co.y
 
             sx = (x_gltf - min_x) / span_x
             sy = (y_gltf - min_y) / span_y
-            z_rel = (z_gltf - min_z) / span_z - 0.5
 
             if not is_back:
-                # Front & side perimeter mapped to Left half of atlas u in [0.0, 0.5]
+                # Front & front-perimeter mapped continuously to Left half of atlas u in [0.0, 0.5]
                 x_px = FG_X_MIN + sx * (FG_X_MAX - FG_X_MIN)
                 y_px = FG_Y_MAX - sy * (FG_Y_MAX - FG_Y_MIN)
                 u = 0.5 * ((x_px - CROP_X0) / CROP_W)
                 v = 1.0 - ((y_px - CROP_Y0) / CROP_H)
-                if is_steep_side:
-                    u += fn_x * z_rel * 0.0025
-                    v += fn_y * z_rel * 0.0040
                 u = max(0.002, min(0.498, u))
                 v = max(0.002, min(0.998, v))
             else:
-                # Backplate mapped to Right half of atlas u in [0.5, 1.0]
+                # Backplate mapped continuously to Right half of atlas u in [0.5, 1.0]
                 # Rear view (-Z facing camera, +Y up) has horizontal axis along -X_local -> (1.0 - sx)
                 x_px_back = FG_X_MIN + (1.0 - sx) * (FG_X_MAX - FG_X_MIN)
                 y_px_back = FG_Y_MAX - sy * (FG_Y_MAX - FG_Y_MIN)
                 u = 0.5 + 0.5 * ((x_px_back - CROP_X0) / CROP_W)
                 v = 1.0 - ((y_px_back - CROP_Y0) / CROP_H)
-                if is_steep_side:
-                    u -= fn_x * z_rel * 0.0025
-                    v += fn_y * z_rel * 0.0040
                 u = max(0.502, min(0.998, u))
                 v = max(0.002, min(0.998, v))
 
@@ -610,9 +757,14 @@ def run_blender_stage():
 
     bm.to_mesh(mesh)
     bm.free()
+    mesh.validate(verbose=False)
     mesh.update()
+    bpy.ops.object.shade_smooth()
 
     # Build Principled BSDF PBR + Emissive Material
+    mesh.materials.clear()
+    for old_mat in list(bpy.data.materials):
+        bpy.data.materials.remove(old_mat)
     mat = bpy.data.materials.new(name="AudioDevice_PBR_Material")
     mat.use_nodes = True
     nodes = mat.node_tree.nodes
@@ -673,22 +825,20 @@ def run_blender_stage():
     mesh.materials.clear()
     mesh.materials.append(mat)
 
-    print(f"[Stage 2] Exporting {OUTPUT_ROOT_GLB}...")
+    print(f"[Stage 2] Exporting {OUTPUT_ASSETS_GLB}...")
     bpy.ops.export_scene.gltf(
-        filepath=OUTPUT_ROOT_GLB,
+        filepath=OUTPUT_ASSETS_GLB,
         export_format="GLB",
-        export_image_format="JPEG",
-        export_jpeg_quality=93,
+        export_image_format="WEBP",
+        export_image_quality=88,
         export_apply=True,
         export_texcoords=True,
         export_normals=True,
         export_materials="EXPORT",
     )
-    shutil.copy2(OUTPUT_ROOT_GLB, OUTPUT_ASSETS_GLB)
     print(
-        f"[Stage 2] Export complete: {OUTPUT_ROOT_GLB} "
-        f"({os.path.getsize(OUTPUT_ROOT_GLB) / (1024 * 1024):.2f} MB) "
-        f"and {OUTPUT_ASSETS_GLB}"
+        f"[Stage 2] Export complete: {OUTPUT_ASSETS_GLB} "
+        f"({os.path.getsize(OUTPUT_ASSETS_GLB) / (1024 * 1024):.2f} MB)"
     )
 
 

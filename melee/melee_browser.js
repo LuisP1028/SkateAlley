@@ -6543,7 +6543,7 @@ var WebGPU = {
     WebGPU.setStringView(infoStruct + 28, strPtr, descriptionLen);
     strPtr += descriptionLen;
     (growMemViews(), HEAP32)[(((infoStruct) + (36)) >> 2)] = 2;
-    var adapterType = info.isFallbackAdapter ? 3 : 4;
+    var adapterType = 4; /* allow fallback WebGPU */
     (growMemViews(), HEAP32)[(((infoStruct) + (40)) >> 2)] = adapterType;
     (growMemViews(), HEAPU32)[(((infoStruct) + (44)) >> 2)] = 0;
     (growMemViews(), HEAPU32)[(((infoStruct) + (48)) >> 2)] = 0;

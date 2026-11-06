@@ -51,6 +51,10 @@ export const MP3_SCREEN_ONLY_CROP = Object.freeze({
   h: 396,
 });
 
+export const OLED_RENDER_SCALE = 0.5;
+export const OLED_CANVAS_W = Math.round(MP3_SCREEN_ONLY_CROP.w * OLED_RENDER_SCALE); // 654
+export const OLED_CANVAS_H = Math.round(MP3_SCREEN_ONLY_CROP.h * OLED_RENDER_SCALE); // 198
+
 export const MP3_3D_SCREEN_MOUNT = Object.freeze({
   x: 0.004,
   y: 0.277,
@@ -728,7 +732,7 @@ export function drawTechnoVectorText(ctx, text, x, y, capHeight, options = {}) {
 
   const color = options.color || MP3_PALETTE.primaryAmber;
   const glowColor = options.glowColor || MP3_PALETTE.coreNeonAmber;
-  const glowBlur = options.glowBlur !== undefined ? options.glowBlur : 2;
+  const glowBlur = options.enableShadowBlur ? (options.glowBlur !== undefined ? options.glowBlur : 2) : 0;
   const strokeWidth = options.strokeWidth || Math.max(2.5, capHeight * 0.185);
   const trackingPx = options.trackingPx !== undefined ? options.trackingPx : Math.round(capHeight * 0.22);
   const widthScale = options.widthScale !== undefined ? options.widthScale : 1.0;
@@ -1055,9 +1059,25 @@ function easeInOutCubic(t) {
 
 export function createDoomTracksMp3HUD(options = {}) {
   let sandboxAudio = options.audio || null;
+  let explicitMainRenderer = options.renderer || null;
   const assetSrc = options.assetSrc || 'assets/mp3.jpeg';
   const glbSrc = options.glbSrc || MP3_3D_ASSET_URL;
   const manifestUrl = options.manifestUrl || 'assets/tracks/manifest.json';
+
+  function getMainRenderer() {
+    if (explicitMainRenderer) return explicitMainRenderer;
+    if (typeof window !== 'undefined' && window.__THREE_RENDERER__) {
+      return window.__THREE_RENDERER__;
+    }
+    return null;
+  }
+
+  function setMainRenderer(nextRenderer) {
+    explicitMainRenderer = nextRenderer || null;
+    if (explicitMainRenderer) {
+      disposeRenderer3D();
+    }
+  }
 
   const initialDepressions = {};
   for (const ctrl of MP3_CONTROL_HIT_ZONES) {
@@ -1130,19 +1150,60 @@ export function createDoomTracksMp3HUD(options = {}) {
   let playRequestSeq = 0;
   let lastSeekWallTimeMs = 0;
 
-  // Offscreen processed chassis assets & live 60 FPS OLED screen canvas
+  // Offscreen processed chassis assets & live downsampled (654x198) OLED screen canvas
   let processedAssets = null;
   let oledScreenCanvas = null;
   let oledScreenCtx = null;
   let oledScreenTexture = null;
+  let oledDirty = true;
+  let lastOledRenderMs = -1000;
+
+  function ensureOledScreenCanvas() {
+    if (!oledScreenCanvas && typeof document !== 'undefined') {
+      oledScreenCanvas = document.createElement('canvas');
+      oledScreenCanvas.width = OLED_CANVAS_W;
+      oledScreenCanvas.height = OLED_CANVAS_H;
+      oledScreenCtx = oledScreenCanvas.getContext('2d');
+      oledDirty = true;
+    }
+    return oledScreenCanvas;
+  }
 
   // Three.js 3D Decimated AudioDevice Scene Graph
   let scene3d = null;
   let camera3d = null;
   let renderer3d = null;
   let glbLoadingPromise = null;
+  const curViewRect = { x: 0, y: 0, w: 654, h: 198, vw: 1280, vh: 720 };
+
+  // Shared-renderer full-viewport dimming pass resources
+  let dimScene = null;
+  let dimCamera = null;
+  let dimMaterial = null;
+  const savedViewportVec = new THREE.Vector4();
+  const savedScissorVec = new THREE.Vector4();
+
+  function ensureDimOverlayResources() {
+    if (dimScene) return;
+    dimScene = new THREE.Scene();
+    dimCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+    dimMaterial = new THREE.MeshBasicMaterial({
+      color: 0x070402,
+      transparent: true,
+      opacity: 0.0,
+      depthTest: false,
+      depthWrite: false,
+      toneMapped: false,
+    });
+    const dimQuad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), dimMaterial);
+    dimQuad.frustumCulled = false;
+    dimScene.add(dimQuad);
+  }
 
   function ensureRenderer3D() {
+    if (getMainRenderer()) {
+      return null;
+    }
     if (renderer3d) return renderer3d;
     renderer3d = new THREE.WebGLRenderer({
       alpha: true,
@@ -1154,8 +1215,8 @@ export function createDoomTracksMp3HUD(options = {}) {
     renderer3d.toneMapping = THREE.ACESFilmicToneMapping;
     renderer3d.toneMappingExposure = 1.22;
     renderer3d.setPixelRatio(1);
-    // Capped secondary buffer resolution (980x654) saving 75% memory
-    renderer3d.setSize(980, 654, false);
+    // Capped secondary buffer resolution (654x436) when fallback renderer is used in isolation
+    renderer3d.setSize(OLED_CANVAS_W, Math.round(OLED_CANVAS_W / (MP3_CHASSIS_CROP.w / MP3_CHASSIS_CROP.h)), false);
     return renderer3d;
   }
 
@@ -1188,7 +1249,8 @@ export function createDoomTracksMp3HUD(options = {}) {
             try {
               build3DSceneGraph(gltf.scene);
               state.glbLoaded = true;
-              if (state.targetMorphProgress > 0) {
+              oledDirty = true;
+              if (state.targetMorphProgress > 0 && !getMainRenderer()) {
                 ensureRenderer3D();
               }
               resolve();
@@ -1222,6 +1284,10 @@ export function createDoomTracksMp3HUD(options = {}) {
   let dragStartYaw = 0;
   let dragStartPitch = 0;
   let dragMovedDistancePx = 0;
+  let lastProjYaw = NaN;
+  let lastProjPitch = NaN;
+  let lastProjMorph = NaN;
+  let lastProjInteractive = null;
 
   // DOM Elements
   let backdropEl = null;
@@ -1235,6 +1301,7 @@ export function createDoomTracksMp3HUD(options = {}) {
   function showFooterNotice(text, durationSec = 1.4) {
     state.footerNoticeText = String(text || '').toUpperCase();
     state.footerNoticeTimer = durationSec;
+    oledDirty = true;
   }
 
   function ensureWebAudioGraph() {
@@ -1277,11 +1344,16 @@ export function createDoomTracksMp3HUD(options = {}) {
   }
 
   function syncEffectiveVolumeFromSandbox() {
+    const prevMuted = state.muted;
+    const prevVol = state.volume;
     if (sandboxAudio) {
       state.muted = Boolean(sandboxAudio.muted);
       if (typeof sandboxAudio.masterGain === 'number' && !state.isScrubbingVolume) {
         state.volume = sandboxAudio.masterGain;
       }
+    }
+    if (state.muted !== prevMuted || Math.abs(state.volume - prevVol) > 1e-4) {
+      oledDirty = true;
     }
     const effective = state.muted ? 0.0 : Math.max(0.0, Math.min(1.0, state.volume));
     audioEl.muted = state.muted;
@@ -1501,12 +1573,15 @@ export function createDoomTracksMp3HUD(options = {}) {
       const targetSec = clamped * dur;
       state.currentTime = targetSec;
       lastSeekWallTimeMs = performance.now();
+      oledDirty = true;
       try {
         audioEl.currentTime = targetSec;
       } catch (_e) {
         // Ignore if media stream not seekable yet
       }
-      renderFrame(performance.now());
+      if (!state.isScrubbingProgress) {
+        renderFrame(performance.now());
+      }
     }
     return state.currentTime;
   }
@@ -1526,7 +1601,9 @@ export function createDoomTracksMp3HUD(options = {}) {
     }
     syncEffectiveVolumeFromSandbox();
     showFooterNotice(`VOL ${Math.round(state.volume * 100)}%`, 1.0);
-    renderFrame(performance.now());
+    if (!state.isScrubbingVolume) {
+      renderFrame(performance.now());
+    }
     return state.volume;
   }
 
@@ -1622,11 +1699,12 @@ export function createDoomTracksMp3HUD(options = {}) {
     const is3DMountActive = p > 0.001 || state.targetMorphProgress > 0.5;
     if (!is3DMountActive) {
       // Strictly 2D SCREEN_ONLY mode in bottom-right corner (NOT 3D by default)
-      const curScale = screenRect0.w / MP3_SCREEN_ONLY_CROP.w;
-      const deckW = MP3_CHASSIS_CROP.w * curScale;
-      const deckH = MP3_CHASSIS_CROP.h * curScale;
-      const deckLeft = -(MP3_SCREEN_ONLY_CROP.x - MP3_CHASSIS_CROP.x) * curScale;
-      const deckTop = -(MP3_SCREEN_ONLY_CROP.y - MP3_CHASSIS_CROP.y) * curScale;
+      curViewRect.x = screenRect0.x;
+      curViewRect.y = screenRect0.y;
+      curViewRect.w = screenRect0.w;
+      curViewRect.h = screenRect0.h;
+      curViewRect.vw = vw;
+      curViewRect.vh = vh;
 
       rootEl.style.left = `${screenRect0.x.toFixed(2)}px`;
       rootEl.style.top = `${screenRect0.y.toFixed(2)}px`;
@@ -1640,10 +1718,10 @@ export function createDoomTracksMp3HUD(options = {}) {
       deckClipEl.style.borderRadius = '10px';
       deckClipEl.style.borderColor = 'rgba(255, 165, 29, 0.45)';
 
-      deckFrameEl.style.width = `${deckW.toFixed(2)}px`;
-      deckFrameEl.style.height = `${deckH.toFixed(2)}px`;
-      deckFrameEl.style.left = `${deckLeft.toFixed(2)}px`;
-      deckFrameEl.style.top = `${deckTop.toFixed(2)}px`;
+      deckFrameEl.style.width = '100%';
+      deckFrameEl.style.height = '100%';
+      deckFrameEl.style.left = '0px';
+      deckFrameEl.style.top = '0px';
       deckFrameEl.style.cursor = 'pointer';
     } else {
       // 3D Mounted AudioDevice stage: unclipped 3D object emerging from the 2D screen into centered 3D space
@@ -1651,6 +1729,13 @@ export function createDoomTracksMp3HUD(options = {}) {
       const curViewY = screenRect0.y + (y1 - screenRect0.y) * t;
       const curViewW = screenRect0.w + (w1 - screenRect0.w) * t;
       const curViewH = screenRect0.h + (h1 - screenRect0.h) * t;
+
+      curViewRect.x = curViewX;
+      curViewRect.y = curViewY;
+      curViewRect.w = curViewW;
+      curViewRect.h = curViewH;
+      curViewRect.vw = vw;
+      curViewRect.vh = vh;
 
       rootEl.style.left = `${curViewX.toFixed(2)}px`;
       rootEl.style.top = `${curViewY.toFixed(2)}px`;
@@ -1673,30 +1758,33 @@ export function createDoomTracksMp3HUD(options = {}) {
 
     if (backdropEl) {
       const backdropVisible = state.visible && p > 0.005;
-      backdropEl.style.opacity = backdropVisible ? (t * 0.72).toFixed(3) : '0';
+      const sharedMode = Boolean(getMainRenderer());
+      backdropEl.classList.toggle('shared-renderer', sharedMode);
+      backdropEl.style.opacity = backdropVisible ? (sharedMode ? '1' : (t * 0.72).toFixed(3)) : '0';
       backdropEl.style.pointerEvents =
         state.visible && state.targetMorphProgress > 0.5 ? 'auto' : 'none';
       backdropEl.classList.toggle('active', backdropVisible);
     }
 
     const buttonsInteractive = p > 0.85 && state.targetMorphProgress > 0.5 && Math.cos(state.tiltYaw) > 0.15;
-    for (const btn of buttonEls.values()) {
-      btn.style.pointerEvents = buttonsInteractive ? 'auto' : 'none';
-      btn.style.visibility = buttonsInteractive ? 'visible' : 'hidden';
+    if (lastProjInteractive !== buttonsInteractive) {
+      lastProjInteractive = buttonsInteractive;
+      for (const btn of buttonEls.values()) {
+        btn.style.pointerEvents = buttonsInteractive ? 'auto' : 'none';
+        btn.style.visibility = buttonsInteractive ? 'visible' : 'hidden';
+      }
     }
   }
 
   function build3DSceneGraph(gltfScene) {
-    oledScreenCanvas = document.createElement('canvas');
-    oledScreenCanvas.width = MP3_SCREEN_ONLY_CROP.w;
-    oledScreenCanvas.height = MP3_SCREEN_ONLY_CROP.h;
-    oledScreenCtx = oledScreenCanvas.getContext('2d');
+    ensureOledScreenCanvas();
 
     oledScreenTexture = new THREE.CanvasTexture(oledScreenCanvas);
     oledScreenTexture.colorSpace = THREE.SRGBColorSpace;
     oledScreenTexture.minFilter = THREE.LinearFilter;
     oledScreenTexture.magFilter = THREE.LinearFilter;
-    oledScreenTexture.anisotropy = 4;
+    oledScreenTexture.anisotropy = 2;
+    oledScreenTexture.generateMipmaps = false;
 
     scene3d = new THREE.Scene();
 
@@ -1838,12 +1926,14 @@ export function createDoomTracksMp3HUD(options = {}) {
   }
 
   function renderOledScreen2D(nowMs, dt) {
+    ensureOledScreenCanvas();
     if (!oledScreenCtx || !processedAssets) return;
 
     const ctx = oledScreenCtx;
     const scr = MP3_SCREEN_ONLY_CROP;
-    ctx.clearRect(0, 0, scr.w, scr.h);
+    ctx.clearRect(0, 0, OLED_CANVAS_W, OLED_CANVAS_H);
     ctx.save();
+    ctx.scale(OLED_RENDER_SCALE, OLED_RENDER_SCALE);
     ctx.translate(-scr.x, -scr.y);
 
     // 1. Draw clean inpainted OLED screen substrate
@@ -1861,15 +1951,11 @@ export function createDoomTracksMp3HUD(options = {}) {
     } else if (state.playbackState === 'PAUSED') {
       ctx.save();
       ctx.fillStyle = MP3_PALETTE.primaryAmber;
-      ctx.shadowColor = MP3_PALETTE.coreNeonAmber;
-      ctx.shadowBlur = 6;
       ctx.fillRect(820, 421, 18, 60);
       ctx.fillRect(852, 421, 18, 60);
       ctx.restore();
       drawTechnoVectorText(ctx, 'PAUSED', 909, 426, 51, {
         color: MP3_PALETTE.primaryAmber,
-        glowColor: MP3_PALETTE.coreNeonAmber,
-        glowBlur: 4,
         strokeWidth: 9.2,
         trackingPx: 11,
         widthScale: 1.02,
@@ -1877,14 +1963,10 @@ export function createDoomTracksMp3HUD(options = {}) {
     } else {
       ctx.save();
       ctx.fillStyle = MP3_PALETTE.primaryAmber;
-      ctx.shadowColor = MP3_PALETTE.coreNeonAmber;
-      ctx.shadowBlur = 6;
       ctx.fillRect(818, 422, 58, 58);
       ctx.restore();
       drawTechnoVectorText(ctx, 'STOPPED', 906, 426, 48, {
         color: MP3_PALETTE.primaryAmber,
-        glowColor: MP3_PALETTE.coreNeonAmber,
-        glowBlur: 4,
         strokeWidth: 8.8,
         trackingPx: 9,
         widthScale: 0.96,
@@ -1896,12 +1978,10 @@ export function createDoomTracksMp3HUD(options = {}) {
     const titleY = 389;
     drawTechnoVectorText(ctx, '«', 1373, titleY, titleCapH, {
       color: MP3_PALETTE.primaryAmber,
-      glowBlur: 3,
       strokeWidth: 5.4,
     });
     drawTechnoVectorText(ctx, '»', 1970, titleY, titleCapH, {
       color: MP3_PALETTE.primaryAmber,
-      glowBlur: 3,
       strokeWidth: 5.4,
     });
 
@@ -1922,7 +2002,6 @@ export function createDoomTracksMp3HUD(options = {}) {
       drawTechnoVectorText(ctx, displayTitle, innerTitleX + innerTitleW * 0.5, titleY, titleCapH, {
         align: 'center',
         color: MP3_PALETTE.primaryAmber,
-        glowBlur: 3,
         strokeWidth: 5.4,
         trackingPx: 7,
         widthScale: 0.94,
@@ -1941,14 +2020,12 @@ export function createDoomTracksMp3HUD(options = {}) {
       const drawX1 = innerTitleX - state.marqueeOffsetPx;
       drawTechnoVectorText(ctx, displayTitle, drawX1, titleY, titleCapH, {
         color: MP3_PALETTE.primaryAmber,
-        glowBlur: 3,
         strokeWidth: 5.4,
         trackingPx: 7,
         widthScale: 0.94,
       });
       drawTechnoVectorText(ctx, displayTitle, drawX1 + fullTitleWidth + 90, titleY, titleCapH, {
         color: MP3_PALETTE.primaryAmber,
-        glowBlur: 3,
         strokeWidth: 5.4,
         trackingPx: 7,
         widthScale: 0.94,
@@ -1964,8 +2041,6 @@ export function createDoomTracksMp3HUD(options = {}) {
     if (fillW > 0) {
       ctx.save();
       ctx.fillStyle = MP3_PALETTE.primaryAmber;
-      ctx.shadowColor = MP3_PALETTE.coreNeonAmber;
-      ctx.shadowBlur = 5;
       ctx.fillRect(1375, 469, fillW, 21);
       ctx.restore();
     }
@@ -1987,8 +2062,6 @@ export function createDoomTracksMp3HUD(options = {}) {
       ctx.save();
       ctx.strokeStyle = MP3_PALETTE.primaryAmber;
       ctx.fillStyle = MP3_PALETTE.primaryAmber;
-      ctx.shadowColor = MP3_PALETTE.coreNeonAmber;
-      ctx.shadowBlur = 6;
       ctx.lineWidth = 4.2;
       ctx.lineJoin = 'round';
       ctx.lineCap = 'round';
@@ -2079,8 +2152,6 @@ export function createDoomTracksMp3HUD(options = {}) {
     const timeStr = formatTimeMMSS(displaySeconds, state.showRemainingTime);
     drawTechnoVectorText(ctx, timeStr, 1375, 572, 52, {
       color: MP3_PALETTE.primaryAmber,
-      glowColor: MP3_PALETTE.coreNeonAmber,
-      glowBlur: 4,
       strokeWidth: 9.0,
       trackingPx: 9,
       widthScale: 0.96,
@@ -2096,8 +2167,6 @@ export function createDoomTracksMp3HUD(options = {}) {
       const by = 690 - bh;
       const isLit = i < litBars;
       ctx.fillStyle = isLit ? MP3_PALETTE.primaryAmber : MP3_PALETTE.dimSegmentAmber;
-      ctx.shadowColor = MP3_PALETTE.coreNeonAmber;
-      ctx.shadowBlur = isLit ? 3 : 0;
       ctx.fillRect(bx, by, 10, bh);
     }
     ctx.restore();
@@ -2131,7 +2200,6 @@ export function createDoomTracksMp3HUD(options = {}) {
       drawTechnoVectorText(ctx, state.footerNoticeText, 1868, 669, 20, {
         align: 'center',
         color: MP3_PALETTE.primaryAmber,
-        glowBlur: 2,
         strokeWidth: 3.6,
         trackingPx: 4,
         widthScale: 0.88,
@@ -2141,6 +2209,8 @@ export function createDoomTracksMp3HUD(options = {}) {
 
     ctx.restore();
 
+    oledDirty = false;
+    lastOledRenderMs = nowMs;
     if (oledScreenTexture) {
       oledScreenTexture.needsUpdate = true;
     }
@@ -2223,30 +2293,110 @@ export function createDoomTracksMp3HUD(options = {}) {
       posAttr.needsUpdate = true;
     }
 
-    // 5. Project 3D button bounding boxes onto deckFrameEl so DOM <button> overlays track 3D tilt
+    // 5. Project 3D button bounding boxes onto deckFrameEl only when pose or interactivity changes
     const frontFacing = Math.cos(effYaw) > 0.15;
     const buttonsInteractive = state.morphProgress > 0.85 && state.targetMorphProgress > 0.5 && frontFacing;
-    for (const ctrl of MP3_CONTROL_HIT_ZONES) {
-      const btn = buttonEls.get(ctrl.id);
-      if (!btn) continue;
-      btn.style.pointerEvents = buttonsInteractive ? 'auto' : 'none';
-      btn.style.visibility = buttonsInteractive ? 'visible' : 'hidden';
-      if (!buttonsInteractive) continue;
+    const poseChanged =
+      lastProjInteractive !== buttonsInteractive ||
+      Math.abs(effYaw - lastProjYaw) > 1e-4 ||
+      Math.abs(effPitch - lastProjPitch) > 1e-4 ||
+      Math.abs(state.morphProgress - lastProjMorph) > 1e-4;
 
-      const b = ctrl.bounds3d;
-      projVecA.set(b.x1, b.y1, b.zCap).applyMatrix4(landscapeGroup.matrixWorld).project(camera3d);
-      projVecB.set(b.x2, b.y2, b.zCap).applyMatrix4(landscapeGroup.matrixWorld).project(camera3d);
+    if (poseChanged) {
+      lastProjInteractive = buttonsInteractive;
+      lastProjYaw = effYaw;
+      lastProjPitch = effPitch;
+      lastProjMorph = state.morphProgress;
 
-      const u1 = (Math.min(projVecA.x, projVecB.x) * 0.5 + 0.5) * 100;
-      const u2 = (Math.max(projVecA.x, projVecB.x) * 0.5 + 0.5) * 100;
-      const v1 = (-Math.max(projVecA.y, projVecB.y) * 0.5 + 0.5) * 100;
-      const v2 = (-Math.min(projVecA.y, projVecB.y) * 0.5 + 0.5) * 100;
+      for (const ctrl of MP3_CONTROL_HIT_ZONES) {
+        const btn = buttonEls.get(ctrl.id);
+        if (!btn) continue;
+        btn.style.pointerEvents = buttonsInteractive ? 'auto' : 'none';
+        btn.style.visibility = buttonsInteractive ? 'visible' : 'hidden';
+        if (!buttonsInteractive) continue;
 
-      btn.style.left = `${Math.max(0, u1).toFixed(3)}%`;
-      btn.style.top = `${Math.max(0, v1).toFixed(3)}%`;
-      btn.style.width = `${Math.max(1, u2 - u1).toFixed(3)}%`;
-      btn.style.height = `${Math.max(1, v2 - v1).toFixed(3)}%`;
+        const b = ctrl.bounds3d;
+        projVecA.set(b.x1, b.y1, b.zCap).applyMatrix4(landscapeGroup.matrixWorld).project(camera3d);
+        projVecB.set(b.x2, b.y2, b.zCap).applyMatrix4(landscapeGroup.matrixWorld).project(camera3d);
+
+        const u1 = (Math.min(projVecA.x, projVecB.x) * 0.5 + 0.5) * 100;
+        const u2 = (Math.max(projVecA.x, projVecB.x) * 0.5 + 0.5) * 100;
+        const v1 = (-Math.max(projVecA.y, projVecB.y) * 0.5 + 0.5) * 100;
+        const v2 = (-Math.min(projVecA.y, projVecB.y) * 0.5 + 0.5) * 100;
+
+        btn.style.left = `${Math.max(0, u1).toFixed(3)}%`;
+        btn.style.top = `${Math.max(0, v1).toFixed(3)}%`;
+        btn.style.width = `${Math.max(1, u2 - u1).toFixed(3)}%`;
+        btn.style.height = `${Math.max(1, v2 - v1).toFixed(3)}%`;
+      }
     }
+  }
+
+  function renderInMainRenderer(targetRenderer = getMainRenderer()) {
+    if (
+      !targetRenderer ||
+      !state.visible ||
+      state.minimized ||
+      !state.mounted3D ||
+      !scene3d ||
+      !camera3d ||
+      !state.glbLoaded
+    ) {
+      return false;
+    }
+
+    ensureDimOverlayResources();
+
+    const prevAutoClear = targetRenderer.autoClear;
+    const prevScissorTest = targetRenderer.getScissorTest();
+    targetRenderer.getViewport(savedViewportVec);
+    targetRenderer.getScissor(savedScissorVec);
+    const prevToneMapping = targetRenderer.toneMapping;
+    const prevExposure = targetRenderer.toneMappingExposure;
+
+    targetRenderer.autoClear = false;
+
+    // 1. Full-viewport translucent dark backdrop pass inside the primary WebGL framebuffer
+    const dimOpacity = easeInOutCubic(Math.max(0.0, Math.min(1.0, state.morphProgress))) * 0.78;
+    if (dimOpacity > 0.005) {
+      dimMaterial.opacity = dimOpacity;
+      targetRenderer.setScissorTest(false);
+      targetRenderer.setViewport(savedViewportVec.x, savedViewportVec.y, savedViewportVec.z, savedViewportVec.w);
+      targetRenderer.render(dimScene, dimCamera);
+    }
+
+    // 2. Scissored 3D AudioDevice pass inside the primary WebGL framebuffer
+    const vw = curViewRect.vw || savedViewportVec.z || 1280;
+    const vh = curViewRect.vh || savedViewportVec.w || 720;
+    const vx = curViewRect.x;
+    const vyBottom = vh - (curViewRect.y + curViewRect.h);
+    const vwRect = Math.max(1, curViewRect.w);
+    const vhRect = Math.max(1, curViewRect.h);
+
+    const scX = Math.max(0, Math.min(vw, vx));
+    const scY = Math.max(0, Math.min(vh, vyBottom));
+    const scW = Math.max(0, Math.min(vw - scX, vwRect - Math.max(0, -vx)));
+    const scH = Math.max(0, Math.min(vh - scY, vhRect - Math.max(0, -vyBottom)));
+
+    if (scW > 1 && scH > 1) {
+      targetRenderer.setViewport(vx, vyBottom, vwRect, vhRect);
+      targetRenderer.setScissor(scX, scY, scW, scH);
+      targetRenderer.setScissorTest(true);
+      targetRenderer.clearDepth();
+      targetRenderer.toneMapping = THREE.ACESFilmicToneMapping;
+      targetRenderer.toneMappingExposure = 1.22;
+      targetRenderer.render(scene3d, camera3d);
+    }
+
+    // Restore main renderer state
+    targetRenderer.toneMapping = prevToneMapping;
+    targetRenderer.toneMappingExposure = prevExposure;
+    targetRenderer.setViewport(savedViewportVec.x, savedViewportVec.y, savedViewportVec.z, savedViewportVec.w);
+    targetRenderer.setScissor(savedScissorVec.x, savedScissorVec.y, savedScissorVec.z, savedScissorVec.w);
+    targetRenderer.setScissorTest(prevScissorTest);
+    targetRenderer.autoClear = prevAutoClear;
+
+    return true;
   }
 
   function renderFrame(nowMs = performance.now()) {
@@ -2301,39 +2451,69 @@ export function createDoomTracksMp3HUD(options = {}) {
 
     if (state.footerNoticeTimer > 0) {
       state.footerNoticeTimer = Math.max(0, state.footerNoticeTimer - dt);
+      if (state.footerNoticeTimer <= 0) {
+        oledDirty = true;
+      }
     }
 
-    // 1. Render live 60 FPS Amber OLED display onto oledScreenCanvas & upload to 3D CanvasTexture
-    renderOledScreen2D(nowMs, dt);
-
-    const crop = MP3_CHASSIS_CROP;
-    displayCtx.clearRect(0, 0, crop.w, crop.h);
-
     const shouldMount3D = state.morphProgress > 0.0 || state.targetMorphProgress > 0.0;
+    const prevMounted3D = state.mounted3D;
     if (pivotGroup && landscapeGroup) {
       if (shouldMount3D && !state.mounted3D && state.glbLoaded) {
-        ensureRenderer3D();
+        if (!getMainRenderer()) {
+          ensureRenderer3D();
+        }
         pivotGroup.add(landscapeGroup);
         state.mounted3D = true;
+        oledDirty = true;
       } else if (!shouldMount3D && state.mounted3D) {
         pivotGroup.remove(landscapeGroup);
         state.mounted3D = false;
         disposeRenderer3D();
+        oledDirty = true;
       }
     }
+    if (typeof document !== 'undefined' && document.body && prevMounted3D !== state.mounted3D) {
+      document.body.classList.toggle('mp3-takeover-active', state.mounted3D);
+    }
 
-    if (state.mounted3D && renderer3d && scene3d && camera3d && state.glbLoaded) {
+    // 1. Dirty/Rate-Gated 2D Amber OLED Screen pass (skips when screen faces away or idle)
+    const screenFacingFront = !state.mounted3D || Math.cos(state.tiltYaw) > 0.02;
+    const needsOledRedraw =
+      screenFacingFront &&
+      (oledDirty ||
+        state.footerNoticeTimer > 0 ||
+        (state.playbackState === 'PLAYING' && nowMs - lastOledRenderMs >= 32));
+    if (needsOledRedraw) {
+      renderOledScreen2D(nowMs, dt);
+    }
+
+    if (state.mounted3D && scene3d && camera3d && state.glbLoaded) {
       // Mounted as a 3D object when expanded / expanding from the 2D screen
       update3DSceneAndButtonProjections(dt);
-      renderer3d.render(scene3d, camera3d);
-      displayCtx.drawImage(renderer3d.domElement, 0, 0, crop.w, crop.h);
+      const sharedRenderer = getMainRenderer();
+      if (sharedRenderer) {
+        // Rendered directly inside the primary Three.js WebGLRenderer framebuffer (zero 2D canvas copy)
+        if (displayCanvas && displayCanvas.style.opacity !== '0') {
+          displayCanvas.style.opacity = '0';
+        }
+      } else if (renderer3d) {
+        if (displayCanvas && displayCanvas.style.opacity !== '1') {
+          displayCanvas.style.opacity = '1';
+        }
+        renderer3d.render(scene3d, camera3d);
+        displayCtx.clearRect(0, 0, displayCanvas.width, displayCanvas.height);
+        displayCtx.drawImage(renderer3d.domElement, 0, 0, displayCanvas.width, displayCanvas.height);
+      }
     } else if (oledScreenCanvas) {
-      // Default SCREEN_ONLY mode: strictly 2D screen (NOT 3D by default)
-      displayCtx.drawImage(
-        oledScreenCanvas,
-        MP3_SCREEN_ONLY_CROP.x - crop.x,
-        MP3_SCREEN_ONLY_CROP.y - crop.y
-      );
+      // Default SCREEN_ONLY mode: strictly 2D screen (654x198) in bottom-right corner
+      if (displayCanvas && displayCanvas.style.opacity !== '1') {
+        displayCanvas.style.opacity = '1';
+      }
+      if (needsOledRedraw || prevMounted3D !== state.mounted3D) {
+        displayCtx.clearRect(0, 0, displayCanvas.width, displayCanvas.height);
+        displayCtx.drawImage(oledScreenCanvas, 0, 0, displayCanvas.width, displayCanvas.height);
+      }
     }
 
     state.lastRenderDurationMs = Number((performance.now() - t0).toFixed(3));
@@ -2513,6 +2693,7 @@ export function createDoomTracksMp3HUD(options = {}) {
 
   function buildDOM() {
     if (typeof document === 'undefined') return;
+    ensureOledScreenCanvas();
 
     const styleEl = document.createElement('style');
     styleEl.id = 'doom-tracks-mp3-hud-styles';
@@ -2522,11 +2703,12 @@ export function createDoomTracksMp3HUD(options = {}) {
         inset: 0;
         z-index: 95;
         background: radial-gradient(circle at center, rgba(24, 14, 5, 0.78) 0%, rgba(5, 3, 2, 0.92) 100%);
-        backdrop-filter: blur(8px);
-        -webkit-backdrop-filter: blur(8px);
         opacity: 0;
         pointer-events: none;
         cursor: pointer;
+      }
+      #doom-tracks-mp3-backdrop.shared-renderer {
+        background: transparent;
       }
       #doom-tracks-mp3-hud {
         position: fixed;
@@ -2534,11 +2716,8 @@ export function createDoomTracksMp3HUD(options = {}) {
         pointer-events: auto;
         user-select: none;
         -webkit-user-select: none;
+        touch-action: none;
         overflow: visible;
-        filter: drop-shadow(0 20px 44px rgba(0, 0, 0, 0.86)) drop-shadow(0 0 22px rgba(255, 156, 11, 0.22));
-      }
-      #doom-tracks-mp3-hud.screen-only:hover {
-        filter: drop-shadow(0 16px 36px rgba(0, 0, 0, 0.9)) drop-shadow(0 0 24px rgba(255, 165, 29, 0.42));
       }
       #doom-tracks-mp3-hud.hidden {
         opacity: 0;
@@ -2554,6 +2733,12 @@ export function createDoomTracksMp3HUD(options = {}) {
         border: 1.5px solid rgba(255, 165, 29, 0.45);
         border-radius: 10px;
       }
+      #doom-tracks-mp3-hud.screen-only .doom-mp3-deck-clip {
+        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.82), 0 0 14px rgba(255, 156, 11, 0.22);
+      }
+      #doom-tracks-mp3-hud.screen-only:hover .doom-mp3-deck-clip {
+        box-shadow: 0 14px 32px rgba(0, 0, 0, 0.88), 0 0 18px rgba(255, 165, 29, 0.38);
+      }
       .doom-mp3-deck-frame {
         position: absolute;
         left: 0;
@@ -2566,6 +2751,7 @@ export function createDoomTracksMp3HUD(options = {}) {
         width: 100%;
         height: 100%;
         pointer-events: auto;
+        touch-action: none;
       }
       .doom-mp3-hit-btn {
         position: absolute;
@@ -2578,6 +2764,7 @@ export function createDoomTracksMp3HUD(options = {}) {
         box-shadow: none;
         border-radius: 6px;
         z-index: 3;
+        touch-action: none;
       }
       .doom-mp3-hit-btn:focus,
       .doom-mp3-hit-btn:focus-visible,
@@ -2623,8 +2810,8 @@ export function createDoomTracksMp3HUD(options = {}) {
     displayCanvas = document.createElement('canvas');
     displayCanvas.id = 'doom-tracks-mp3-canvas';
     displayCanvas.className = 'doom-mp3-canvas';
-    displayCanvas.width = MP3_CHASSIS_CROP.w;
-    displayCanvas.height = MP3_CHASSIS_CROP.h;
+    displayCanvas.width = OLED_CANVAS_W;
+    displayCanvas.height = OLED_CANVAS_H;
     displayCtx = displayCanvas.getContext('2d');
     deckFrameEl.appendChild(displayCanvas);
 
@@ -2657,7 +2844,9 @@ export function createDoomTracksMp3HUD(options = {}) {
         if (state.hoveredControlId === ctrl.id) {
           state.hoveredControlId = null;
         }
-        state.isPointerHoldingButton = false;
+        if (!state.isDraggingTilt) {
+          state.isPointerHoldingButton = false;
+        }
       });
       btn.addEventListener('pointerdown', (e) => {
         if (state.targetMorphProgress < 0.5) return;
@@ -2665,12 +2854,37 @@ export function createDoomTracksMp3HUD(options = {}) {
         state.isPointerHoldingButton = true;
         state.activePressedButtonId = ctrl.id;
         state.buttonPressTimer = 0.18;
+        dragStartClientX = e.clientX;
+        dragStartClientY = e.clientY;
+        dragStartYaw = state.targetTiltYaw;
+        dragStartPitch = state.targetTiltPitch;
+        dragMovedDistancePx = 0;
         renderFrame(performance.now());
+      });
+      btn.addEventListener('pointermove', (e) => {
+        if (!state.isPointerHoldingButton && !state.isDraggingTilt) return;
+        const dx = e.clientX - dragStartClientX;
+        const dy = e.clientY - dragStartClientY;
+        dragMovedDistancePx = Math.hypot(dx, dy);
+        if (dragMovedDistancePx > 6) {
+          e.stopPropagation();
+          state.isPointerHoldingButton = false;
+          state.activePressedButtonId = null;
+          state.isDraggingTilt = true;
+          state.targetTiltYaw = dragStartYaw + dx * 0.0065;
+          state.targetTiltPitch = Math.max(-0.65, Math.min(0.65, dragStartPitch + dy * 0.0055));
+          if (e.pointerId !== undefined && displayCanvas && displayCanvas.setPointerCapture) {
+            try {
+              displayCanvas.setPointerCapture(e.pointerId);
+            } catch (_err) {}
+          }
+        }
       });
       btn.addEventListener('pointerup', (e) => {
         if (state.targetMorphProgress < 0.5) return;
         e.stopPropagation();
         state.isPointerHoldingButton = false;
+        state.isDraggingTilt = false;
       });
       btn.addEventListener('click', (e) => {
         if (state.targetMorphProgress < 0.5) {
@@ -2680,6 +2894,9 @@ export function createDoomTracksMp3HUD(options = {}) {
         }
         e.stopPropagation();
         state.isPointerHoldingButton = false;
+        if (dragMovedDistancePx > 6) {
+          return;
+        }
         handleControlAction(ctrl.id);
       });
 
@@ -2693,6 +2910,12 @@ export function createDoomTracksMp3HUD(options = {}) {
       if (state.targetMorphProgress < 0.5) {
         return;
       }
+
+      dragStartClientX = e.clientX;
+      dragStartClientY = e.clientY;
+      dragStartYaw = state.targetTiltYaw;
+      dragStartPitch = state.targetTiltPitch;
+      dragMovedDistancePx = 0;
 
       const hitResult = raycast3DAtClientPoint(e.clientX, e.clientY);
       if (!hitResult) {
@@ -2717,11 +2940,6 @@ export function createDoomTracksMp3HUD(options = {}) {
       // Otherwise user pressed on the 3D chassis body (or non-interactive screen background):
       // initiate 3D chassis tilt/orbit drag so user can inspect the 3D asset & rear PLATODOOM-INC backplate
       state.isDraggingTilt = true;
-      dragStartClientX = e.clientX;
-      dragStartClientY = e.clientY;
-      dragStartYaw = state.targetTiltYaw;
-      dragStartPitch = state.targetTiltPitch;
-      dragMovedDistancePx = 0;
       if (e.pointerId !== undefined && displayCanvas.setPointerCapture) {
         try {
           displayCanvas.setPointerCapture(e.pointerId);
@@ -2768,14 +2986,24 @@ export function createDoomTracksMp3HUD(options = {}) {
         const hitResult = raycast3DAtClientPoint(e.clientX, e.clientY);
         if (hitResult && hitResult.type === 'SCREEN') {
           seekToFraction((hitResult.nativeX - 1375) / 616);
-          renderFrame(performance.now());
         }
       } else if (state.isScrubbingVolume) {
         e.stopPropagation();
         const hitResult = raycast3DAtClientPoint(e.clientX, e.clientY);
         if (hitResult && hitResult.type === 'SCREEN') {
           setVolume((hitResult.nativeX - 1512) / 155);
-          renderFrame(performance.now());
+        }
+      } else if (state.isPointerHoldingButton && !state.isDraggingTilt) {
+        const dx = e.clientX - dragStartClientX;
+        const dy = e.clientY - dragStartClientY;
+        dragMovedDistancePx = Math.hypot(dx, dy);
+        if (dragMovedDistancePx > 6) {
+          e.stopPropagation();
+          state.isPointerHoldingButton = false;
+          state.activePressedButtonId = null;
+          state.isDraggingTilt = true;
+          state.targetTiltYaw = dragStartYaw + dx * 0.0065;
+          state.targetTiltPitch = Math.max(-0.65, Math.min(0.65, dragStartPitch + dy * 0.0055));
         }
       } else if (state.isDraggingTilt) {
         e.stopPropagation();
@@ -2784,7 +3012,6 @@ export function createDoomTracksMp3HUD(options = {}) {
         dragMovedDistancePx = Math.hypot(dx, dy);
         state.targetTiltYaw = dragStartYaw + dx * 0.0065;
         state.targetTiltPitch = Math.max(-0.65, Math.min(0.65, dragStartPitch + dy * 0.0055));
-        renderFrame(performance.now());
       }
     });
 
@@ -2811,6 +3038,7 @@ export function createDoomTracksMp3HUD(options = {}) {
       window.addEventListener('resize', () => {
         applyMorphLayout();
         if (state.visible) {
+          oledDirty = true;
           renderFrame(performance.now());
         }
       });
@@ -2825,6 +3053,7 @@ export function createDoomTracksMp3HUD(options = {}) {
     deckClipEl.appendChild(deckFrameEl);
     rootEl.appendChild(deckClipEl);
     document.body.appendChild(rootEl);
+    document.body.classList.toggle('mp3-hud-hidden', !state.visible);
     applyMorphLayout();
     updateButtonAriaStates();
   }
@@ -2834,12 +3063,16 @@ export function createDoomTracksMp3HUD(options = {}) {
     if (rootEl) {
       rootEl.classList.toggle('hidden', !state.visible);
     }
+    if (typeof document !== 'undefined' && document.body) {
+      document.body.classList.toggle('mp3-hud-hidden', !state.visible);
+    }
     const hudToggleBtn = document.getElementById('hud-toggle-mp3-btn');
     if (hudToggleBtn) {
       hudToggleBtn.textContent = state.visible ? 'DOOM TRACKS MP3: ON (U)' : 'DOOM TRACKS MP3: OFF (U)';
     }
     applyMorphLayout();
     if (state.visible) {
+      oledDirty = true;
       renderFrame(performance.now());
     }
     return state.visible;
@@ -2862,6 +3095,7 @@ export function createDoomTracksMp3HUD(options = {}) {
     const changed = state.targetMorphProgress !== target;
     state.targetMorphProgress = target;
     state.expanded = Boolean(expandedBool);
+    oledDirty = true;
 
     if (expandedBool) {
       ensure3DLoaded().catch((err) => {
@@ -2895,6 +3129,9 @@ export function createDoomTracksMp3HUD(options = {}) {
           pivotGroup.remove(landscapeGroup);
         }
         state.mounted3D = false;
+        if (typeof document !== 'undefined' && document.body) {
+          document.body.classList.remove('mp3-takeover-active');
+        }
         disposeRenderer3D();
       }
     } else if (state.morphProgress !== target) {
@@ -2932,6 +3169,7 @@ export function createDoomTracksMp3HUD(options = {}) {
       state.tiltYaw = state.targetTiltYaw;
       state.tiltPitch = state.targetTiltPitch;
     }
+    oledDirty = true;
     renderFrame(performance.now());
     return { tiltYaw: state.tiltYaw, tiltPitch: state.tiltPitch };
   }
@@ -3072,6 +3310,7 @@ export function createDoomTracksMp3HUD(options = {}) {
           img.onload = () => {
             try {
               processedAssets = processMp3ChassisBitmap(img);
+              oledDirty = true;
               resolve();
             } catch (err) {
               reject(err);
@@ -3093,6 +3332,7 @@ export function createDoomTracksMp3HUD(options = {}) {
       await bitmapPromise;
     }
     state.initialized = true;
+    oledDirty = true;
     applyMorphLayout();
     renderFrame(performance.now());
 
@@ -3106,6 +3346,8 @@ export function createDoomTracksMp3HUD(options = {}) {
     initPromise,
     ensure3DLoaded,
     setAudioSubsystem,
+    setMainRenderer,
+    renderInMainRenderer,
     audioElement: audioEl,
     get visible() {
       return state.visible;

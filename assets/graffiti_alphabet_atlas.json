@@ -1,0 +1,874 @@
+{
+  "sourceImage": "graffiti_.jpeg",
+  "sourceDimensions": [
+    2752,
+    1536
+  ],
+  "atlasImage": "assets/graffiti_alphabet_atlas.png",
+  "atlasDimensions": [
+    1024,
+    572
+  ],
+  "scaleFactor": 0.372093,
+  "glyphs": {
+    "A": {
+      "char": "A",
+      "row": 1,
+      "srcBounds": [
+        157,
+        83,
+        518,
+        442
+      ],
+      "srcCell": [
+        145,
+        66,
+        535,
+        442
+      ],
+      "captionMask": [
+        342,
+        405,
+        41,
+        43
+      ],
+      "atlasBounds": [
+        58,
+        30,
+        193,
+        165
+      ],
+      "atlasWidth": 135,
+      "atlasHeight": 135
+    },
+    "B": {
+      "char": "B",
+      "row": 1,
+      "srcBounds": [
+        567,
+        91,
+        897,
+        442
+      ],
+      "srcCell": [
+        535,
+        66,
+        918,
+        442
+      ],
+      "captionMask": [
+        702,
+        405,
+        39,
+        43
+      ],
+      "atlasBounds": [
+        210,
+        33,
+        334,
+        165
+      ],
+      "atlasWidth": 124,
+      "atlasHeight": 132
+    },
+    "C": {
+      "char": "C",
+      "row": 1,
+      "srcBounds": [
+        934,
+        90,
+        1236,
+        442
+      ],
+      "srcCell": [
+        918,
+        66,
+        1245,
+        442
+      ],
+      "captionMask": [
+        1061,
+        405,
+        37,
+        43
+      ],
+      "atlasBounds": [
+        347,
+        33,
+        460,
+        165
+      ],
+      "atlasWidth": 113,
+      "atlasHeight": 132
+    },
+    "D": {
+      "char": "D",
+      "row": 1,
+      "srcBounds": [
+        1279,
+        97,
+        1590,
+        438
+      ],
+      "srcCell": [
+        1245,
+        66,
+        1590,
+        442
+      ],
+      "captionMask": [
+        1411,
+        405,
+        38,
+        43
+      ],
+      "atlasBounds": [
+        475,
+        36,
+        592,
+        163
+      ],
+      "atlasWidth": 117,
+      "atlasHeight": 127
+    },
+    "E": {
+      "char": "E",
+      "row": 1,
+      "srcBounds": [
+        1620,
+        105,
+        1955,
+        442
+      ],
+      "srcCell": [
+        1590,
+        66,
+        1955,
+        442
+      ],
+      "captionMask": [
+        1769,
+        405,
+        36,
+        43
+      ],
+      "atlasBounds": [
+        602,
+        39,
+        728,
+        165
+      ],
+      "atlasWidth": 126,
+      "atlasHeight": 126
+    },
+    "F": {
+      "char": "F",
+      "row": 1,
+      "srcBounds": [
+        1958,
+        103,
+        2264,
+        414
+      ],
+      "srcCell": [
+        1955,
+        66,
+        2264,
+        442
+      ],
+      "captionMask": [
+        2071,
+        405,
+        36,
+        43
+      ],
+      "atlasBounds": [
+        728,
+        38,
+        843,
+        155
+      ],
+      "atlasWidth": 115,
+      "atlasHeight": 117
+    },
+    "G": {
+      "char": "G",
+      "row": 1,
+      "srcBounds": [
+        2264,
+        100,
+        2572,
+        442
+      ],
+      "srcCell": [
+        2264,
+        66,
+        2575,
+        442
+      ],
+      "captionMask": [
+        2392,
+        405,
+        39,
+        43
+      ],
+      "atlasBounds": [
+        842,
+        37,
+        958,
+        165
+      ],
+      "atlasWidth": 116,
+      "atlasHeight": 128
+    },
+    "H": {
+      "char": "H",
+      "row": 2,
+      "srcBounds": [
+        199,
+        498,
+        512,
+        842
+      ],
+      "srcCell": [
+        150,
+        455,
+        558,
+        842
+      ],
+      "captionMask": [
+        344,
+        801,
+        39,
+        47
+      ],
+      "atlasBounds": [
+        74,
+        185,
+        191,
+        314
+      ],
+      "atlasWidth": 117,
+      "atlasHeight": 129
+    },
+    "I": {
+      "char": "I",
+      "row": 2,
+      "srcBounds": [
+        580,
+        488,
+        837,
+        836
+      ],
+      "srcCell": [
+        558,
+        455,
+        848,
+        842
+      ],
+      "captionMask": [
+        693,
+        801,
+        19,
+        47
+      ],
+      "atlasBounds": [
+        215,
+        181,
+        312,
+        312
+      ],
+      "atlasWidth": 97,
+      "atlasHeight": 131
+    },
+    "J": {
+      "char": "J",
+      "row": 2,
+      "srcBounds": [
+        887,
+        499,
+        1184,
+        842
+      ],
+      "srcCell": [
+        848,
+        455,
+        1187,
+        842
+      ],
+      "captionMask": [
+        1024,
+        801,
+        36,
+        47
+      ],
+      "atlasBounds": [
+        330,
+        185,
+        441,
+        314
+      ],
+      "atlasWidth": 111,
+      "atlasHeight": 129
+    },
+    "K": {
+      "char": "K",
+      "row": 2,
+      "srcBounds": [
+        1236,
+        485,
+        1530,
+        842
+      ],
+      "srcCell": [
+        1187,
+        455,
+        1530,
+        842
+      ],
+      "captionMask": [
+        1366,
+        801,
+        40,
+        47
+      ],
+      "atlasBounds": [
+        459,
+        180,
+        570,
+        314
+      ],
+      "atlasWidth": 111,
+      "atlasHeight": 134
+    },
+    "L": {
+      "char": "L",
+      "row": 2,
+      "srcBounds": [
+        1596,
+        488,
+        1882,
+        842
+      ],
+      "srcCell": [
+        1530,
+        455,
+        1882,
+        842
+      ],
+      "captionMask": [
+        1712,
+        801,
+        34,
+        47
+      ],
+      "atlasBounds": [
+        593,
+        181,
+        701,
+        314
+      ],
+      "atlasWidth": 108,
+      "atlasHeight": 133
+    },
+    "M": {
+      "char": "M",
+      "row": 2,
+      "srcBounds": [
+        1920,
+        482,
+        2244,
+        825
+      ],
+      "srcCell": [
+        1882,
+        455,
+        2244,
+        842
+      ],
+      "captionMask": [
+        2045,
+        801,
+        46,
+        47
+      ],
+      "atlasBounds": [
+        714,
+        179,
+        835,
+        307
+      ],
+      "atlasWidth": 121,
+      "atlasHeight": 128
+    },
+    "N": {
+      "char": "N",
+      "row": 2,
+      "srcBounds": [
+        2244,
+        466,
+        2575,
+        842
+      ],
+      "srcCell": [
+        2244,
+        455,
+        2585,
+        842
+      ],
+      "captionMask": [
+        2392,
+        801,
+        39,
+        47
+      ],
+      "atlasBounds": [
+        834,
+        173,
+        959,
+        314
+      ],
+      "atlasWidth": 125,
+      "atlasHeight": 141
+    },
+    "O": {
+      "char": "O",
+      "row": 3,
+      "srcBounds": [
+        196,
+        896,
+        502,
+        1189
+      ],
+      "srcCell": [
+        150,
+        860,
+        502,
+        1208
+      ],
+      "captionMask": [
+        344,
+        1169,
+        39,
+        45
+      ],
+      "atlasBounds": [
+        72,
+        333,
+        187,
+        443
+      ],
+      "atlasWidth": 115,
+      "atlasHeight": 110
+    },
+    "P": {
+      "char": "P",
+      "row": 3,
+      "srcBounds": [
+        563,
+        863,
+        835,
+        1172
+      ],
+      "srcCell": [
+        502,
+        860,
+        835,
+        1208
+      ],
+      "captionMask": [
+        684,
+        1169,
+        38,
+        45
+      ],
+      "atlasBounds": [
+        209,
+        321,
+        311,
+        437
+      ],
+      "atlasWidth": 102,
+      "atlasHeight": 116
+    },
+    "Q": {
+      "char": "Q",
+      "row": 3,
+      "srcBounds": [
+        884,
+        884,
+        1201,
+        1208
+      ],
+      "srcCell": [
+        835,
+        860,
+        1235,
+        1208
+      ],
+      "captionMask": [
+        1025,
+        1169,
+        38,
+        45
+      ],
+      "atlasBounds": [
+        328,
+        328,
+        447,
+        450
+      ],
+      "atlasWidth": 119,
+      "atlasHeight": 122
+    },
+    "R": {
+      "char": "R",
+      "row": 3,
+      "srcBounds": [
+        1237,
+        878,
+        1552,
+        1190
+      ],
+      "srcCell": [
+        1235,
+        860,
+        1568,
+        1208
+      ],
+      "captionMask": [
+        1377,
+        1169,
+        38,
+        45
+      ],
+      "atlasBounds": [
+        460,
+        326,
+        578,
+        443
+      ],
+      "atlasWidth": 118,
+      "atlasHeight": 117
+    },
+    "S": {
+      "char": "S",
+      "row": 3,
+      "srcBounds": [
+        1581,
+        911,
+        1912,
+        1208
+      ],
+      "srcCell": [
+        1568,
+        860,
+        1912,
+        1208
+      ],
+      "captionMask": [
+        1726,
+        1169,
+        38,
+        45
+      ],
+      "atlasBounds": [
+        588,
+        338,
+        712,
+        450
+      ],
+      "atlasWidth": 124,
+      "atlasHeight": 112
+    },
+    "T": {
+      "char": "T",
+      "row": 3,
+      "srcBounds": [
+        1912,
+        903,
+        2252,
+        1174
+      ],
+      "srcCell": [
+        1912,
+        860,
+        2252,
+        1208
+      ],
+      "captionMask": [
+        2081,
+        1169,
+        38,
+        45
+      ],
+      "atlasBounds": [
+        711,
+        336,
+        838,
+        437
+      ],
+      "atlasWidth": 127,
+      "atlasHeight": 101
+    },
+    "U": {
+      "char": "U",
+      "row": 3,
+      "srcBounds": [
+        2277,
+        909,
+        2576,
+        1208
+      ],
+      "srcCell": [
+        2252,
+        860,
+        2585,
+        1208
+      ],
+      "captionMask": [
+        2401,
+        1169,
+        38,
+        45
+      ],
+      "atlasBounds": [
+        847,
+        338,
+        959,
+        450
+      ],
+      "atlasWidth": 112,
+      "atlasHeight": 112
+    },
+    "V": {
+      "char": "V",
+      "row": 4,
+      "srcBounds": [
+        430,
+        1212,
+        748,
+        1486
+      ],
+      "srcCell": [
+        390,
+        1212,
+        768,
+        1530
+      ],
+      "captionMask": [
+        591,
+        1485,
+        42,
+        47
+      ],
+      "atlasBounds": [
+        160,
+        450,
+        279,
+        553
+      ],
+      "atlasWidth": 119,
+      "atlasHeight": 103
+    },
+    "W": {
+      "char": "W",
+      "row": 4,
+      "srcBounds": [
+        793,
+        1222,
+        1201,
+        1530
+      ],
+      "srcCell": [
+        768,
+        1212,
+        1205,
+        1530
+      ],
+      "captionMask": [
+        983,
+        1485,
+        59,
+        47
+      ],
+      "atlasBounds": [
+        295,
+        454,
+        447,
+        570
+      ],
+      "atlasWidth": 152,
+      "atlasHeight": 116
+    },
+    "X": {
+      "char": "X",
+      "row": 4,
+      "srcBounds": [
+        1290,
+        1219,
+        1585,
+        1505
+      ],
+      "srcCell": [
+        1205,
+        1212,
+        1585,
+        1530
+      ],
+      "captionMask": [
+        1402,
+        1485,
+        43,
+        47
+      ],
+      "atlasBounds": [
+        480,
+        453,
+        590,
+        560
+      ],
+      "atlasWidth": 110,
+      "atlasHeight": 107
+    },
+    "Y": {
+      "char": "Y",
+      "row": 4,
+      "srcBounds": [
+        1632,
+        1225,
+        1958,
+        1505
+      ],
+      "srcCell": [
+        1585,
+        1212,
+        1965,
+        1530
+      ],
+      "captionMask": [
+        1787,
+        1485,
+        41,
+        47
+      ],
+      "atlasBounds": [
+        607,
+        455,
+        729,
+        560
+      ],
+      "atlasWidth": 122,
+      "atlasHeight": 105
+    },
+    "Z": {
+      "char": "Z",
+      "row": 4,
+      "srcBounds": [
+        2014,
+        1231,
+        2390,
+        1530
+      ],
+      "srcCell": [
+        1965,
+        1212,
+        2390,
+        1530
+      ],
+      "captionMask": [
+        2167,
+        1485,
+        37,
+        47
+      ],
+      "atlasBounds": [
+        749,
+        458,
+        890,
+        570
+      ],
+      "atlasWidth": 141,
+      "atlasHeight": 112
+    }
+  },
+  "stations": [
+    {
+      "mountName": "SCREEN_MOUNT_01",
+      "stationIndex": 1,
+      "code": "01",
+      "strippedTitle": "GRAPHRAG POLICY ENGINE",
+      "headerText": "GRAPHRAG POLICY ENGINE",
+      "headerLines": [
+        "GRAPHRAG",
+        "POLICY ENGINE"
+      ]
+    },
+    {
+      "mountName": "SCREEN_MOUNT_02",
+      "stationIndex": 2,
+      "code": "02",
+      "strippedTitle": "DIGITAL TWIN PERSONA",
+      "headerText": "DIGITAL TWIN PERSONA",
+      "headerLines": [
+        "DIGITAL TWIN",
+        "PERSONA"
+      ]
+    },
+    {
+      "mountName": "SCREEN_MOUNT_03",
+      "stationIndex": 3,
+      "code": "03",
+      "strippedTitle": "QUANTITATIVE MODELING AND STATISTICAL ARBITRAGE",
+      "headerText": "QUANTITATIVE MODELING STATISTICAL ARBITRAGE",
+      "headerLines": [
+        "QUANTITATIVE MODELING",
+        "STATISTICAL ARBITRAGE"
+      ]
+    },
+    {
+      "mountName": "SCREEN_MOUNT_07",
+      "stationIndex": 4,
+      "code": "04",
+      "strippedTitle": "REJECTION STATION // MACHINE LEARNING",
+      "headerText": "REJECTION STATION MACHINE LEARNING",
+      "headerLines": [
+        "REJECTION STATION",
+        "MACHINE LEARNING"
+      ]
+    },
+    {
+      "mountName": "SCREEN_MOUNT_04",
+      "stationIndex": 5,
+      "code": "05",
+      "strippedTitle": "AI DATA ANALYTICS DASHBOARDS AND ALIGNMENT RESEARCH",
+      "headerText": "AI DATA ANALYTICS ALIGNMENT RESEARCH",
+      "headerLines": [
+        "AI DATA ANALYTICS",
+        "ALIGNMENT RESEARCH"
+      ]
+    },
+    {
+      "mountName": "SCREEN_MOUNT_05",
+      "stationIndex": 6,
+      "code": "06",
+      "strippedTitle": "GENERATIVE PIPELINES",
+      "headerText": "GENERATIVE PIPELINES",
+      "headerLines": [
+        "GENERATIVE",
+        "PIPELINES"
+      ]
+    },
+    {
+      "mountName": "SCREEN_MOUNT_06",
+      "stationIndex": 7,
+      "code": "07",
+      "strippedTitle": "MULTI-MODAL DEEP LEARNING",
+      "headerText": "MULTI MODAL DEEP LEARNING",
+      "headerLines": [
+        "MULTI MODAL",
+        "DEEP LEARNING"
+      ]
+    }
+  ]
+}

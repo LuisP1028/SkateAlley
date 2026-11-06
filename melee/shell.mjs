@@ -3,6 +3,7 @@
 // Supports automatic HTTP 206 byte-range disc streaming from ./game.iso as well as manual
 // <input type="file"> selection, IndexedDB /saves & /cache persistence, and live telemetry.
 import { createDiscCache, createHttpRangeFile } from './disc-cache.mjs';
+import { initCharacterDrawer } from './character-drawer.mjs';
 
 const EXPECTED_GC_DISC_SIZE = 1459978240;
 const $ = (id) => document.getElementById(id);
@@ -202,8 +203,10 @@ async function initAutoRiggerControls() {
   const primaryQueryFighter = (queryFighter.split(',')[0] || '').trim().toLowerCase();
 
   try {
+    const savedTok = localStorage.getItem('studio_visitor_token_045');
+    const authHdrs = savedTok ? { 'X-Visitor-Token': savedTok } : {};
     const [charsRes, fightersRes] = await Promise.all([
-      fetch('/api/melee/gcs-characters', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)).catch(() => null),
+      fetch('/api/melee/gcs-characters', { headers: authHdrs, cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)).catch(() => null),
       fetch('/api/melee/fighters', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)).catch(() => null),
     ]);
 
@@ -214,9 +217,11 @@ async function initAutoRiggerControls() {
         charSelect.innerHTML = '';
         for (const ch of charsRes.characters) {
           const opt = document.createElement('option');
-          opt.value = `${ch.player_folder}|${ch.run_id}`;
+          const fCode = ch.fighter_code || '';
+          opt.value = fCode ? `${ch.player_folder}|${ch.run_id}|${fCode}` : `${ch.player_folder}|${ch.run_id}`;
           opt.textContent = ch.label || `${ch.player_folder} / ${ch.run_id}`;
-          if (ch.player_folder === queryPlayer && ch.run_id === queryRun) {
+          const codeMatches = !primaryQueryFighter || !fCode || fCode.toLowerCase() === primaryQueryFighter;
+          if (!matched && ch.player_folder === queryPlayer && ch.run_id === queryRun && codeMatches) {
             opt.selected = true;
             matched = true;
           }
@@ -232,6 +237,12 @@ async function initAutoRiggerControls() {
         opt.selected = true;
         charSelect.prepend(opt);
       }
+      charSelect.addEventListener('change', () => {
+        const parts = (charSelect.value || '').split('|');
+        if (parts[2] && fighterSelect) {
+          fighterSelect.value = parts[2];
+        }
+      });
     }
 
     if (fighterSelect) {
@@ -261,8 +272,8 @@ async function initAutoRiggerControls() {
   if (rigBtn) {
     rigBtn.addEventListener('click', async () => {
       const charVal = charSelect?.value || `${queryPlayer}|${queryRun}`;
-      const [playerFolder, runId] = charVal.split('|');
-      const fighterCode = fighterSelect?.value || 'Ca';
+      const [playerFolder, runId, embeddedFighter] = charVal.split('|');
+      const fighterCode = fighterSelect?.value || embeddedFighter || 'Ca';
       rigBtn.disabled = true;
       try {
         await compileAndPrepareRigOverlay(playerFolder || 'nicotest_nt01', runId || 'run_01', fighterCode);
@@ -302,6 +313,8 @@ async function fetchSingleFighterRigMetaAndBuffers(
   fighterCode,
   { required = true } = {}
 ) {
+  // Spec 045 §6.2: Resolve precompiled overlays strictly through the same-origin
+  // /melee/rigged/<visitor_hash>/<run_id>/... GCS read-through proxy (never legacy /api/melee/rig).
   let meta = null;
   const staticTelemUrl = `/melee/rigged/${playerFolder}/${runId}/rigging_telemetry_${fighterCode}.json`;
   try {
@@ -312,30 +325,10 @@ async function fetchSingleFighterRigMetaAndBuffers(
   } catch (_) {}
 
   if (!meta) {
-    try {
-      const res = await fetch('/api/melee/rig', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          player_folder: playerFolder,
-          run_id: runId,
-          fighter: fighterCode,
-        }),
-      });
-      if (res.ok) {
-        const parsed = await res.json();
-        if (parsed && (parsed.status === 'ok' || parsed.status === 'COMPLETE')) {
-          meta = parsed;
-        }
-      }
-    } catch (_) {}
-  }
-
-  if (!meta) {
     if (!required) {
       return null;
     }
-    throw Error(`Failed to rig or load precompiled telemetry for ${fighterCode}`);
+    throw Error(`Precompiled rigged overlay not found at ${staticTelemUrl}`);
   }
 
   const datRes = await fetch(meta.dat_url, { cache: 'no-store' });
@@ -537,6 +530,10 @@ async function applyPendingRigOverlaysToCache(cache) {
   };
 }
 
+initCharacterDrawer({
+  targetGame: 'melee',
+  mountBeforeEl: $('rig-bar') || $('canvas'),
+});
 initAutoRiggerControls();
 
 let ready = false;

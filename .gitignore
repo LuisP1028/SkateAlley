@@ -22,6 +22,7 @@ __pycache__/
 
 # Browser / MCP transient logs
 .playwright-mcp/
+logs/
 
 # Local Blender working saves & backups
 *.blend

@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Melee Character Studio — 2D-to-3D .glb Showcase &amp; Autonomous Cloud Rigging</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="./studio.css">
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "/vendor/three/build/three.module.js",
+      "three/addons/": "/vendor/three/examples/jsm/"
+    }
+  }
+  </script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-glyph">✦</span>
+      <div>
+        <h1>Melee Character Studio</h1>
+        <p class="subtitle">Multi-Subject 2D-to-3D <code>.glb</code> Synthesis · Pure Autonomous Cloud Rigging · 60 FPS WebGPU Melee</p>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <div class="quota-pill" id="quota-badge">Loading account…</div>
+      <div class="unlock-inline" id="unlock-box">
+        <input id="access-code-input" type="password" placeholder="Have an Access Code?" autocomplete="off">
+        <button id="unlock-btn" type="button" class="btn btn-secondary">Unlock</button>
+      </div>
+      <a class="btn btn-primary" href="/melee/">Open /melee/ WebApp ↗</a>
+    </div>
+  </header>
+
+  <main class="studio-shell">
+    <!-- Pinned "My People & Fighters" Return-Visit Bar -->
+    <section class="panel my-strip" id="my-account-strip">
+      <div class="panel-head">
+        <h2>My People &amp; Fighters</h2>
+        <span class="muted" id="account-status-note">Persistent visitor session · Zero PIN required · Builds finish even if tab closes</span>
+      </div>
+      <div class="my-strip-grid">
+        <div>
+          <div class="subhead">Uploaded People (<span id="my-subjects-count">0</span>)</div>
+          <div class="chip-row" id="my-subjects-list">
+            <span class="muted">Upload a person below to save reusable orthographic anchors.</span>
+          </div>
+        </div>
+        <div>
+          <div class="subhead">My Fighter Builds (<span id="my-runs-count">0</span>)</div>
+          <div class="chip-row" id="my-runs-list">
+            <span class="muted">Your active and completed Melee fighters appear here automatically.</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Top Workspace: Creation Panel (Left) + Active 4-Step Transformation & 360° .glb Viewer (Right) -->
+    <div class="workspace-grid">
+      <section class="panel create-panel" id="studio-create-panel">
+        <div class="panel-head">
+          <h2>Create Fighter</h2>
+          <div class="mode-tabs" role="tablist">
+            <button type="button" id="mode-new-btn" class="tab-btn active">Upload New Person</button>
+            <button type="button" id="mode-reuse-btn" class="tab-btn">Use One of My Uploaded People</button>
+          </div>
+        </div>
+
+        <form id="create-run-form" class="create-form">
+          <div id="new-person-fields" class="field-stack">
+            <label class="field-label">Person / Character Display Name
+              <input id="character-name-input" type="text" maxlength="48" placeholder="e.g. Marco, Elena, Coach">
+            </label>
+            <div class="upload-duo">
+              <label class="upload-box">
+                <span class="upload-title">1. Face / Primary Photo (Required)</span>
+                <input id="photo-0-input" type="file" accept=".jpg,.jpeg,.png,.webp">
+                <span class="upload-hint" id="photo-0-hint">JPG, PNG, WebP · &ge;256px · &le;10 MiB</span>
+              </label>
+              <label class="upload-box">
+                <span class="upload-title">2. Full Outfit / Body Photo (Optional)</span>
+                <input id="photo-1-input" type="file" accept=".jpg,.jpeg,.png,.webp">
+                <span class="upload-hint" id="photo-1-hint">Add 2nd photo for thorough outfit match</span>
+              </label>
+            </div>
+            <div class="privacy-callout">
+              <strong>Privacy Guarantee:</strong> Raw uploaded photos stay strictly private (<code>HTTP 403</code> quarantined in server GCS). Generated 2D orthographic plates and 3D <code>.glb</code> meshes are publicly showcased.
+            </div>
+          </div>
+
+          <div id="reuse-person-fields" class="field-stack hidden">
+            <label class="field-label">Select Saved Person (Zero Photo Re-Upload · Reuses Cached Stage-1 Orthos)
+              <select id="reuse-subject-select"></select>
+            </label>
+            <label class="field-label">Optional Display Name Override
+              <input id="reuse-name-override" type="text" maxlength="48" placeholder="Leave blank to keep saved person's name">
+            </label>
+          </div>
+
+          <div class="fighter-picker-head">
+            <div>
+              <span class="field-title">Target Melee Fighter (<span id="selected-fighters-count">1</span> selected)</span>
+              <span class="muted" id="fighter-tier-hint">Public tier: 1 fighter/build · Unlock Access Code for multi-select &amp; All 26</span>
+            </div>
+            <div class="picker-bulk hidden" id="bulk-fighter-controls">
+              <button type="button" id="select-all-26-btn" class="btn btn-xs btn-secondary">Select All 26 Fighters</button>
+              <button type="button" id="clear-fighters-btn" class="btn btn-xs btn-ghost">Reset to Mario</button>
+            </div>
+          </div>
+
+          <div class="fighter-grid" id="fighter-grid"></div>
+
+          <div class="submit-row">
+            <button type="submit" id="generate-submit-btn" class="btn btn-generate">Generate 3D Fighter (Detached Cloud Build)</button>
+            <div id="form-feedback" class="feedback-msg"></div>
+          </div>
+        </form>
+      </section>
+
+      <!-- Active Transformation Stage: 4-Step Filmstrip + 360° .glb Orbit Canvas -->
+      <section class="panel stage-panel" id="transformation-stage">
+        <div class="stage-header">
+          <div>
+            <div class="stage-eyebrow" id="stage-run-meta">Select or start a build to inspect live 2D &rarr; 3D &rarr; Melee stages</div>
+            <h2 id="stage-title">Transformation Stage &amp; 360° <code>.glb</code> Showcase</h2>
+          </div>
+          <div class="stage-badges">
+            <span class="status-pill" id="stage-status-pill">IDLE</span>
+            <a id="play-melee-btn" class="btn btn-play hidden" href="/melee/" target="_blank" rel="noopener">Play Fighter in Melee ↗</a>
+          </div>
+        </div>
+
+        <div class="fighter-tabs hidden" id="run-fighter-tabs"></div>
+
+        <!-- 4-Step Clickable Visual Filmstrip -->
+        <div class="filmstrip" id="filmstrip-steps">
+          <button type="button" class="film-step active" data-step="1">
+            <span class="step-num">1</span>
+            <div class="step-info">
+              <strong>User Orthos</strong>
+              <span id="step-1-sub">Subject anchors</span>
+            </div>
+          </button>
+          <button type="button" class="film-step" data-step="2">
+            <span class="step-num">2</span>
+            <div class="step-info">
+              <strong>Fighter Split Orthos</strong>
+              <span id="step-2-sub">4-view fusion</span>
+            </div>
+          </button>
+          <button type="button" class="film-step" data-step="3">
+            <span class="step-num">3</span>
+            <div class="step-info">
+              <strong>Assembled Front &amp; Back</strong>
+              <span id="step-3-sub">2048px RGBA</span>
+            </div>
+          </button>
+          <button type="button" class="film-step" data-step="4">
+            <span class="step-num">4</span>
+            <div class="step-info">
+              <strong>3D Mesh &amp; Live Melee</strong>
+              <span id="step-4-sub">360° .glb &amp; .dat</span>
+            </div>
+          </button>
+        </div>
+
+        <!-- Viewport Switcher & 3D Controls -->
+        <div class="viewport-toolbar">
+          <div class="btn-group">
+            <button type="button" id="view-2d-btn" class="btn btn-xs btn-secondary active">2D Stage Plates</button>
+            <button type="button" id="view-3d-btn" class="btn btn-xs btn-ghost" disabled>360° 3D .glb Viewer</button>
+          </div>
+          <div class="btn-group" id="glb-controls-group">
+            <select id="glb-variant-select" class="compact-select" disabled>
+              <option value="full">Stage-4 High-Res (.glb)</option>
+              <option value="rigged">Stage-5 Melee Rigged (.glb)</option>
+            </select>
+            <button type="button" id="glb-spin-btn" class="btn btn-xs btn-ghost" disabled>Auto-Spin: ON</button>
+            <button type="button" id="glb-reset-btn" class="btn btn-xs btn-ghost" disabled>Reset Camera</button>
+            <a id="download-glb-btn" class="btn btn-xs btn-secondary hidden" href="#" download>Download .glb ↓</a>
+          </div>
+        </div>
+
+        <div class="viewport-box" id="viewport-box">
+          <!-- 2D Ortho Plate Gallery View -->
+          <div class="plates-grid" id="plates-view">
+            <div class="empty-stage">
+              <p>Start a character build on the left or click any card in the <strong>Community Showcase Gallery</strong> below to inspect all 4 orthographic &amp; 3D rigging stages.</p>
+            </div>
+          </div>
+
+          <!-- 360° Three.js .glb Orbit Canvas -->
+          <div class="glb-canvas-wrap hidden" id="glb-view">
+            <canvas id="glb-canvas"></canvas>
+            <div class="glb-overlay-hud" id="glb-hud">Drag to orbit · Scroll to zoom</div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Live Community Showcase Gallery -->
+    <section class="panel gallery-panel" id="community-gallery">
+      <div class="panel-head gallery-head">
+        <div>
+          <h2>Community Showcase Gallery</h2>
+          <span class="muted">Click any live or completed build to inspect its 4-step orthos, spin its 360° <code>.glb</code>, download, or play in Melee</span>
+        </div>
+        <div class="gallery-filters">
+          <input id="gallery-search" type="search" placeholder="Search character name…">
+          <select id="gallery-fighter-filter">
+            <option value="">All 26 Fighters</option>
+          </select>
+          <button type="button" id="gallery-refresh-btn" class="btn btn-secondary">↻ Refresh</button>
+        </div>
+      </div>
+      <div class="gallery-grid" id="gallery-grid"></div>
+    </section>
+  </main>
+
+  <script type="module" src="./studio.mjs"></script>
+</body>
+</html>

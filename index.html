@@ -476,12 +476,20 @@
       transform: translateY(0px) rotateX(0deg) scaleX(1) scaleY(1);
     }
 
+    .holo-window:not(#portal-game-holo-window) {
+      min-height: 0;
+      max-height: min(86dvh, 720px);
+      padding: 20px 24px 20px;
+      display: flex;
+      flex-direction: column;
+    }
+
     .holo-window.mount-focus-active {
       border-color: rgba(252, 211, 77, 0.96);
       backdrop-filter: blur(10px);
       -webkit-backdrop-filter: blur(10px);
       pointer-events: auto;
-      max-height: min(86dvh, 740px);
+      max-height: min(86dvh, 720px);
       display: flex;
       flex-direction: column;
       background:
@@ -552,141 +560,189 @@
       z-index: 3;
       display: flex;
       flex-direction: column;
-      justify-content: space-between;
-      min-height: 368px;
+      justify-content: flex-start;
+      min-height: 0;
       max-height: 100%;
       flex: 1 1 auto;
-      gap: 16px;
+      gap: 12px;
+      overflow: hidden;
     }
     .holo-window.mount-focus-active:not(#portal-game-holo-window) .holo-content {
       min-height: 0;
       overflow: hidden;
     }
-    .holo-window.mount-focus-active:not(#portal-game-holo-window) .holo-top-bar,
-    .holo-window.mount-focus-active:not(#portal-game-holo-window) .holo-footer-bar {
+    .holo-window:not(#portal-game-holo-window) .holo-top-bar {
       flex-shrink: 0;
+    }
+
+    /* Spec 068 §5.1 & §5.2: Legacy Header Telemetry & Footer Chrome Removed */
+    #holo-popup-window .holo-badge,
+    #holo-popup-window #holo-station-badge,
+    #holo-popup-window #holo-coords-label,
+    #holo-popup-window #holo-tether-bridge,
+    #holo-popup-window #holo-kicker,
+    #holo-popup-window .holo-footer-bar {
+      display: none !important;
     }
 
     .holo-top-bar {
       display: flex;
-      align-items: center;
+      align-items: flex-start;
       justify-content: space-between;
-      flex-wrap: wrap;
-      gap: 10px;
+      flex-wrap: nowrap;
+      gap: 12px;
       padding-bottom: 10px;
-      border-bottom: 1px solid rgba(245, 158, 11, 0.35);
+      border-bottom: 1px solid rgba(245, 158, 11, 0.38);
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-      font-size: 11px;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
       color: #fcd34d;
-      text-shadow: 0 0 8px rgba(245, 158, 11, 0.55);
     }
 
     .holo-top-right {
       display: flex;
       align-items: center;
-      gap: 10px;
-    }
-
-    .holo-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 7px;
-      background: rgba(217, 119, 6, 0.24);
-      border: 1px solid rgba(245, 158, 11, 0.68);
-      padding: 4px 10px;
-      border-radius: 999px;
-      color: #fef3c7;
-      font-weight: 700;
-      box-shadow: 0 0 12px rgba(245, 158, 11, 0.32);
-    }
-
-    .holo-dot {
-      width: 7px;
-      height: 7px;
-      border-radius: 50%;
-      background: #fbbf24;
-      box-shadow: 0 0 8px #fbbf24;
+      justify-content: flex-end;
+      margin-left: auto;
+      flex-shrink: 0;
     }
 
     button.holo-exit-focus-btn {
       display: none;
       align-items: center;
+      justify-content: center;
       gap: 6px;
-      background: rgba(239, 68, 68, 0.26);
-      border: 1px solid rgba(248, 113, 113, 0.8);
+      min-width: 44px;
+      min-height: 36px;
+      background: rgba(239, 68, 68, 0.28);
+      border: 1.5px solid rgba(248, 113, 113, 0.88);
       color: #fef2f2;
-      border-radius: 6px;
-      padding: 5px 11px;
+      border-radius: 8px;
+      padding: 6px 12px;
       font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-      font-size: 11px;
-      font-weight: 700;
-      letter-spacing: 0.04em;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.06em;
       cursor: pointer;
-      transition: all 0.15s ease;
-      box-shadow: 0 0 14px rgba(239, 68, 68, 0.35);
+      transition: all 0.16s ease;
+      box-shadow: 0 0 14px rgba(239, 68, 68, 0.38);
+      flex-shrink: 0;
     }
 
     button.holo-exit-focus-btn:hover {
-      background: rgba(239, 68, 68, 0.5);
+      background: rgba(239, 68, 68, 0.52);
       border-color: #ffffff;
+      box-shadow: 0 0 20px rgba(248, 113, 113, 0.65);
     }
 
+    #holo-popup-window.active button.holo-exit-focus-btn,
     .holo-window.mount-focus-active button.holo-exit-focus-btn {
       display: inline-flex;
       pointer-events: auto;
     }
 
-    .holo-body-grid {
-      display: grid;
-      grid-template-columns: 1.25fr 0.9fr;
-      gap: 22px;
-      align-items: start;
-      margin: 4px 0;
-    }
-    .holo-window.mount-focus-active:not(#portal-game-holo-window) .holo-body-grid {
+    /* Spec 068 §5.3: Single Scroll Shell + Persistent Amber-Themed Custom Scrollbar */
+    .holo-body-scroll-shell {
+      position: relative;
+      display: flex;
+      align-items: stretch;
+      gap: 10px;
       flex: 1 1 auto;
       min-height: 0;
+      max-height: 100%;
+      overflow: hidden;
+    }
+
+    .holo-body-grid {
+      flex: 1 1 auto;
+      min-width: 0;
+      min-height: 0;
+      display: grid;
+      grid-template-columns: 1.32fr 0.88fr;
+      gap: 18px;
+      align-items: start;
+      margin: 0;
       overflow-y: auto;
+      overflow-x: hidden;
       -webkit-overflow-scrolling: touch;
-      padding-right: 6px;
-      scrollbar-width: thin;
-      scrollbar-color: rgba(251, 191, 36, 0.75) rgba(38, 18, 4, 0.45);
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+      padding-right: 2px;
     }
-    .holo-window.mount-focus-active:not(#portal-game-holo-window) .holo-body-grid::-webkit-scrollbar {
-      width: 6px;
+    .holo-body-grid::-webkit-scrollbar {
+      display: none;
+      width: 0;
+      height: 0;
     }
-    .holo-window.mount-focus-active:not(#portal-game-holo-window) .holo-body-grid::-webkit-scrollbar-track {
-      background: rgba(38, 18, 4, 0.45);
+
+    #holo-custom-scrollbar.holo-scrollbar-track {
+      position: relative;
+      flex: 0 0 8px;
+      width: 8px;
+      min-height: 72px;
+      align-self: stretch;
       border-radius: 999px;
+      background: rgba(28, 12, 2, 0.86);
+      border: 1px solid rgba(245, 158, 11, 0.62);
+      box-shadow:
+        inset 0 0 8px rgba(245, 158, 11, 0.22),
+        0 0 10px rgba(245, 158, 11, 0.18);
+      cursor: pointer;
+      pointer-events: auto;
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+      opacity: 1;
+      visibility: visible;
+      overflow: hidden;
     }
-    .holo-window.mount-focus-active:not(#portal-game-holo-window) .holo-body-grid::-webkit-scrollbar-thumb {
-      background: rgba(251, 191, 36, 0.78);
+
+    #holo-custom-scrollbar-thumb.holo-scrollbar-thumb {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 0;
+      height: 56%;
+      min-height: 32px;
       border-radius: 999px;
+      background: linear-gradient(180deg, #fef08a 0%, #fbbf24 50%, #d97706 100%);
+      border: 1px solid rgba(254, 243, 199, 0.94);
+      box-shadow: 0 0 10px rgba(251, 191, 36, 0.82);
+      cursor: grab;
+      will-change: transform, height;
+      transition: box-shadow 0.15s ease, filter 0.15s ease;
+    }
+
+    #holo-custom-scrollbar.holo-scrollbar-track:hover #holo-custom-scrollbar-thumb.holo-scrollbar-thumb,
+    #holo-custom-scrollbar.holo-scrollbar-track.dragging #holo-custom-scrollbar-thumb.holo-scrollbar-thumb {
+      filter: brightness(1.12);
+      box-shadow: 0 0 14px rgba(254, 243, 199, 0.96);
+      cursor: grabbing;
     }
 
     @media (max-width: 860px) {
       .holo-body-grid {
         grid-template-columns: 1fr;
+        gap: 12px;
       }
     }
 
     .holo-narrative-callout {
-      margin: 0 0 14px 0;
+      display: none;
+      flex-direction: column;
+      gap: 6px;
+      margin: 0 0 12px 0;
       padding: 12px 14px;
       border-radius: 9px;
-      background: rgba(54, 22, 4, 0.76);
-      border: 1px solid rgba(251, 191, 36, 0.76);
+      background: rgba(54, 22, 4, 0.78);
+      border: 1px solid rgba(251, 191, 36, 0.78);
       border-left: 3.5px solid #fbbf24;
       box-shadow: inset 0 0 16px rgba(245, 158, 11, 0.16);
       user-select: text;
       -webkit-user-select: text;
     }
     .holo-narrative-heading {
-      margin: 0 0 6px 0;
+      margin: 0;
       font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-      font-size: 13px;
+      font-size: clamp(15.5px, 1.65vw, 18px);
       font-weight: 800;
       letter-spacing: 0.03em;
       color: #fbbf24;
@@ -694,27 +750,19 @@
     }
     .holo-narrative-body {
       margin: 0;
-      font-size: 13.2px;
-      line-height: 1.56;
+      font-size: clamp(15.5px, 1.65vw, 17.5px);
+      line-height: 1.60;
       color: #fffbeb;
       white-space: pre-line;
       text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
     }
 
-    .holo-kicker {
-      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-      font-size: 11.5px;
-      font-weight: 700;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: #fbbf24;
-      margin-bottom: 6px;
-      text-shadow: 0 0 10px rgba(245, 158, 11, 0.7);
-    }
-
     .holo-title {
-      margin: 0 0 10px 0;
-      font-size: clamp(22px, 2.5vw, 31px);
+      margin: 0;
+      flex: 1 1 auto;
+      min-width: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: clamp(19px, 2.3vw, 28px);
       font-weight: 800;
       letter-spacing: -0.01em;
       line-height: 1.15;
@@ -724,82 +772,274 @@
         0 2px 10px rgba(0, 0, 0, 0.85);
     }
 
+    /* Spec 068 §5.4: Enlarged Description Typography */
     .holo-description {
-      margin: 0 0 14px 0;
-      font-size: 14px;
-      line-height: 1.58;
+      margin: 0 0 12px 0;
+      font-size: clamp(16.5px, 1.85vw, 19.5px);
+      font-weight: 500;
+      line-height: 1.60;
       color: #fef3c7;
       text-shadow:
         0 1px 6px rgba(0, 0, 0, 0.95),
         0 0 12px rgba(217, 119, 6, 0.45);
     }
 
+    /* Spec 068 §5.5: Clickable Tags with Visible "+" Bubble & Pop-Up Description */
     .holo-tag-row {
       display: flex;
       flex-wrap: wrap;
-      gap: 7px;
+      gap: 8px;
+      align-items: center;
+    }
+
+    @keyframes holoTagClickPulse {
+      0% {
+        transform: scale(1);
+      }
+      42% {
+        transform: scale(1.07);
+        box-shadow: 0 0 22px rgba(251, 191, 36, 0.95);
+      }
+      100% {
+        transform: scale(1);
+      }
+    }
+
+    @keyframes holoTagPopupMaterialize {
+      0% {
+        opacity: 0;
+        transform: translateY(-6px) scale(0.96);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
     }
 
     .holo-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
       font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-      font-size: 11px;
-      font-weight: 600;
+      font-size: clamp(11.5px, 1.25vw, 13px);
+      font-weight: 700;
       color: #fde68a;
-      background: rgba(68, 30, 6, 0.72);
-      border: 1px solid rgba(245, 158, 11, 0.65);
-      padding: 3px 9px;
-      border-radius: 5px;
-      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+      background: rgba(68, 30, 6, 0.78);
+      border: 1px solid rgba(245, 158, 11, 0.72);
+      padding: 5px 8px 5px 11px;
+      border-radius: 999px;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
+      cursor: pointer;
+      pointer-events: auto;
+      user-select: none;
+      -webkit-user-select: none;
+      transition:
+        transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+        background 0.18s ease,
+        border-color 0.18s ease,
+        box-shadow 0.18s ease,
+        color 0.18s ease;
     }
 
+    .holo-tag:hover {
+      background: rgba(146, 64, 14, 0.76);
+      border-color: #fcd34d;
+      color: #fffbeb;
+      box-shadow: 0 0 14px rgba(245, 158, 11, 0.48);
+      transform: translateY(-1px);
+    }
+
+    .holo-tag.tag-click-anim {
+      animation: holoTagClickPulse 0.26s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .holo-tag.active {
+      background: linear-gradient(135deg, rgba(217, 119, 6, 0.72), rgba(146, 64, 14, 0.82));
+      border-color: #fffbeb;
+      color: #fffbeb;
+      box-shadow:
+        0 0 16px rgba(251, 191, 36, 0.74),
+        inset 0 0 10px rgba(254, 243, 199, 0.24);
+    }
+
+    .holo-tag-label {
+      line-height: 1.15;
+    }
+
+    .holo-tag-plus-bubble {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 19px;
+      height: 19px;
+      border-radius: 50%;
+      background: rgba(217, 119, 6, 0.46);
+      border: 1.5px solid #fbbf24;
+      color: #fffbeb;
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1;
+      box-shadow: 0 0 8px rgba(251, 191, 36, 0.58);
+      flex-shrink: 0;
+      transition:
+        transform 0.26s cubic-bezier(0.34, 1.56, 0.64, 1),
+        background 0.18s ease,
+        border-color 0.18s ease,
+        color 0.18s ease,
+        box-shadow 0.18s ease;
+    }
+
+    .holo-tag.active .holo-tag-plus-bubble {
+      transform: rotate(45deg) scale(1.1);
+      background: #fbbf24;
+      border-color: #fffbeb;
+      color: #261204;
+      box-shadow: 0 0 12px rgba(254, 243, 199, 0.95);
+    }
+
+    .holo-tag-popup {
+      margin-top: 10px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, rgba(54, 22, 4, 0.92) 0%, rgba(28, 12, 2, 0.95) 100%);
+      border: 1.5px solid rgba(252, 211, 77, 0.88);
+      border-left: 3.5px solid #fbbf24;
+      box-shadow:
+        0 8px 22px rgba(0, 0, 0, 0.65),
+        0 0 16px rgba(245, 158, 11, 0.28),
+        inset 0 0 14px rgba(245, 158, 11, 0.14);
+      pointer-events: auto;
+      animation: holoTagPopupMaterialize 0.24s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .holo-tag-popup[hidden] {
+      display: none !important;
+    }
+
+    .holo-tag-popup-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 5px;
+    }
+
+    .holo-tag-popup-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      color: #fbbf24;
+      text-transform: uppercase;
+      text-shadow: 0 0 8px rgba(245, 158, 11, 0.6);
+    }
+
+    .holo-tag-popup-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #fbbf24;
+      box-shadow: 0 0 8px #fbbf24;
+      flex-shrink: 0;
+    }
+
+    .holo-tag-popup-close-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 24px;
+      height: 24px;
+      border-radius: 6px;
+      background: rgba(68, 30, 6, 0.8);
+      border: 1px solid rgba(251, 191, 36, 0.65);
+      color: #fde68a;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 11px;
+      font-weight: 800;
+      cursor: pointer;
+      pointer-events: auto;
+      transition: all 0.15s ease;
+    }
+
+    .holo-tag-popup-close-btn:hover {
+      background: rgba(239, 68, 68, 0.38);
+      border-color: #fca5a5;
+      color: #fffbeb;
+    }
+
+    .holo-tag-popup-desc {
+      margin: 0;
+      font-size: clamp(13.5px, 1.45vw, 15.5px);
+      line-height: 1.50;
+      color: #fffbeb;
+      text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
+    }
+
+    /* Spec 068 §5.6: Screen-Size-Agnostic, Compact Brief Summary Cards */
     .holo-Visual-panel {
       display: flex;
       flex-direction: column;
-      gap: 10px;
-      padding: 14px 16px;
+      gap: 8px;
+      padding: clamp(8px, 1.2vw, 12px);
       border-radius: 10px;
       border: 1px solid rgba(245, 158, 11, 0.58);
       background: rgba(28, 12, 2, 0.68);
-      box-shadow: inset 0 0 20px rgba(245, 158, 11, 0.18);
+      box-shadow: inset 0 0 18px rgba(245, 158, 11, 0.16);
+      min-width: 0;
     }
 
     .holo-metrics-grid {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 8px;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: clamp(8px, 1.5vw, 12px);
+      align-items: stretch;
     }
 
     .holo-metric-box {
-      padding: 8px 6px;
-      border-radius: 6px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      padding: clamp(6px, 0.9vw, 9px) clamp(6px, 1vw, 10px);
+      border-radius: 7px;
       border: 1px solid rgba(245, 158, 11, 0.52);
       background: rgba(54, 22, 4, 0.74);
       text-align: center;
+      min-width: 0;
     }
 
     .holo-metric-val {
       display: block;
       font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-      font-size: 13px;
+      font-size: clamp(12.5px, 1.45vw, 15.5px);
       font-weight: 800;
+      line-height: 1.15;
       color: #fbbf24;
       text-shadow: 0 0 10px rgba(245, 158, 11, 0.65);
+      white-space: nowrap;
     }
 
     .holo-metric-lbl {
       display: block;
-      font-size: 9.5px;
+      font-size: clamp(9.5px, 1.05vw, 11px);
+      font-weight: 600;
+      line-height: 1.18;
       text-transform: uppercase;
-      letter-spacing: 0.06em;
+      letter-spacing: 0.04em;
       color: #fde68a;
-      margin-top: 2px;
+      margin-top: 0;
+      white-space: nowrap;
     }
 
     .holo-cta-stack {
       display: flex;
       flex-direction: column;
-      gap: 8px;
-      margin-top: 4px;
+      gap: 7px;
+      margin-top: 2px;
     }
 
     a.holo-link-btn {
@@ -807,9 +1047,9 @@
       align-items: center;
       justify-content: space-between;
       text-decoration: none;
-      padding: 10px 14px;
+      padding: 8px 12px;
       border-radius: 8px;
-      font-size: 12.5px;
+      font-size: 12px;
       font-weight: 700;
       letter-spacing: 0.03em;
       color: #fffbeb;
@@ -831,7 +1071,7 @@
       background: rgba(68, 30, 6, 0.42);
       border-color: rgba(245, 158, 11, 0.55);
       color: #fde68a;
-      padding: 8px 14px;
+      padding: 7px 12px;
       font-size: 11.5px;
       box-shadow: none;
     }
@@ -843,57 +1083,12 @@
     }
 
     .holo-window.active a.holo-link-btn,
-    .holo-window.active button.holo-pip-btn,
-    .holo-window.active button.holo-nav-btn {
+    .holo-window.active button.holo-tag,
+    .holo-window.active .holo-tag-popup,
+    .holo-window.active .holo-tag-popup-close-btn,
+    .holo-window.active #holo-custom-scrollbar,
+    .holo-window.active button.holo-exit-focus-btn {
       pointer-events: auto;
-    }
-
-    .holo-footer-bar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      flex-wrap: wrap;
-      gap: 12px;
-      padding-top: 10px;
-      border-top: 1px solid rgba(245, 158, 11, 0.32);
-      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-      font-size: 10.5px;
-      color: #fde68a;
-    }
-
-    .holo-station-nav-group {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .holo-station-pips {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-    }
-
-    button.holo-pip-btn,
-    button.holo-nav-btn {
-      background: rgba(68, 30, 6, 0.45);
-      border: 1px solid rgba(245, 158, 11, 0.48);
-      color: #fde68a;
-      border-radius: 4px;
-      padding: 3px 7px;
-      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-      font-size: 10px;
-      font-weight: 700;
-      cursor: pointer;
-      transition: all 0.15s ease;
-    }
-
-    button.holo-pip-btn.current,
-    button.holo-pip-btn:hover,
-    button.holo-nav-btn:hover {
-      background: rgba(217, 119, 6, 0.68);
-      border-color: #fef3c7;
-      color: #fffbeb;
-      box-shadow: 0 0 10px rgba(245, 158, 11, 0.58);
     }
 
     /* ==========================================================================
@@ -1591,6 +1786,74 @@
         0 4px 14px rgba(0, 0, 0, 0.56),
         0 0 16px rgba(74, 222, 128, 0.65);
     }
+    #mobile-right-thumbpad {
+      position: absolute;
+      right: calc(14px + env(safe-area-inset-right, 0px));
+      bottom: calc(142px + env(safe-area-inset-bottom, 0px));
+      width: 112px;
+      height: 112px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(15, 23, 42, 0.44) 0%, rgba(7, 12, 24, 0.74) 100%);
+      border: 2px solid rgba(56, 189, 248, 0.48);
+      box-shadow:
+        0 8px 24px rgba(0, 0, 0, 0.58),
+        inset 0 0 18px rgba(0, 213, 255, 0.14);
+      pointer-events: auto;
+      touch-action: none;
+      cursor: pointer;
+      transition: border-color 0.14s ease, box-shadow 0.14s ease;
+    }
+    body.mp3-hud-hidden #mobile-right-thumbpad {
+      bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+    }
+    #mobile-right-thumbpad.looking {
+      border-color: rgba(0, 213, 255, 0.94);
+      box-shadow:
+        0 8px 26px rgba(0, 0, 0, 0.65),
+        0 0 18px rgba(0, 213, 255, 0.40),
+        inset 0 0 22px rgba(0, 213, 255, 0.24);
+    }
+    #mobile-right-thumbpad-label {
+      position: absolute;
+      top: 7px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 8.5px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      color: rgba(186, 230, 253, 0.85);
+      pointer-events: none;
+      white-space: nowrap;
+      text-transform: uppercase;
+    }
+    #mobile-right-thumbpad.looking #mobile-right-thumbpad-label {
+      color: #38bdf8;
+    }
+    #mobile-right-thumbpad-knob {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 46px;
+      height: 46px;
+      margin: -23px 0 0 -23px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, rgba(186, 230, 253, 0.88), rgba(14, 165, 233, 0.62));
+      border: 1.5px solid rgba(224, 242, 254, 0.92);
+      box-shadow:
+        0 4px 12px rgba(0, 0, 0, 0.52),
+        0 0 12px rgba(56, 189, 248, 0.45);
+      pointer-events: none;
+      will-change: transform;
+    }
+    @media (max-width: 640px) {
+      #mobile-right-thumbpad {
+        bottom: calc(112px + env(safe-area-inset-bottom, 0px));
+      }
+      body.mp3-hud-hidden #mobile-right-thumbpad {
+        bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+      }
+    }
     #mobile-touch-actions {
       position: absolute;
       left: calc(140px + env(safe-area-inset-left, 0px));
@@ -1669,8 +1932,8 @@
       .holo-window:not(#portal-game-holo-window) {
         min-height: 0 !important;
         max-height: 100% !important;
-        overflow-y: auto !important;
-        padding: 14px 16px !important;
+        overflow: hidden !important;
+        padding: 13px 15px !important;
       }
       .holo-content {
         min-height: 0 !important;
@@ -1701,6 +1964,20 @@
         height: 106px;
       }
       #mobile-left-thumbpad-knob {
+        width: 42px;
+        height: 42px;
+        margin: -21px 0 0 -21px;
+      }
+      #mobile-right-thumbpad {
+        right: calc(12px + env(safe-area-inset-right, 0px));
+        bottom: calc(74px + env(safe-area-inset-bottom, 0px));
+        width: 102px;
+        height: 102px;
+      }
+      body.mp3-hud-hidden #mobile-right-thumbpad {
+        bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+      }
+      #mobile-right-thumbpad-knob {
         width: 42px;
         height: 42px;
         margin: -21px 0 0 -21px;
@@ -1738,7 +2015,7 @@
       .holo-window:not(#portal-game-holo-window) {
         min-height: 0 !important;
         max-height: 100% !important;
-        overflow-y: auto !important;
+        overflow: hidden !important;
         padding: 10px 14px !important;
       }
       .holo-content {
@@ -1759,9 +2036,13 @@
        ========================================================================== */
     body.intro-dialogue-active #mobile-touch-controls,
     body.intro-dialogue-active #mobile-touch-controls *,
-    body.intro-dialogue-active #doom-tracks-mp3-hud,
-    body.intro-dialogue-active #doom-tracks-mp3-hud *,
-    body.intro-dialogue-active #doom-tracks-mp3-backdrop {
+    body.mp3-takeover-active #mobile-touch-controls,
+    body.mp3-takeover-active #mobile-touch-controls *,
+    body.intro-dialogue-active:not(.mp3-takeover-active) #doom-tracks-mp3-hud,
+    body.intro-dialogue-active:not(.mp3-takeover-active) #doom-tracks-mp3-hud *,
+    body.intro-dialogue-active:not(.mp3-takeover-active) #doom-tracks-mp3-backdrop,
+    body.mp3-takeover-active #intro-dialogue-overlay,
+    body.mp3-takeover-active #intro-dialogue-overlay * {
       opacity: 0 !important;
       visibility: hidden !important;
       pointer-events: none !important;
@@ -2823,6 +3104,272 @@
         padding-top: 4px;
       }
     }
+
+    /* =========================================================================
+       On-Screen Third-Person Character Follow Camera HUD Widget & Panel
+       ========================================================================= */
+    #char-cam-hud-widget {
+      position: fixed;
+      top: 14px;
+      right: 14px;
+      z-index: 90;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 8px;
+      pointer-events: none;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    #char-cam-hud-top-bar {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      pointer-events: auto;
+    }
+    #char-cam-hud-toggle-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      background: rgba(14, 17, 23, 0.92);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      color: #fef3c7;
+      border: 1px solid rgba(251, 191, 36, 0.58);
+      border-radius: 9px;
+      padding: 7px 13px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      cursor: pointer;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55), 0 0 14px rgba(245, 158, 11, 0.22);
+      transition: all 0.16s ease;
+    }
+    #char-cam-hud-toggle-btn:hover {
+      background: rgba(30, 41, 59, 0.96);
+      border-color: #fbbf24;
+      color: #ffffff;
+      box-shadow: 0 8px 26px rgba(0, 0, 0, 0.65), 0 0 18px rgba(251, 191, 36, 0.42);
+    }
+    #char-cam-hud-toggle-btn.active {
+      background: linear-gradient(135deg, rgba(217, 119, 6, 0.34), rgba(15, 23, 42, 0.95));
+      border-color: #fbbf24;
+      color: #fffbeb;
+      box-shadow: 0 8px 28px rgba(0, 0, 0, 0.68), 0 0 22px rgba(245, 158, 11, 0.45);
+    }
+    #char-cam-status-badge {
+      background: rgba(245, 158, 11, 0.22);
+      color: #fbbf24;
+      border: 1px solid rgba(251, 191, 36, 0.45);
+      border-radius: 999px;
+      padding: 1px 7px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+    }
+    #char-cam-hud-Widget.positioning-active #char-cam-status-badge,
+    #char-cam-hud-widget.positioning-active #char-cam-status-badge {
+      background: rgba(16, 185, 129, 0.26);
+      color: #6ee7b7;
+      border-color: rgba(52, 211, 153, 0.65);
+    }
+    #char-cam-hud-panel {
+      width: 336px;
+      max-width: calc(100vw - 28px);
+      max-height: calc(100dvh - 68px);
+      overflow-y: auto;
+      background: rgba(12, 16, 24, 0.93);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(251, 191, 36, 0.48);
+      border-radius: 11px;
+      padding: 12px 13px;
+      box-shadow: 0 14px 38px rgba(0, 0, 0, 0.72), 0 0 24px rgba(245, 158, 11, 0.18);
+      pointer-events: auto;
+      color: #e2e8f0;
+      font-size: 11.5px;
+      line-height: 1.38;
+      display: none;
+    }
+    #char-cam-hud-panel.open {
+      display: block;
+    }
+    .char-cam-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-bottom: 7px;
+      margin-bottom: 8px;
+      border-bottom: 1px solid rgba(251, 191, 36, 0.24);
+    }
+    .char-cam-title {
+      font-size: 11.5px;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #fbbf24;
+    }
+    .char-cam-close-btn {
+      background: rgba(255, 255, 255, 0.07);
+      color: #cbd5e1;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 5px;
+      padding: 2px 7px;
+      font-size: 10.5px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .char-cam-close-btn:hover {
+      background: rgba(239, 68, 68, 0.25);
+      color: #fecaca;
+      border-color: rgba(248, 113, 113, 0.55);
+    }
+    .char-cam-pos-banner {
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(56, 189, 248, 0.38);
+      border-radius: 8px;
+      padding: 8px 9px;
+      margin-bottom: 9px;
+    }
+    #char-cam-hud-widget.positioning-active .char-cam-pos-banner {
+      background: rgba(6, 78, 59, 0.34);
+      border-color: rgba(52, 211, 153, 0.68);
+      box-shadow: inset 0 0 12px rgba(16, 185, 129, 0.16);
+    }
+    #char-cam-pos-mode-btn {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      background: rgba(37, 99, 235, 0.28);
+      color: #bae6fd;
+      border: 1px solid rgba(56, 189, 248, 0.55);
+      border-radius: 6px;
+      padding: 6px 10px;
+      font-size: 11.5px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      margin-bottom: 5px;
+    }
+    #char-cam-pos-mode-btn.active {
+      background: rgba(16, 185, 129, 0.32);
+      color: #ecfdf5;
+      border-color: #34d399;
+      box-shadow: 0 0 14px rgba(16, 185, 129, 0.32);
+    }
+    .char-cam-pos-hint {
+      font-size: 10px;
+      color: #cbd5e1;
+      line-height: 1.35;
+      text-align: center;
+    }
+    .char-cam-pos-hint kbd {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 3px;
+      padding: 0 4px;
+      font-size: 9.5px;
+      color: #fde68a;
+    }
+    .char-cam-control-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      margin-bottom: 9px;
+    }
+    .char-cam-control-row {
+      display: grid;
+      grid-template-columns: 82px 1fr 54px;
+      gap: 6px;
+      align-items: center;
+    }
+    .char-cam-control-row label {
+      font-size: 10.5px;
+      font-weight: 600;
+      color: #cbd5e1;
+      white-space: nowrap;
+    }
+    .char-cam-num-input {
+      width: 54px;
+      background: rgba(15, 23, 42, 0.9);
+      color: #fef3c7;
+      border: 1px solid rgba(251, 191, 36, 0.35);
+      border-radius: 4px;
+      font-size: 10.5px;
+      padding: 2px 4px;
+      text-align: right;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+    .char-cam-presets-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 4px;
+      margin-bottom: 8px;
+    }
+    .char-cam-preset-btn {
+      background: rgba(30, 41, 59, 0.85);
+      color: #e2e8f0;
+      border: 1px solid rgba(148, 163, 184, 0.32);
+      border-radius: 5px;
+      padding: 4px 4px;
+      font-size: 10px;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.14s ease;
+    }
+    .char-cam-preset-btn:hover {
+      background: rgba(245, 158, 11, 0.24);
+      border-color: #fbbf24;
+      color: #fffbeb;
+    }
+    .char-cam-actions-row {
+      display: flex;
+      gap: 5px;
+      margin-top: 6px;
+    }
+    .char-cam-action-btn {
+      flex: 1;
+      background: rgba(245, 158, 11, 0.24);
+      color: #fef3c7;
+      border: 1px solid rgba(251, 191, 36, 0.52);
+      border-radius: 6px;
+      padding: 5px 7px;
+      font-size: 10.5px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.14s ease;
+    }
+    .char-cam-action-btn:hover {
+      background: rgba(245, 158, 11, 0.4);
+      border-color: #fbbf24;
+      color: #ffffff;
+    }
+    .char-cam-action-btn.secondary {
+      background: rgba(30, 41, 59, 0.82);
+      color: #cbd5e1;
+      border-color: rgba(148, 163, 184, 0.35);
+    }
+    .char-cam-action-btn.secondary:hover {
+      background: rgba(51, 65, 85, 0.92);
+      color: #ffffff;
+      border-color: rgba(203, 213, 225, 0.6);
+    }
+    #char-cam-readout {
+      margin-top: 7px;
+      padding: 5px 7px;
+      background: rgba(2, 6, 23, 0.78);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      border-radius: 5px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 10px;
+      color: #7dd3fc;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 6px;
+    }
   </style>
 </head>
 <body>
@@ -2873,6 +3420,19 @@
         ROAM
       </button>
     </div>
+    <div
+      id="mobile-right-thumbpad"
+      role="slider"
+      aria-label="Right Analog Camera Look Thumbpad"
+      aria-valuemin="0"
+      aria-valuemax="100"
+      aria-valuenow="0"
+    >
+      <div class="mobile-thumbpad-sprint-ring" aria-hidden="true"></div>
+      <div class="mobile-thumbpad-crosshair" aria-hidden="true"></div>
+      <span id="mobile-right-thumbpad-label">LOOK</span>
+      <div id="mobile-right-thumbpad-knob" aria-hidden="true"></div>
+    </div>
   </div>
 
   <!-- Large-Scale See-Through Holographic Project Pop-Up Stage -->
@@ -2888,103 +3448,97 @@
 
       <div class="holo-content">
         <header class="holo-top-bar">
-          <span class="holo-badge" data-holo-interactive="badge">
-            <span class="holo-dot"></span>
-            <span id="holo-station-badge">HOLO-PROJ // 01 OF 07</span>
-          </span>
-          <div
-            id="holo-tether-bridge"
-            class="holo-tether-bridge"
-            role="button"
-            tabindex="0"
-            data-holo-interactive="tether-bridge"
-            title="Switch Active Data State Across Inter-Module Tether Lines"
-          >
-            <div class="holo-tether-trace" data-trace="upper">
-              <span class="holo-tether-node"></span>
-              <span class="holo-tether-line"></span>
-              <span class="holo-tether-node"></span>
-            </div>
-            <div class="holo-tether-trace" data-trace="center">
-              <span class="holo-tether-node"></span>
-              <span class="holo-tether-line"></span>
-              <span class="holo-tether-node"></span>
-            </div>
-            <div class="holo-tether-trace" data-trace="lower">
-              <span class="holo-tether-node"></span>
-              <span class="holo-tether-line"></span>
-              <span class="holo-tether-node"></span>
-            </div>
-          </div>
+          <h2 id="holo-title" class="holo-title">GRAPHRAG POLICY ENGINE</h2>
           <div class="holo-top-right">
-            <span id="holo-coords-label">ALLEY CORRIDOR Z: 5.0m // SCROLL WINDOW: 05%–18%</span>
             <button
               id="exit-mount-focus-btn"
               class="holo-exit-focus-btn"
               type="button"
               data-holo-interactive="exit-focus"
-              title="Exit Mount Focus and Return to Third-Person Alley Free-Roam (Esc)"
+              aria-label="Exit Screen Mount and Return to Alley (Esc)"
+              title="Exit Screen Mount and Return to Alley (Esc)"
             >
-              ✕ Exit Mount Focus / Back to Alley (Esc)
+              <span aria-hidden="true">✕</span>
+              <span>EXIT</span>
             </button>
           </div>
         </header>
 
-        <div class="holo-body-grid">
-          <div id="holo-right-data-pane" class="holo-main-col" data-holo-interactive="data-pane">
-            <div id="holo-kicker" class="holo-kicker">STATION 01 // GRAPHRAG POLICY ENGINE</div>
-            <h2 id="holo-title" class="holo-title">GRAPHRAG POLICY ENGINE</h2>
-            <p id="holo-description" class="holo-description">
-              GRAPHRAG LLM for Lymphemeda Treatment Act Medicare Qualifications. Made as a tool for a friend working at a Durable Medical Goods company. Hi Eli!
-            </p>
-            <div id="holo-narrative-callout" class="holo-narrative-callout" style="display: none;">
-              <h3 id="holo-narrative-heading" class="holo-narrative-heading"></h3>
-              <p id="holo-narrative-body" class="holo-narrative-body"></p>
+        <div id="holo-body-scroll-shell" class="holo-body-scroll-shell">
+          <div id="holo-body-scroll-viewport" class="holo-body-grid">
+            <div id="holo-right-data-pane" class="holo-main-col" data-holo-interactive="data-pane">
+              <p id="holo-description" class="holo-description">
+                GRAPHRAG LLM for Lymphemeda Treatment Act Medicare Qualifications. Made as a tool for a friend working at a Durable Medical Goods company. Hi Eli!
+              </p>
+              <div id="holo-narrative-callout" class="holo-narrative-callout" style="display: none;">
+                <h3 id="holo-narrative-heading" class="holo-narrative-heading"></h3>
+                <p id="holo-narrative-body" class="holo-narrative-body"></p>
+              </div>
+              <div id="holo-tags" class="holo-tag-row" role="group" aria-label="Project Technology Tags"></div>
+              <div id="holo-tag-popup" class="holo-tag-popup" role="region" aria-live="polite" aria-hidden="true" hidden>
+                <div class="holo-tag-popup-header">
+                  <span class="holo-tag-popup-badge">
+                    <span class="holo-tag-popup-dot" aria-hidden="true"></span>
+                    <span id="holo-tag-popup-title" class="holo-tag-popup-title"></span>
+                  </span>
+                  <button
+                    id="holo-tag-popup-close-btn"
+                    class="holo-tag-popup-close-btn"
+                    type="button"
+                    aria-label="Close Tag Description"
+                    title="Close Tag Description"
+                  >
+                    ✕
+                  </button>
+                </div>
+                <p id="holo-tag-popup-desc" class="holo-tag-popup-desc"></p>
+              </div>
             </div>
-            <div id="holo-tags" class="holo-tag-row"></div>
+
+            <div class="holo-Visual-panel" data-holo-interactive="telemetry-panel">
+              <div id="holo-metrics" class="holo-metrics-grid"></div>
+              <div class="holo-cta-stack">
+                <a
+                  id="holo-primary-link"
+                  class="holo-link-btn"
+                  data-holo-interactive="primary-cta"
+                  href="https://luisp1028.github.io/lag-policy-engine-showcase/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <span id="holo-primary-link-text">LIVE_DEMO (React Showcase)</span>
+                  <span aria-hidden="true">↗</span>
+                </a>
+                <a
+                  id="holo-secondary-link"
+                  class="holo-link-btn secondary"
+                  data-holo-interactive="secondary-cta"
+                  href="https://github.com/LuisP1028/lag-policy-engine-showcase"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <span id="holo-secondary-link-text">SRC_CODE (GitHub)</span>
+                  <span aria-hidden="true">↗</span>
+                </a>
+              </div>
+            </div>
           </div>
 
-          <div class="holo-Visual-panel" data-holo-interactive="telemetry-panel">
-            <div id="holo-metrics" class="holo-metrics-grid"></div>
-            <div class="holo-cta-stack">
-              <a
-                id="holo-primary-link"
-                class="holo-link-btn"
-                data-holo-interactive="primary-cta"
-                href="https://luisp1028.github.io/lag-policy-engine-showcase/"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <span id="holo-primary-link-text">LIVE_DEMO (React Showcase)</span>
-                <span aria-hidden="true">↗</span>
-              </a>
-              <a
-                id="holo-secondary-link"
-                class="holo-link-btn secondary"
-                data-holo-interactive="secondary-cta"
-                href="https://github.com/LuisP1028/lag-policy-engine-showcase"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <span id="holo-secondary-link-text">SRC_CODE (GitHub)</span>
-                <span aria-hidden="true">↗</span>
-              </a>
-            </div>
+          <div
+            id="holo-custom-scrollbar"
+            class="holo-scrollbar-track"
+            role="scrollbar"
+            aria-label="Screen Mount Content Scrollbar"
+            aria-controls="holo-body-scroll-viewport"
+            aria-orientation="vertical"
+            aria-valuemin="0"
+            aria-valuemax="100"
+            aria-valuenow="0"
+            data-holo-interactive="scrollbar"
+          >
+            <div id="holo-custom-scrollbar-thumb" class="holo-scrollbar-thumb"></div>
           </div>
         </div>
-
-        <footer class="holo-footer-bar">
-          <span id="holo-footer-status">HOLOGRAPHIC PROJECTION // TRANSPARENT CHARACTER OVERLAY</span>
-          <div class="holo-station-nav-group">
-            <button id="holo-prev-mount-btn" class="holo-nav-btn" data-holo-interactive="prev-station" type="button" title="Previous Wall Mount">
-              ← Prev
-            </button>
-            <div id="holo-station-pips" class="holo-station-pips" aria-label="Jump to Project Station"></div>
-            <button id="holo-next-mount-btn" class="holo-nav-btn" data-holo-interactive="next-station" type="button" title="Next Wall Mount">
-              Next →
-            </button>
-          </div>
-        </footer>
       </div>
     </article>
   </section>
@@ -4358,8 +4912,117 @@
     </div>
   </aside>
 
+  <!-- On-Screen Third-Person Character Follow Camera HUD Trigger & Editor Panel -->
+  <div id="char-cam-hud-widget" role="region" aria-label="Third-Person Character Follow Camera Editor">
+    <div id="char-cam-hud-top-bar">
+      <button
+        id="char-cam-hud-toggle-btn"
+        type="button"
+        aria-expanded="false"
+        aria-controls="char-cam-hud-panel"
+        title="Open Third-Person Character Follow Camera Editor"
+      >
+        <span>🎥 Character Cam</span>
+        <span id="char-cam-status-badge">OTS 1.38m</span>
+      </button>
+    </div>
+
+    <div id="char-cam-hud-panel" role="dialog" aria-label="Character Follow Camera Controls">
+      <div class="char-cam-header">
+        <span class="char-cam-title">🎥 3rd-Person Character Cam</span>
+        <button id="char-cam-close-btn" class="char-cam-close-btn" type="button" title="Close Panel">✕</button>
+      </div>
+
+      <div class="char-cam-pos-banner">
+        <button id="char-cam-pos-mode-btn" type="button" title="Position camera directly in the 3D viewport using mouse &amp; keys">
+          🎯 Position in Viewport: OFF
+        </button>
+        <div class="char-cam-pos-hint">
+          <kbd>Left-Drag</kbd> Orbit Angle &bull; <kbd>Right/Shift-Drag</kbd> Move X/Y<br />
+          <kbd>Wheel</kbd> Zoom Distance &bull; <kbd>WASD</kbd> + <kbd>E</kbd>/<kbd>Q</kbd> Nudge
+        </div>
+      </div>
+
+      <div class="char-cam-presets-row" role="group" aria-label="Camera Framing Presets">
+        <button type="button" class="char-cam-preset-btn" data-cam-preset="ots_right" title="Default Over-The-Shoulder Right Framing">OTS Right</button>
+        <button type="button" class="char-cam-preset-btn" data-cam-preset="center" title="Centered Third-Person Follow Framing">Center</button>
+        <button type="button" class="char-cam-preset-btn" data-cam-preset="ots_left" title="Over-The-Shoulder Left Framing">OTS Left</button>
+        <button type="button" class="char-cam-preset-btn" data-cam-preset="wide" title="Wide Cinematic Follow Framing">Wide</button>
+      </div>
+
+      <div class="char-cam-control-grid">
+        <div class="char-cam-control-row">
+          <label for="char-cam-dist-slider" style="color: #fde68a;">Distance (m)</label>
+          <input id="char-cam-dist-slider" class="hud-slider" type="range" min="0.35" max="8.00" step="0.02" value="0.35" />
+          <input id="char-cam-dist-input" class="char-cam-num-input" type="number" min="0.35" max="8.00" step="0.05" value="0.35" />
+        </div>
+        <div class="char-cam-control-row">
+          <label for="char-cam-height-slider" style="color: #6ee7b7;">Height Y (m)</label>
+          <input id="char-cam-height-slider" class="hud-slider" type="range" min="0.20" max="3.20" step="0.02" value="1.80" />
+          <input id="char-cam-height-input" class="char-cam-num-input" type="number" min="0.20" max="3.20" step="0.05" value="1.80" />
+        </div>
+        <div class="char-cam-control-row">
+          <label for="char-cam-shoulder-slider" style="color: #7dd3fc;">Shoulder X (m)</label>
+          <input id="char-cam-shoulder-slider" class="hud-slider" type="range" min="-2.00" max="2.00" step="0.02" value="0.62" />
+          <input id="char-cam-shoulder-input" class="char-cam-num-input" type="number" min="-2.00" max="2.00" step="0.05" value="0.62" />
+        </div>
+        <div class="char-cam-control-row">
+          <label for="char-cam-forward-slider" style="color: #c4b5fd;">Forward Z (m)</label>
+          <input id="char-cam-forward-slider" class="hud-slider" type="range" min="-2.00" max="2.00" step="0.02" value="-0.14" />
+          <input id="char-cam-forward-input" class="char-cam-num-input" type="number" min="-2.00" max="2.00" step="0.05" value="-0.14" />
+        </div>
+        <div class="char-cam-control-row">
+          <label for="char-cam-pitch-slider" style="color: #fda4af;">Pitch (&deg;)</label>
+          <input id="char-cam-pitch-slider" class="hud-slider" type="range" min="-41" max="77" step="0.5" value="9.4" />
+          <input id="char-cam-pitch-input" class="char-cam-num-input" type="number" min="-41" max="77" step="1" value="9.4" />
+        </div>
+        <div class="char-cam-control-row">
+          <label for="char-cam-yaw-slider" style="color: #fdba74;">Yaw Offset (&deg;)</label>
+          <input id="char-cam-yaw-slider" class="hud-slider" type="range" min="-180" max="180" step="1" value="7.4" />
+          <input id="char-cam-yaw-input" class="char-cam-num-input" type="number" min="-180" max="180" step="2" value="7.4" />
+        </div>
+        <div class="char-cam-control-row">
+          <label for="char-cam-fov-slider" style="color: #cbd5e1;">FOV (&deg;)</label>
+          <input id="char-cam-fov-slider" class="hud-slider" type="range" min="25" max="95" step="1" value="95" />
+          <input id="char-cam-fov-input" class="char-cam-num-input" type="number" min="25" max="95" step="1" value="95" />
+        </div>
+        <div class="char-cam-control-row" style="padding-top: 4px; border-top: 1px solid rgba(255,255,255,0.08);">
+          <label for="char-cam-scroll-slider" style="color: #38bdf8;">Alley Walk (%)</label>
+          <input id="char-cam-scroll-slider" class="hud-slider" type="range" min="0" max="100" step="1" value="10" />
+          <input id="char-cam-scroll-input" class="char-cam-num-input" type="number" min="0" max="100" step="2" value="10" />
+        </div>
+      </div>
+
+      <div class="char-cam-actions-row">
+        <button id="char-cam-wall-clamp-btn" type="button" class="char-cam-action-btn secondary" title="Toggle corridor wall collision clamping on the camera">
+          🧱 Wall Clamp: ON
+        </button>
+        <button id="char-cam-capture-btn" type="button" class="char-cam-action-btn secondary" title="Capture current live camera orbit angle &amp; distance">
+          📸 Capture View
+        </button>
+      </div>
+
+      <div class="char-cam-actions-row">
+        <button id="char-cam-save-btn" type="button" class="char-cam-action-btn" title="Save Character Camera Pose to LocalStorage &amp; PostgreSQL">
+          💾 Save Cam
+        </button>
+        <button id="char-cam-reset-btn" type="button" class="char-cam-action-btn secondary" title="Reset Character Camera to Default Over-The-Shoulder Framing">
+          ↺ Reset
+        </button>
+        <button id="char-cam-copy-btn" type="button" class="char-cam-action-btn secondary" title="Copy Character Camera JSON to Clipboard">
+          📋 Copy JSON
+        </button>
+      </div>
+
+      <div id="char-cam-readout" aria-live="polite">
+        <span id="char-cam-readout-rel">Dist 0.35m | X +0.62 | Y 1.80</span>
+        <span id="char-cam-readout-sync" style="color: #4ade80;">SYNCED</span>
+      </div>
+    </div>
+  </div>
+
   <div id="fatal-error-banner" role="alert"></div>
 
-  <script type="module" src="./sandbox.js?v=095"></script>
+  <script type="module" src="./sandbox.js?v=101"></script>
 </body>
 </html>

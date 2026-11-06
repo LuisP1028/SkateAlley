@@ -34,6 +34,11 @@ from http.server import SimpleHTTPRequestHandler
 _SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
 if _SCRIPTS_DIR not in sys.path:
     sys.path.insert(0, _SCRIPTS_DIR)
+_GREEK_SCRIPTS_DIR = "/Users/diesel/desktop/greek/scripts"
+if os.path.isdir(_GREEK_SCRIPTS_DIR) and _GREEK_SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, _GREEK_SCRIPTS_DIR)
+
+import studio_http_handlers_045
 
 from graphrag_engine import (
     AUTHORITATIVE_INTRO_ANCHOR_CARDS,
@@ -1863,7 +1868,7 @@ class SkateAlleyRequestHandler(SimpleHTTPRequestHandler):
     def end_headers(self):
         self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Access-Control-Allow-Methods", "GET, HEAD, POST, PUT, DELETE, OPTIONS")
-        self.send_header("Access-Control-Allow-Headers", "Range, Content-Type, Accept, Origin, Authorization")
+        self.send_header("Access-Control-Allow-Headers", "Range, Content-Type, Accept, Origin, Authorization, X-Visitor-Token")
         self.send_header("Access-Control-Expose-Headers", "Content-Length, Content-Range, Accept-Ranges")
         self.send_header("Accept-Ranges", "bytes")
         req_path = getattr(self, "path", "").split("?", 1)[0].split("#", 1)[0]
@@ -1884,13 +1889,17 @@ class SkateAlleyRequestHandler(SimpleHTTPRequestHandler):
             or req_path.startswith("/tkdr/")
             or req_path == "/melee"
             or req_path.startswith("/melee/")
+            or req_path == "/studio"
+            or req_path.startswith("/studio/")
             or req_path == "/mkd"
             or req_path.startswith("/mkd/")
-            or os.path.basename(os.getcwd()) in ("tkdr", "melee", "mkd")
+            or os.path.basename(os.getcwd()) in ("tkdr", "melee", "studio", "mkd")
         )
         if is_coi_route:
             self.send_header("Cross-Origin-Opener-Policy", "same-origin")
             self.send_header("Cross-Origin-Embedder-Policy", "require-corp")
+            self.send_header("Cross-Origin-Resource-Policy", "same-origin")
+        elif req_path.startswith(("/vendor/", "/api/studio/", "/api/melee/")):
             self.send_header("Cross-Origin-Resource-Policy", "same-origin")
         super().end_headers()
 
@@ -2792,6 +2801,8 @@ class SkateAlleyRequestHandler(SimpleHTTPRequestHandler):
         })
 
     def do_POST(self):
+        if studio_http_handlers_045.try_handle_studio_post(self):
+            return
         clean_path = self.path.split("?", 1)[0].rstrip("/")
         if clean_path == "/api/intro/generate":
             return self._handle_intro_generate()
@@ -3080,6 +3091,8 @@ class SkateAlleyRequestHandler(SimpleHTTPRequestHandler):
         clean_path = self.path.split("?", 1)[0]
         if clean_path in ("/api/health", "/health"):
             return self._serve_health(head_only=True)
+        if studio_http_handlers_045.try_handle_studio_or_melee_get(self, head_only=True):
+            return
         if self._try_serve_range(head_only=True):
             return
         if self._try_serve_gzip_static(head_only=True):
@@ -3090,6 +3103,8 @@ class SkateAlleyRequestHandler(SimpleHTTPRequestHandler):
         clean_path = self.path.split("?", 1)[0].rstrip("/") or "/"
         if clean_path in ("/api/health", "/health"):
             return self._serve_health(head_only=False)
+        if studio_http_handlers_045.try_handle_studio_or_melee_get(self, head_only=False):
+            return
         if clean_path == "/api/graphrag/status":
             return self._handle_graphrag_status()
         if clean_path == "/api/stickers":
@@ -3133,6 +3148,10 @@ def main():
         print("[skatealley-app-local] PostgreSQL skatealley_placed_stickers & skatealley_scene_layouts schemas verified.", flush=True)
     except Exception as db_err:
         print(f"[skatealley-app-local] WARNING: Initial PostgreSQL schema check deferred: {db_err}", flush=True)
+    try:
+        studio_http_handlers_045.maybe_boot_background_coordinator()
+    except Exception as studio_err:
+        print(f"[skatealley-app-local] WARNING: Studio coordinator startup warning: {studio_err}", flush=True)
     with ThreadingHTTPServer((args.host, args.port), SkateAlleyRequestHandler) as httpd:
         print(f"[skatealley-app-local] Serving {os.getcwd()} on http://{args.host}:{args.port}", flush=True)
         httpd.serve_forever()

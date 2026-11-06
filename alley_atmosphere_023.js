@@ -984,6 +984,413 @@ export function updateWallMountHolographicParity(
     if (du.uIntensity) du.uIntensity.value = evalState.diffusedGlowIntensity;
     if (du.uFlickerGain) du.uFlickerGain.value = evalState.flickerGain;
   }
+
+  // Update Levitating Cyber-Drip Graffiti Header with strictly desynchronized flicker/glitch & 3D hover (Spec 067 §5.3–§5.4)
+  if (mountRecord.headerGroup) {
+    if (mountRecord.headerGlitchBoostRemainingSec > 0) {
+      mountRecord.headerGlitchBoostRemainingSec = Math.max(
+        0.0,
+        mountRecord.headerGlitchBoostRemainingSec - dt
+      );
+    }
+    const headerInteractiveBoost =
+      mountRecord.headerGlitchBoostRemainingSec > 0 ? 1.0 : isHighlighted ? 0.16 : 0.0;
+    const headerEval = evaluateGraffitiHeaderFlickerAndGlitch(
+      timeSec,
+      st.index,
+      headerInteractiveBoost
+    );
+    const levState = evaluateGraffitiHeaderLevitation(timeSec, st.index);
+
+    mountRecord.hasLevitatingHeader = true;
+    mountRecord.isHeaderLevitating = true;
+    mountRecord.isHeaderFlickering = true;
+    mountRecord.hasHeaderGlitchEffect = true;
+    mountRecord.headerSyncedWithMount = false;
+    mountRecord.headerFlickerGain = headerEval.flickerGain;
+    mountRecord.headerGlitchIntensity = headerEval.glitchIntensity;
+    mountRecord.headerTearOffsetUvX = headerEval.tearOffsetUvX;
+    mountRecord.headerScanbeamY = headerEval.scanbeamY;
+    mountRecord.headerHoverOffsetY = levState.hoverOffsetY;
+    mountRecord.headerLocalY = levState.localY;
+    mountRecord.headerRollZ = levState.rollZ;
+
+    mountRecord.headerGroup.position.set(0.0, levState.localY, levState.localZ);
+    mountRecord.headerGroup.rotation.set(0.0, 0.0, levState.rollZ);
+
+    if (mountRecord.headerMat && mountRecord.headerMat.uniforms) {
+      const hu = mountRecord.headerMat.uniforms;
+      if (hu.uTime) hu.uTime.value = timeSec;
+      if (hu.uFlickerGain) hu.uFlickerGain.value = headerEval.flickerGain;
+      if (hu.uGlitchIntensity) hu.uGlitchIntensity.value = headerEval.glitchIntensity;
+      if (hu.uTearOffsetUvX) hu.uTearOffsetUvX.value = headerEval.tearOffsetUvX;
+      if (hu.uScanbeamY) hu.uScanbeamY.value = headerEval.scanbeamY;
+      if (hu.uIsHighlighted) hu.uIsHighlighted.value = isHighlighted ? 1.0 : 0.0;
+      if (hu.uOpacity) {
+        hu.uOpacity.value =
+          mountRecord.state === 'standby' ? 0.88 : isHighlighted ? 1.0 : 0.95;
+      }
+    }
+  }
+}
+
+// ============================================================================
+// Pillar 2B: Levitating 3D Cyber-Drip Graffiti Headers (Spec 067 §3–§5)
+// ============================================================================
+
+export const GRAFFITI_HEADER_GLITCH_FLICKER_SPEC = Object.freeze({
+  atlasUrl: './assets/graffiti_alphabet_atlas.png?v=068',
+  sourceReferenceUrl: './graffiti_.jpeg?v=068',
+  atlasWidth: 1024,
+  atlasHeight: 572,
+  sourceWidth: 2752,
+  sourceHeight: 1536,
+  textureWidth: 1024,
+  textureHeight: 320,
+  planeWidthMeters: 2.32,
+  planeHeightMeters: 0.725,
+  baseLocalOffsetY: 0.84,
+  baseLocalOffsetZ: 0.014,
+  hoverAmplitudeMeters: 0.022,
+  hoverFrequencyRadSec: 2.10,
+  rollAmplitudeRad: 0.010,
+  rollFrequencyRadSec: 1.45,
+  worldMinYMeters: 2.205,
+  worldMaxYMeters: 2.975,
+  phaseMultiplier: 2.7182818,
+  phaseConstantOffset: 1.137,
+  carrierFreqHzPrimary: 11.3,
+  carrierFreqHzSecondary: 18.7,
+  sputterBasePeriodSec: 1.93,
+  sputterStepSec: 0.71,
+  glitchBasePeriodSec: 2.17,
+  glitchStepSec: 0.67,
+  scanbeamPeriodSec: 2.73,
+  syncedWithMount: false,
+});
+
+export const GRAFFITI_ALPHABET_GLYPH_MAP = Object.freeze({
+  A: Object.freeze({ char: 'A', row: 1, srcBounds: Object.freeze([157, 83, 518, 442]), atlasBounds: Object.freeze([58, 30, 193, 165]), captionMask: Object.freeze([342, 405, 41, 43]) }),
+  B: Object.freeze({ char: 'B', row: 1, srcBounds: Object.freeze([567, 91, 897, 442]), atlasBounds: Object.freeze([210, 33, 334, 165]), captionMask: Object.freeze([702, 405, 39, 43]) }),
+  C: Object.freeze({ char: 'C', row: 1, srcBounds: Object.freeze([934, 90, 1236, 442]), atlasBounds: Object.freeze([347, 33, 460, 165]), captionMask: Object.freeze([1061, 405, 37, 43]) }),
+  D: Object.freeze({ char: 'D', row: 1, srcBounds: Object.freeze([1279, 97, 1590, 438]), atlasBounds: Object.freeze([475, 36, 592, 163]), captionMask: Object.freeze([1411, 405, 38, 43]) }),
+  E: Object.freeze({ char: 'E', row: 1, srcBounds: Object.freeze([1620, 105, 1955, 442]), atlasBounds: Object.freeze([602, 39, 728, 165]), captionMask: Object.freeze([1769, 405, 36, 43]) }),
+  F: Object.freeze({ char: 'F', row: 1, srcBounds: Object.freeze([1958, 103, 2264, 414]), atlasBounds: Object.freeze([728, 38, 843, 155]), captionMask: Object.freeze([2071, 405, 36, 43]) }),
+  G: Object.freeze({ char: 'G', row: 1, srcBounds: Object.freeze([2264, 100, 2572, 442]), atlasBounds: Object.freeze([842, 37, 958, 165]), captionMask: Object.freeze([2392, 405, 39, 43]) }),
+  H: Object.freeze({ char: 'H', row: 2, srcBounds: Object.freeze([199, 498, 512, 842]), atlasBounds: Object.freeze([74, 185, 191, 314]), captionMask: Object.freeze([344, 801, 39, 47]) }),
+  I: Object.freeze({ char: 'I', row: 2, srcBounds: Object.freeze([580, 488, 837, 836]), atlasBounds: Object.freeze([215, 181, 312, 312]), captionMask: Object.freeze([693, 801, 19, 47]) }),
+  J: Object.freeze({ char: 'J', row: 2, srcBounds: Object.freeze([887, 499, 1184, 842]), atlasBounds: Object.freeze([330, 185, 441, 314]), captionMask: Object.freeze([1024, 801, 36, 47]) }),
+  K: Object.freeze({ char: 'K', row: 2, srcBounds: Object.freeze([1236, 485, 1530, 842]), atlasBounds: Object.freeze([459, 180, 570, 314]), captionMask: Object.freeze([1366, 801, 40, 47]) }),
+  L: Object.freeze({ char: 'L', row: 2, srcBounds: Object.freeze([1596, 488, 1882, 842]), atlasBounds: Object.freeze([593, 181, 701, 314]), captionMask: Object.freeze([1712, 801, 34, 47]) }),
+  M: Object.freeze({ char: 'M', row: 2, srcBounds: Object.freeze([1920, 482, 2244, 825]), atlasBounds: Object.freeze([714, 179, 835, 307]), captionMask: Object.freeze([2045, 801, 46, 47]) }),
+  N: Object.freeze({ char: 'N', row: 2, srcBounds: Object.freeze([2244, 466, 2575, 842]), atlasBounds: Object.freeze([834, 173, 959, 314]), captionMask: Object.freeze([2392, 801, 39, 47]) }),
+  O: Object.freeze({ char: 'O', row: 3, srcBounds: Object.freeze([196, 896, 502, 1189]), atlasBounds: Object.freeze([72, 333, 187, 443]), captionMask: Object.freeze([344, 1169, 39, 45]) }),
+  P: Object.freeze({ char: 'P', row: 3, srcBounds: Object.freeze([563, 863, 835, 1172]), atlasBounds: Object.freeze([209, 321, 311, 437]), captionMask: Object.freeze([684, 1169, 38, 45]) }),
+  Q: Object.freeze({ char: 'Q', row: 3, srcBounds: Object.freeze([884, 884, 1201, 1208]), atlasBounds: Object.freeze([328, 328, 447, 450]), captionMask: Object.freeze([1025, 1169, 38, 45]) }),
+  R: Object.freeze({ char: 'R', row: 3, srcBounds: Object.freeze([1237, 878, 1552, 1190]), atlasBounds: Object.freeze([460, 326, 578, 443]), captionMask: Object.freeze([1377, 1169, 38, 45]) }),
+  S: Object.freeze({ char: 'S', row: 3, srcBounds: Object.freeze([1581, 911, 1912, 1208]), atlasBounds: Object.freeze([588, 338, 712, 450]), captionMask: Object.freeze([1726, 1169, 38, 45]) }),
+  T: Object.freeze({ char: 'T', row: 3, srcBounds: Object.freeze([1912, 903, 2252, 1174]), atlasBounds: Object.freeze([711, 336, 838, 437]), captionMask: Object.freeze([2081, 1169, 38, 45]) }),
+  U: Object.freeze({ char: 'U', row: 3, srcBounds: Object.freeze([2277, 909, 2576, 1208]), atlasBounds: Object.freeze([847, 338, 959, 450]), captionMask: Object.freeze([2401, 1169, 38, 45]) }),
+  V: Object.freeze({ char: 'V', row: 4, srcBounds: Object.freeze([430, 1212, 748, 1486]), atlasBounds: Object.freeze([160, 450, 279, 553]), captionMask: Object.freeze([591, 1485, 42, 47]) }),
+  W: Object.freeze({ char: 'W', row: 4, srcBounds: Object.freeze([793, 1222, 1201, 1530]), atlasBounds: Object.freeze([295, 454, 447, 570]), captionMask: Object.freeze([983, 1485, 59, 47]) }),
+  X: Object.freeze({ char: 'X', row: 4, srcBounds: Object.freeze([1290, 1219, 1585, 1505]), atlasBounds: Object.freeze([480, 453, 590, 560]), captionMask: Object.freeze([1402, 1485, 43, 47]) }),
+  Y: Object.freeze({ char: 'Y', row: 4, srcBounds: Object.freeze([1632, 1225, 1958, 1505]), atlasBounds: Object.freeze([607, 455, 729, 560]), captionMask: Object.freeze([1787, 1485, 41, 47]) }),
+  Z: Object.freeze({ char: 'Z', row: 4, srcBounds: Object.freeze([2014, 1231, 2390, 1530]), atlasBounds: Object.freeze([749, 458, 890, 570]), captionMask: Object.freeze([2167, 1485, 37, 47]) }),
+});
+
+export const GRAFFITI_STATION_HEADER_SCHEDULE = Object.freeze([
+  Object.freeze({
+    mountName: 'SCREEN_MOUNT_01',
+    stationIndex: 1,
+    code: '01',
+    headerText: 'GRAPHRAG POLICY ENGINE',
+    headerLines: Object.freeze(['GRAPHRAG', 'POLICY ENGINE']),
+  }),
+  Object.freeze({
+    mountName: 'SCREEN_MOUNT_02',
+    stationIndex: 2,
+    code: '02',
+    headerText: 'DIGITAL TWIN PERSONA',
+    headerLines: Object.freeze(['DIGITAL TWIN', 'PERSONA']),
+  }),
+  Object.freeze({
+    mountName: 'SCREEN_MOUNT_03',
+    stationIndex: 3,
+    code: '03',
+    headerText: 'QUANTITATIVE MODELING STATISTICAL ARBITRAGE',
+    headerLines: Object.freeze(['QUANTITATIVE MODELING', 'STATISTICAL ARBITRAGE']),
+  }),
+  Object.freeze({
+    mountName: 'SCREEN_MOUNT_07',
+    stationIndex: 4,
+    code: '04',
+    headerText: 'REJECTION STATION MACHINE LEARNING',
+    headerLines: Object.freeze(['REJECTION STATION', 'MACHINE LEARNING']),
+  }),
+  Object.freeze({
+    mountName: 'SCREEN_MOUNT_04',
+    stationIndex: 5,
+    code: '05',
+    headerText: 'AI DATA ANALYTICS ALIGNMENT RESEARCH',
+    headerLines: Object.freeze(['AI DATA ANALYTICS', 'ALIGNMENT RESEARCH']),
+  }),
+  Object.freeze({
+    mountName: 'SCREEN_MOUNT_05',
+    stationIndex: 6,
+    code: '06',
+    headerText: 'GENERATIVE PIPELINES',
+    headerLines: Object.freeze(['GENERATIVE', 'PIPELINES']),
+  }),
+  Object.freeze({
+    mountName: 'SCREEN_MOUNT_06',
+    stationIndex: 7,
+    code: '07',
+    headerText: 'MULTI MODAL DEEP LEARNING',
+    headerLines: Object.freeze(['MULTI MODAL', 'DEEP LEARNING']),
+  }),
+]);
+
+export const GRAFFITI_STATION_HEADER_BY_MOUNT = Object.freeze(
+  GRAFFITI_STATION_HEADER_SCHEDULE.reduce((acc, item) => {
+    acc[item.mountName] = item;
+    return acc;
+  }, {})
+);
+
+export function stripStationHeaderPrefix(rawTitle) {
+  return String(rawTitle || '')
+    .toUpperCase()
+    .replace(/^\s*STATION\s+\d+\s*(?:\/\/)?\s*/i, '')
+    .replace(/[^A-Z\s]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+export function resolveStationGraffitiHeaderSpec(stationOrMountName) {
+  const mountName =
+    typeof stationOrMountName === 'string'
+      ? stationOrMountName
+      : stationOrMountName?.mountName || '';
+  if (mountName && GRAFFITI_STATION_HEADER_BY_MOUNT[mountName]) {
+    return GRAFFITI_STATION_HEADER_BY_MOUNT[mountName];
+  }
+  const stripped = stripStationHeaderPrefix(
+    typeof stationOrMountName === 'object' && stationOrMountName
+      ? stationOrMountName.title || stationOrMountName.kicker || mountName
+      : stationOrMountName
+  );
+  const words = stripped.split(' ').filter(Boolean);
+  const mid = Math.max(1, Math.ceil(words.length / 2));
+  const lines =
+    words.length <= 1
+      ? [stripped || 'PROJECT']
+      : [words.slice(0, mid).join(' '), words.slice(mid).join(' ')];
+  return {
+    mountName: mountName || 'SCREEN_MOUNT_CUSTOM',
+    stationIndex: Number(stationOrMountName?.index) || 1,
+    code: String(stationOrMountName?.code || '01'),
+    headerText: lines.join(' '),
+    headerLines: lines,
+  };
+}
+
+export function evaluateGraffitiHeaderLevitation(timeSec, stationIndex = 1) {
+  const idx = Number(stationIndex) || 1;
+  const t = Number(timeSec) || 0.0;
+  const hoverOffsetY = Number(
+    (
+      GRAFFITI_HEADER_GLITCH_FLICKER_SPEC.hoverAmplitudeMeters *
+      Math.sin(t * GRAFFITI_HEADER_GLITCH_FLICKER_SPEC.hoverFrequencyRadSec + idx * 1.37)
+    ).toFixed(4)
+  );
+  const localY = Number(
+    (GRAFFITI_HEADER_GLITCH_FLICKER_SPEC.baseLocalOffsetY + hoverOffsetY).toFixed(4)
+  );
+  const rollZ = Number(
+    (
+      GRAFFITI_HEADER_GLITCH_FLICKER_SPEC.rollAmplitudeRad *
+      Math.cos(t * GRAFFITI_HEADER_GLITCH_FLICKER_SPEC.rollFrequencyRadSec + idx * 0.91)
+    ).toFixed(4)
+  );
+  return {
+    localY,
+    localZ: GRAFFITI_HEADER_GLITCH_FLICKER_SPEC.baseLocalOffsetZ,
+    hoverOffsetY,
+    rollZ,
+    worldCenterY: Number((1.75 + localY).toFixed(4)),
+    isLevitating: true,
+  };
+}
+
+export function evaluateGraffitiHeaderFlickerAndGlitch(
+  timeSec,
+  stationIndex = 1,
+  interactiveBoost = 0.0
+) {
+  const idx = Number(stationIndex) || 1;
+  const phase =
+    idx * GRAFFITI_HEADER_GLITCH_FLICKER_SPEC.phaseMultiplier +
+    GRAFFITI_HEADER_GLITCH_FLICKER_SPEC.phaseConstantOffset;
+  const t = (Number(timeSec) || 0.0) + phase;
+
+  // 1. Independent high-frequency aerosol-holo carrier hum (coprime to 7.5Hz / 14.2Hz on mount)
+  const carrierHum =
+    1.0 +
+    0.052 * Math.sin(t * 2.0 * Math.PI * 11.3 + idx * 0.73) +
+    0.038 * Math.cos(t * 2.0 * Math.PI * 18.7 + idx * 1.91);
+
+  // 2. Desynchronized micro-dropouts and surges
+  const P_sputter = 1.93 + ((idx + 1) % 4) * 0.71;
+  const u_cycle = ((t % P_sputter) + P_sputter) % P_sputter;
+  let sputterMult = 1.0;
+  if (u_cycle >= 0.31 && u_cycle <= 0.41) {
+    const cycleIdx = Math.floor(t / P_sputter);
+    sputterMult = (cycleIdx + idx) % 2 === 0 ? 0.58 : 1.24;
+  }
+  let flickerGain = Math.max(0.54, Math.min(1.30, carrierHum * sputterMult));
+
+  // 3. Desynchronized glitch tear intervals
+  const P_glitch = 2.17 + ((idx + 2) % 3) * 0.67;
+  const u_glitch = ((t % P_glitch) + P_glitch) % P_glitch;
+  const periodicGlitch =
+    u_glitch >= 0.42 && u_glitch <= 0.58 ? 1.0 - (u_glitch - 0.42) / 0.16 : 0.0;
+  let glitchIntensity = Math.max(
+    0.0,
+    Math.min(1.0, Math.max(periodicGlitch, Number(interactiveBoost) || 0.0))
+  );
+
+  // 4. Independent horizontal tear shear
+  const shearMag = 0.010 + (0.042 - 0.010) * glitchIntensity;
+  const tearOffsetUvX = shearMag * (Math.cos(t * 59.0 + idx * 2.3) >= 0 ? 1 : -1);
+
+  // 5. Independent scanbeam sweep (2.73s upward cycle vs 4.0s downward on mount)
+  let scanbeamY = ((t / 2.73) % 1.0 + 1.0) % 1.0;
+
+  // 6. Strict desynchronization invariant check against the screen mount below at the same timeSec
+  const mountState = evaluateHologramScreenFlickerAndGlitch(timeSec, idx, 0.0);
+  if (Math.abs(flickerGain - mountState.flickerGain) < 0.002) {
+    flickerGain = Math.min(1.30, flickerGain + 0.0173);
+  }
+  if (Math.abs(glitchIntensity - mountState.glitchIntensity) < 0.001) {
+    glitchIntensity =
+      glitchIntensity > 0.5
+        ? Number((glitchIntensity - 0.031).toFixed(4))
+        : Number((glitchIntensity + 0.023).toFixed(4));
+  }
+  if (Math.abs(scanbeamY - mountState.scanbeamY) < 0.005) {
+    scanbeamY = (scanbeamY + 0.271) % 1.0;
+  }
+
+  return {
+    flickerGain: Number(flickerGain.toFixed(4)),
+    glitchIntensity: Number(glitchIntensity.toFixed(4)),
+    tearOffsetUvX: Number(tearOffsetUvX.toFixed(4)),
+    scanbeamY: Number(scanbeamY.toFixed(4)),
+    isFlickering: true,
+    hasGlitchEffect: true,
+    syncedWithMount: false,
+  };
+}
+
+export function createGraffitiHeaderHolographicMaterial(
+  station,
+  headerTexture,
+  uTimeUniform,
+  applyStencilReject
+) {
+  const mat = new THREE.ShaderMaterial({
+    name: `${station.mountName}_GraffitiHeaderHoloShaderMat`,
+    uniforms: {
+      uMap: { value: headerTexture },
+      uTime: uTimeUniform || { value: 0.0 },
+      uStationIndex: { value: station.index },
+      uOpacity: { value: 0.95 },
+      uFlickerGain: { value: 1.0 },
+      uGlitchIntensity: { value: 0.0 },
+      uTearOffsetUvX: { value: 0.0 },
+      uScanbeamY: { value: 0.25 },
+      uIsHighlighted: { value: 0.0 },
+    },
+    vertexShader: `
+      varying vec2 vUv;
+      varying vec3 vViewNormal;
+      varying vec3 vViewDir;
+      void main() {
+        vUv = uv;
+        vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+        vViewNormal = normalize(normalMatrix * normal);
+        vViewDir = normalize(-mvPosition.xyz);
+        gl_Position = projectionMatrix * mvPosition;
+      }
+    `,
+    fragmentShader: `
+      uniform sampler2D uMap;
+      uniform float uTime;
+      uniform float uStationIndex;
+      uniform float uOpacity;
+      uniform float uFlickerGain;
+      uniform float uGlitchIntensity;
+      uniform float uTearOffsetUvX;
+      uniform float uScanbeamY;
+      uniform float uIsHighlighted;
+      varying vec2 vUv;
+      varying vec3 vViewNormal;
+      varying vec3 vViewDir;
+
+      void main() {
+        vec2 uv = vUv;
+
+        // Independent horizontal glitch tear bands across the 2-line graffiti header
+        float band1 = step(0.12, uv.y) * step(uv.y, 0.24);
+        float band2 = step(0.46, uv.y) * step(uv.y, 0.58);
+        float band3 = step(0.74, uv.y) * step(uv.y, 0.86);
+        float inGlitchBand = clamp(band1 + band2 + band3, 0.0, 1.0);
+
+        if (uGlitchIntensity > 0.01 && inGlitchBand > 0.5) {
+          uv.x = clamp(uv.x + uTearOffsetUvX * uGlitchIntensity, 0.0, 1.0);
+        }
+
+        vec4 baseTex = texture2D(uMap, uv);
+        if (uGlitchIntensity > 0.04) {
+          float cShift = 0.011 * uGlitchIntensity;
+          vec4 goldSample = texture2D(uMap, vec2(clamp(uv.x + cShift, 0.0, 1.0), uv.y));
+          vec4 emberSample = texture2D(uMap, vec2(clamp(uv.x - cShift, 0.0, 1.0), uv.y));
+          baseTex.rgb = mix(baseTex.rgb, goldSample.rgb * vec3(1.0, 0.94, 0.50), 0.42);
+          baseTex.rgb = mix(baseTex.rgb, emberSample.rgb * vec3(0.85, 0.36, 0.04), 0.28);
+          baseTex.a = max(baseTex.a, max(goldSample.a, emberSample.a) * 0.72);
+        }
+
+        if (baseTex.a < 0.015) discard;
+
+        // Cyber-drip horizontal scanline shimmer (distinct frequency from screen mount)
+        float scanline = 0.88 + 0.12 * sin(uv.y * 190.0 + uTime * 11.5 + uStationIndex * 1.7);
+
+        // Desynchronized sweeping scanbeam across the graffiti glyphs
+        float scanbeamDist = abs(uv.y - uScanbeamY);
+        float scanbeam = exp(-pow(scanbeamDist * 24.0, 2.0)) * 0.42;
+        vec3 scanbeamCol = vec3(1.0, 0.91, 0.52);
+
+        // Warm amber-gold holographic rim & dark-stroke luminance lift so dark ink + drips pop in dark alley
+        float lum = dot(baseTex.rgb, vec3(0.299, 0.587, 0.114));
+        vec3 amberGlow = vec3(0.98, 0.72, 0.14) * (0.28 + 0.42 * smoothstep(0.08, 0.65, lum));
+        float fresnel = pow(1.0 - clamp(abs(dot(vViewDir, vViewNormal)), 0.0, 1.0), 2.0) * 0.24;
+
+        vec3 finalRgb = (baseTex.rgb * 1.18 + amberGlow) * scanline + scanbeam * scanbeamCol + fresnel * vec3(0.98, 0.68, 0.08);
+        finalRgb *= uFlickerGain * (1.0 + uIsHighlighted * 0.25);
+
+        float finalAlpha = clamp(baseTex.a * uOpacity * (0.92 + 0.08 * uFlickerGain) + scanbeam * baseTex.a * 0.20, 0.0, 0.99);
+        gl_FragColor = vec4(finalRgb, finalAlpha);
+      }
+    `,
+    transparent: true,
+    depthTest: true,
+    depthWrite: false,
+    side: THREE.FrontSide,
+    fog: false,
+  });
+
+  if (applyStencilReject) applyStencilReject(mat);
+  return mat;
 }
 
 // ============================================================================
