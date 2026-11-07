@@ -1,0 +1,3 @@
+tests/verify_spec068_screen_mounts.mjs
+tests/verify_architecture_addendum.mjs
+handoff/20261107T172758-750-iwl9/architecture-tester.txt
