@@ -1,0 +1,7 @@
+tests/verify_cross_domain_optimizations.py
+scripts/benchmark_cross_domain_performance.py
+assets/portal_games/platodoom_header.png
+assets/portal_games/platodoom_header.webp
+assets/portal_games/manifest.json
+scripts/optimize_platodoom_textures.py
+handoff/20261107T172758-750-iwl9/optimization-tester.txt
