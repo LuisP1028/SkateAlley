@@ -1,0 +1,148 @@
+{
+  "spec": "functional_specification_068_addendum",
+  "capturedAt": "2026-11-07T17:38:30Z",
+  "platoDoomArcadeAssets": {
+    "platodoomarcadeJpeg": {
+      "path": "platodoomarcade.jpeg",
+      "width": 1024,
+      "height": 345,
+      "format": "jpeg",
+      "fileSizeBytes": 34997,
+      "uncompressedRgbaBytes": 1413120,
+      "meetsAddendumBudget": true
+    },
+    "platodoomHeaderPng": {
+      "path": "assets/portal_games/platodoom_header.png",
+      "sourcePath": "/Users/diesel/Desktop/1DOOMTAG.jpeg",
+      "sourceDimensions": [3514, 1184],
+      "width": 1120,
+      "height": 381,
+      "format": "png",
+      "fileSizeBytes": 338782,
+      "uncompressedRgbaBytes": 1706880
+    },
+    "watercolorGalleryAnchor": {
+      "id": "watercolor-gallery-01",
+      "anchorPosition": { "x": 0.0065, "yRel": 3.5987, "z": 42.0129 },
+      "canvasRotationEuler": { "x": 0.0, "y": -0.0182, "z": 0.0 },
+      "baseScale": { "x": 5.0, "y": 5.0, "z": 1.0 },
+      "canvasWidthMeters": 1.68,
+      "canvasHeightMeters": 3.18,
+      "popOutTriggerRangeMeters": 6.5,
+      "popOutReleaseRangeMeters": 7.5,
+      "popOutScaleMultiplierRange": [1.35, 1.60],
+      "popOutForwardZOffsetMetersRange": [0.25, 0.45],
+      "popOutTransitionDurationMsRange": [320, 450]
+    }
+  },
+  "skate3CleanroomContract": {
+    "route": "/skate3_cleanroom/",
+    "manifestPath": "skate3_cleanroom/pack.json",
+    "observedDefaultCharInPackJson": "nicotest",
+    "requiredDefaultChar": "luis",
+    "partHeaderSchema": {
+      "prefixByteLength": 37,
+      "pathLengthField": "uint32_le (25)",
+      "virtualPath": "assets/private/skater.glb",
+      "payloadLengthField": "uint64_le (glb_byte_length)"
+    },
+    "characterPartsAudit": {
+      "char_luis.part": {
+        "totalBytes": 5652217,
+        "glbBytes": 5652180,
+        "hash16": "5cb0fc511a525700",
+        "meshes": ["LUIS"],
+        "materials": ["LUIS_Body_Material", "LUIS_Head_Material"],
+        "primitives": [
+          { "mesh": "LUIS", "primIndex": 0, "material": "LUIS_Body_Material", "vertexCount": 9650 },
+          { "mesh": "LUIS", "primIndex": 1, "material": "LUIS_Head_Material", "vertexCount": 5255 }
+        ],
+        "hasSkateboardPrimitives": false,
+        "hasTorusArtifact": false,
+        "gapNote": "Missing 3 skateboard primitives (Retail_SkateBoard, Retail_SkateTruck, Retail_SkateWheel) because REFERENCE_SKATER_GLB_PATH (20261019T213303-735-zjzk/plan-scan-2-skater.glb) was absent when rig_skate3_character.py last ran. The 3 skateboard primitives + 6 textures are preserved intact inside char_luis_holo.part."
+      },
+      "char_luis_holo.part": {
+        "totalBytes": 9641573,
+        "glbBytes": 9641536,
+        "hash16": "0efb37046e7845c5",
+        "meshes": ["CharacterMesh", "Torus"],
+        "materials": [
+          "LUIS_Body_Material",
+          "LUIS_Head_Material",
+          "Retail_SkateBoard",
+          "Retail_SkateTruck",
+          "Retail_SkateWheel",
+          "HOLOSYS_Visualizer_Holo_Material"
+        ],
+        "primitives": [
+          { "mesh": "CharacterMesh", "primIndex": 0, "material": "LUIS_Body_Material", "vertexCount": 24828 },
+          { "mesh": "CharacterMesh", "primIndex": 1, "material": "LUIS_Head_Material", "vertexCount": 5255 },
+          { "mesh": "CharacterMesh", "primIndex": 2, "material": "Retail_SkateBoard", "vertexCount": 476 },
+          { "mesh": "CharacterMesh", "primIndex": 3, "material": "Retail_SkateTruck", "vertexCount": 1085 },
+          { "mesh": "CharacterMesh", "primIndex": 4, "material": "Retail_SkateWheel", "vertexCount": 724 },
+          { "mesh": "Torus", "primIndex": 0, "material": "HOLOSYS_Visualizer_Holo_Material", "vertexCount": 3072 }
+        ],
+        "hasSkateboardPrimitives": true,
+        "hasTorusArtifact": true,
+        "torusNodeIndex": 37,
+        "torusNodeName": "SkateAlley_Holo_Visualizer",
+        "torusMeshIndex": 1,
+        "torusMeshName": "Torus"
+      }
+    }
+  },
+  "revcdosContract": {
+    "route": "/revcdos/",
+    "manifestPath": "revcdos/pack.json",
+    "statusGlobal": "window.__REVCDOS_STATUS__",
+    "requiredStatusFields": {
+      "luisPlayerMounted": true,
+      "luisPlayerDffBytes": 292864,
+      "luisPlayerDirSectors": 143,
+      "luisPlayerVerts": 4006,
+      "luisPlayerBones": 24,
+      "customMenuLogoMounted": true,
+      "fronten1TxdBytes": 394664
+    },
+    "overrideSourceFiles": {
+      "dff": "revcdos/vcbr/luis_player/player.dff",
+      "txd": "revcdos/vcbr/luis_player/player.txd",
+      "bmp": "revcdos/vcbr/luis_player/player.bmp",
+      "fronten1Txd": "revcdos/vcbr/luis_player/fronten1.txd",
+      "metadata": "revcdos/vcbr/luis_player/metadata.json"
+    },
+    "emscriptenFsMountTargets": [
+      "/vc-assets/local/models/gta3.img/player.dff",
+      "/vc-assets/local/models/gta3.img/player.txd",
+      "/vc-assets/local/models/gta3.img/csplay.dff",
+      "/vc-assets/local/models/gta3.img/csplay.txd",
+      "/vc-assets/local/models/generic/player.bmp",
+      "/vc-assets/local/models/gta3.dir",
+      "/vc-assets/local/models/fronten1.txd"
+    ],
+    "worktreeSkipWorktreeGap": "Git index in sandcastle worktrees marks revcdos/* with skip-worktree ('S'), so scripts/serve_skatealley.py must materialize revcdos/ files from /Users/diesel/Desktop/SkateAlley/revcdos (or git checkout) before ensure_revcdos_data and ensure_revcdos_luis_player run."
+  },
+  "postgresPersistenceSchema": {
+    "dsn": "postgresql://user:pass@127.0.0.1:5432/alpha",
+    "tables": {
+      "skatealley_scene_layouts": {
+        "columns": {
+          "layout_key": "VARCHAR(64) PRIMARY KEY",
+          "payload_json": "TEXT NOT NULL",
+          "updated_at_ms": "BIGINT NOT NULL"
+        },
+        "activeKeys": [
+          "character_camera",
+          "holo_columns",
+          "lamppost_light",
+          "math_pods",
+          "player_spawn",
+          "startup_camera_pan"
+        ]
+      },
+      "skatealley_placed_stickers": {
+        "rowCount": 1
+      }
+    }
+  }
+}

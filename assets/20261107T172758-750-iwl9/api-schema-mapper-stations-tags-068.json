@@ -1,0 +1,257 @@
+{
+  "spec": "functional_specification_068",
+  "capturedAt": "2026-11-07T17:38:30Z",
+  "screenMountCanvasContract": {
+    "textureWidth": 1024,
+    "textureHeight": 627,
+    "logicalWidth": 1280,
+    "logicalHeight": 784,
+    "generateMipmaps": false,
+    "rgbaBytesPerMount": 2568192,
+    "totalRgbaBytes7Mounts": 17977344,
+    "headerTelemetryVisible": false,
+    "tetherBridgeVisible": false,
+    "kickerVisible": false,
+    "footerBarVisible": false,
+    "exitButtonSlot": "top-right (former #holo-tether-bridge slot)",
+    "exitButtonMinTouchTargetPx": {
+      "width": 44,
+      "height": 36
+    },
+    "customScrollbar": {
+      "trackId": "holo-custom-scrollbar",
+      "thumbId": "holo-custom-scrollbar-thumb",
+      "scrollContainerSelector": "#holo-popup-window .holo-body-grid",
+      "immediatelyVisibleOnOpen": true,
+      "computedOpacity": "1",
+      "minThumbHeightPx": 32
+    },
+    "typography": {
+      "description2D": "clamp(16.5px, 1.85vw, 19.5px)",
+      "narrativeHeading2D": "clamp(15.5px, 1.65vw, 18px)",
+      "narrativeBody2D": "clamp(15.5px, 1.65vw, 17.5px)",
+      "description3DCanvasPx": 24,
+      "description3DLineHeightPx": 35,
+      "metricValue2D": "clamp(12.5px, 1.45vw, 15.5px)",
+      "metricLabel2D": "clamp(9.5px, 1.05vw, 11px)"
+    },
+    "worldSpaceShowcaseScaling": {
+      "legacyScreenWidthMeters": 1.60,
+      "legacyScreenHeightMeters": 0.98,
+      "legacyGraffitiHeaderWidthMeters": 2.32,
+      "legacyGraffitiHeaderHeightMeters": 0.725,
+      "addendumTargetShowcaseWidthMetersMin": 3.40,
+      "addendumTargetShowcaseWidthMetersMax": 3.80,
+      "addendumTargetGraffitiHeaderWidthMetersMin": 3.60,
+      "addendumTargetGraffitiHeaderWidthMetersMax": 4.20
+    }
+  },
+  "stations": [
+    {
+      "id": "proj-01",
+      "index": 1,
+      "code": "01",
+      "mountName": "SCREEN_MOUNT_01",
+      "wallSide": "L",
+      "expectedZ": 5.0,
+      "expectedY": 1.75,
+      "expectedNormalX": 1.0,
+      "startProgress": 0.05,
+      "endProgress": 0.16,
+      "title": "GRAPHRAG POLICY ENGINE",
+      "headerLines": ["GRAPHRAG", "POLICY ENGINE"],
+      "tags": ["OBJ-200", "GraphRAG LLM", "8-Hop Lineage", "17 Cat / 18 Edge"],
+      "metrics": [
+        { "value": "8-Hop", "label": "Lineage" },
+        { "value": "17 / 18", "label": "Cat / Edge" },
+        { "value": "GraphRAG", "label": "Policy LLM" }
+      ],
+      "primaryLink": {
+        "label": "LIVE_DEMO (React Showcase)",
+        "url": "https://luisp1028.github.io/lag-policy-engine-showcase/"
+      },
+      "secondaryLink": {
+        "label": "SRC_CODE (GitHub)",
+        "url": "https://github.com/LuisP1028/lag-policy-engine-showcase"
+      }
+    },
+    {
+      "id": "proj-02",
+      "index": 2,
+      "code": "02",
+      "mountName": "SCREEN_MOUNT_02",
+      "wallSide": "R",
+      "expectedZ": 10.0,
+      "expectedY": 1.75,
+      "expectedNormalX": -1.0,
+      "startProgress": 0.19,
+      "endProgress": 0.30,
+      "title": "DIGITAL TWIN PERSONA",
+      "headerLines": ["DIGITAL TWIN", "PERSONA"],
+      "tags": ["OBJ-04", "Philosophy + MF DOOM", "Finetuned LLM", "Twitter & LinkedIn"],
+      "metrics": [
+        { "value": "OBJ-04", "label": "Unit ID" },
+        { "value": "DOOM", "label": "Persona" },
+        { "value": "Live", "label": "Terminal" }
+      ],
+      "primaryLink": {
+        "label": "LIVE_DEMO (Digital Twin)",
+        "url": "https://choppedcheese-digitaltwin.hf.space"
+      },
+      "secondaryLink": {
+        "label": "SRC_CODE (Repository)",
+        "url": "https://huggingface.co/spaces/ChoppedCheese/DigitalTwin/tree/main"
+      }
+    },
+    {
+      "id": "proj-03",
+      "index": 3,
+      "code": "03",
+      "mountName": "SCREEN_MOUNT_03",
+      "wallSide": "L",
+      "expectedZ": 15.0,
+      "expectedY": 1.75,
+      "expectedNormalX": 1.0,
+      "startProgress": 0.33,
+      "endProgress": 0.44,
+      "title": "QUANTITATIVE MODELING AND STATISTICAL ARBITRAGE",
+      "headerLines": ["QUANTITATIVE MODELING", "STATISTICAL ARBITRAGE"],
+      "tags": ["Bayesian SSM", "$50K TopStepXFA", "Mean Reversion", "Cointegration"],
+      "metrics": [
+        { "value": "$50K", "label": "TopStepXFA" },
+        { "value": "p < 0.05", "label": "ADF Test" },
+        { "value": "9", "label": "HMM Regimes" }
+      ],
+      "primaryLink": {
+        "label": "LIVE_DEMO (YouTube Feed 2)",
+        "url": "https://www.youtube.com/watch?v=1a9GwWK9HkQ"
+      },
+      "secondaryLink": {
+        "label": "WHITE_PAPER (3D Holo Column)",
+        "url": "#ssm-whitepaper-column",
+        "action": "open-whitepaper-column"
+      }
+    },
+    {
+      "id": "proj-07",
+      "index": 4,
+      "code": "04",
+      "mountName": "SCREEN_MOUNT_07",
+      "isProceduralLocator": true,
+      "wallSide": "R",
+      "expectedZ": 16.35,
+      "expectedY": 1.75,
+      "expectedNormalX": -1.0,
+      "startProgress": 0.46,
+      "endProgress": 0.56,
+      "title": "REJECTION STATION // MACHINE LEARNING",
+      "headerLines": ["REJECTION STATION", "MACHINE LEARNING"],
+      "hasNarrativeCallout": true,
+      "narrativeHeading": "What the hell does this mean, Luis?",
+      "tags": ["bge-large-en-v1.5", "1,024-D Embeddings", "LinearSVC Heads", "9 Job Roles"],
+      "metrics": [
+        { "value": "1,024-D", "label": "BGE Vectors" },
+        { "value": "9 Roles", "label": "LinearSVC" },
+        { "value": "< 1 Hr", "label": "Turnaround" }
+      ],
+      "primaryLink": null,
+      "secondaryLink": null
+    },
+    {
+      "id": "proj-04",
+      "index": 5,
+      "code": "05",
+      "mountName": "SCREEN_MOUNT_04",
+      "wallSide": "R",
+      "expectedZ": 20.0,
+      "expectedY": 1.75,
+      "expectedNormalX": -1.0,
+      "startProgress": 0.59,
+      "endProgress": 0.70,
+      "title": "AI DATA ANALYTICS DASHBOARDS AND ALIGNMENT RESEARCH",
+      "headerLines": ["AI DATA ANALYTICS", "ALIGNMENT RESEARCH"],
+      "tags": ["Live Analytics", "Structured Context", "Agent Swarms", "Alignment Research"],
+      "metrics": [
+        { "value": "Live", "label": "Analytics" },
+        { "value": "Swarm", "label": "Coordination" },
+        { "value": "Aligned", "label": "Context" }
+      ],
+      "primaryLink": null,
+      "secondaryLink": null
+    },
+    {
+      "id": "proj-05",
+      "index": 6,
+      "code": "06",
+      "mountName": "SCREEN_MOUNT_05",
+      "wallSide": "R",
+      "expectedZ": 26.0,
+      "expectedY": 1.75,
+      "expectedNormalX": -1.0,
+      "startProgress": 0.72,
+      "endProgress": 0.83,
+      "title": "GENERATIVE PIPELINES",
+      "headerLines": ["GENERATIVE", "PIPELINES"],
+      "tags": ["Chained AI Models", "Content Production", "Code Generation", "Workflow Execution"],
+      "metrics": [
+        { "value": "Chained", "label": "AI Models" },
+        { "value": "Auto", "label": "Code & Media" },
+        { "value": "E2E", "label": "Pipelines" }
+      ],
+      "primaryLink": null,
+      "secondaryLink": null
+    },
+    {
+      "id": "proj-06",
+      "index": 7,
+      "code": "07",
+      "mountName": "SCREEN_MOUNT_06",
+      "wallSide": "L",
+      "expectedZ": 31.0,
+      "expectedY": 1.75,
+      "expectedNormalX": 1.0,
+      "startProgress": 0.85,
+      "endProgress": 0.96,
+      "title": "MULTI-MODAL DEEP LEARNING",
+      "headerLines": ["MULTI MODAL", "DEEP LEARNING"],
+      "tags": ["Transformers & CNNs", "Autoencoders", "Diffusion & 3D", "Audio Cloning"],
+      "metrics": [
+        { "value": "ViT+CNN", "label": "Vision/Seq" },
+        { "value": "Latent", "label": "Autoencoders" },
+        { "value": "3D+Audio", "label": "Diffusion/TTS" }
+      ],
+      "primaryLink": null,
+      "secondaryLink": null
+    }
+  ],
+  "tagDescriptions": {
+    "OBJ-200": "Internal project designation for the Lymphedema Treatment Act Medicare DME qualification engine built for Durable Medical Goods compliance workflows.",
+    "GraphRAG LLM": "Property-graph retrieval-augmented generation pipeline that grounds LLM determinations in structured Medicare statutory rules rather than unconstrained free-text recall.",
+    "8-Hop Lineage": "Multi-step graph traversal tracing up to 8 relational hops across diagnosis codes, clinical measurements, compression garment classes, and coverage exceptions.",
+    "17 Cat / 18 Edge": "Domain ontology schema spanning 17 medical/policy node categories connected by 18 typed regulatory and clinical relationship edge types.",
+    "OBJ-04": "Unit identifier for Luis's autonomous Digital Twin persona and floating DOOM_HEAD holographic companion operating inside Freeman Alley.",
+    "Philosophy + MF DOOM": "Curated training and alignment corpus blending undergraduate Philosophy & Religion coursework with MF DOOM's intricate multi-syllabic rhyme schemes and cadence.",
+    "Finetuned LLM": "Custom instruction-tuned and style-aligned language model engineered to reason about systems architecture and philosophy in a signature lyrical voice.",
+    "Twitter & LinkedIn": "Live social deployment bindings enabling the Digital Twin persona to publish, reply, and interact autonomously across X/Twitter and LinkedIn channels.",
+    "Bayesian SSM": "Bayesian State Space Model using Kalman filtering and Hidden Markov regime switching to track unobserved equilibrium spreads and time-varying hedge ratios.",
+    "$50K TopStepXFA": "Validated under live market risk constraints to pass a $50,000 TopStep Express Funded Account (XFA) quantitative trading combine evaluation.",
+    "Mean Reversion": "Statistical execution strategy that enters counter-trend positions when cointegrated asset spreads deviate beyond dynamically calibrated z-score thresholds.",
+    "Cointegration": "Econometric stationarity verification (Augmented Dickey-Fuller p < 0.05) ensuring paired financial instruments share a stable long-run equilibrium linear combination.",
+    "bge-large-en-v1.5": "Frozen BAAI bge-large-en-v1.5 transformer backbone used to extract high-resolution semantic representations from raw resume and job-description text.",
+    "1,024-D Embeddings": "Dense 1,024-dimensional L2-normalized feature vectors capturing deep technical skill, domain experience, and role-fit geometry for downstream classical ML classifiers.",
+    "LinearSVC Heads": "Lightweight, dynamically swappable Linear Support Vector Machine classification heads trained on top of frozen embeddings for sub-millisecond role scoring.",
+    "9 Job Roles": "Multi-target classification suite evaluating candidate fit across 9 distinct engineering, data science, and quantitative analytics role profiles.",
+    "Live Analytics": "Real-time telemetry ingestion and visual dashboard pipelines that transform raw operational and unstructured data streams into actionable metrics.",
+    "Structured Context": "Schema-validated knowledge graphs and typed context packets distilled from noisy datasets so downstream AI agents operate on verifiable ground truth.",
+    "Agent Swarms": "Multi-agent orchestration architectures where specialized autonomous workers coordinate tasks, share state, and verify outputs across shared telemetry buses.",
+    "Alignment Research": "Empirical guardrails, objective-function auditing, and deterministic evaluation harnesses ensuring autonomous agent swarms stay locked to human intent.",
+    "Chained AI Models": "Sequential and DAG-based multi-model pipelines where outputs from retrieval, reasoning, vision, and audio models feed deterministically into downstream stages.",
+    "Content Production": "Automated multi-modal media synthesis generating synchronized copy, visual assets, 3D textures, and styled layouts from structured creative briefs.",
+    "Code Generation": "Specification-driven agentic coding workflows that synthesize, test, and verify production software modules against strict architectural contracts.",
+    "Workflow Execution": "End-to-end task automation engines connecting LLM tool-calling and schema validation to live APIs, databases, and build pipelines.",
+    "Transformers & CNNs": "Hybrid deep learning stacks combining self-attention sequence/vision Transformers (ViT) with Convolutional Neural Networks for spatial and temporal feature extraction.",
+    "Autoencoders": "Variational and denoising autoencoder architectures trained to compress high-dimensional inputs into compact latent manifolds for anomaly detection and data mining.",
+    "Diffusion & 3D": "Latent diffusion and image-to-3D generative pipelines used to synthesize custom textures, holographic visuals, and rigged 3D assets.",
+    "Audio Cloning": "Neural speech synthesis and zero-shot voice cloning models trained to generate expressive character dialogue and custom vocal stems."
+  }
+}
