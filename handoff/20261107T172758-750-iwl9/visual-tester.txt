@@ -1,0 +1,6 @@
+tests/verify_visual_sensory_audit.mjs
+assets/20261107T172758-750-iwl9/visual-tester-platodoom-popout-active.png
+assets/20261107T172758-750-iwl9/visual-tester-3d-showcase-and-graffiti-header.png
+assets/20261107T172758-750-iwl9/visual-tester-desktop-1280x800-mount01.png
+assets/20261107T172758-750-iwl9/visual-tester-mobile-390x844-mount05.png
+assets/20261107T172758-750-iwl9/visual-tester-mobile-375x667-mount07-scrolled.png
