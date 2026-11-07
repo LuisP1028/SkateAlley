@@ -1,0 +1,61 @@
+# LIBS INSTALLED & RUNTIME PROVISIONING MANIFEST
+# Run ID: 20261107T172758-750-iwl9
+# Agent: library-installer
+# Seed Specification: functional_specification_068.md
+# Authoritative Vocabulary: LANGUAGE.md
+
+## Runtimes & Interpreters
+NODE_RUNTIME="/opt/homebrew/bin/node"
+NODE_VERSION="v24.9.0"
+NPM_BINARY="/opt/homebrew/bin/npm"
+NPM_VERSION="11.6.0"
+
+PYTHON_RUNTIME="/Users/diesel/Desktop/SkateAlley/.sandcastle/bin/python3"
+PYTHON_VERSION="3.12.7"
+PIP_BINARY="/Users/diesel/Desktop/SkateAlley/.sandcastle/bin/pip3"
+PIP_VERSION="24.2"
+UV_BINARY="/opt/homebrew/bin/uv"
+UV_VERSION="0.10.8"
+
+## System CLI Binaries
+FFMPEG_BINARY="/opt/homebrew/bin/ffmpeg"
+FFMPEG_VERSION="9.0.1"
+
+CHROME_TESTING_BINARY="/Users/diesel/Library/Caches/ms-playwright/chromium-1252/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing"
+CHROME_TESTING_VERSION="158.0.8127.18"
+
+## Node.js Verified Packages (Workspace node_modules)
+three@0.186.1
+  - Path: /Users/diesel/Desktop/SkateAlley/node_modules/three
+  - Purpose: 3D scene rendering, CanvasTexture 1024x627 screen mounts, CRT post-processing shader pass, proximity pop-out kinematics
+playwright@1.65.0-alpha-2026-10-30
+  - Path: /Users/diesel/Desktop/SkateAlley/node_modules/playwright
+  - Purpose: End-to-end headless browser verification (desktop 1280x800, mobile 390x844 & 375x667), layout budget assertions, touch interactions
+@ai-hero/sandcastle@0.12.0
+  - Path: /Users/diesel/Desktop/SkateAlley/node_modules/@ai-hero/sandcastle
+  - Purpose: Workspace sandboxing, multi-agent branch isolation
+
+## Python Verified Libraries (Virtualenv: .sandcastle)
+numpy==1.26.4
+  - Purpose: Matrix algebra, vector transforms, inverse bind matrices for Skate 3 / GTA rigs, proximity envelope calculations
+scipy==1.12.0
+  - Purpose: Numerical algorithms, statistical arbitrage verification (Station 03 Bayesian SSM & cointegration)
+scikit-learn==1.5.1
+  - Purpose: Classical machine learning classifiers, LinearSVC heads (Station 04 Rejection Station)
+torch==2.11.0
+  - Purpose: Deep learning tensor computations, neural embeddings
+transformers==5.3.0
+  - Purpose: Transformer backbones, bge-large-en-v1.5 1024-D feature representations
+opencv-python==4.13.0 (cv2)
+  - Purpose: Computer vision, texture baking, UV remapping, mesh decimation for GTA / Skate 3 character models
+Pillow==10.4.0 (PIL) [WebP: True]
+  - Purpose: Image manipulation, PlatoDoom arcade watercolor downsampling (3514x1184 -> <= 1757x592 / <= 1024x512, <= 2.0 MB uncompressed VRAM)
+trimesh==5.1.1
+  - Purpose: 3D geometry processing, glTF/GLB inspection, bounding box math, skeleton metrics
+matplotlib==3.9.2
+  - Purpose: Data visualization, curve and shader profile calibration
+
+## Handoff Directives for function-mapper
+- WebGL & 2D DOM screen mount changes execute using existing Three.js (0.186.1) and native browser DOM APIs.
+- PlatoDoom texture downsampling can be executed via PIL/Pillow or ffmpeg with native WebP/JPEG compression.
+- Browser test suites (tests/verify_spec068_screen_mounts.mjs) can invoke Playwright directly via require('playwright') or import('playwright').
