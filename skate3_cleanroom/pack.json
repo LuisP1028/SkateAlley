@@ -9,7 +9,7 @@
     "hash": "d60e23310332b26f"
   },
   "core": {
-    "size": 98650499,
+    "size": 100267103,
     "parts": [
       "parts/core_head.part",
       "parts/char_luis.part",
@@ -17,7 +17,7 @@
       "parts/core_tail_1.part"
     ],
     "files": 534,
-    "hash": "7fbdc36d25bbcfb7"
+    "hash": "1b3a15685a84a425"
   },
   "characters": {
     "luis": {
@@ -29,8 +29,8 @@
         "parts/core_tail_0.part",
         "parts/core_tail_1.part"
       ],
-      "size": 96283351,
-      "hash": "5cb0fc511a525700"
+      "size": 100267103,
+      "hash": "1b3a15685a84a425"
     },
     "luis_holo": {
       "name": "Luis (Holo)",
@@ -41,8 +41,8 @@
         "parts/core_tail_0.part",
         "parts/core_tail_1.part"
       ],
-      "size": 100272707,
-      "hash": "0efb37046e7845c5"
+      "size": 100267103,
+      "hash": "1b3a15685a84a425"
     },
     "nicotest": {
       "name": "Nicotest",
@@ -57,7 +57,7 @@
       "hash": "d28693f253b34507"
     }
   },
-  "default_char": "nicotest",
+  "default_char": "luis",
   "maps": [
     {
       "name": "StartPark",

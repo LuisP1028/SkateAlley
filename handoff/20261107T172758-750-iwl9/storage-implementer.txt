@@ -1,0 +1,7 @@
+skate3_cleanroom/parts/char_luis.part
+skate3_cleanroom/parts/char_luis_holo.part
+skate3_cleanroom/pack.json
+skate3_cleanroom/loader.js
+scripts/build_clean_skate3_luis_part.py
+scripts/serve_skatealley.py
+revcdos/game.js
