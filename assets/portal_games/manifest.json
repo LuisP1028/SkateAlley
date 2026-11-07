@@ -4,7 +4,7 @@
     "id": "platodoom_header",
     "sourcePath": "/Users/diesel/Desktop/1DOOMTAG.jpeg",
     "outputPath": "assets/portal_games/platodoom_header.png",
-    "sha256": "7ed17b3deff1e09d1b67deef4fce714f7656ae5cbe3ab9fa1e5a31414dd83dc9",
+    "sha256": "c776ae1c9d299fff1fee436df04a5479bf65a465c19c61a82d0a2d2a75e3ed0f",
     "sourceWidth": 3514,
     "sourceHeight": 1184,
     "cropBBox": [
@@ -15,11 +15,12 @@
     ],
     "croppedWidth": 2953,
     "croppedHeight": 1005,
-    "outputWidth": 1120,
-    "outputHeight": 381,
-    "aspectRatio": 2.9396,
+    "outputWidth": 1024,
+    "outputHeight": 348,
+    "aspectRatio": 2.9425,
     "preservedInteriorWhitePixels": 127625,
-    "cornerAlphaMax": 0
+    "cornerAlphaMax": 0,
+    "webpOutputPath": "assets/portal_games/platodoom_header.webp"
   },
   "games": [
     {
