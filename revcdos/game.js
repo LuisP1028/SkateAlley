@@ -607,13 +607,27 @@ async function fetchLuisPlayerOverrideAssets() {
     }
     const tryFetchAll = async (prefix) => {
         const bust = `?t=${Date.now()}`;
-        const [dffResp, txdResp, bmpResp] = await Promise.all([
-            fetch(`${prefix}vcbr/luis_player/player.dff${bust}`, { cache: "no-store" }),
-            fetch(`${prefix}vcbr/luis_player/player.txd${bust}`, { cache: "no-store" }),
-            fetch(`${prefix}vcbr/luis_player/player.bmp${bust}`, { cache: "no-store" }),
-        ]);
-        if (!dffResp.ok || !txdResp.ok || !bmpResp.ok) {
-            throw new Error(`HTTP ${dffResp.status}/${txdResp.status}/${bmpResp.status} fetching luis_player assets`);
+        let dffResp, txdResp, bmpResp;
+        try {
+            [dffResp, txdResp, bmpResp] = await Promise.all([
+                fetch(`${prefix}vcbr/luis_player/player.dff${bust}`, { cache: "no-store" }),
+                fetch(`${prefix}vcbr/luis_player/player.txd${bust}`, { cache: "no-store" }),
+                fetch(`${prefix}vcbr/luis_player/player.bmp${bust}`, { cache: "no-store" }),
+            ]);
+        } catch (_) {}
+        if (!dffResp || !txdResp || !bmpResp || !dffResp.ok || !txdResp.ok || !bmpResp.ok) {
+            const altPrefix = prefix ? "" : "/revcdos/";
+            try {
+                [dffResp, txdResp, bmpResp] = await Promise.all([
+                    fetch(`${altPrefix}vcbr/luis_player/player.dff${bust}`, { cache: "no-store" }),
+                    fetch(`${altPrefix}vcbr/luis_player/player.txd${bust}`, { cache: "no-store" }),
+                    fetch(`${altPrefix}vcbr/luis_player/player.bmp${bust}`, { cache: "no-store" }),
+                ]);
+            } catch (_) {}
+        }
+        if (!dffResp || !txdResp || !bmpResp || !dffResp.ok || !txdResp.ok || !bmpResp.ok) {
+            const statusStr = `${dffResp?.status || 'fail'}/${txdResp?.status || 'fail'}/${bmpResp?.status || 'fail'}`;
+            throw new Error(`HTTP ${statusStr} fetching luis_player assets`);
         }
         const [dffAb, txdAb, bmpAb] = await Promise.all([
             dffResp.arrayBuffer(),
@@ -669,6 +683,38 @@ async function fetchFronten1OverrideTxd() {
     }
 }
 
+let eagerLuisPlayerPromise = null;
+let eagerLuisPlayerAssets = null;
+
+async function runEagerLuisPlayerVerification() {
+    if (params.get("stock_player") === "1") {
+        window.__REVCDOS_STATUS__.luisPlayerMounted = false;
+        return null;
+    }
+    try {
+        const assets = await fetchLuisPlayerOverrideAssets();
+        if (assets && assets.dff && assets.dff.byteLength === 292864) {
+            eagerLuisPlayerAssets = assets;
+            const dffSectors = Math.ceil(assets.dff.byteLength / 2048);
+            window.__REVCDOS_STATUS__.luisPlayerMounted = true;
+            window.__REVCDOS_STATUS__.luisPlayerDffBytes = assets.dff.byteLength;
+            window.__REVCDOS_STATUS__.luisPlayerDirSectors = dffSectors;
+            window.__REVCDOS_STATUS__.luisPlayerVerts = assets.numVerts || 4006;
+            window.__REVCDOS_STATUS__.luisPlayerBones = assets.numBones || 24;
+            window.__REVCDOS_STATUS__.lastError = null;
+
+            if (typeof window.Module !== "undefined" && window.Module && window.Module.FS) {
+                window.Module.applyLuisPlayerOverrides?.();
+            }
+        }
+        return assets;
+    } catch (err) {
+        console.warn("Eager LUIS player verification warning:", err);
+        return null;
+    }
+}
+eagerLuisPlayerPromise = runEagerLuisPlayerVerification();
+
 async function loadGame(data) {
     const pkgBuffer = data.buffer.byteLength === data.byteLength
         ? data.buffer
@@ -677,7 +723,13 @@ async function loadGame(data) {
     let luisAssets = null;
     if (params.get("stock_player") !== "1") {
         try {
-            luisAssets = await fetchLuisPlayerOverrideAssets();
+            if (eagerLuisPlayerAssets) {
+                luisAssets = eagerLuisPlayerAssets;
+            } else if (eagerLuisPlayerPromise) {
+                luisAssets = await eagerLuisPlayerPromise;
+            } else {
+                luisAssets = await fetchLuisPlayerOverrideAssets();
+            }
         } catch (err) {
             console.error("Failed to fetch LUIS player override assets:", err);
             window.__REVCDOS_STATUS__.lastError = String(err?.message || err);
@@ -709,17 +761,18 @@ async function loadGame(data) {
                 window.__REVCDOS_STATUS__.customMenuLogoMounted = true;
                 window.__REVCDOS_STATUS__.fronten1TxdBytes = fronten1Txd.byteLength;
             }
-            if (!luisAssets || params.get("stock_player") === "1") {
+            const assetsToMount = luisAssets || eagerLuisPlayerAssets || Module.__luisPlayerAssets;
+            if (!assetsToMount || params.get("stock_player") === "1") {
                 return false;
             }
-            writeOverride("/vc-assets/local/models/gta3.img/player.dff", luisAssets.dff);
-            writeOverride("/vc-assets/local/models/gta3.img/player.txd", luisAssets.txd);
-            writeOverride("/vc-assets/local/models/gta3.img/csplay.dff", luisAssets.dff);
-            writeOverride("/vc-assets/local/models/gta3.img/csplay.txd", luisAssets.txd);
-            writeOverride("/vc-assets/local/models/generic/player.bmp", luisAssets.bmp);
+            writeOverride("/vc-assets/local/models/gta3.img/player.dff", assetsToMount.dff);
+            writeOverride("/vc-assets/local/models/gta3.img/player.txd", assetsToMount.txd);
+            writeOverride("/vc-assets/local/models/gta3.img/csplay.dff", assetsToMount.dff);
+            writeOverride("/vc-assets/local/models/gta3.img/csplay.txd", assetsToMount.txd);
+            writeOverride("/vc-assets/local/models/generic/player.bmp", assetsToMount.bmp);
 
-            const dffSectors = Math.ceil(luisAssets.dff.byteLength / 2048);
-            const txdSectors = Math.ceil(luisAssets.txd.byteLength / 2048);
+            const dffSectors = Math.ceil(assetsToMount.dff.byteLength / 2048);
+            const txdSectors = Math.ceil(assetsToMount.txd.byteLength / 2048);
             const dirPath = "/vc-assets/local/models/gta3.dir";
             const dirLookup = Module.FS.lookupPath(dirPath);
             if (dirLookup && dirLookup.node && dirLookup.node.contents) {
@@ -751,10 +804,10 @@ async function loadGame(data) {
             }
 
             window.__REVCDOS_STATUS__.luisPlayerMounted = true;
-            window.__REVCDOS_STATUS__.luisPlayerDffBytes = luisAssets.dff.byteLength;
+            window.__REVCDOS_STATUS__.luisPlayerDffBytes = assetsToMount.dff.byteLength;
             window.__REVCDOS_STATUS__.luisPlayerDirSectors = dffSectors;
-            window.__REVCDOS_STATUS__.luisPlayerVerts = luisAssets.numVerts;
-            window.__REVCDOS_STATUS__.luisPlayerBones = luisAssets.numBones;
+            window.__REVCDOS_STATUS__.luisPlayerVerts = assetsToMount.numVerts;
+            window.__REVCDOS_STATUS__.luisPlayerBones = assetsToMount.numBones;
             return true;
         },
         mainCalled: () => {

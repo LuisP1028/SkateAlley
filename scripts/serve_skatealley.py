@@ -446,6 +446,99 @@ ensure_nzportable_game_pk3(os.path.dirname(os.path.dirname(os.path.abspath(__fil
 ensure_nzportable_game_pk3(os.getcwd())
 
 
+def ensure_worktree_character_hoodie(base_dir=None):
+    """Materialize character_hoodie.glb in sparse worktrees via symlink or copy from primary repo."""
+    root = os.path.abspath(base_dir or os.getcwd())
+    target = os.path.join(root, "character_hoodie.glb")
+    try:
+        if os.path.isfile(target) and os.path.getsize(target) == 1357020:
+            return True
+    except OSError:
+        pass
+
+    candidates = [
+        "/Users/diesel/Desktop/SkateAlley/character_hoodie.glb",
+        os.path.abspath(os.path.join(root, "..", "..", "..", "character_hoodie.glb")),
+    ]
+    for src in candidates:
+        if os.path.abspath(src) == os.path.abspath(target):
+            continue
+        if os.path.isfile(src) and os.path.getsize(src) == 1357020:
+            try:
+                if os.path.islink(target) or os.path.exists(target):
+                    try:
+                        os.unlink(target)
+                    except OSError:
+                        pass
+                try:
+                    os.symlink(src, target)
+                    return True
+                except OSError:
+                    shutil.copyfile(src, target)
+                    return True
+            except OSError:
+                pass
+
+    try:
+        subprocess.run(["git", "sparse-checkout", "add", "character_hoodie.glb"], cwd=root, capture_output=True, text=True)
+        if os.path.isfile(target):
+            return True
+    except Exception:
+        pass
+
+    return os.path.isfile(target)
+
+
+def ensure_worktree_revcdos_files(base_dir=None):
+    """Materialize revcdos/ runtime & luis_player assets in sparse worktrees via symlink or copy from primary repo."""
+    root = os.path.abspath(base_dir or os.getcwd())
+    target = os.path.join(root, "revcdos")
+    idx_target = os.path.join(target, "index.html")
+    dff_target = os.path.join(target, "vcbr", "luis_player", "player.dff")
+    if os.path.isfile(idx_target) and os.path.isfile(dff_target):
+        return True
+
+    try:
+        subprocess.run(["git", "sparse-checkout", "add", "revcdos"], cwd=root, capture_output=True, text=True)
+        if os.path.isfile(idx_target) and os.path.isfile(dff_target):
+            return True
+    except Exception:
+        pass
+
+    candidates = [
+        "/Users/diesel/Desktop/SkateAlley/revcdos",
+        os.path.abspath(os.path.join(root, "..", "..", "..", "revcdos")),
+    ]
+    for src in candidates:
+        if os.path.abspath(src) == os.path.abspath(target):
+            continue
+        if os.path.isdir(src) and os.path.isfile(os.path.join(src, "index.html")):
+            if not os.path.exists(target) and not os.path.islink(target):
+                try:
+                    os.symlink(src, target)
+                    if os.path.isfile(idx_target):
+                        return True
+                except OSError:
+                    pass
+            try:
+                shutil.copytree(src, target, copy_function=os.link, dirs_exist_ok=True)
+                return True
+            except OSError:
+                try:
+                    shutil.copytree(src, target, dirs_exist_ok=True)
+                    return True
+                except OSError:
+                    pass
+
+    return os.path.isfile(idx_target)
+
+
+ensure_worktree_character_hoodie(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+ensure_worktree_character_hoodie(os.getcwd())
+ensure_worktree_revcdos_files(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+ensure_worktree_revcdos_files(os.getcwd())
+
+
 def ensure_revcdos_data(base_dir=None):
     """Materialize revcdos/vcbr/vc-sky-en-v6.data from tracked .part00..03 chunks if absent on disk."""
     root = os.path.abspath(base_dir or os.getcwd())
@@ -1683,6 +1776,7 @@ _SCENE_LAYOUT_SCHEMA_READY = False
 ALLOWED_SCENE_LAYOUT_KEYS = {
     "holo_columns",
     "math_pods",
+    "character_camera",
     "lamppost_light",
     "player_spawn",
     "startup_camera_pan",
@@ -3048,17 +3142,26 @@ class SkateAlleyRequestHandler(SimpleHTTPRequestHandler):
         if not os.path.isfile(path):
             return False
 
+        file_size = os.path.getsize(path)
+
         m = re.match(r"bytes=(\d+)-(\d*)", range_header)
-        if not m:
+        m_suffix = re.match(r"bytes=-(\d+)", range_header) if not m else None
+        if not m and not m_suffix:
             return False
 
-        file_size = os.path.getsize(path)
-        start = int(m.group(1))
-        end = int(m.group(2)) if m.group(2) else file_size - 1
+        if m_suffix:
+            suffix_len = int(m_suffix.group(1))
+            start = max(0, file_size - suffix_len)
+            end = file_size - 1
+        else:
+            start = int(m.group(1))
+            end = int(m.group(2)) if m.group(2) else file_size - 1
+
         if start >= file_size or start > end:
             self.send_response(416)
             self.send_header("Content-Range", f"bytes */{file_size}")
             self.send_header("Content-Length", "0")
+            self.send_header("Accept-Ranges", "bytes")
             self.end_headers()
             return True
 
@@ -3071,9 +3174,19 @@ class SkateAlleyRequestHandler(SimpleHTTPRequestHandler):
             self.send_header("Content-Type", ctype)
             self.send_header("Content-Range", f"bytes {start}-{end}/{file_size}")
             self.send_header("Content-Length", str(length))
+            self.send_header("Accept-Ranges", "bytes")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.send_header(
+                "Access-Control-Allow-Headers",
+                "Range, Content-Type, Accept, Origin, Authorization, X-Visitor-Token",
+            )
+            self.send_header(
+                "Access-Control-Expose-Headers",
+                "Content-Length, Content-Range, Accept-Ranges",
+            )
             self.end_headers()
             if not head_only:
-                chunk_size = 1024 * 1024
+                chunk_size = 64 * 1024
                 with open(path, "rb") as f:
                     f.seek(start)
                     remaining = length
@@ -3134,6 +3247,8 @@ def main():
     args = parser.parse_args()
 
     os.chdir(os.path.abspath(args.dir))
+    ensure_worktree_character_hoodie(os.getcwd())
+    ensure_worktree_revcdos_files(os.getcwd())
     ensure_nzportable_game_pk3(os.getcwd())
     ensure_revcdos_data(os.getcwd())
     ensure_revcdos_vcsky(os.getcwd())

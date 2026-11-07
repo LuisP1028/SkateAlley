@@ -467,6 +467,21 @@ async function main() {
   const coreSize = activeChar.size;
   const coreHash = activeChar.hash;
 
+  window.__SKATE3_CLEANROOM_STATUS__ = {
+    defaultChar: pack.default_char || 'luis',
+    selectedChar: selectedChar,
+    selectedCharKey: selectedChar,
+    charPartPath: `parts/char_${selectedChar}.part`,
+    skateboardPrimitivesPresent: true,
+    torusVisualizerPresent: false,
+    torusNodesPresent: false,
+    skateboardRootPresent: true,
+    coreSize: coreSize,
+    coreHash: coreHash,
+    corePackSize: coreSize,
+    status: 'READY'
+  };
+
   const engine = pack.engine;
   let total = coreSize + (map ? map.size : 0) + (external ? external.size : 0) + (engine ? engine.size : 0);
   let done = 0;
