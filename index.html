@@ -476,6 +476,12 @@
       transform: translateY(0px) rotateX(0deg) scaleX(1) scaleY(1);
     }
 
+    .holo-window.active.mount-focus-active {
+      transition:
+        opacity 0.08s linear,
+        border-color 0.18s ease;
+    }
+
     .holo-window:not(#portal-game-holo-window) {
       min-height: 0;
       max-height: min(86dvh, 720px);
@@ -872,6 +878,9 @@
       justify-content: center;
       width: 19px;
       height: 19px;
+      min-width: 19px;
+      min-height: 19px;
+      box-sizing: border-box;
       border-radius: 50%;
       background: rgba(217, 119, 6, 0.46);
       border: 1.5px solid #fbbf24;
@@ -3370,6 +3379,46 @@
       align-items: center;
       gap: 6px;
     }
+
+    /* Spec 068 Addendum §12 & §15.5: Full-Screen Screen CRT Optical Overlay (synchronized with WebGL CRT pass) */
+    #crt-optical-overlay {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: none !important;
+      z-index: 9998;
+      overflow: hidden;
+      background:
+        repeating-linear-gradient(
+          180deg,
+          rgba(0, 0, 0, 0.0) 0px,
+          rgba(0, 0, 0, 0.0) 1.5px,
+          rgba(0, 0, 0, 0.16) 1.5px,
+          rgba(0, 0, 0, 0.16) 3px
+        ),
+        repeating-linear-gradient(
+          90deg,
+          rgba(255, 64, 64, 0.025) 0px,
+          rgba(64, 255, 64, 0.025) 1px,
+          rgba(64, 128, 255, 0.025) 2px,
+          rgba(0, 0, 0, 0.0) 3px
+        ),
+        radial-gradient(
+          ellipse at 50% 50%,
+          rgba(0, 0, 0, 0) 68%,
+          rgba(0, 0, 0, 0.18) 88%,
+          rgba(0, 0, 0, 0.42) 100%
+        );
+      box-shadow:
+        inset 0 0 48px rgba(0, 0, 0, 0.48),
+        inset 0 0 12px rgba(251, 191, 36, 0.06);
+      mix-blend-mode: normal;
+      opacity: 1;
+      visibility: visible;
+      user-select: none;
+      -webkit-user-select: none;
+    }
   </style>
 </head>
 <body>
@@ -3573,8 +3622,8 @@
             id="portal-header-logo-img"
             data-src="./assets/portal_games/platodoom_header.png"
             alt="platodoom logo"
-            width="1120"
-            height="381"
+            width="1024"
+            height="348"
             loading="lazy"
             decoding="async"
           />
@@ -5020,6 +5069,16 @@
       </div>
     </div>
   </div>
+
+  <!-- Spec 068 Addendum §12 & §15.5: Full-Screen Screen CRT Optical Overlay -->
+  <div
+    id="crt-optical-overlay"
+    aria-hidden="true"
+    data-crt-scanline-intensity="0.16"
+    data-crt-curvature="0.018"
+    data-crt-vignette="0.32"
+    data-crt-phosphor-mask="true"
+  ></div>
 
   <div id="fatal-error-banner" role="alert"></div>
 
