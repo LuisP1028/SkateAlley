@@ -1,0 +1,17 @@
+functional_specification_068.md
+index.html
+sandbox.js
+alley_atmosphere_023.js
+watercolor_shader.js
+spray_paint_loader.js
+hologram_columns.js
+skate3_cleanroom/loader.js
+skate3_cleanroom/pack.json
+scripts/rig_skate3_character.py
+scripts/serve_skatealley.py
+assets/portal_games/manifest.json
+assets/portal_games/platodoom_header.png
+platodoomarcade.jpeg
+tags/1DOOMTAG.jpeg
+tests/verify_spec068_screen_mounts.mjs
+wayfinder/20261107T172758-750-iwl9/codebase-map.md
