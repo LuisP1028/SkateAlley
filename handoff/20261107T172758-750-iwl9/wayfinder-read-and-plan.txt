@@ -1,0 +1,5 @@
+wayfinder/20261107T172758-750-iwl9/architecture-and-dag.md
+wayfinder/20261107T172758-750-iwl9/storage-architecture.md
+wayfinder/20261107T172758-750-iwl9/stack-usage-guide.md
+wayfinder/20261107T172758-750-iwl9/suggested-optimizations.md
+wayfinder/20261107T172758-750-iwl9/visual-taste-direction.md
