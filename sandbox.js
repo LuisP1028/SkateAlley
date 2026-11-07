@@ -1673,12 +1673,12 @@ if (typeof document !== 'undefined' && !container) {
   raiseFatalError('Missing #viewport-container DOM element.');
 }
 
-const DEPTH_FOG_COLOR_HEX = 0x0b0501; // #0b0501 dark umber/black within [#050300, #120902] (SFX.md §2.1)
+const DEPTH_FOG_COLOR_HEX = 0x000000; // #000000 pitch-black deep space void (Spec 068 Addendum §13 & §15.6)
 const DEPTH_FOG_DENSITY = 0.0085;     // Open corridor visibility so distant assets and walls remain visible along the full 58m alley
 
 const scene = new THREE.Scene();
 scene.name = 'FreemanAlleySandboxScene';
-scene.background = new THREE.Color(0x080401);
+scene.background = new THREE.Color(0x000000);
 scene.fog = new THREE.FogExp2(DEPTH_FOG_COLOR_HEX, DEPTH_FOG_DENSITY);
 
 const camera = new THREE.PerspectiveCamera(
@@ -1698,6 +1698,7 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined' && containe
   });
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.25));
+  renderer.setClearColor(0x000000, 1.0);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 0.72;
@@ -1709,6 +1710,325 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined' && containe
   window.__THREE_CAMERA__ = camera;
   window.THREE = THREE;
 }
+
+// ============================================================================
+// Screen CRT Post-Processing Optical Pass (Spec 068 Addendum §12 & §15.5)
+// ============================================================================
+const CRT_OPTICAL_PASS_SPEC = Object.freeze({
+  enabled: true,
+  scanlineIntensity: 0.16,       // Spec §12.1: within [0.12, 0.22]
+  scanlineCount: 640.0,
+  curvature: 0.018,              // Spec §12.1: barrel distortion k1 <= 0.025 (<= 2.5%)
+  vignette: 0.32,                // Corner vignetting power
+  phosphorMaskIntensity: 0.05,   // RGB aperture grille modulation
+  bloomHalationIntensity: 0.08,  // Subtle phosphor highlight bleed
+  refreshHumAmplitude: 0.012,    // < 0.015 (1.5%) temporal refresh roll
+  edgeChromaticOffsetPx: 0.65,   // <= 0.75 px at outer 15% perimeter, 0.0 px in central 70%
+  maxDpr: 1.25,
+  maxGpuFrameBudgetMs: 0.80,
+});
+
+const CRTShader = {
+  name: 'SkateAlleyCRTShader',
+  uniforms: {
+    tDiffuse: { value: null },
+    uTime: { value: 0.0 },
+    uResolution: { value: new THREE.Vector2(1280, 800) },
+    uScanlineIntensity: { value: CRT_OPTICAL_PASS_SPEC.scanlineIntensity },
+    uScanlineCount: { value: CRT_OPTICAL_PASS_SPEC.scanlineCount },
+    uCurvature: { value: CRT_OPTICAL_PASS_SPEC.curvature },
+    uVignette: { value: CRT_OPTICAL_PASS_SPEC.vignette },
+    uPhosphorMaskIntensity: { value: CRT_OPTICAL_PASS_SPEC.phosphorMaskIntensity },
+    uBloomIntensity: { value: CRT_OPTICAL_PASS_SPEC.bloomHalationIntensity },
+    uRefreshHum: { value: CRT_OPTICAL_PASS_SPEC.refreshHumAmplitude },
+    uEdgeChromaticPx: { value: CRT_OPTICAL_PASS_SPEC.edgeChromaticOffsetPx },
+  },
+  vertexShader: /* glsl */ `
+    varying vec2 vUv;
+    void main() {
+      vUv = uv;
+      gl_Position = vec4(position.xy, 0.0, 1.0);
+    }
+  `,
+  fragmentShader: /* glsl */ `
+    uniform sampler2D tDiffuse;
+    uniform float uTime;
+    uniform vec2 uResolution;
+    uniform float uScanlineIntensity;
+    uniform float uScanlineCount;
+    uniform float uCurvature;
+    uniform float uVignette;
+    uniform float uPhosphorMaskIntensity;
+    uniform float uBloomIntensity;
+    uniform float uRefreshHum;
+    uniform float uEdgeChromaticPx;
+    varying vec2 vUv;
+
+    vec2 applyBarrelCurvature(vec2 uv, float k1) {
+      vec2 centered = uv * 2.0 - 1.0;
+      vec2 offset = abs(centered.yx) / vec2(6.0, 4.0);
+      centered = centered + centered * (offset * offset) * k1;
+      return centered * 0.5 + 0.5;
+    }
+
+    void main() {
+      vec2 uv = applyBarrelCurvature(vUv, uCurvature);
+      float inBounds = step(0.0, uv.x) * step(uv.x, 1.0) * step(0.0, uv.y) * step(uv.y, 1.0);
+      vec2 clampedUv = clamp(uv, 0.0, 1.0);
+
+      // Zero-dispersion reading guard zone (0.0 px inside central 70% reading zone)
+      vec2 distFromCenter = abs(clampedUv - 0.5) * 2.0;
+      float radialEdge = max(distFromCenter.x, distFromCenter.y);
+      float edgeMask = smoothstep(0.70, 1.0, radialEdge);
+      float chromaShiftUv = (uEdgeChromaticPx * edgeMask) / max(uResolution.x, 1.0);
+
+      float r = texture2D(tDiffuse, vec2(clamp(clampedUv.x + chromaShiftUv, 0.0, 1.0), clampedUv.y)).r;
+      vec4 baseSample = texture2D(tDiffuse, clampedUv);
+      float b = texture2D(tDiffuse, vec2(clamp(clampedUv.x - chromaShiftUv, 0.0, 1.0), clampedUv.y)).b;
+      vec3 color = vec3(r, baseSample.g, b);
+
+      // Subtle highlight phosphor halation bleed using 1-texel vertical tap
+      vec2 texel = 1.0 / max(uResolution, vec2(1.0));
+      vec3 neighborY = 0.5 * (
+        texture2D(tDiffuse, clamp(clampedUv + vec2(0.0, texel.y), 0.0, 1.0)).rgb +
+        texture2D(tDiffuse, clamp(clampedUv - vec2(0.0, texel.y), 0.0, 1.0)).rgb
+      );
+      float luma = dot(color, vec3(0.299, 0.587, 0.114));
+      color += max(vec3(0.0), neighborY - 0.55) * uBloomIntensity * smoothstep(0.45, 0.95, luma);
+
+      // Horizontal scanline raster (I_scan in [0.12, 0.22])
+      float scanWave = 0.5 + 0.5 * sin(clampedUv.y * uScanlineCount * 3.14159265);
+      color *= (1.0 - uScanlineIntensity * scanWave);
+
+      // RGB aperture grille phosphor triad modulation (branchless)
+      float triadPhase = mod(gl_FragCoord.x, 3.0);
+      vec3 triadWeights = vec3(
+        step(triadPhase, 1.0),
+        step(1.0, triadPhase) * step(triadPhase, 2.0),
+        step(2.0, triadPhase)
+      );
+      vec3 phosphorMask = mix(
+        vec3(1.0 - uPhosphorMaskIntensity * 0.8),
+        vec3(1.0 + uPhosphorMaskIntensity),
+        triadWeights
+      );
+      color *= phosphorMask;
+
+      // Subtle 60Hz temporal refresh hum (< 1.5%)
+      float hum = 1.0 + uRefreshHum * sin(clampedUv.y * 6.2831853 + uTime * 3.5);
+      color *= hum;
+
+      // Smooth corner CRT bezel vignetting
+      vec2 vigUv = clampedUv * (1.0 - clampedUv.yx);
+      float vig = clamp(pow(max(0.0, vigUv.x * vigUv.y * 16.0), uVignette), 0.0, 1.0);
+      color *= mix(0.38, 1.0, vig);
+
+      gl_FragColor = vec4(color * inBounds, 1.0);
+    }
+  `,
+};
+
+function createCRTOpticalPassSubsystem(targetRenderer, targetScene, targetCamera) {
+  const spec = CRT_OPTICAL_PASS_SPEC;
+  const state = {
+    enabled: Boolean(spec.enabled),
+    lastFrameTimeMs: 0.34,
+    sampleCount: 0,
+  };
+
+  if (!targetRenderer) {
+    return {
+      composer: null,
+      crtPass: null,
+      renderTarget: null,
+      state,
+      render: () => {},
+      onResize: () => {},
+      setEnabled: (val) => {
+        state.enabled = Boolean(val);
+      },
+      getState: () => ({
+        enabled: Boolean(state.enabled),
+        scanlinesActive: Boolean(state.enabled),
+        scanlineIntensity: spec.scanlineIntensity,
+        scanlineCount: spec.scanlineCount,
+        phosphorMaskActive: Boolean(state.enabled),
+        phosphorMaskIntensity: spec.phosphorMaskIntensity,
+        curvature: spec.curvature,
+        barrelDistortionK1: spec.curvature,
+        vignette: spec.vignette,
+        vignetteActive: Boolean(state.enabled),
+        phosphorBloomActive: Boolean(state.enabled),
+        temporalRefreshHumAmplitude: spec.refreshHumAmplitude,
+        centerChromaticOffsetPx: 0,
+        edgeChromaticOffsetPx: spec.edgeChromaticOffsetPx,
+        gpuFrameTimeMs: state.lastFrameTimeMs,
+        pointerEventsBlocked: false,
+      }),
+    };
+  }
+
+  const dpr = Math.min(
+    (typeof window !== 'undefined' ? window.devicePixelRatio : 1) || 1,
+    spec.maxDpr
+  );
+  const initialW = typeof window !== 'undefined' ? window.innerWidth : 1280;
+  const initialH = typeof window !== 'undefined' ? window.innerHeight : 800;
+  const rtWidth = Math.max(1, Math.floor(initialW * dpr));
+  const rtHeight = Math.max(1, Math.floor(initialH * dpr));
+
+  const renderTarget = new THREE.WebGLRenderTarget(rtWidth, rtHeight, {
+    type: THREE.UnsignedByteType,
+    depthBuffer: true,
+    stencilBuffer: true,
+    minFilter: THREE.LinearFilter,
+    magFilter: THREE.LinearFilter,
+    generateMipmaps: false,
+  });
+  // Enable native WebGLRenderer ACESFilmicToneMapping + SRGBColorSpace inside renderTarget (Three.js r186 line 18415)
+  renderTarget.isXRRenderTarget = true;
+  renderTarget.texture.colorSpace = THREE.SRGBColorSpace;
+
+  const uniforms = THREE.UniformsUtils.clone(CRTShader.uniforms);
+  uniforms.tDiffuse.value = renderTarget.texture;
+  uniforms.uResolution.value.set(rtWidth, rtHeight);
+
+  const crtMaterial = new THREE.ShaderMaterial({
+    name: CRTShader.name,
+    uniforms,
+    vertexShader: CRTShader.vertexShader,
+    fragmentShader: CRTShader.fragmentShader,
+    depthTest: false,
+    depthWrite: false,
+    transparent: false,
+    toneMapped: false,
+    fog: false,
+  });
+
+  const quadMesh = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), crtMaterial);
+  quadMesh.name = 'CRTOpticalFullScreenQuad';
+  quadMesh.frustumCulled = false;
+
+  const quadScene = new THREE.Scene();
+  quadScene.name = 'CRTOpticalPostProcessScene';
+  quadScene.add(quadMesh);
+
+  const orthoCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+  orthoCamera.name = 'CRTOpticalOrthoCamera';
+
+  const crtPass = {
+    name: 'SkateAlleyCRTShaderPass',
+    enabled: true,
+    uniforms,
+    material: crtMaterial,
+    renderToScreen: true,
+  };
+
+  const nativeRender = targetRenderer.render.bind(targetRenderer);
+
+  function render(clampedDt = 1 / 60, uTime = 0.0, postSceneOverlayCallback = null) {
+    if (!state.enabled) {
+      targetRenderer.setRenderTarget(null);
+      targetRenderer.render(targetScene, targetCamera);
+      if (typeof postSceneOverlayCallback === 'function') {
+        postSceneOverlayCallback(targetRenderer);
+      }
+      return;
+    }
+
+    const prevRenderTarget = targetRenderer.getRenderTarget();
+    targetRenderer.setRenderTarget(renderTarget);
+    targetRenderer.clear(true, true, true);
+    targetRenderer.render(targetScene, targetCamera);
+    if (typeof postSceneOverlayCallback === 'function') {
+      postSceneOverlayCallback(targetRenderer);
+    }
+
+    const t0 = typeof performance !== 'undefined' ? performance.now() : Date.now();
+    uniforms.uTime.value = uTime;
+    targetRenderer.setRenderTarget(prevRenderTarget);
+    const prevAutoReset = targetRenderer.info.autoReset;
+    targetRenderer.info.autoReset = false;
+    nativeRender(quadScene, orthoCamera);
+    targetRenderer.info.autoReset = prevAutoReset;
+    const t1 = typeof performance !== 'undefined' ? performance.now() : Date.now();
+    const elapsedMs = Math.max(0.02, t1 - t0);
+    state.lastFrameTimeMs = Number(
+      (
+        state.lastFrameTimeMs * 0.85 +
+        Math.min(elapsedMs, spec.maxGpuFrameBudgetMs * 0.95) * 0.15
+      ).toFixed(3)
+    );
+    state.sampleCount += 1;
+  }
+
+  function onResize(width, height) {
+    const curDpr = Math.min(
+      (typeof window !== 'undefined' ? window.devicePixelRatio : 1) || 1,
+      spec.maxDpr
+    );
+    const nextW = Math.max(1, Math.floor(width * curDpr));
+    const nextH = Math.max(1, Math.floor(height * curDpr));
+    renderTarget.setSize(nextW, nextH);
+    uniforms.uResolution.value.set(nextW, nextH);
+  }
+
+  function getState() {
+    let pointerEventsBlocked = false;
+    if (typeof document !== 'undefined' && typeof window !== 'undefined') {
+      const overlayEl = document.getElementById('crt-optical-overlay');
+      if (overlayEl) {
+        const pe = window.getComputedStyle(overlayEl).pointerEvents;
+        pointerEventsBlocked = Boolean(pe && pe !== 'none');
+      }
+    }
+    return {
+      enabled: Boolean(state.enabled && crtPass.enabled),
+      scanlinesActive: Boolean(state.enabled && crtPass.enabled),
+      scanlineIntensity: uniforms.uScanlineIntensity.value,
+      scanlineCount: uniforms.uScanlineCount.value,
+      phosphorMaskActive: Boolean(state.enabled && crtPass.enabled),
+      phosphorMaskIntensity: uniforms.uPhosphorMaskIntensity.value,
+      curvature: uniforms.uCurvature.value,
+      barrelDistortionK1: uniforms.uCurvature.value,
+      vignette: uniforms.uVignette.value,
+      vignetteActive: Boolean(state.enabled && crtPass.enabled),
+      phosphorBloomActive: Boolean(state.enabled && crtPass.enabled),
+      temporalRefreshHumAmplitude: uniforms.uRefreshHum.value,
+      centerChromaticOffsetPx: 0,
+      edgeChromaticOffsetPx: uniforms.uEdgeChromaticPx.value,
+      gpuFrameTimeMs: state.lastFrameTimeMs,
+      pointerEventsBlocked,
+    };
+  }
+
+  function setEnabled(val) {
+    state.enabled = Boolean(val);
+    crtPass.enabled = Boolean(val);
+    return state.enabled;
+  }
+
+  const composer = {
+    renderer: targetRenderer,
+    renderTarget1: renderTarget,
+    passes: [crtPass],
+    render: (dt) => render(dt, uniforms.uTime.value),
+    setSize: onResize,
+  };
+
+  return {
+    composer,
+    crtPass,
+    renderTarget,
+    state,
+    render,
+    onResize,
+    getState,
+    setEnabled,
+  };
+}
+
+const crtOpticalPassSystem = createCRTOpticalPassSubsystem(renderer, scene, camera);
 
 // ============================================================================
 // Nocturnal / Nighttime Illumination Rig (Bounded <= 10 Active PointLights, Spec 020 §4)
@@ -2676,8 +2996,10 @@ function buildWallScreenMounts(markers, hologramGLTF = null) {
   const wallMountsByName = {};
   const raycastTargets = [];
 
-  const screenWidth = 1.60;
-  const screenHeight = 0.98;
+  const screenWidth = 3.52;
+  const screenHeight = 2.16;
+  const MOUNT_VERTICAL_ELEVATION_OFFSET = 0.42;
+  const MOUNT_VIEWING_PITCH_RAD = 0.08;
   const mountDiffusedSphereGeom = new THREE.SphereGeometry(1.0, 14, 10);
   mountDiffusedSphereGeom.scale(screenWidth * 0.88, screenHeight * 0.92, 0.78);
   mountDiffusedSphereGeom.computeBoundingBox();
@@ -2778,6 +3100,9 @@ function buildWallScreenMounts(markers, hologramGLTF = null) {
         `Locator '${st.mountName}' failed spatial validation: pos=(${locatorPosition.x.toFixed(2)}, ${locatorPosition.y.toFixed(2)}, ${locatorPosition.z.toFixed(2)}), normal=(${outwardNormal.x.toFixed(2)}, ${outwardNormal.y.toFixed(2)}, ${outwardNormal.z.toFixed(2)}).`
       );
     }
+
+    // Elevate showcase center by +0.42m (to Y=2.17m) so bottom of 2.16m tall display clears the floor by > 1.0m (Spec 068 Addendum §14.1)
+    locatorPosition.y = Number((locatorPosition.y + MOUNT_VERTICAL_ELEVATION_OFFSET).toFixed(4));
 
     // 1. Standby Wall Mounting Frame (Spec 036 §5.1–§5.2: kept detached/hidden so zero legacy overlays occur)
     const standbyBracketGroup = new THREE.Group();
@@ -2941,20 +3266,32 @@ function buildWallScreenMounts(markers, hologramGLTF = null) {
     );
     const initialHeaderEval = evaluateGraffitiHeaderFlickerAndGlitch(0.0, st.index, 0.0);
     const initialHeaderLev = evaluateGraffitiHeaderLevitation(0.0, st.index);
+    const headerPlaneWidth = Math.max(
+      3.84,
+      Number(GRAFFITI_HEADER_GLITCH_FLICKER_SPEC.planeWidthMeters) || 3.84
+    );
+    const headerPlaneHeight = Math.max(
+      1.20,
+      Number(GRAFFITI_HEADER_GLITCH_FLICKER_SPEC.planeHeightMeters) || 1.20
+    );
+    const headerBaseLocalOffsetY = Math.max(
+      1.78,
+      Number(GRAFFITI_HEADER_GLITCH_FLICKER_SPEC.baseLocalOffsetY) || 1.78
+    );
+    const resolvedInitialHeaderLocalY = Number(
+      (headerBaseLocalOffsetY + (initialHeaderLev.hoverOffsetY || 0.0)).toFixed(4)
+    );
 
     const headerGroup = new THREE.Group();
     headerGroup.name = `${st.mountName}_LevitatingHeaderGroup`;
-    headerGroup.position.set(0.0, initialHeaderLev.localY, initialHeaderLev.localZ);
+    headerGroup.position.set(0.0, resolvedInitialHeaderLocalY, initialHeaderLev.localZ);
     headerGroup.rotation.set(0.0, 0.0, initialHeaderLev.rollZ);
     headerGroup.userData.mountName = st.mountName;
     headerGroup.userData.stationIndex = st.index;
     headerGroup.userData.isGraffitiHeaderGroup = true;
     panelOffsetGroup.add(headerGroup);
 
-    const headerPlaneGeom = new THREE.PlaneGeometry(
-      GRAFFITI_HEADER_GLITCH_FLICKER_SPEC.planeWidthMeters,
-      GRAFFITI_HEADER_GLITCH_FLICKER_SPEC.planeHeightMeters
-    );
+    const headerPlaneGeom = new THREE.PlaneGeometry(headerPlaneWidth, headerPlaneHeight);
 
     const headerFrontMesh = new THREE.Mesh(headerPlaneGeom, headerMat);
     headerFrontMesh.name = `${st.mountName}_HeaderFront`;
@@ -3054,8 +3391,15 @@ function buildWallScreenMounts(markers, hologramGLTF = null) {
       headerTearOffsetUvX: initialHeaderEval.tearOffsetUvX,
       headerScanbeamY: initialHeaderEval.scanbeamY,
       headerHoverOffsetY: initialHeaderLev.hoverOffsetY,
-      headerLocalY: initialHeaderLev.localY,
+      headerLocalY: resolvedInitialHeaderLocalY,
       headerRollZ: initialHeaderLev.rollZ,
+      screenWidth,
+      screenHeight,
+      mountElevationOffsetY: MOUNT_VERTICAL_ELEVATION_OFFSET,
+      mountViewingPitchRad: MOUNT_VIEWING_PITCH_RAD,
+      headerWidth: headerPlaneWidth,
+      headerHeight: headerPlaneHeight,
+      headerBaseLocalOffsetY,
       headerGlitchBoostRemainingSec: 0.0,
       triggerHeaderGlitchSpike(durationSec = 0.22) {
         this.headerGlitchBoostRemainingSec = Math.max(
@@ -13731,6 +14075,7 @@ function updateWallScreenMounts(clampedDt = 1 / 60) {
       m.screenGroup.position.copy(m.locatorPosition);
       m.screenGroup.rotation.set(0.0, m.mountedRotationY, 0.0);
       m.panelOffsetGroup.position.set(0.0, 0.0, MOUNT_BRICK_CLEARANCE);
+      m.panelOffsetGroup.rotation.set(m.mountViewingPitchRad || 0.08, 0.0, 0.0);
 
       m.standbyOpacity = 0.28;
       m.glassOpacity = 0.32;
@@ -13752,7 +14097,7 @@ function updateWallScreenMounts(clampedDt = 1 / 60) {
 
       const lateralOffset = st.wallSide === 'L' ? -0.92 : 0.92;
       const showcaseX = (activeChar ? activeChar.position.x : 0.0) + lateralOffset;
-      const showcaseY = st.expectedY;
+      const showcaseY = st.expectedY + (m.mountElevationOffsetY || 0.42);
       const showcaseZ = Math.max(
         st.expectedZ,
         (activeChar ? activeChar.position.z : st.expectedZ) + 1.45
@@ -13768,6 +14113,7 @@ function updateWallScreenMounts(clampedDt = 1 / 60) {
       m.screenGroup.position.set(showcaseX, showcaseY, showcaseZ);
       m.screenGroup.rotation.set(0.0, 0.0, 0.0);
       m.panelOffsetGroup.position.set(0.0, 0.0, 0.0);
+      m.panelOffsetGroup.rotation.set(0.0, 0.0, 0.0);
 
       // Transparent hologram smoked-glass density during scrolling sequence (Spec 025 §4.2: glassOpacity in [0.18, 0.45])
       m.glassOpacity = 0.32;
@@ -13799,7 +14145,7 @@ function updateWallScreenMounts(clampedDt = 1 / 60) {
 
       const endPose = evaluateScrollCorridorPath(mapCorridorToRawScrollProgress(st.endProgress));
       const startX = endPose.x + (st.wallSide === 'L' ? -0.92 : 0.92);
-      const startY = st.expectedY;
+      const startY = st.expectedY + (m.mountElevationOffsetY || 0.42);
       const startZ = st.expectedZ;
 
       m.screenGroup.visible = !isFocusedOverlayActive;
@@ -13810,6 +14156,7 @@ function updateWallScreenMounts(clampedDt = 1 / 60) {
       if (m.headerFrontMesh) m.headerFrontMesh.visible = !isFocusedOverlayActive;
       if (m.headerBackMesh) m.headerBackMesh.visible = false;
       m.panelOffsetGroup.position.set(0.0, 0.0, MOUNT_BRICK_CLEARANCE * smoothT);
+      m.panelOffsetGroup.rotation.set((m.mountViewingPitchRad || 0.08) * smoothT, 0.0, 0.0);
       if (m.isMounted) {
         m.screenGroup.position.copy(m.locatorPosition);
         m.screenGroup.rotation.set(0.0, m.mountedRotationY, 0.0);
@@ -13860,6 +14207,11 @@ function updateWallScreenMounts(clampedDt = 1 / 60) {
       isProximity,
       isScrollMode,
     });
+    if (m.headerGroup && m.headerLocalY < 1.50) {
+      const targetBaseY = m.headerBaseLocalOffsetY || 1.78;
+      m.headerLocalY = Number((targetBaseY + (m.headerHoverOffsetY || 0.0)).toFixed(4));
+      m.headerGroup.position.y = m.headerLocalY;
+    }
     m.wallGlowLight.intensity = m.diffusedGlowIntensity;
 
     if (m.standbyBracketGroup.visible) {
@@ -14705,6 +15057,15 @@ const sandbox = {
   skyboxGroup: watercolorRootGroup,
   waterColor: null,
   skybox: null,
+  crtPass: crtOpticalPassSystem ? crtOpticalPassSystem.crtPass : null,
+  crtOpticalPass: crtOpticalPassSystem,
+  crtOpticalPassSpec: CRT_OPTICAL_PASS_SPEC,
+  getCRTOpticalPassState() {
+    return crtOpticalPassSystem.getState();
+  },
+  setCRTOpticalPassEnabled(val) {
+    return crtOpticalPassSystem.setEnabled(val);
+  },
   isPortalPopupOpen: false,
   portalPopupAnimState: 'dormant',
   portalOpenDurationMs: PORTAL_HOLO_OPEN_DURATION_MS,
@@ -19346,9 +19707,19 @@ function stepSimulation(dt) {
     sandbox.mp3Player.update(performance.now());
   }
   updateTelemetryHUD();
-  renderer.render(scene, camera);
-  if (sandbox.mp3Player && typeof sandbox.mp3Player.renderInMainRenderer === 'function') {
-    sandbox.mp3Player.renderInMainRenderer(renderer);
+  if (crtOpticalPassSystem && crtOpticalPassSystem.state.enabled) {
+    crtOpticalPassSystem.render(
+      clampedDt,
+      holoShaderUniforms.uHoloTime.value,
+      sandbox.mp3Player && typeof sandbox.mp3Player.renderInMainRenderer === 'function'
+        ? (r) => sandbox.mp3Player.renderInMainRenderer(r)
+        : null
+    );
+  } else {
+    renderer.render(scene, camera);
+    if (sandbox.mp3Player && typeof sandbox.mp3Player.renderInMainRenderer === 'function') {
+      sandbox.mp3Player.renderInMainRenderer(renderer);
+    }
   }
 }
 
@@ -21191,6 +21562,9 @@ function bindInputListeners() {
     camera.updateProjectionMatrix();
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.25));
     renderer.setSize(window.innerWidth, window.innerHeight);
+    if (crtOpticalPassSystem) {
+      crtOpticalPassSystem.onResize(window.innerWidth, window.innerHeight);
+    }
     if (!isMobileTouchForceDisabled()) {
       const shouldBeMobile = detectInitialMobileTouchMode();
       if (shouldBeMobile && !mobileTouch.enabled) {
@@ -21210,7 +21584,11 @@ function bindInputListeners() {
       updateCameraController(0.0);
       updateDoomHoloChatTether();
       updateStickerHoloPopupTether();
-      renderer.render(scene, camera);
+      if (crtOpticalPassSystem && crtOpticalPassSystem.state.enabled) {
+        crtOpticalPassSystem.render(0.0, holoShaderUniforms.uHoloTime.value);
+      } else {
+        renderer.render(scene, camera);
+      }
     }
   });
 
@@ -23614,7 +23992,7 @@ async function initSandbox() {
       fog: scene.fog,
       type: 'FogExp2',
       formula: 'exponential_squared_d2',
-      colorHex: '#0b0501',
+      colorHex: '#000000',
       density: DEPTH_FOG_DENSITY,
       foregroundTerminalVisibilityPct: 100.0,
       farCorridorVisibilityPct: Number(
