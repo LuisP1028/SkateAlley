@@ -157,24 +157,34 @@ export function buildCRTOpticalPassSystem(renderer, scene, camera, options = {})
       state,
       render: () => {},
       onResize: () => {},
-      getState: () => ({
-        enabled: false,
-        scanlinesActive: false,
-        scanlineIntensity: spec.scanlineIntensity,
-        scanlineCount: spec.scanlineCount,
-        phosphorMaskActive: false,
-        phosphorMaskIntensity: spec.phosphorMaskIntensity,
-        curvature: spec.curvature,
-        barrelDistortionK1: spec.curvature,
-        vignette: spec.vignette,
-        vignetteActive: false,
-        phosphorBloomActive: false,
-        temporalRefreshHumAmplitude: spec.refreshHumAmplitude,
-        centerChromaticOffsetPx: 0,
-        edgeChromaticOffsetPx: spec.edgeChromaticOffsetPx,
-        gpuFrameTimeMs: 0.0,
-        pointerEventsBlocked: false,
-      }),
+      getState: () => {
+        let pointerEventsBlocked = false;
+        if (typeof document !== 'undefined' && typeof window !== 'undefined') {
+          const overlayEl = document.getElementById('crt-optical-overlay');
+          if (overlayEl) {
+            const pe = window.getComputedStyle(overlayEl).pointerEvents;
+            pointerEventsBlocked = Boolean(pe && pe !== 'none');
+          }
+        }
+        return {
+          enabled: false,
+          scanlinesActive: false,
+          scanlineIntensity: spec.scanlineIntensity,
+          scanlineCount: spec.scanlineCount,
+          phosphorMaskActive: false,
+          phosphorMaskIntensity: spec.phosphorMaskIntensity,
+          curvature: spec.curvature,
+          barrelDistortionK1: spec.curvature,
+          vignette: spec.vignette,
+          vignetteActive: false,
+          phosphorBloomActive: false,
+          temporalRefreshHumAmplitude: spec.refreshHumAmplitude,
+          centerChromaticOffsetPx: 0,
+          edgeChromaticOffsetPx: spec.edgeChromaticOffsetPx,
+          gpuFrameTimeMs: 0.0,
+          pointerEventsBlocked,
+        };
+      },
       dispose: () => {},
     };
   }
@@ -249,6 +259,14 @@ export function buildCRTOpticalPassSystem(renderer, scene, camera, options = {})
   }
 
   function getState() {
+    let pointerEventsBlocked = false;
+    if (typeof document !== 'undefined' && typeof window !== 'undefined') {
+      const overlayEl = document.getElementById('crt-optical-overlay');
+      if (overlayEl) {
+        const pe = window.getComputedStyle(overlayEl).pointerEvents;
+        pointerEventsBlocked = Boolean(pe && pe !== 'none');
+      }
+    }
     return {
       enabled: Boolean(state.enabled),
       scanlinesActive: Boolean(state.enabled),
@@ -265,7 +283,7 @@ export function buildCRTOpticalPassSystem(renderer, scene, camera, options = {})
       centerChromaticOffsetPx: 0,
       edgeChromaticOffsetPx: crtPass.uniforms.uEdgeChromaticPx.value,
       gpuFrameTimeMs: state.lastFrameTimeMs,
-      pointerEventsBlocked: false,
+      pointerEventsBlocked,
     };
   }
 
