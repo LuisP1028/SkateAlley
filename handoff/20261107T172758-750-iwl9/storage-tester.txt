@@ -1,0 +1,2 @@
+tests/verify_storage_persistence.py
+scripts/serve_skatealley.py

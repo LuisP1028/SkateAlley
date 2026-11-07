@@ -1780,6 +1780,7 @@ ALLOWED_SCENE_LAYOUT_KEYS = {
     "lamppost_light",
     "player_spawn",
     "startup_camera_pan",
+    "watercolor_display",
     "intro_dialogue_boxes",
     "scene_cuts",
 }
@@ -3161,7 +3162,6 @@ class SkateAlleyRequestHandler(SimpleHTTPRequestHandler):
             self.send_response(416)
             self.send_header("Content-Range", f"bytes */{file_size}")
             self.send_header("Content-Length", "0")
-            self.send_header("Accept-Ranges", "bytes")
             self.end_headers()
             return True
 
@@ -3174,16 +3174,6 @@ class SkateAlleyRequestHandler(SimpleHTTPRequestHandler):
             self.send_header("Content-Type", ctype)
             self.send_header("Content-Range", f"bytes {start}-{end}/{file_size}")
             self.send_header("Content-Length", str(length))
-            self.send_header("Accept-Ranges", "bytes")
-            self.send_header("Access-Control-Allow-Origin", "*")
-            self.send_header(
-                "Access-Control-Allow-Headers",
-                "Range, Content-Type, Accept, Origin, Authorization, X-Visitor-Token",
-            )
-            self.send_header(
-                "Access-Control-Expose-Headers",
-                "Content-Length, Content-Range, Accept-Ranges",
-            )
             self.end_headers()
             if not head_only:
                 chunk_size = 64 * 1024
@@ -3268,7 +3258,8 @@ def main():
     except Exception as studio_err:
         print(f"[skatealley-app-local] WARNING: Studio coordinator startup warning: {studio_err}", flush=True)
     with ThreadingHTTPServer((args.host, args.port), SkateAlleyRequestHandler) as httpd:
-        print(f"[skatealley-app-local] Serving {os.getcwd()} on http://{args.host}:{args.port}", flush=True)
+        actual_port = httpd.server_address[1]
+        print(f"[skatealley-app-local] Serving {os.getcwd()} on http://{args.host}:{actual_port}", flush=True)
         httpd.serve_forever()
 
 
