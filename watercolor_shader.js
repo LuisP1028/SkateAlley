@@ -84,6 +84,11 @@ export const WATERCOLOR_GALLERY_SPEC = {
   canvasRotationEuler: { x: 0.0, y: -0.0182, z: 0.0 },
   canvasScale: { x: 5.0, y: 5.0, z: 1.0 },
   scale: 5.0,
+  popOutTriggerRadiusMeters: 6.8,
+  popOutReleaseRadiusMeters: 7.5,
+  popOutScaleMultiplier: 1.45,
+  popOutForwardOffsetMeters: 0.35,
+  popOutTransitionDurationSec: 0.38,
   focusCameraOffset: { x: -0.42, y: 0.04, z: -2.65 }, // perspective camera vantage looking toward anchorPosition
   focusLookAtOffset: { x: 0.08, y: 0.0, z: 0.0 },
   blackBackdropColorHex: 0x000000,
@@ -98,9 +103,14 @@ export const PORTAL_HEADER_LOGO_SPEC = Object.freeze({
   sourcePath: '/Users/diesel/Desktop/1DOOMTAG.jpeg',
   repoTagPath: './tags/1DOOMTAG.jpeg',
   assetUrl: './assets/portal_games/platodoom_header.png',
-  width: 1120,
-  height: 381,
-  aspectRatio: Number((1120 / 381).toFixed(4)),
+  webpAssetUrl: './assets/portal_games/platodoom_header.webp',
+  width: 1024,
+  height: 348,
+  maxPotWidth: 1024,
+  maxPotHeight: 512,
+  decodedRgbaBytes: 1024 * 348 * 4,
+  vramBytes: 1024 * 348 * 4,
+  aspectRatio: Number((1024 / 348).toFixed(4)),
   backgroundRemoved: 'white-exterior-floodfill',
 });
 
@@ -714,6 +724,22 @@ export function buildWaterColorGallerySystem(options = {}) {
   let lastMetricZ = null;
   let lastPortalDistanceMeters = Infinity;
   let isPlayerNearPortal = false;
+  let isPoppedOut = false;
+  let popOutProgress = 0.0;
+  let popOutFactor = 0.0;
+  let currentScaleMultiplier = 1.0;
+  let currentForwardOffsetMeters = 0.0;
+  let lastEvalZ = null;
+  const baseAnchorPos = {
+    x: WATERCOLOR_GALLERY_SPEC.anchorPosition.x,
+    y: floorY + WATERCOLOR_GALLERY_SPEC.anchorPosition.yRel,
+    z: WATERCOLOR_GALLERY_SPEC.anchorPosition.z,
+  };
+  const baseCanvasScale = {
+    x: WATERCOLOR_GALLERY_SPEC.canvasScale.x,
+    y: WATERCOLOR_GALLERY_SPEC.canvasScale.y,
+    z: WATERCOLOR_GALLERY_SPEC.canvasScale.z,
+  };
   const _tempLocalPos = new THREE.Vector3();
 
   // 1. Primary Perspective Canvas Stage Group
@@ -942,6 +968,33 @@ export function buildWaterColorGallerySystem(options = {}) {
     get lastPortalDistanceMeters() {
       return lastPortalDistanceMeters;
     },
+    get isPoppedOut() {
+      return isPoppedOut;
+    },
+    get popOutProgress() {
+      return popOutProgress;
+    },
+    get popOutFactor() {
+      return popOutFactor;
+    },
+    get currentScaleMultiplier() {
+      return currentScaleMultiplier;
+    },
+    get currentForwardOffsetMeters() {
+      return currentForwardOffsetMeters;
+    },
+    get popOutTriggerRadiusMeters() {
+      return WATERCOLOR_GALLERY_SPEC.popOutTriggerRadiusMeters;
+    },
+    get popOutReleaseRadiusMeters() {
+      return WATERCOLOR_GALLERY_SPEC.popOutReleaseRadiusMeters;
+    },
+    get popOutScaleMultiplier() {
+      return WATERCOLOR_GALLERY_SPEC.popOutScaleMultiplier;
+    },
+    get popOutForwardOffsetMeters() {
+      return WATERCOLOR_GALLERY_SPEC.popOutForwardOffsetMeters;
+    },
 
     setAvailableGames(nextList) {
       if (!Array.isArray(nextList) || nextList.length === 0) {
@@ -1105,7 +1158,13 @@ export function buildWaterColorGallerySystem(options = {}) {
 
     isNearPortal(activeChar = null) {
       if (!activeChar || !activeChar.position) {
-        return isPlayerNearPortal;
+        return isPlayerNearPortal || isPoppedOut;
+      }
+      const dx = activeChar.position.x - baseAnchorPos.x;
+      const dz = activeChar.position.z - baseAnchorPos.z;
+      const distXZ = Math.hypot(dx, dz);
+      if (distXZ <= WATERCOLOR_GALLERY_SPEC.popOutTriggerRadiusMeters) {
+        return true;
       }
       canvasStageGroup.updateMatrixWorld(true);
       _tempLocalPos.set(
@@ -1123,9 +1182,10 @@ export function buildWaterColorGallerySystem(options = {}) {
       const halfW = (WATERCOLOR_DEFAULT_PARAMS.canvasWidth * 0.5) * sx;
       const halfH = (WATERCOLOR_DEFAULT_PARAMS.canvasHeight * 0.5) * sy;
       return (
-        Math.abs(metricX) <= halfW + 1.65 &&
-        Math.abs(metricY) <= halfH + 1.50 &&
-        Math.abs(metricZ) <= 4.50
+        isPoppedOut ||
+        (Math.abs(metricX) <= halfW + 1.65 &&
+          Math.abs(metricY) <= halfH + 1.50 &&
+          Math.abs(metricZ) <= WATERCOLOR_GALLERY_SPEC.popOutTriggerRadiusMeters)
       );
     },
 
@@ -1168,6 +1228,110 @@ export function buildWaterColorGallerySystem(options = {}) {
       return true;
     },
 
+    updateProximityPopOut(dt = 1 / 60, activeCharOrPos = null, opts = {}) {
+      let refObj = activeCharOrPos;
+      if (!refObj && typeof window !== 'undefined') {
+        if (window.sandbox && typeof window.sandbox.getActiveCharacter === 'function') {
+          refObj = window.sandbox.getActiveCharacter();
+        }
+        if (!refObj && window.__THREE_CAMERA__) {
+          refObj = window.__THREE_CAMERA__;
+        }
+      }
+      const pos =
+        refObj && refObj.position
+          ? refObj.position
+          : refObj && typeof refObj.x === 'number' && typeof refObj.z === 'number'
+          ? refObj
+          : null;
+
+      let discreteTeleportJump = false;
+      if (pos && rootGroup.visible && canvasStageGroup.visible) {
+        const dx = pos.x - baseAnchorPos.x;
+        const dy = (typeof pos.y === 'number' ? pos.y + 1.15 : baseAnchorPos.y) - baseAnchorPos.y;
+        const dz = pos.z - baseAnchorPos.z;
+        const distXZ = Math.hypot(dx, dz);
+        const distZ = Math.abs(dz);
+        const halfW = WATERCOLOR_DEFAULT_PARAMS.canvasWidth * 0.5 * baseCanvasScale.x;
+        const halfH = WATERCOLOR_DEFAULT_PARAMS.canvasHeight * 0.5 * baseCanvasScale.y;
+        const surfaceDist3D = Math.hypot(
+          Math.max(0.0, Math.abs(dx) - halfW),
+          Math.max(0.0, Math.abs(dy) - halfH),
+          distZ
+        );
+        lastPortalDistanceMeters = surfaceDist3D;
+        const effectiveDist = Math.min(distXZ, distZ, surfaceDist3D);
+
+        if (lastEvalZ !== null && Math.abs(pos.z - lastEvalZ) > 1.25) {
+          discreteTeleportJump = true;
+        }
+        lastEvalZ = pos.z;
+
+        const prevPopped = isPoppedOut;
+        if (!isPoppedOut && effectiveDist <= WATERCOLOR_GALLERY_SPEC.popOutTriggerRadiusMeters) {
+          isPoppedOut = true;
+        } else if (isPoppedOut && effectiveDist >= WATERCOLOR_GALLERY_SPEC.popOutReleaseRadiusMeters) {
+          isPoppedOut = false;
+        }
+        if (prevPopped !== isPoppedOut && discreteTeleportJump) {
+          popOutProgress = isPoppedOut ? 1.0 : 0.0;
+        }
+      } else if (!rootGroup.visible || !canvasStageGroup.visible) {
+        isPoppedOut = false;
+      }
+
+      const durationSec = Math.max(0.001, WATERCOLOR_GALLERY_SPEC.popOutTransitionDurationSec || 0.38);
+      const stepDt = typeof dt === 'number' && Number.isFinite(dt) && dt >= 0.0 ? dt : 1 / 60;
+      if ((opts && opts.immediate) || discreteTeleportJump) {
+        popOutProgress = isPoppedOut ? 1.0 : 0.0;
+      } else {
+        const rate = stepDt / durationSec;
+        if (isPoppedOut) {
+          popOutProgress = Math.min(1.0, popOutProgress + rate);
+        } else {
+          popOutProgress = Math.max(0.0, popOutProgress - rate);
+        }
+      }
+
+      const p = popOutProgress;
+      popOutFactor = p < 0.5 ? 4.0 * p * p * p : 1.0 - Math.pow(-2.0 * p + 2.0, 3.0) * 0.5;
+      currentScaleMultiplier =
+        1.0 + (WATERCOLOR_GALLERY_SPEC.popOutScaleMultiplier - 1.0) * popOutFactor;
+      currentForwardOffsetMeters =
+        WATERCOLOR_GALLERY_SPEC.popOutForwardOffsetMeters * popOutFactor;
+
+      canvasStageGroup.scale.set(
+        baseCanvasScale.x * currentScaleMultiplier,
+        baseCanvasScale.y * currentScaleMultiplier,
+        baseCanvasScale.z
+      );
+      canvasStageGroup.position.set(
+        baseAnchorPos.x,
+        baseAnchorPos.y,
+        baseAnchorPos.z - currentForwardOffsetMeters
+      );
+
+      if (!isTeleporting && !isPopupOpen && frameLines && frameLines.material) {
+        frameLines.material.color.setHex(
+          popOutFactor > 0.05 ? 0xfbbf24 : WATERCOLOR_GALLERY_SPEC.activeBorderColorHex
+        );
+        frameLines.material.opacity = Number((0.88 + 0.12 * popOutFactor).toFixed(4));
+      }
+
+      canvasStageGroup.updateMatrixWorld(true);
+      isPlayerNearPortal =
+        isPoppedOut || lastPortalDistanceMeters <= WATERCOLOR_GALLERY_SPEC.popOutTriggerRadiusMeters;
+
+      return {
+        isPoppedOut,
+        popOutProgress,
+        popOutFactor,
+        currentScaleMultiplier,
+        currentForwardOffsetMeters,
+        distanceMeters: lastPortalDistanceMeters,
+      };
+    },
+
     checkWalkThrough(activeChar) {
       if (!activeChar || !activeChar.position || !rootGroup.visible || !canvasStageGroup.visible) {
         lastMetricZ = null;
@@ -1201,16 +1365,22 @@ export function buildWaterColorGallerySystem(options = {}) {
       const halfW = (WATERCOLOR_DEFAULT_PARAMS.canvasWidth * 0.5) * sx;
       const halfH = (WATERCOLOR_DEFAULT_PARAMS.canvasHeight * 0.5) * sy;
 
+      const baseDx = activeChar.position.x - baseAnchorPos.x;
+      const baseDy = (activeChar.position.y + 1.15) - baseAnchorPos.y;
+      const baseDz = activeChar.position.z - baseAnchorPos.z;
+      const baseHalfW = WATERCOLOR_DEFAULT_PARAMS.canvasWidth * 0.5 * baseCanvasScale.x;
+      const baseHalfH = WATERCOLOR_DEFAULT_PARAMS.canvasHeight * 0.5 * baseCanvasScale.y;
       lastPortalDistanceMeters = Math.hypot(
-        Math.max(0.0, Math.abs(metricX) - halfW),
-        Math.max(0.0, Math.abs(metricY) - halfH),
-        metricZ
+        Math.max(0.0, Math.abs(baseDx) - baseHalfW),
+        Math.max(0.0, Math.abs(baseDy) - baseHalfH),
+        Math.abs(baseDz)
       );
 
       isPlayerNearPortal =
-        Math.abs(metricX) <= halfW + 1.65 &&
-        Math.abs(metricY) <= halfH + 1.50 &&
-        Math.abs(metricZ) <= 4.50;
+        isPoppedOut ||
+        (Math.abs(metricX) <= halfW + 1.65 &&
+          Math.abs(metricY) <= halfH + 1.50 &&
+          Math.abs(baseDz) <= WATERCOLOR_GALLERY_SPEC.popOutTriggerRadiusMeters);
 
       const insideApertureXY =
         Math.abs(metricX) <= halfW + 0.35 &&
@@ -1248,6 +1418,7 @@ export function buildWaterColorGallerySystem(options = {}) {
       } else if (typeof dt === 'number' && Number.isFinite(dt)) {
         uTimeUniform.value += dt;
       }
+      this.updateProximityPopOut(dt, activeChar);
       if (activeChar) {
         this.checkWalkThrough(activeChar);
       }
@@ -1299,6 +1470,21 @@ export function buildWaterColorGallerySystem(options = {}) {
         portalTargetUrl,
         isPlayerNearPortal,
         lastPortalDistanceMeters,
+        isPoppedOut,
+        popOutProgress: Number(popOutProgress.toFixed(4)),
+        popOutFactor: Number(popOutFactor.toFixed(4)),
+        popOutScaleMultiplier: WATERCOLOR_GALLERY_SPEC.popOutScaleMultiplier,
+        currentScaleMultiplier: Number(currentScaleMultiplier.toFixed(4)),
+        popOutForwardOffsetMeters: WATERCOLOR_GALLERY_SPEC.popOutForwardOffsetMeters,
+        currentForwardOffsetMeters: Number(currentForwardOffsetMeters.toFixed(4)),
+        popOutTriggerRadiusMeters: WATERCOLOR_GALLERY_SPEC.popOutTriggerRadiusMeters,
+        popOutReleaseRadiusMeters: WATERCOLOR_GALLERY_SPEC.popOutReleaseRadiusMeters,
+        popOutTransitionDurationSec: WATERCOLOR_GALLERY_SPEC.popOutTransitionDurationSec,
+        baseAnchorPosition: { ...baseAnchorPos },
+        baseCanvasScale: { ...baseCanvasScale },
+        canvasPositionZ: Number(canvasStageGroup.position.z.toFixed(4)),
+        canvasScaleX: Number(canvasStageGroup.scale.x.toFixed(4)),
+        canvasScaleY: Number(canvasStageGroup.scale.y.toFixed(4)),
         canvasRotationY: canvasStageGroup.rotation.y,
       };
     },
@@ -1328,21 +1514,29 @@ export function buildWaterColorGallerySystem(options = {}) {
         basePlaneWidthMeters: WATERCOLOR_DEFAULT_PARAMS.canvasWidth,
         basePlaneHeightMeters: WATERCOLOR_DEFAULT_PARAMS.canvasHeight,
         aspectRatio: WATERCOLOR_DEFAULT_PARAMS.aspectRatio,
+        isPoppedOut,
+        popOutFactor: Number(popOutFactor.toFixed(4)),
+        currentScaleMultiplier: Number(currentScaleMultiplier.toFixed(4)),
+        currentForwardOffsetMeters: Number(currentForwardOffsetMeters.toFixed(4)),
       };
     },
 
     setTransformState(partial = {}) {
       if (!partial || typeof partial !== 'object') return this.getTransformState();
       if (typeof partial.x === 'number' && Number.isFinite(partial.x)) {
+        baseAnchorPos.x = partial.x;
         canvasStageGroup.position.x = partial.x;
       }
       if (typeof partial.yRel === 'number' && Number.isFinite(partial.yRel)) {
-        canvasStageGroup.position.y = floorY + partial.yRel;
+        baseAnchorPos.y = floorY + partial.yRel;
+        canvasStageGroup.position.y = baseAnchorPos.y;
       } else if (typeof partial.y === 'number' && Number.isFinite(partial.y)) {
+        baseAnchorPos.y = partial.y;
         canvasStageGroup.position.y = partial.y;
       }
       if (typeof partial.z === 'number' && Number.isFinite(partial.z)) {
-        canvasStageGroup.position.z = partial.z;
+        baseAnchorPos.z = partial.z;
+        canvasStageGroup.position.z = partial.z - currentForwardOffsetMeters;
       }
       if (typeof partial.pitchRad === 'number' && Number.isFinite(partial.pitchRad)) {
         canvasStageGroup.rotation.x = partial.pitchRad;
@@ -1355,16 +1549,26 @@ export function buildWaterColorGallerySystem(options = {}) {
       }
       if (typeof partial.scale === 'number' && Number.isFinite(partial.scale)) {
         const sc = Math.max(0.1, Math.min(10.0, partial.scale));
-        canvasStageGroup.scale.set(sc, sc, 1.0);
+        baseCanvasScale.x = sc;
+        baseCanvasScale.y = sc;
+        baseCanvasScale.z = 1.0;
+        canvasStageGroup.scale.set(
+          sc * currentScaleMultiplier,
+          sc * currentScaleMultiplier,
+          1.0
+        );
       } else {
         if (typeof partial.scaleX === 'number' && Number.isFinite(partial.scaleX)) {
-          canvasStageGroup.scale.x = Math.max(0.1, Math.min(10.0, partial.scaleX));
+          baseCanvasScale.x = Math.max(0.1, Math.min(10.0, partial.scaleX));
+          canvasStageGroup.scale.x = baseCanvasScale.x * currentScaleMultiplier;
         }
         if (typeof partial.scaleY === 'number' && Number.isFinite(partial.scaleY)) {
-          canvasStageGroup.scale.y = Math.max(0.1, Math.min(10.0, partial.scaleY));
+          baseCanvasScale.y = Math.max(0.1, Math.min(10.0, partial.scaleY));
+          canvasStageGroup.scale.y = baseCanvasScale.y * currentScaleMultiplier;
         }
         if (typeof partial.scaleZ === 'number' && Number.isFinite(partial.scaleZ)) {
-          canvasStageGroup.scale.z = Math.max(0.1, Math.min(10.0, partial.scaleZ));
+          baseCanvasScale.z = Math.max(0.1, Math.min(10.0, partial.scaleZ));
+          canvasStageGroup.scale.z = baseCanvasScale.z;
         }
       }
       canvasStageGroup.updateMatrixWorld(true);
@@ -1372,21 +1576,24 @@ export function buildWaterColorGallerySystem(options = {}) {
     },
 
     resetTransformToDefault() {
-      canvasStageGroup.position.set(
-        WATERCOLOR_GALLERY_SPEC.anchorPosition.x,
-        floorY + WATERCOLOR_GALLERY_SPEC.anchorPosition.yRel,
-        WATERCOLOR_GALLERY_SPEC.anchorPosition.z
-      );
+      baseAnchorPos.x = WATERCOLOR_GALLERY_SPEC.anchorPosition.x;
+      baseAnchorPos.y = floorY + WATERCOLOR_GALLERY_SPEC.anchorPosition.yRel;
+      baseAnchorPos.z = WATERCOLOR_GALLERY_SPEC.anchorPosition.z;
+      baseCanvasScale.x = WATERCOLOR_GALLERY_SPEC.canvasScale.x;
+      baseCanvasScale.y = WATERCOLOR_GALLERY_SPEC.canvasScale.y;
+      baseCanvasScale.z = WATERCOLOR_GALLERY_SPEC.canvasScale.z;
+      isPoppedOut = false;
+      popOutProgress = 0.0;
+      popOutFactor = 0.0;
+      currentScaleMultiplier = 1.0;
+      currentForwardOffsetMeters = 0.0;
+      canvasStageGroup.position.set(baseAnchorPos.x, baseAnchorPos.y, baseAnchorPos.z);
       canvasStageGroup.rotation.set(
         WATERCOLOR_GALLERY_SPEC.canvasRotationEuler.x,
         WATERCOLOR_GALLERY_SPEC.canvasRotationEuler.y,
         WATERCOLOR_GALLERY_SPEC.canvasRotationEuler.z
       );
-      canvasStageGroup.scale.set(
-        WATERCOLOR_GALLERY_SPEC.canvasScale.x,
-        WATERCOLOR_GALLERY_SPEC.canvasScale.y,
-        WATERCOLOR_GALLERY_SPEC.canvasScale.z
-      );
+      canvasStageGroup.scale.set(baseCanvasScale.x, baseCanvasScale.y, baseCanvasScale.z);
       canvasStageGroup.updateMatrixWorld(true);
       return this.getTransformState();
     },
