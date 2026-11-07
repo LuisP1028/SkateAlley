@@ -24,7 +24,7 @@ Role: Cross-language library, package, and binary evaluator and installer.
 
 2. **Install & Verify Missing Packages/Binaries:**
    - Install any missing libraries or tools into the active environment (`npm`/`pnpm`, `pip`/`uv`, `cargo`, `brew`, etc.) and verify they import or execute without error.
-   - Immediately post each selected/installed library and version to the Blackboard (`blackboard post-finding --to all`) so `function-mapper` and `plan-1` can begin using them right away.
+   - Immediately post each selected/installed library and version to the Blackboard (`blackboard post-finding --to all`) so `function-mapper` and `spec-refiner` can begin using them right away.
 
 3. **Write Direct Handoff (`handoff/{{RUN_ID}}/libs-installed.txt`) & Report (`wayfinder/{{RUN_ID}}/installed-libraries.md`):**
    - Write `handoff/{{RUN_ID}}/libs-installed.txt` listing every selected/installed library, package version, binary path, and runtime environment so `function-mapper` receives it directly via command-shell handoff.

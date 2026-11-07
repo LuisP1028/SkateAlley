@@ -24,19 +24,19 @@ import { noSandbox } from "@ai-hero/sandcastle/sandboxes/no-sandbox";
 // Multi-Stage Blackboard Pipeline Orchestrator:
 //   Stage 1 (Discovery Blackboard):
 //     5 Scanners (codebase-mapper, api-schema-mapper, mcp-provisioner, library-installer,
-//     and kickstarted function-mapper) + background listener plan-1 -> writes refined-specification.md
+//     and kickstarted function-mapper) + background listener spec-refiner -> writes refined-specification.md
 //   Stage 2 (Architecture Planning Blackboard):
-//     Lead coordinator plan-2 + planner-2.1..2.4 (+ conditional planner-2.5)
-//     + background listener implementer -> writes implementation-blueprint.md
+//     Lead coordinator planning-coordinator + architecture-planner, storage-planner, stack-planner, optimization-planner (+ conditional visual-planner)
+//     + background listener implementation-coordinator -> writes implementation-blueprint.md
 //   Stage 3 (Implementation Blackboard):
-//     Lead coordinator implementer + implementer-1..4 (+ conditional implementer-5)
-//     + background listener tester -> writes verification-blueprint.md
+//     Lead coordinator implementation-coordinator + architecture-implementer, storage-implementer, stack-implementer, optimization-implementer (+ conditional visual-implementer)
+//     + background listener verification-coordinator -> writes verification-blueprint.md
 //   Stage 4 (Unified Review, Testing & End-to-End Validation Blackboard):
-//     tester-1..4 (+ conditional tester-5) + background listener validator (gemini-4-argon-high)
+//     architecture-tester, storage-tester, stack-tester, optimization-tester (+ conditional visual-tester) + background listener e2e-validator
 //     -> runs E2E validation solo on consolidated code; on FAIL writes validation-remediation-spec.md
 //        and kickstarts the next stateful iteration on planBranch.
 //   Stage 5 (Final Join):
-//     merger joins the verified planBranch into main locally once validator passes.
+//     branch-merger joins the verified planBranch into main locally once e2e-validator passes.
 //
 // CLI Usage:
 //   npx tsx .sandcastle/multi-stage-blackboard-pipeline.mts [seed.md] [--kickstart=blackboard|handoff] [--max-iterations=3]
@@ -49,32 +49,54 @@ export const MAX_WAIT_SECONDS = 60;
 export type KickstartMode = "blackboard" | "handoff";
 
 export const ALL_BLACKBOARD_AGENTS = [
-    // Legacy compatibility IDs
-    "plan",
-    "plan-scan-1",
-    "plan-scan-2",
     // Stage 1: Discovery & Spec Refinement
-    "plan-1",
+    "spec-refiner",
     "codebase-mapper",
     "api-schema-mapper",
     "mcp-provisioner",
     "library-installer",
     "function-mapper",
     // Stage 2: Architecture Planning
+    "planning-coordinator",
+    "architecture-planner",
+    "storage-planner",
+    "stack-planner",
+    "optimization-planner",
+    "visual-planner",
+    "implementation-coordinator",
+    // Stage 3: Implementation
+    "architecture-implementer",
+    "storage-implementer",
+    "stack-implementer",
+    "optimization-implementer",
+    "visual-implementer",
+    "verification-coordinator",
+    // Stage 4: Unified Review, Testing & Validation
+    "architecture-tester",
+    "storage-tester",
+    "stack-tester",
+    "optimization-tester",
+    "visual-tester",
+    "e2e-validator",
+    // Stage 5: Final Local Join
+    "branch-merger",
+    // Legacy compatibility IDs
+    "plan",
+    "plan-scan-1",
+    "plan-scan-2",
+    "plan-1",
     "plan-2",
     "planner-2.1",
     "planner-2.2",
     "planner-2.3",
     "planner-2.4",
     "planner-2.5",
-    // Stage 3: Implementation
     "implementer",
     "implementer-1",
     "implementer-2",
     "implementer-3",
     "implementer-4",
     "implementer-5",
-    // Stage 4: Unified Review, Testing & Validation
     "tester",
     "tester-1",
     "tester-2",
@@ -83,6 +105,7 @@ export const ALL_BLACKBOARD_AGENTS = [
     "tester-5",
     "reviewer",
     "validator",
+    "merger",
 ] as const;
 
 export type BlackboardAgentId = (typeof ALL_BLACKBOARD_AGENTS)[number];
@@ -102,32 +125,41 @@ export type BlackboardRequestStatus = "open" | "claimed" | "resolved" | "unfulfi
 export type BlackboardAgentStatus = "pending" | "active" | "done" | "settled" | "terminated";
 
 export const STAGE_MODELS: Record<string, string> = {
+    // Stage 1: Discovery & Specification Refinement
     "codebase-mapper": "gemini-3.8-flash-low",
     "api-schema-mapper": "gemini-3.8-flash-low",
     "mcp-provisioner": "gemini-3.8-flash-low",
     "library-installer": "gemini-3.8-flash-low",
     "function-mapper": "gemini-3.8-flash-low",
-    "plan-1": "gemini-3.8-flash-low",
-    "plan-2": "gemini-3.8-flash-low",
-    "planner-2.1": "gemini-3.8-flash-low",
-    "planner-2.2": "gemini-3.8-flash-low",
-    "planner-2.3": "gemini-3.8-flash-low",
-    "planner-2.4": "gemini-3.8-flash-low",
-    "planner-2.5": "gemini-3.8-flash-low",
-    implementer: "gemini-3.8-flash-low",
-    "implementer-1": "gemini-3.8-flash-low",
-    "implementer-2": "gemini-3.8-flash-low",
-    "implementer-3": "gemini-3.8-flash-low",
-    "implementer-4": "gemini-3.8-flash-low",
-    "implementer-5": "gemini-3.8-flash-low",
-    tester: "gemini-3.8-flash-low",
-    "tester-1": "gemini-4-argon-low",
-    "tester-2": "gemini-3.8-flash-low",
-    "tester-3": "gemini-4-argon-low",
-    "tester-4": "gemini-3.8-flash-low",
-    "tester-5": "gemini-3.8-flash-low",
-    validator: "gemini-3.8-flash-high",
-    merger: "gemini-3.8-flash-high",
+    "spec-refiner": "gemini-3.8-flash-low",
+
+    // Stage 2: Architecture Planning
+    "planning-coordinator": "gemini-3.8-flash-low",
+    "architecture-planner": "gemini-3.8-flash-low",
+    "storage-planner": "gemini-3.8-flash-low",
+    "stack-planner": "gemini-3.8-flash-low",
+    "optimization-planner": "gemini-3.8-flash-low",
+    "visual-planner": "gemini-3.8-flash-low",
+    "implementation-coordinator": "gemini-3.8-flash-low",
+
+    // Stage 3: Production Implementation
+    "architecture-implementer": "gemini-3.8-flash-low",
+    "storage-implementer": "gemini-3.8-flash-low",
+    "stack-implementer": "gemini-3.8-flash-low",
+    "optimization-implementer": "gemini-3.8-flash-low",
+    "visual-implementer": "gemini-3.8-flash-low",
+    "verification-coordinator": "gemini-3.8-flash-low",
+
+    // Stage 4: Unified Review, Testing & End-to-End Validation
+    "architecture-tester": "gemini-4-argon-low",
+    "storage-tester": "gemini-3.8-flash-low",
+    "stack-tester": "gemini-4-argon-low",
+    "optimization-tester": "gemini-3.8-flash-low",
+    "visual-tester": "gemini-3.8-flash-low",
+    "e2e-validator": "gemini-3.8-flash-high",
+
+    // Stage 5: Final Local Join
+    "branch-merger": "gemini-3.8-flash-high",
 };
 
 export const REQUIRED_SANDCASTLE_FILES = [
@@ -141,27 +173,27 @@ export const REQUIRED_SANDCASTLE_FILES = [
     ".sandcastle/mcp-provisioner.md",
     ".sandcastle/library-installer.md",
     ".sandcastle/function-mapper.md",
-    ".sandcastle/plan-1.md",
-    ".sandcastle/plan-2.md",
-    ".sandcastle/planner-2.1.md",
-    ".sandcastle/planner-2.2.md",
-    ".sandcastle/planner-2.3.md",
-    ".sandcastle/planner-2.4.md",
-    ".sandcastle/planner-2.5.md",
-    ".sandcastle/implementer.md",
-    ".sandcastle/implementer-1.md",
-    ".sandcastle/implementer-2.md",
-    ".sandcastle/implementer-3.md",
-    ".sandcastle/implementer-4.md",
-    ".sandcastle/implementer-5.md",
-    ".sandcastle/tester.md",
-    ".sandcastle/tester-1.md",
-    ".sandcastle/tester-2.md",
-    ".sandcastle/tester-3.md",
-    ".sandcastle/tester-4.md",
-    ".sandcastle/tester-5.md",
-    ".sandcastle/validator.md",
-    ".sandcastle/merger.md",
+    ".sandcastle/spec-refiner.md",
+    ".sandcastle/planning-coordinator.md",
+    ".sandcastle/architecture-planner.md",
+    ".sandcastle/storage-planner.md",
+    ".sandcastle/stack-planner.md",
+    ".sandcastle/optimization-planner.md",
+    ".sandcastle/visual-planner.md",
+    ".sandcastle/implementation-coordinator.md",
+    ".sandcastle/architecture-implementer.md",
+    ".sandcastle/storage-implementer.md",
+    ".sandcastle/stack-implementer.md",
+    ".sandcastle/optimization-implementer.md",
+    ".sandcastle/visual-implementer.md",
+    ".sandcastle/verification-coordinator.md",
+    ".sandcastle/architecture-tester.md",
+    ".sandcastle/storage-tester.md",
+    ".sandcastle/stack-tester.md",
+    ".sandcastle/optimization-tester.md",
+    ".sandcastle/visual-tester.md",
+    ".sandcastle/e2e-validator.md",
+    ".sandcastle/branch-merger.md",
 ] as const;
 
 const TRANSIENT_CACHE_NAMES = new Set([
@@ -747,7 +779,7 @@ export class BlackboardServer {
         this.onWaitScannersCalled = options.onWaitScannersCalled;
 
         const initialParticipants = options.activeAgents ?? options.participants ?? [
-            "plan-1",
+            "spec-refiner",
             "codebase-mapper",
             "api-schema-mapper",
             "mcp-provisioner",
@@ -759,6 +791,11 @@ export class BlackboardServer {
             options.workerAgents ??
             initialParticipants.filter(
                 (id) =>
+                    id !== "spec-refiner" &&
+                    id !== "planning-coordinator" &&
+                    id !== "implementation-coordinator" &&
+                    id !== "verification-coordinator" &&
+                    id !== "e2e-validator" &&
                     id !== "plan-1" &&
                     id !== "plan-2" &&
                     id !== "implementer" &&
@@ -836,13 +873,21 @@ export class BlackboardServer {
             );
         }
         if (target === "planners") {
-            return registered.filter((a) => a.startsWith("planner-2.") || a === "plan-1" || a === "plan-2");
+            return registered.filter(
+                (a) =>
+                    a.endsWith("-planner") ||
+                    a === "spec-refiner" ||
+                    a === "planning-coordinator" ||
+                    a.startsWith("planner-2.") ||
+                    a === "plan-1" ||
+                    a === "plan-2",
+            );
         }
         if (target === "implementers") {
-            return registered.filter((a) => a.startsWith("implementer-"));
+            return registered.filter((a) => a.endsWith("-implementer") || a.startsWith("implementer-"));
         }
         if (target === "testers") {
-            return registered.filter((a) => a.startsWith("tester-"));
+            return registered.filter((a) => a.endsWith("-tester") || a.startsWith("tester-"));
         }
         return [target as BlackboardAgentId];
     }
@@ -1343,7 +1388,7 @@ export class BlackboardServer {
         }
 
         if (req.method === "GET" && pathname === "/api/read") {
-            const agent = (parsedUrl.searchParams.get("agent") ?? "plan-1") as BlackboardAgentId;
+            const agent = (parsedUrl.searchParams.get("agent") ?? "spec-refiner") as BlackboardAgentId;
             const rawSince = Number.parseInt(parsedUrl.searchParams.get("since") ?? "0", 10);
             const waitSec = Number.parseFloat(parsedUrl.searchParams.get("wait") ?? "0") || 0;
             const p = this.ensureParticipant(agent);
@@ -1369,7 +1414,7 @@ export class BlackboardServer {
         }
 
         if (req.method === "GET" && pathname === "/api/wait-request") {
-            const agent = (parsedUrl.searchParams.get("agent") ?? "plan-1") as BlackboardAgentId;
+            const agent = (parsedUrl.searchParams.get("agent") ?? "spec-refiner") as BlackboardAgentId;
             const reqSeq = Number.parseInt(parsedUrl.searchParams.get("seq") ?? "0", 10);
             const waitSec = Number.parseFloat(parsedUrl.searchParams.get("wait") ?? "30") || 30;
             if (!isBlackboardAgentId(agent)) {
@@ -1415,7 +1460,7 @@ export class BlackboardServer {
         }
 
         if (req.method === "GET" && pathname === "/api/wait-scanners") {
-            const agent = (parsedUrl.searchParams.get("agent") ?? "plan-1") as BlackboardAgentId;
+            const agent = (parsedUrl.searchParams.get("agent") ?? "spec-refiner") as BlackboardAgentId;
             const rawSince = Number.parseInt(parsedUrl.searchParams.get("since") ?? "-1", 10);
             const waitSec = Number.parseFloat(parsedUrl.searchParams.get("wait") ?? "45") || 45;
             const p = this.ensureParticipant(agent);
@@ -2359,11 +2404,11 @@ function defaultAgentTaskRunner(repoDir: string): AgentTaskRunner {
 
 /**
  * Stage 1 — Discovery & Specification Refinement (Blackboard Session 1)
- * - Runs codebase-mapper, api-schema-mapper, mcp-provisioner, library-installer, and background listener plan-1.
+ * - Runs codebase-mapper, api-schema-mapper, mcp-provisioner, library-installer, and background listener spec-refiner.
  * - Kickstarts function-mapper via either:
  *   - "blackboard": when library-installer posts its first finding on Blackboard Session 1, OR
  *   - "handoff": when library-installer finishes and commits handoff/{{RUN_ID}}/libs-installed.txt.
- * - Syncs all 5 scanner reports into plan-1's worktree before wait-scanners unblocks plan-1.
+ * - Syncs all 5 scanner reports into spec-refiner's worktree before wait-scanners unblocks spec-refiner.
  * - Merges all scanner branches into planBranch.
  */
 export async function runDiscoverySession(options: {
@@ -2444,7 +2489,7 @@ export async function runDiscoverySession(options: {
         repoDir,
         sessionName: "stage1-discovery",
         activeAgents: [
-            "plan-1",
+            "spec-refiner",
             "codebase-mapper",
             "api-schema-mapper",
             "mcp-provisioner",
@@ -2466,7 +2511,7 @@ export async function runDiscoverySession(options: {
     });
     await blackboard.start();
 
-    const plan1Worktree = worktreeDir(planBranch, repoDir);
+    const specRefinerWorktree = worktreeDir(planBranch, repoDir);
     const libInstallerWorktree = worktreeDir(`agent/library-installer-${runId}`, repoDir);
     const fnMapperWorktree = worktreeDir(functionMapperDef.branch, repoDir);
 
@@ -2494,7 +2539,7 @@ export async function runDiscoverySession(options: {
                         explicitSyncFiles: sc.syncFiles,
                         repoDir,
                     });
-                    syncRelativeFilesBetweenWorktrees(scWorktree, plan1Worktree, scFilesToSync);
+                    syncRelativeFilesBetweenWorktrees(scWorktree, specRefinerWorktree, scFilesToSync);
                     if (sc.name === "library-installer") {
                         syncRelativeFilesBetweenWorktrees(scWorktree, fnMapperWorktree, scFilesToSync);
                         kickstartResolve();
@@ -2537,7 +2582,7 @@ export async function runDiscoverySession(options: {
                     });
                     syncRelativeFilesBetweenWorktrees(
                         fnMapperWorktree,
-                        plan1Worktree,
+                        specRefinerWorktree,
                         fnFilesToSync,
                     );
                     if (outcome === "settled") {
@@ -2549,28 +2594,28 @@ export async function runDiscoverySession(options: {
             });
         })();
 
-        const plan1Task = taskRunner({
-            name: "plan-1",
+        const specRefinerTask = taskRunner({
+            name: "spec-refiner",
             branch: planBranch,
-            promptFile: "./.sandcastle/plan-1.md",
-            model: STAGE_MODELS["plan-1"],
+            promptFile: "./.sandcastle/spec-refiner.md",
+            model: STAGE_MODELS["spec-refiner"],
             manifestPaths: `handoff/${runId}/refined-spec-ready.txt`,
             baseRef: planBranch,
             runId,
             seed,
             planBranch,
-            env: blackboard.agentEnv("plan-1"),
-            onAttemptStart: () => blackboard.markAgentActive("plan-1"),
+            env: blackboard.agentEnv("spec-refiner"),
+            onAttemptStart: () => blackboard.markAgentActive("spec-refiner"),
             onStageSettled: (outcome, err) => {
                 if (outcome === "settled") {
-                    blackboard.markAgentSettled("plan-1");
+                    blackboard.markAgentSettled("spec-refiner");
                 } else {
-                    blackboard.markAgentTerminated("plan-1", errorText(err));
+                    blackboard.markAgentTerminated("spec-refiner", errorText(err));
                 }
             },
         });
 
-        await Promise.all([...scannerTasks, functionMapperTask, plan1Task]);
+        await Promise.all([...scannerTasks, functionMapperTask, specRefinerTask]);
     } finally {
         await blackboard.close();
     }
@@ -2587,10 +2632,10 @@ export async function runDiscoverySession(options: {
 
 /**
  * Stage 2 — Architecture Planning (Blackboard Session 2)
- * - Runs lead coordinator plan-2, specialist planners planner-2.1..2.4 (+ conditional planner-2.5),
- *   and background listener implementer.
- * - Spawns planner-2.5 automatically if plan-2 addresses planner-2.5 on Blackboard Session 2.
- * - Syncs finished planner-2.x documents into implementer's worktree before wait-scanners unblocks implementer.
+ * - Runs lead coordinator planning-coordinator, specialist planners architecture-planner, storage-planner, stack-planner, optimization-planner (+ conditional visual-planner),
+ *   and background listener implementation-coordinator.
+ * - Spawns visual-planner automatically if planning-coordinator addresses visual-planner on Blackboard Session 2.
+ * - Syncs finished specialist planner documents into implementation-coordinator's worktree before wait-scanners unblocks implementation-coordinator.
  * - Merges all Stage 2 branches into planBranch.
  */
 export async function runPlanningSession(options: {
@@ -2612,56 +2657,56 @@ export async function runPlanningSession(options: {
         syncFiles: readonly string[];
     }> = [
             {
-                name: "planner-2.1",
-                branch: `agent/planner-2.1-${runId}`,
-                promptFile: "./.sandcastle/planner-2.1.md",
-                manifest: `handoff/${runId}/planner-2.1.txt`,
-                syncFiles: [`wayfinder/${runId}/architecture-and-dag.md`, `handoff/${runId}/planner-2.1.txt`],
+                name: "architecture-planner",
+                branch: `agent/architecture-planner-${runId}`,
+                promptFile: "./.sandcastle/architecture-planner.md",
+                manifest: `handoff/${runId}/architecture-planner.txt`,
+                syncFiles: [`wayfinder/${runId}/architecture-and-dag.md`, `handoff/${runId}/architecture-planner.txt`],
             },
             {
-                name: "planner-2.2",
-                branch: `agent/planner-2.2-${runId}`,
-                promptFile: "./.sandcastle/planner-2.2.md",
-                manifest: `handoff/${runId}/planner-2.2.txt`,
-                syncFiles: [`wayfinder/${runId}/storage-architecture.md`, `handoff/${runId}/planner-2.2.txt`],
+                name: "storage-planner",
+                branch: `agent/storage-planner-${runId}`,
+                promptFile: "./.sandcastle/storage-planner.md",
+                manifest: `handoff/${runId}/storage-planner.txt`,
+                syncFiles: [`wayfinder/${runId}/storage-architecture.md`, `handoff/${runId}/storage-planner.txt`],
             },
             {
-                name: "planner-2.3",
-                branch: `agent/planner-2.3-${runId}`,
-                promptFile: "./.sandcastle/planner-2.3.md",
-                manifest: `handoff/${runId}/planner-2.3.txt`,
-                syncFiles: [`wayfinder/${runId}/stack-usage-guide.md`, `handoff/${runId}/planner-2.3.txt`],
+                name: "stack-planner",
+                branch: `agent/stack-planner-${runId}`,
+                promptFile: "./.sandcastle/stack-planner.md",
+                manifest: `handoff/${runId}/stack-planner.txt`,
+                syncFiles: [`wayfinder/${runId}/stack-usage-guide.md`, `handoff/${runId}/stack-planner.txt`],
             },
             {
-                name: "planner-2.4",
-                branch: `agent/planner-2.4-${runId}`,
-                promptFile: "./.sandcastle/planner-2.4.md",
-                manifest: `handoff/${runId}/planner-2.4.txt`,
-                syncFiles: [`wayfinder/${runId}/suggested-optimizations.md`, `handoff/${runId}/planner-2.4.txt`],
+                name: "optimization-planner",
+                branch: `agent/optimization-planner-${runId}`,
+                promptFile: "./.sandcastle/optimization-planner.md",
+                manifest: `handoff/${runId}/optimization-planner.txt`,
+                syncFiles: [`wayfinder/${runId}/suggested-optimizations.md`, `handoff/${runId}/optimization-planner.txt`],
             },
         ];
 
-    const planner25Def = {
-        name: "planner-2.5" as BlackboardAgentId,
-        branch: `agent/planner-2.5-${runId}`,
-        promptFile: "./.sandcastle/planner-2.5.md",
-        manifest: `handoff/${runId}/planner-2.5.txt`,
-        syncFiles: [`wayfinder/${runId}/visual-taste-direction.md`, `handoff/${runId}/planner-2.5.txt`],
+    const visualPlannerDef = {
+        name: "visual-planner" as BlackboardAgentId,
+        branch: `agent/visual-planner-${runId}`,
+        promptFile: "./.sandcastle/visual-planner.md",
+        manifest: `handoff/${runId}/visual-planner.txt`,
+        syncFiles: [`wayfinder/${runId}/visual-taste-direction.md`, `handoff/${runId}/visual-planner.txt`],
     };
 
-    const plan2Branch = `agent/plan-2-${runId}`;
-    const implementerLeadBranch = `agent/implementer-${runId}`;
+    const planningCoordBranch = `agent/planning-coordinator-${runId}`;
+    const implementerLeadBranch = `agent/implementation-coordinator-${runId}`;
 
-    await ensureWorktree(plan2Branch, repoDir, planBranch);
+    await ensureWorktree(planningCoordBranch, repoDir, planBranch);
     await ensureWorktree(implementerLeadBranch, repoDir, planBranch);
     for (const pl of corePlanners) {
         await ensureWorktree(pl.branch, repoDir, planBranch);
     }
 
     const implementerWorktree = worktreeDir(implementerLeadBranch, repoDir);
-    const plan2Worktree = worktreeDir(plan2Branch, repoDir);
+    const planningCoordWorktree = worktreeDir(planningCoordBranch, repoDir);
 
-    let planner25Task: Promise<{ commits: unknown[] }> | null = null;
+    let visualPlannerTask: Promise<{ commits: unknown[] }> | null = null;
     let spawnedVisualPlanner = false;
 
     const plannerKickstarts = new Map<BlackboardAgentId, { promise: Promise<void>; resolve: () => void }>();
@@ -2688,24 +2733,24 @@ export async function runPlanningSession(options: {
         repoDir,
         sessionName: "stage2-planning",
         activeAgents: [
-            "plan-2",
-            "planner-2.1",
-            "planner-2.2",
-            "planner-2.3",
-            "planner-2.4",
-            "implementer",
+            "planning-coordinator",
+            "architecture-planner",
+            "storage-planner",
+            "stack-planner",
+            "optimization-planner",
+            "implementation-coordinator",
         ],
-        conditionalAgents: ["planner-2.5"],
+        conditionalAgents: ["visual-planner"],
         workerAgents: [
-            "plan-2",
-            "planner-2.1",
-            "planner-2.2",
-            "planner-2.3",
-            "planner-2.4",
-            "planner-2.5",
+            "planning-coordinator",
+            "architecture-planner",
+            "storage-planner",
+            "stack-planner",
+            "optimization-planner",
+            "visual-planner",
         ],
         onEntryPublished: (entry) => {
-            if (entry.sender === "plan-2") {
+            if (entry.sender === "planning-coordinator") {
                 if (entry.target === "all" || entry.target === "planners") {
                     kickstartAllCorePlanners();
                 } else if (plannerKickstarts.has(entry.target as BlackboardAgentId)) {
@@ -2714,42 +2759,42 @@ export async function runPlanningSession(options: {
             }
         },
         onWaitScannersCalled: (caller) => {
-            if (caller === "plan-2") {
+            if (caller === "planning-coordinator") {
                 kickstartAllCorePlanners();
             }
         },
         onConditionalAgentTriggered: (agent) => {
-            if (agent === "planner-2.5" && !planner25Task) {
+            if (agent === "visual-planner" && !visualPlannerTask) {
                 spawnedVisualPlanner = true;
-                planner25Task = ensureWorktree(planner25Def.branch, repoDir, planBranch).then(() =>
+                visualPlannerTask = ensureWorktree(visualPlannerDef.branch, repoDir, planBranch).then(() =>
                     taskRunner({
-                        name: planner25Def.name,
-                        branch: planner25Def.branch,
-                        promptFile: planner25Def.promptFile,
-                        model: STAGE_MODELS[planner25Def.name],
-                        manifestPaths: planner25Def.manifest,
+                        name: visualPlannerDef.name,
+                        branch: visualPlannerDef.branch,
+                        promptFile: visualPlannerDef.promptFile,
+                        model: STAGE_MODELS[visualPlannerDef.name],
+                        manifestPaths: visualPlannerDef.manifest,
                         baseRef: planBranch,
                         runId,
                         seed,
                         planBranch,
-                        env: blackboard.agentEnv(planner25Def.name),
-                        onAttemptStart: () => blackboard.markAgentActive(planner25Def.name),
+                        env: blackboard.agentEnv(visualPlannerDef.name),
+                        onAttemptStart: () => blackboard.markAgentActive(visualPlannerDef.name),
                         onStageSettled: (outcome, err) => {
-                            const wt25 = worktreeDir(planner25Def.branch, repoDir);
-                            const files25ToSync = collectAgentOutputFilesToSync({
-                                sourceWorktree: wt25,
-                                branch: planner25Def.branch,
+                            const wtVisual = worktreeDir(visualPlannerDef.branch, repoDir);
+                            const filesVisualToSync = collectAgentOutputFilesToSync({
+                                sourceWorktree: wtVisual,
+                                branch: visualPlannerDef.branch,
                                 baseRef: planBranch,
-                                manifestPaths: planner25Def.manifest,
-                                explicitSyncFiles: planner25Def.syncFiles,
+                                manifestPaths: visualPlannerDef.manifest,
+                                explicitSyncFiles: visualPlannerDef.syncFiles,
                                 repoDir,
                             });
-                            syncRelativeFilesBetweenWorktrees(wt25, implementerWorktree, files25ToSync);
-                            syncRelativeFilesBetweenWorktrees(wt25, plan2Worktree, files25ToSync);
+                            syncRelativeFilesBetweenWorktrees(wtVisual, implementerWorktree, filesVisualToSync);
+                            syncRelativeFilesBetweenWorktrees(wtVisual, planningCoordWorktree, filesVisualToSync);
                             if (outcome === "settled") {
-                                blackboard.markAgentSettled(planner25Def.name);
+                                blackboard.markAgentSettled(visualPlannerDef.name);
                             } else {
-                                blackboard.markAgentTerminated(planner25Def.name, errorText(err));
+                                blackboard.markAgentTerminated(visualPlannerDef.name, errorText(err));
                             }
                         },
                     }),
@@ -2786,7 +2831,7 @@ export async function runPlanningSession(options: {
                             repoDir,
                         });
                         syncRelativeFilesBetweenWorktrees(plWt, implementerWorktree, plFilesToSync);
-                        syncRelativeFilesBetweenWorktrees(plWt, plan2Worktree, plFilesToSync);
+                        syncRelativeFilesBetweenWorktrees(plWt, planningCoordWorktree, plFilesToSync);
                         if (outcome === "settled") {
                             blackboard.markAgentSettled(pl.name);
                         } else {
@@ -2797,61 +2842,61 @@ export async function runPlanningSession(options: {
             })(),
         );
 
-        const plan2Task = taskRunner({
-            name: "plan-2",
-            branch: plan2Branch,
-            promptFile: "./.sandcastle/plan-2.md",
-            model: STAGE_MODELS["plan-2"],
+        const planningCoordTask = taskRunner({
+            name: "planning-coordinator",
+            branch: planningCoordBranch,
+            promptFile: "./.sandcastle/planning-coordinator.md",
+            model: STAGE_MODELS["planning-coordinator"],
             manifestPaths: `handoff/${runId}/wayfinder-read-and-plan.txt`,
             baseRef: planBranch,
             runId,
             seed,
             planBranch,
-            env: blackboard.agentEnv("plan-2"),
-            onAttemptStart: () => blackboard.markAgentActive("plan-2"),
+            env: blackboard.agentEnv("planning-coordinator"),
+            onAttemptStart: () => blackboard.markAgentActive("planning-coordinator"),
             onStageSettled: (outcome, err) => {
                 kickstartAllCorePlanners();
-                const plan2FilesToSync = collectAgentOutputFilesToSync({
-                    sourceWorktree: plan2Worktree,
-                    branch: plan2Branch,
+                const planningCoordFilesToSync = collectAgentOutputFilesToSync({
+                    sourceWorktree: planningCoordWorktree,
+                    branch: planningCoordBranch,
                     baseRef: planBranch,
                     manifestPaths: `handoff/${runId}/wayfinder-read-and-plan.txt`,
                     explicitSyncFiles: [`handoff/${runId}/wayfinder-read-and-plan.txt`],
                     repoDir,
                 });
-                syncRelativeFilesBetweenWorktrees(plan2Worktree, implementerWorktree, plan2FilesToSync);
+                syncRelativeFilesBetweenWorktrees(planningCoordWorktree, implementerWorktree, planningCoordFilesToSync);
                 if (outcome === "settled") {
-                    blackboard.markAgentSettled("plan-2");
+                    blackboard.markAgentSettled("planning-coordinator");
                 } else {
-                    blackboard.markAgentTerminated("plan-2", errorText(err));
+                    blackboard.markAgentTerminated("planning-coordinator", errorText(err));
                 }
             },
         });
 
         const implementerListenerTask = taskRunner({
-            name: "implementer",
+            name: "implementation-coordinator",
             branch: implementerLeadBranch,
-            promptFile: "./.sandcastle/implementer.md",
-            model: STAGE_MODELS.implementer,
+            promptFile: "./.sandcastle/implementation-coordinator.md",
+            model: STAGE_MODELS["implementation-coordinator"],
             manifestPaths: `handoff/${runId}/implementation-blueprint-ready.txt`,
             baseRef: planBranch,
             runId,
             seed,
             planBranch,
-            env: blackboard.agentEnv("implementer"),
-            onAttemptStart: () => blackboard.markAgentActive("implementer"),
+            env: blackboard.agentEnv("implementation-coordinator"),
+            onAttemptStart: () => blackboard.markAgentActive("implementation-coordinator"),
             onStageSettled: (outcome, err) => {
                 if (outcome === "settled") {
-                    blackboard.markAgentSettled("implementer");
+                    blackboard.markAgentSettled("implementation-coordinator");
                 } else {
-                    blackboard.markAgentTerminated("implementer", errorText(err));
+                    blackboard.markAgentTerminated("implementation-coordinator", errorText(err));
                 }
             },
         });
 
-        await Promise.all([...plannerTasks, plan2Task]);
-        if (planner25Task) {
-            await planner25Task;
+        await Promise.all([...plannerTasks, planningCoordTask]);
+        if (visualPlannerTask) {
+            await visualPlannerTask;
         }
         await implementerListenerTask;
     } finally {
@@ -2860,8 +2905,8 @@ export async function runPlanningSession(options: {
 
     const branchesToMerge = [
         ...corePlanners.map((p) => p.branch),
-        ...(spawnedVisualPlanner ? [planner25Def.branch] : []),
-        plan2Branch,
+        ...(spawnedVisualPlanner ? [visualPlannerDef.branch] : []),
+        planningCoordBranch,
         implementerLeadBranch,
     ];
     for (const br of branchesToMerge) {
@@ -2878,9 +2923,9 @@ export async function runPlanningSession(options: {
 
 /**
  * Stage 3 — Production Implementation (Blackboard Session 3)
- * - Spawns implementer-1..4 (+ implementer-5 if planner-2.5 ran) and background listener tester.
+ * - Spawns architecture-implementer, storage-implementer, stack-implementer, optimization-implementer (+ visual-implementer if visual-planner ran) and background listener verification-coordinator.
  * - Enforces exclusive file ownership via Blackboard `/api/claim` (FILE_CLAIM_CONFLICT on collision).
- * - Syncs implementer-x manifests into tester's worktree before wait-scanners unblocks tester.
+ * - Syncs *-implementer manifests into verification-coordinator's worktree before wait-scanners unblocks verification-coordinator.
  * - Merges all Stage 3 branches into planBranch.
  */
 export async function runImplementationSession(options: {
@@ -2902,53 +2947,53 @@ export async function runImplementationSession(options: {
         manifest: string;
     }> = [
             {
-                name: "implementer-1",
-                branch: `agent/implementer-1-${runId}`,
-                promptFile: "./.sandcastle/implementer-1.md",
-                manifest: `handoff/${runId}/implementer-1.txt`,
+                name: "architecture-implementer",
+                branch: `agent/architecture-implementer-${runId}`,
+                promptFile: "./.sandcastle/architecture-implementer.md",
+                manifest: `handoff/${runId}/architecture-implementer.txt`,
             },
             {
-                name: "implementer-2",
-                branch: `agent/implementer-2-${runId}`,
-                promptFile: "./.sandcastle/implementer-2.md",
-                manifest: `handoff/${runId}/implementer-2.txt`,
+                name: "storage-implementer",
+                branch: `agent/storage-implementer-${runId}`,
+                promptFile: "./.sandcastle/storage-implementer.md",
+                manifest: `handoff/${runId}/storage-implementer.txt`,
             },
             {
-                name: "implementer-3",
-                branch: `agent/implementer-3-${runId}`,
-                promptFile: "./.sandcastle/implementer-3.md",
-                manifest: `handoff/${runId}/implementer-3.txt`,
+                name: "stack-implementer",
+                branch: `agent/stack-implementer-${runId}`,
+                promptFile: "./.sandcastle/stack-implementer.md",
+                manifest: `handoff/${runId}/stack-implementer.txt`,
             },
             {
-                name: "implementer-4",
-                branch: `agent/implementer-4-${runId}`,
-                promptFile: "./.sandcastle/implementer-4.md",
-                manifest: `handoff/${runId}/implementer-4.txt`,
+                name: "optimization-implementer",
+                branch: `agent/optimization-implementer-${runId}`,
+                promptFile: "./.sandcastle/optimization-implementer.md",
+                manifest: `handoff/${runId}/optimization-implementer.txt`,
             },
         ];
 
     if (includeVisualImplementer) {
         implementerDefs.push({
-            name: "implementer-5",
-            branch: `agent/implementer-5-${runId}`,
-            promptFile: "./.sandcastle/implementer-5.md",
-            manifest: `handoff/${runId}/implementer-5.txt`,
+            name: "visual-implementer",
+            branch: `agent/visual-implementer-${runId}`,
+            promptFile: "./.sandcastle/visual-implementer.md",
+            manifest: `handoff/${runId}/visual-implementer.txt`,
         });
     }
 
-    const testerLeadBranch = `agent/tester-${runId}`;
-    await ensureWorktree(testerLeadBranch, repoDir, planBranch);
+    const verificationLeadBranch = `agent/verification-coordinator-${runId}`;
+    await ensureWorktree(verificationLeadBranch, repoDir, planBranch);
     for (const imp of implementerDefs) {
         await ensureWorktree(imp.branch, repoDir, planBranch);
     }
 
-    const testerWorktree = worktreeDir(testerLeadBranch, repoDir);
+    const verificationWorktree = worktreeDir(verificationLeadBranch, repoDir);
     const workerIds = implementerDefs.map((d) => d.name);
 
     const blackboard = new BlackboardServer(runId, {
         repoDir,
         sessionName: "stage3-implementation",
-        activeAgents: [...workerIds, "tester"],
+        activeAgents: [...workerIds, "verification-coordinator"],
         workerAgents: workerIds,
     });
     await blackboard.start();
@@ -2977,7 +3022,7 @@ export async function runImplementationSession(options: {
                         explicitSyncFiles: [imp.manifest],
                         repoDir,
                     });
-                    syncRelativeFilesBetweenWorktrees(impWt, testerWorktree, impFilesToSync);
+                    syncRelativeFilesBetweenWorktrees(impWt, verificationWorktree, impFilesToSync);
                     if (outcome === "settled") {
                         blackboard.markAgentSettled(imp.name);
                     } else {
@@ -2987,28 +3032,28 @@ export async function runImplementationSession(options: {
             }),
         );
 
-        const testerListenerTask = taskRunner({
-            name: "tester",
-            branch: testerLeadBranch,
-            promptFile: "./.sandcastle/tester.md",
-            model: STAGE_MODELS.tester,
+        const verificationListenerTask = taskRunner({
+            name: "verification-coordinator",
+            branch: verificationLeadBranch,
+            promptFile: "./.sandcastle/verification-coordinator.md",
+            model: STAGE_MODELS["verification-coordinator"],
             manifestPaths: `handoff/${runId}/verification-blueprint-ready.txt`,
             baseRef: planBranch,
             runId,
             seed,
             planBranch,
-            env: blackboard.agentEnv("tester"),
-            onAttemptStart: () => blackboard.markAgentActive("tester"),
+            env: blackboard.agentEnv("verification-coordinator"),
+            onAttemptStart: () => blackboard.markAgentActive("verification-coordinator"),
             onStageSettled: (outcome, err) => {
                 if (outcome === "settled") {
-                    blackboard.markAgentSettled("tester");
+                    blackboard.markAgentSettled("verification-coordinator");
                 } else {
-                    blackboard.markAgentTerminated("tester", errorText(err));
+                    blackboard.markAgentTerminated("verification-coordinator", errorText(err));
                 }
             },
         });
 
-        await Promise.all([...impTasks, testerListenerTask]);
+        await Promise.all([...impTasks, verificationListenerTask]);
     } finally {
         await blackboard.close();
     }
@@ -3021,8 +3066,8 @@ export async function runImplementationSession(options: {
             verifiedTargetRef: planBranch,
         });
     }
-    mergeInto(planBranch, testerLeadBranch, repoDir);
-    teardownWorktree(testerLeadBranch, {
+    mergeInto(planBranch, verificationLeadBranch, repoDir);
+    teardownWorktree(verificationLeadBranch, {
         repoDir,
         deleteBranch: true,
         verifiedTargetRef: planBranch,
@@ -3103,11 +3148,11 @@ export async function preparePlanBranchForNextIteration(
 
 /**
  * Stage 4 — Unified Review, Testing & End-to-End Validation (Blackboard Session 4)
- * - Spawns tester-1..4 (+ tester-5 if implementer-5 ran) and background listener validator on Blackboard Session 4.
+ * - Spawns architecture-tester, storage-tester, stack-tester, optimization-tester (+ visual-tester if visual-implementer ran) and background listener e2e-validator on Blackboard Session 4.
  * - Each unified reviewer/tester verifies code contracts, runs real tests/MCP checks,
- *   claims any defect remediation files on Blackboard, and writes handoff/{{RUN_ID}}/tester-x.txt.
- * - Syncs all tester-x manifests and remediated files into validator's worktree before wait-scanners unblocks validator.
- * - validator runs solo E2E validation on the consolidated code and writes handoff/{{RUN_ID}}/validated.txt (PASS or FAIL + validation-remediation-spec.md).
+ *   claims any defect remediation files on Blackboard, and writes handoff/{{RUN_ID}}/*-tester.txt.
+ * - Syncs all *-tester manifests and remediated files into e2e-validator's worktree before wait-scanners unblocks e2e-validator.
+ * - e2e-validator runs solo E2E validation on the consolidated code and writes handoff/{{RUN_ID}}/validated.txt (PASS or FAIL + validation-remediation-spec.md).
  * - Merges all Stage 4 branches into planBranch.
  */
 export async function runTestingSession(options: {
@@ -3129,41 +3174,41 @@ export async function runTestingSession(options: {
         manifest: string;
     }> = [
             {
-                name: "tester-1",
-                branch: `agent/tester-1-${runId}`,
-                promptFile: "./.sandcastle/tester-1.md",
-                manifest: `handoff/${runId}/tester-1.txt`,
+                name: "architecture-tester",
+                branch: `agent/architecture-tester-${runId}`,
+                promptFile: "./.sandcastle/architecture-tester.md",
+                manifest: `handoff/${runId}/architecture-tester.txt`,
             },
             {
-                name: "tester-2",
-                branch: `agent/tester-2-${runId}`,
-                promptFile: "./.sandcastle/tester-2.md",
-                manifest: `handoff/${runId}/tester-2.txt`,
+                name: "storage-tester",
+                branch: `agent/storage-tester-${runId}`,
+                promptFile: "./.sandcastle/storage-tester.md",
+                manifest: `handoff/${runId}/storage-tester.txt`,
             },
             {
-                name: "tester-3",
-                branch: `agent/tester-3-${runId}`,
-                promptFile: "./.sandcastle/tester-3.md",
-                manifest: `handoff/${runId}/tester-3.txt`,
+                name: "stack-tester",
+                branch: `agent/stack-tester-${runId}`,
+                promptFile: "./.sandcastle/stack-tester.md",
+                manifest: `handoff/${runId}/stack-tester.txt`,
             },
             {
-                name: "tester-4",
-                branch: `agent/tester-4-${runId}`,
-                promptFile: "./.sandcastle/tester-4.md",
-                manifest: `handoff/${runId}/tester-4.txt`,
+                name: "optimization-tester",
+                branch: `agent/optimization-tester-${runId}`,
+                promptFile: "./.sandcastle/optimization-tester.md",
+                manifest: `handoff/${runId}/optimization-tester.txt`,
             },
         ];
 
     if (includeVisualTester) {
         testerDefs.push({
-            name: "tester-5",
-            branch: `agent/tester-5-${runId}`,
-            promptFile: "./.sandcastle/tester-5.md",
-            manifest: `handoff/${runId}/tester-5.txt`,
+            name: "visual-tester",
+            branch: `agent/visual-tester-${runId}`,
+            promptFile: "./.sandcastle/visual-tester.md",
+            manifest: `handoff/${runId}/visual-tester.txt`,
         });
     }
 
-    const validatorLeadBranch = `agent/validator-${runId}`;
+    const validatorLeadBranch = `agent/e2e-validator-${runId}`;
     await ensureWorktree(validatorLeadBranch, repoDir, planBranch);
     for (const tst of testerDefs) {
         await ensureWorktree(tst.branch, repoDir, planBranch);
@@ -3174,7 +3219,7 @@ export async function runTestingSession(options: {
     const blackboard = new BlackboardServer(runId, {
         repoDir,
         sessionName: "stage4-testing",
-        activeAgents: [...workerIds, "validator"],
+        activeAgents: [...workerIds, "e2e-validator"],
         workerAgents: workerIds,
     });
     await blackboard.start();
@@ -3214,22 +3259,22 @@ export async function runTestingSession(options: {
         );
 
         const validatorListenerTask = taskRunner({
-            name: "validator",
+            name: "e2e-validator",
             branch: validatorLeadBranch,
-            promptFile: "./.sandcastle/validator.md",
-            model: STAGE_MODELS.validator,
+            promptFile: "./.sandcastle/e2e-validator.md",
+            model: STAGE_MODELS["e2e-validator"],
             manifestPaths: `handoff/${runId}/validated.txt`,
             baseRef: planBranch,
             runId,
             seed,
             planBranch,
-            env: blackboard.agentEnv("validator"),
-            onAttemptStart: () => blackboard.markAgentActive("validator"),
+            env: blackboard.agentEnv("e2e-validator"),
+            onAttemptStart: () => blackboard.markAgentActive("e2e-validator"),
             onStageSettled: (outcome, err) => {
                 if (outcome === "settled") {
-                    blackboard.markAgentSettled("validator");
+                    blackboard.markAgentSettled("e2e-validator");
                 } else {
-                    blackboard.markAgentTerminated("validator", errorText(err));
+                    blackboard.markAgentTerminated("e2e-validator", errorText(err));
                 }
             },
         });
@@ -3355,7 +3400,7 @@ export async function runMultiStagePipeline(options: {
                     spawnedVisualPlanner = planningResult.spawnedVisualPlanner;
                 } else {
                     try {
-                        assertStageManifest("planner-2.5-check", planBranch, `handoff/${runId}/planner-2.5.txt`, repoDir);
+                        assertStageManifest("visual-planner-check", planBranch, `handoff/${runId}/visual-planner.txt`, repoDir);
                         spawnedVisualPlanner = true;
                     } catch {
                         spawnedVisualPlanner = false;
@@ -3405,13 +3450,13 @@ export async function runMultiStagePipeline(options: {
             // Consolidate planBranch worktree before final join
             removeWorktreeDir(planBranch, { repoDir, consolidateBeforeRemove: true });
 
-            // Stage 5: Final Local Join (merger)
+            // Stage 5: Final Local Join (branch-merger)
             if (!options.skipMerger && startStage <= 5) {
                 await taskRunner({
-                    name: "merger",
+                    name: "branch-merger",
                     branch: "main",
-                    promptFile: "./.sandcastle/merger.md",
-                    model: STAGE_MODELS.merger,
+                    promptFile: "./.sandcastle/branch-merger.md",
+                    model: STAGE_MODELS["branch-merger"],
                     manifestPaths: `handoff/${runId}/merged.txt`,
                     baseRef: "main",
                     runId,

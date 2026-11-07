@@ -11,7 +11,7 @@ Role: Existing codebase, module, storage, and dataflow discovery scanner. Do not
 !`cat {{SEED_PATH}}`
 !`cat wayfinder/{{RUN_ID}}/validation-remediation-spec.md 2>/dev/null || true`
 !`cat wayfinder/{{RUN_ID}}/codebase-map.md 2>/dev/null || true`
-!`cat handoff/{{RUN_ID}}/prior-iteration/codebase-mapper.txt handoff/{{RUN_ID}}/prior-iteration/implementer-*.txt 2>/dev/null || true`
+!`cat handoff/{{RUN_ID}}/prior-iteration/codebase-mapper.txt handoff/{{RUN_ID}}/prior-iteration/*-implementer.txt 2>/dev/null || true`
 
 ### Live Discovery Blackboard
 !`blackboard read --since 0 2>/dev/null || true`

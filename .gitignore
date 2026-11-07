@@ -3,6 +3,7 @@
 .env.*
 
 # Node dependencies
+node_modules
 node_modules/
 npm-debug.log*
 yarn-debug.log*
@@ -38,8 +39,6 @@ outputs/
 
 # Authoring / diagnostic / handoff workspaces & unsplit raw binaries (> 48 MB)
 .sandcastle/
-handoff/
-wayfinder/
 20261019T213303-735-zjzk/
 assets/20261019T213303-735-zjzk
 assets/20261022T230304-120-0j7w/
