@@ -193,6 +193,18 @@ import {
   drawTechnoVectorText,
   measureTechnoVectorText,
 } from './doom_tracks_mp3_hud.js?v=092';
+import {
+  createSceneBootMaterializationSystem,
+  createPortfolioPerimeterHUD,
+  GlyphDecodeController,
+  CIPHER_GLYPH_POOL,
+  computePortraitAspectFactor,
+  evaluateDynamicCameraFollowOffsets,
+  DYNAMIC_CAM_ASPECT_LANDSCAPE,
+  DYNAMIC_CAM_ASPECT_PORTRAIT,
+  DYNAMIC_CAM_BOOM_PULLBACK_FACTOR,
+  DYNAMIC_CAM_LOOKAT_Y_ELEVATION_M,
+} from './scene_materialization_hud_070.js?v=070';
 
 const IS_DEV_MODE =
   typeof window !== 'undefined' &&
@@ -6353,6 +6365,12 @@ function buildSpawnAndCameraDirectorSystem(floorY = 0.0) {
       if (mountFocusCameraState) mountFocusCameraState.currentLookAt.copy(cameraPanState.startLookAt);
       camera.lookAt(cameraPanState.startLookAt);
       camera.updateMatrixWorld(true);
+      if (sandbox.sceneMaterialization) {
+        sandbox.sceneMaterialization.playBootMaterialization();
+      }
+      if (sandbox.portfolioHUD && !sandbox.portfolioHUD.bootChoreographyPlayed) {
+        sandbox.portfolioHUD.playBootChoreography();
+      }
       syncIntroDialogueOverlayUI();
       syncDirectorHUDInputs();
       updateTelemetryHUD();
@@ -6362,6 +6380,12 @@ function buildSpawnAndCameraDirectorSystem(floorY = 0.0) {
     stopStartupPan(useOrbit = false) {
       cameraPanState.mode = useOrbit ? 'orbit' : 'settled';
       cameraPanState.playing = false;
+      if (sandbox.sceneMaterialization && !sandbox.sceneMaterialization.resolved) {
+        sandbox.sceneMaterialization.accelerateToResolved();
+      }
+      if (sandbox.portfolioHUD) {
+        sandbox.portfolioHUD.resolveAllImmediate();
+      }
       syncDirectorHUDInputs();
       return true;
     },
@@ -12122,9 +12146,16 @@ const mobileTouch = {
   },
   syncDOM() {
     if (typeof document === 'undefined') return;
+    const activeDecodeJobs =
+      sandbox && sandbox.portfolioHUD && sandbox.portfolioHUD.decodeController
+        ? sandbox.portfolioHUD.decodeController.activeJobs
+        : null;
+
     const baseEl = document.getElementById('mobile-left-thumbpad');
     const knobEl = document.getElementById('mobile-left-thumbpad-knob');
     const labelEl = document.getElementById('mobile-left-thumbpad-label');
+    const leftTetherEl = document.getElementById('mobile-left-thumbpad-tether');
+    const leftReadoutEl = document.getElementById('mobile-left-thumbpad-readout');
     if (baseEl) {
       baseEl.classList.toggle('walking', this.zone === 'walk');
       baseEl.classList.toggle('sprinting', this.zone === 'sprint');
@@ -12133,14 +12164,30 @@ const mobileTouch = {
     if (knobEl) {
       knobEl.style.transform = `translate(${this.knobOffsetX.toFixed(1)}px, ${this.knobOffsetY.toFixed(1)}px)`;
     }
-    if (labelEl) {
-      labelEl.textContent =
+    if (leftTetherEl) {
+      const tx = 50 + this.lx * 36;
+      const ty = 50 - this.ly * 36;
+      leftTetherEl.setAttribute('x2', tx.toFixed(2));
+      leftTetherEl.setAttribute('y2', ty.toFixed(2));
+    }
+    if (leftReadoutEl) {
+      const stateTag = this.zone === 'sprint' ? 'SPRINT' : this.zone === 'walk' ? 'WALK' : 'IDLE';
+      leftReadoutEl.textContent = `${this.magnitude.toFixed(2)} // ${stateTag}`;
+    }
+    if (labelEl && (!activeDecodeJobs || !activeDecodeJobs.has(labelEl))) {
+      const nextLeftLabel =
         this.zone === 'sprint' ? 'SPRINT' : this.zone === 'walk' ? 'WALK' : 'MOVE';
+      if (labelEl.textContent !== nextLeftLabel) {
+        labelEl.textContent = nextLeftLabel;
+        labelEl.setAttribute('data-hud-canonical-text', nextLeftLabel);
+      }
     }
 
     const rightBaseEl = document.getElementById('mobile-right-thumbpad');
     const rightKnobEl = document.getElementById('mobile-right-thumbpad-knob');
     const rightLabelEl = document.getElementById('mobile-right-thumbpad-label');
+    const rightTetherEl = document.getElementById('mobile-right-thumbpad-tether');
+    const rightReadoutEl = document.getElementById('mobile-right-thumbpad-readout');
     const isLooking = this.lookMagnitude >= THUMBPAD_DEADZONE;
     if (rightBaseEl) {
       rightBaseEl.classList.toggle('looking', isLooking);
@@ -12149,8 +12196,21 @@ const mobileTouch = {
     if (rightKnobEl) {
       rightKnobEl.style.transform = `translate(${this.lookKnobOffsetX.toFixed(1)}px, ${this.lookKnobOffsetY.toFixed(1)}px)`;
     }
-    if (rightLabelEl) {
-      rightLabelEl.textContent = 'LOOK';
+    if (rightTetherEl) {
+      const rxPct = 50 + this.rx * 36;
+      const ryPct = 50 - this.ry * 36;
+      rightTetherEl.setAttribute('x2', rxPct.toFixed(2));
+      rightTetherEl.setAttribute('y2', ryPct.toFixed(2));
+    }
+    if (rightReadoutEl) {
+      rightReadoutEl.textContent = `${this.lookMagnitude.toFixed(2)} // ${isLooking ? 'ORBIT' : 'STBY'}`;
+    }
+    if (rightLabelEl && (!activeDecodeJobs || !activeDecodeJobs.has(rightLabelEl))) {
+      const nextRightLabel = isLooking ? 'ORBIT' : 'LOOK';
+      if (rightLabelEl.textContent !== nextRightLabel) {
+        rightLabelEl.textContent = nextRightLabel;
+        rightLabelEl.setAttribute('data-hud-canonical-text', nextRightLabel);
+      }
     }
   },
   setVector(rawLx, rawLy, { autoEnterFreeRoam = true } = {}) {
@@ -15429,6 +15489,9 @@ function updatePortalGameHoloPopupUI(clampedDt = 1 / 60) {
 
 function enterFreeRoamMode() {
   if (sandbox.mode === 'freeroam') return;
+  if (sandbox.sceneMaterialization && !sandbox.sceneMaterialization.resolved) {
+    sandbox.sceneMaterialization.accelerateToResolved();
+  }
   sandbox.mode = 'freeroam';
   sandbox.isMountFocused = false;
   sandbox.focusedMount = null;
@@ -18195,6 +18258,9 @@ const sandbox = {
     if (currentChar !== controller) {
       scene.remove(currentChar.root);
       scene.add(controller.root);
+      if (this.sceneMaterialization) {
+        this.sceneMaterialization.registerSceneMaterials(controller.root);
+      }
       this.characters[spec.characterSlot] = controller;
       window.__THREE_ANIMATION_MIXERS__ = [
         this.characters.hoodie.mixer,
@@ -18907,14 +18973,40 @@ function computeThirdPersonCameraPose(dt = 1 / 60) {
   }
 
   // ==========================================================================
+  // Aspect-Ratio Dynamic Follow-Offset Scaling (Spec 070 §7 / dynamic_cam.md)
+  // ==========================================================================
+  const currentViewportAspect =
+    typeof window !== 'undefined' && window.innerWidth > 0 && window.innerHeight > 0
+      ? window.innerWidth / window.innerHeight
+      : Number.isFinite(camera.aspect) && camera.aspect > 0.05
+        ? camera.aspect
+        : 16 / 9;
+  if (Math.abs(camera.aspect - currentViewportAspect) > 1e-4) {
+    camera.aspect = currentViewportAspect;
+    camera.updateProjectionMatrix();
+  }
+  const dynFollowOffsets = evaluateDynamicCameraFollowOffsets(
+    currentViewportAspect,
+    cameraOrbit.desiredDistance,
+    characterCameraState.pivotHeightY,
+    characterCameraState.shoulderOffsetX
+  );
+  cameraOrbit.viewportAspect = dynFollowOffsets.aspectRatio;
+  cameraOrbit.portraitFactor = dynFollowOffsets.portraitFactor;
+  cameraOrbit.effectiveDesiredDistance = dynFollowOffsets.effectiveDesiredDistance;
+  cameraOrbit.effectivePivotHeightY = dynFollowOffsets.effectivePivotHeightY;
+  cameraOrbit.effectiveShoulderOffsetX = dynFollowOffsets.effectiveShoulderOffsetX;
+
+  // ==========================================================================
   // Spring Arm Stage 1: Spine-to-Shoulder Socket Sweep (Spec 068 §4 & §5.3)
   // ==========================================================================
   const charX = activeChar ? activeChar.position.x : 0.0;
   const charY = activeChar ? activeChar.position.y : 0.0;
   const charZ = activeChar ? activeChar.position.z : 3.0;
-  const pivotHeightY = characterCameraState.pivotHeightY;
-  const shoulderOffsetX = characterCameraState.shoulderOffsetX;
+  const pivotHeightY = dynFollowOffsets.effectivePivotHeightY;
+  const shoulderOffsetX = dynFollowOffsets.effectiveShoulderOffsetX;
   const forwardOffsetZ = characterCameraState.forwardOffsetZ;
+  const effectiveDesiredDist = dynFollowOffsets.effectiveDesiredDistance;
 
   const spinePos = cameraOrbit._tempSpinePos.set(charX, charY + pivotHeightY, charZ);
   const fCamX = Math.sin(psi);
@@ -19023,14 +19115,14 @@ function computeThirdPersonCameraPose(dt = 1 / 60) {
   const dirY = cameraOrbit._tempBackDir.y;
   const dirZ = cameraOrbit._tempBackDir.z;
 
-  let clampedDist = cameraOrbit.desiredDistance;
+  let clampedDist = effectiveDesiredDist;
 
   if (!bypassWallClamp && env) {
     const horizLen = Math.hypot(dirX, dirZ);
     if (horizLen > 1e-5 && env.wallSegments) {
       const hdx = dirX / horizLen;
       const hdz = dirZ / horizLen;
-      const maxHorizDist = cameraOrbit.desiredDistance * horizLen + CAM_SPRING_ARM_PROBE_RADIUS;
+      const maxHorizDist = effectiveDesiredDist * horizLen + CAM_SPRING_ARM_PROBE_RADIUS;
 
       for (let i = 0; i < env.wallSegments.length; i++) {
         const seg = env.wallSegments[i];
@@ -19059,7 +19151,7 @@ function computeThirdPersonCameraPose(dt = 1 / 60) {
       tempRayDir.set(dirX, dirY, dirZ).normalize();
       raycaster.set(cameraOrbit.pivotCurrent, tempRayDir);
       raycaster.near = 0.02;
-      raycaster.far = cameraOrbit.desiredDistance + CAM_SPRING_ARM_PROBE_RADIUS;
+      raycaster.far = effectiveDesiredDist + CAM_SPRING_ARM_PROBE_RADIUS;
 
       const hits = [];
       for (const mesh of env.colliderMeshList) {
@@ -19626,17 +19718,33 @@ function updateTelemetryHUD() {
     elScrollBar.style.width = `${(sandbox.scrollProgress * 100).toFixed(1)}%`;
   }
 
+  const activeDecodeJobs =
+    sandbox && sandbox.portfolioHUD && sandbox.portfolioHUD.decodeController
+      ? sandbox.portfolioHUD.decodeController.activeJobs
+      : null;
+
   const elMobileModeBtn = document.getElementById('mobile-action-mode-btn');
   if (elMobileModeBtn) {
     const isRadialOpen = Boolean(sandbox.radialMenu && sandbox.radialMenu.isOpen());
-    elMobileModeBtn.textContent = 'MENU';
+    if (!activeDecodeJobs || !activeDecodeJobs.has(elMobileModeBtn)) {
+      if (elMobileModeBtn.textContent !== 'MENU') {
+        elMobileModeBtn.textContent = 'MENU';
+      }
+      elMobileModeBtn.setAttribute('data-hud-canonical-text', 'MENU');
+    }
     elMobileModeBtn.classList.toggle('active', isRadialOpen);
     elMobileModeBtn.setAttribute('aria-expanded', isRadialOpen ? 'true' : 'false');
   }
   const elMobileInteractBtn = document.getElementById('mobile-action-interact-btn');
   if (elMobileInteractBtn) {
     const hasNearMount = Boolean(sandbox.proximityMount || sandbox.hoveredMount || sandbox.activeHoloProject);
-    elMobileInteractBtn.textContent = isMountFocus ? 'EXIT' : 'MOUNT';
+    const nextInteractLabel = isMountFocus ? 'EXIT' : 'MOUNT';
+    if (!activeDecodeJobs || !activeDecodeJobs.has(elMobileInteractBtn)) {
+      if (elMobileInteractBtn.textContent !== nextInteractLabel) {
+        elMobileInteractBtn.textContent = nextInteractLabel;
+      }
+      elMobileInteractBtn.setAttribute('data-hud-canonical-text', nextInteractLabel);
+    }
     elMobileInteractBtn.classList.toggle('highlight-mount', isMountFocus || Boolean(sandbox.proximityMount));
     elMobileInteractBtn.classList.toggle('active', hasNearMount);
   }
@@ -20179,6 +20287,12 @@ function stepSimulation(dt) {
   }
   if (sandbox.mp3Player) {
     sandbox.mp3Player.update(performance.now());
+  }
+  if (sandbox.sceneMaterialization) {
+    sandbox.sceneMaterialization.update(clampedDt);
+  }
+  if (sandbox.portfolioHUD) {
+    sandbox.portfolioHUD.update(clampedDt);
   }
   updateTelemetryHUD();
   if (crtOpticalPassSystem && crtOpticalPassSystem.state.enabled) {
@@ -24816,6 +24930,20 @@ async function initSandbox() {
     window.addEventListener('focus', triggerBackgroundLayoutRefresh);
   }
 
+  // Initialize Scene-Wide Boot-Up 3D Materialization & Glowing Bloom-Edge Dissolve System (Spec 070 §4)
+  // and Screen-Agnostic Portfolio Perimeter HUD & Glyph Cipher Decode System (Spec 070 §5 / hud.md)
+  sandbox.sceneMaterialization = createSceneBootMaterializationSystem({
+    scene,
+    sandbox,
+    defaultDurationSec: 2.8,
+    edgeColorHex: '#eb5a13',
+    edgeThickness: 0.085,
+    edgeIntensity: 6.8,
+  });
+  sandbox.sceneMaterialization.registerSceneMaterials(scene);
+  sandbox.portfolioHUD = createPortfolioPerimeterHUD({ sandbox });
+  sandbox.portfolioHUD.bindInteractions();
+
   sandbox.ready = true;
   if (sandbox.director) {
     sandbox.director.introSequenceState.phase = 'pan-playing';
@@ -24824,6 +24952,8 @@ async function initSandbox() {
     sandbox.director.previewPanStartPose();
     if (!sprayLoader) {
       sandbox.director.playStartupPan();
+    } else {
+      sandbox.sceneMaterialization.stageForBoot();
     }
   }
   if (sprayLoader && sprayLoader.mode === 'deterministic') {
@@ -25003,4 +25133,14 @@ export {
   normalizePortalGameEntry,
   resolvePortalGameSpec,
   solvePortalGameGridLayout,
+  createSceneBootMaterializationSystem,
+  createPortfolioPerimeterHUD,
+  GlyphDecodeController,
+  CIPHER_GLYPH_POOL,
+  computePortraitAspectFactor,
+  evaluateDynamicCameraFollowOffsets,
+  DYNAMIC_CAM_ASPECT_LANDSCAPE,
+  DYNAMIC_CAM_ASPECT_PORTRAIT,
+  DYNAMIC_CAM_BOOM_PULLBACK_FACTOR,
+  DYNAMIC_CAM_LOOKAT_Y_ELEVATION_M,
 };

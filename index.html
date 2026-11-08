@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>Freeman Alley — Scroll-Driven Walk &amp; Interactive Free-Roam</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect width='16' height='16' rx='3' fill='%232563eb'/></svg>" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600;700&display=swap" media="print" onload="this.media='all'" />
   <script type="importmap">
     {
       "imports": {
@@ -14,6 +15,15 @@
     }
   </script>
   <style>
+    :root {
+      --font-geist-sans: "Geist", "Geist Sans", -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      --font-geist-mono: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      --hud-phosphor-primary: #f59e0b;
+      --hud-phosphor-bright: #fbbf24;
+      --hud-phosphor-hot: #ff4224;
+      --hud-phosphor-ivory: #fef3c7;
+      --hud-void-bg: rgba(8, 9, 12, 0.72);
+    }
     * {
       box-sizing: border-box;
       user-select: none;
@@ -1698,6 +1708,271 @@
     /* ======================================================================
        Mobile Single-Thumbpad & Touch Action Controls (Spec 040 §3–§5)
        ====================================================================== */
+    /* ======================================================================
+       Screen-Agnostic Portfolio HUD & Glyph Materialization System (Spec 070 / hud.md)
+       + Revamped Retro-Industrial Telemetry Analog Sticks
+       ====================================================================== */
+    #portfolio-perimeter-hud {
+      position: fixed;
+      inset: 0;
+      z-index: 22;
+      pointer-events: none;
+      user-select: none;
+      -webkit-user-select: none;
+      font-family: var(--font-geist-sans);
+      color: var(--hud-phosphor-ivory);
+    }
+    body.intro-dialogue-active #portfolio-hud-bottom-right,
+    body.mp3-takeover-active #portfolio-perimeter-hud,
+    body.doom-chat-active #portfolio-hud-bottom-right,
+    body.sticker-popup-active #portfolio-hud-bottom-right {
+      opacity: 0;
+      pointer-events: none !important;
+    }
+    /* When developer sidebar #sandbox-hud is open on left, shift top-left brand block cleanly */
+    body.dev-mode:not(.sidebar-collapsed) #portfolio-hud-top-left {
+      left: 382px;
+    }
+    #portfolio-hud-top-left {
+      position: absolute;
+      top: calc(clamp(10px, 1.8vw, 20px) + env(safe-area-inset-top, 0px));
+      left: calc(clamp(12px, 2.2vw, 24px) + env(safe-area-inset-left, 0px));
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      pointer-events: none;
+      transition: left 0.22s ease;
+    }
+    .portfolio-hud-brand-row {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+    }
+    #portfolio-hud-brand {
+      font-family: var(--font-geist-sans);
+      font-weight: 700;
+      font-size: clamp(13px, 1.35vw, 17px);
+      letter-spacing: -0.035em;
+      line-height: 1.05;
+      color: #fffbeb;
+      text-transform: uppercase;
+      text-shadow: 0 0 12px rgba(245, 158, 11, 0.45);
+      white-space: nowrap;
+    }
+    #portfolio-hud-stamp {
+      font-family: var(--font-geist-mono);
+      font-weight: 600;
+      font-size: clamp(9px, 0.8vw, 10.5px);
+      letter-spacing: 0.04em;
+      color: var(--hud-phosphor-primary);
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+      text-shadow: 0 0 8px rgba(245, 158, 11, 0.35);
+    }
+    #portfolio-hud-bilingual {
+      font-family: var(--font-geist-sans);
+      font-weight: 500;
+      font-size: clamp(8.5px, 0.75vw, 10px);
+      letter-spacing: 0.06em;
+      line-height: 1.15;
+      color: rgba(251, 191, 36, 0.72);
+      white-space: nowrap;
+    }
+    #portfolio-hud-roles {
+      font-family: var(--font-geist-sans);
+      font-weight: 600;
+      font-size: clamp(9px, 0.82vw, 11px);
+      letter-spacing: 0.05em;
+      line-height: 1.18;
+      text-transform: uppercase;
+      color: rgba(254, 243, 199, 0.76);
+      text-shadow: 0 0 10px rgba(245, 158, 11, 0.25);
+      white-space: nowrap;
+    }
+
+    /* Top-Center Region: Unified Navigation & Mode Bar (Replaces legacy mobile lower-left button column) */
+    #portfolio-hud-top-center {
+      position: absolute;
+      top: calc(clamp(10px, 1.8vw, 20px) + env(safe-area-inset-top, 0px));
+      left: 50%;
+      transform: translateX(-50%);
+      pointer-events: auto;
+      z-index: 24;
+    }
+    #mobile-touch-actions {
+      display: inline-flex;
+      flex-direction: row;
+      align-items: center;
+      gap: clamp(4px, 0.65vw, 7px);
+      padding: 4px 6px;
+      background: rgba(8, 9, 12, 0.78);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: 1px solid rgba(245, 158, 11, 0.38);
+      border-radius: 999px;
+      box-shadow:
+        0 6px 20px rgba(0, 0, 0, 0.62),
+        inset 0 0 12px rgba(245, 158, 11, 0.08);
+      pointer-events: auto;
+      touch-action: manipulation;
+    }
+    .mobile-action-btn,
+    .portfolio-hud-nav-link {
+      height: clamp(24px, 2.4vw, 28px);
+      min-width: clamp(46px, 5vw, 58px);
+      padding: 0 clamp(8px, 1vw, 12px);
+      border-radius: 999px;
+      background: transparent;
+      border: 1px solid transparent;
+      color: rgba(254, 243, 199, 0.88);
+      font-family: var(--font-geist-sans);
+      font-size: clamp(9.5px, 0.85vw, 11px);
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      touch-action: manipulation;
+      white-space: nowrap;
+      text-shadow: 0 0 8px rgba(245, 158, 11, 0.32);
+      transition: background 0.14s ease, border-color 0.14s ease, color 0.14s ease, box-shadow 0.14s ease;
+    }
+    .mobile-action-btn:hover,
+    .portfolio-hud-nav-link:hover {
+      border-color: rgba(251, 191, 36, 0.52);
+      color: #ffffff;
+      background: rgba(245, 158, 11, 0.14);
+    }
+    /* High-contrast active state: solid pill container with inverted text (hud.md §2) */
+    .portfolio-hud-nav-link.active-pill,
+    .mobile-action-btn:active,
+    .mobile-action-btn.active {
+      background: var(--hud-phosphor-bright);
+      border-color: #fef08a;
+      color: #090a0d;
+      font-weight: 700;
+      text-shadow: none;
+      box-shadow: 0 0 14px rgba(251, 191, 36, 0.48);
+    }
+    .portfolio-hud-nav-link.active-pill.is-roam {
+      background: var(--hud-phosphor-hot);
+      border-color: #fca5a5;
+      color: #090a0d;
+      box-shadow: 0 0 14px rgba(255, 66, 36, 0.55);
+    }
+    .mobile-action-btn.highlight-mount {
+      background: rgba(245, 158, 11, 0.28);
+      border-color: var(--hud-phosphor-bright);
+      color: #fffbeb;
+      box-shadow: 0 0 14px rgba(245, 158, 11, 0.45);
+    }
+
+    /* Top-Right Region: Real-Time System Telemetry Readout (Geist Mono, Tabular Numerals) */
+    #portfolio-hud-top-right {
+      position: absolute;
+      top: calc(clamp(10px, 1.8vw, 20px) + env(safe-area-inset-top, 0px));
+      right: calc(clamp(12px, 2.2vw, 24px) + env(safe-area-inset-right, 0px));
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 10px;
+      background: rgba(8, 9, 12, 0.74);
+      border: 1px solid rgba(245, 158, 11, 0.32);
+      border-radius: 6px;
+      font-family: var(--font-geist-mono);
+      font-size: clamp(9.5px, 0.82vw, 11px);
+      font-weight: 500;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: 0.03em;
+      color: var(--hud-phosphor-ivory);
+      text-shadow: 0 0 8px rgba(245, 158, 11, 0.35);
+      pointer-events: none;
+      white-space: nowrap;
+    }
+    .portfolio-hud-tel-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--hud-phosphor-bright);
+      box-shadow: 0 0 8px var(--hud-phosphor-bright);
+      flex-shrink: 0;
+    }
+    .portfolio-hud-tel-sep {
+      color: rgba(245, 158, 11, 0.42);
+    }
+
+    /* Bottom-Right Region: Contextual Hardware Utility / Media Status Module */
+    #portfolio-hud-bottom-right {
+      position: absolute;
+      right: calc(clamp(12px, 2.2vw, 24px) + env(safe-area-inset-right, 0px));
+      top: calc(clamp(46px, 4.8vw, 58px) + env(safe-area-inset-top, 0px));
+      display: inline-flex;
+      align-items: center;
+      gap: 0;
+      background: rgba(8, 9, 12, 0.72);
+      border: 1px solid rgba(245, 158, 11, 0.28);
+      border-radius: 4px;
+      font-family: var(--font-geist-mono);
+      font-size: 9px;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: 0.05em;
+      color: rgba(254, 243, 199, 0.78);
+      pointer-events: none;
+      transition: opacity 0.18s ease;
+    }
+    .portfolio-hud-util-cell {
+      padding: 3px 7px;
+      border-right: 1px solid rgba(245, 158, 11, 0.24);
+      white-space: nowrap;
+    }
+    .portfolio-hud-util-cell:last-child {
+      border-right: none;
+      color: var(--hud-phosphor-bright);
+    }
+
+    /* Zero-Jitter Cipher Decode Stage & Hot State Styling (hud.md §4.1–§4.3) */
+    .hud-cipher-locked {
+      position: relative !important;
+      overflow: hidden !important;
+    }
+    .hud-cipher-sizer {
+      visibility: hidden !important;
+      pointer-events: none !important;
+      white-space: nowrap !important;
+    }
+    .hud-cipher-stage {
+      position: absolute;
+      inset: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: inherit;
+      white-space: nowrap;
+      pointer-events: none;
+    }
+    .hud-cipher-char {
+      display: inline;
+      font-variant-numeric: tabular-nums;
+    }
+    .hud-cipher-char.is-dormant {
+      opacity: 0;
+    }
+    .hud-cipher-char.is-hot {
+      opacity: 1;
+      color: #ffffff;
+      background: rgba(255, 66, 36, 0.36);
+      text-shadow: 0 0 10px #fbbf24, 0 0 4px #ffffff;
+      border-radius: 1px;
+    }
+    .hud-cipher-char.is-resolved {
+      opacity: 1;
+    }
+
+    /* ======================================================================
+       Revamped Dual Virtual Analog Sticks — Precision Telemetry Reticles (§6)
+       ====================================================================== */
     #mobile-touch-controls {
       position: fixed;
       inset: 0;
@@ -1710,151 +1985,252 @@
     body.mobile-touch-enabled #mobile-touch-controls {
       display: block;
     }
-    #mobile-left-thumbpad {
+    #mobile-left-thumbpad,
+    #mobile-right-thumbpad {
       position: absolute;
-      left: calc(14px + env(safe-area-inset-left, 0px));
-      bottom: calc(14px + env(safe-area-inset-bottom, 0px));
-      width: 120px;
-      height: 120px;
       border-radius: 50%;
-      background: radial-gradient(circle, rgba(15, 23, 42, 0.44) 0%, rgba(7, 12, 24, 0.74) 100%);
-      border: 2px solid rgba(56, 189, 248, 0.48);
+      background: radial-gradient(circle, rgba(12, 11, 10, 0.52) 0%, rgba(6, 7, 10, 0.84) 100%);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      border: 1px solid rgba(245, 158, 11, 0.52);
       box-shadow:
-        0 8px 24px rgba(0, 0, 0, 0.58),
-        inset 0 0 18px rgba(0, 213, 255, 0.14);
+        0 8px 24px rgba(0, 0, 0, 0.68),
+        inset 0 0 16px rgba(245, 158, 11, 0.10);
+      opacity: 0.56;
       pointer-events: auto;
       touch-action: none;
       cursor: pointer;
-      transition: border-color 0.14s ease, box-shadow 0.14s ease;
+      transition:
+        opacity 0.09s ease,
+        border-color 0.12s ease,
+        box-shadow 0.12s ease;
     }
-    #mobile-left-thumbpad.walking {
-      border-color: rgba(0, 213, 255, 0.94);
+    #mobile-left-thumbpad {
+      left: calc(clamp(12px, 3vw, 20px) + env(safe-area-inset-left, 0px));
+      bottom: calc(clamp(12px, 3vw, 20px) + env(safe-area-inset-bottom, 0px));
+      width: clamp(104px, 25vw, 118px);
+      height: clamp(104px, 25vw, 118px);
+    }
+    #mobile-right-thumbpad {
+      right: calc(clamp(12px, 3vw, 20px) + env(safe-area-inset-right, 0px));
+      bottom: calc(142px + env(safe-area-inset-bottom, 0px));
+      width: clamp(100px, 24vw, 112px);
+      height: clamp(100px, 24vw, 112px);
+    }
+    body.mp3-hud-hidden #mobile-right-thumbpad {
+      bottom: calc(clamp(12px, 3vw, 20px) + env(safe-area-inset-bottom, 0px));
+    }
+    #mobile-left-thumbpad.walking,
+    #mobile-right-thumbpad.looking,
+    #mobile-left-thumbpad:active,
+    #mobile-right-thumbpad:active {
+      opacity: 1.0;
+      border-color: rgba(251, 191, 36, 0.95);
       box-shadow:
-        0 8px 26px rgba(0, 0, 0, 0.65),
-        0 0 18px rgba(0, 213, 255, 0.40),
-        inset 0 0 22px rgba(0, 213, 255, 0.24);
+        0 8px 26px rgba(0, 0, 0, 0.76),
+        0 0 18px rgba(245, 158, 11, 0.36),
+        inset 0 0 20px rgba(245, 158, 11, 0.20);
     }
     #mobile-left-thumbpad.sprinting {
-      border-color: rgba(74, 222, 128, 0.96);
+      opacity: 1.0;
+      border-color: rgba(255, 66, 36, 0.98);
       box-shadow:
-        0 8px 28px rgba(0, 0, 0, 0.72),
-        0 0 24px rgba(74, 222, 128, 0.54),
-        inset 0 0 24px rgba(251, 191, 36, 0.28);
+        0 8px 28px rgba(0, 0, 0, 0.80),
+        0 0 22px rgba(255, 66, 36, 0.52),
+        inset 0 0 22px rgba(251, 191, 36, 0.28);
+    }
+    /* Cardinal & Intercardinal Calibration Tick Ring */
+    .mobile-thumbpad-ticks {
+      position: absolute;
+      inset: 3px;
+      border-radius: 50%;
+      border: 1px dashed rgba(245, 158, 11, 0.24);
+      pointer-events: none;
     }
     .mobile-thumbpad-sprint-ring {
       position: absolute;
-      inset: 11%;
+      inset: 12%;
       border-radius: 50%;
       border: 1px dashed rgba(251, 191, 36, 0.34);
       pointer-events: none;
+      transition: border-color 0.12s ease;
+    }
+    #mobile-left-thumbpad.sprinting .mobile-thumbpad-sprint-ring {
+      border-color: rgba(255, 66, 36, 0.82);
     }
     .mobile-thumbpad-crosshair {
       position: absolute;
-      inset: 24%;
+      inset: 28%;
       border-radius: 50%;
-      border: 1px solid rgba(148, 163, 184, 0.18);
+      border: 1px solid rgba(254, 243, 199, 0.16);
       pointer-events: none;
     }
-    #mobile-left-thumbpad-label {
+    .mobile-thumbpad-crosshair::before,
+    .mobile-thumbpad-crosshair::after {
+      content: "";
       position: absolute;
-      top: 7px;
+      background: rgba(245, 158, 11, 0.35);
+      pointer-events: none;
+    }
+    .mobile-thumbpad-crosshair::before {
       left: 50%;
+      top: 18%;
+      bottom: 18%;
+      width: 1px;
       transform: translateX(-50%);
-      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-      font-size: 8.5px;
-      font-weight: 800;
-      letter-spacing: 0.08em;
-      color: rgba(186, 230, 253, 0.85);
-      pointer-events: none;
-      white-space: nowrap;
-      text-transform: uppercase;
     }
-    #mobile-left-thumbpad.sprinting #mobile-left-thumbpad-label {
-      color: #4ade80;
-    }
-    #mobile-left-thumbpad-knob {
-      position: absolute;
-      left: 50%;
+    .mobile-thumbpad-crosshair::after {
       top: 50%;
-      width: 48px;
-      height: 48px;
-      margin: -24px 0 0 -24px;
-      border-radius: 50%;
-      background: radial-gradient(circle at 35% 35%, rgba(186, 230, 253, 0.88), rgba(14, 165, 233, 0.62));
-      border: 1.5px solid rgba(224, 242, 254, 0.92);
-      box-shadow:
-        0 4px 12px rgba(0, 0, 0, 0.52),
-        0 0 12px rgba(56, 189, 248, 0.45);
-      pointer-events: none;
-      will-change: transform;
+      left: 18%;
+      right: 18%;
+      height: 1px;
+      transform: translateY(-50%);
     }
-    #mobile-left-thumbpad.sprinting #mobile-left-thumbpad-knob {
-      background: radial-gradient(circle at 35% 35%, rgba(187, 247, 208, 0.92), rgba(34, 197, 94, 0.72));
-      border-color: #dcfce7;
-      box-shadow:
-        0 4px 14px rgba(0, 0, 0, 0.56),
-        0 0 16px rgba(74, 222, 128, 0.65);
-    }
-    #mobile-right-thumbpad {
+    /* Dynamic Vector Tether Line SVG (Origin -> Actuator Puck) */
+    .mobile-thumbpad-tether-svg {
       position: absolute;
-      right: calc(14px + env(safe-area-inset-right, 0px));
-      bottom: calc(142px + env(safe-area-inset-bottom, 0px));
-      width: 112px;
-      height: 112px;
-      border-radius: 50%;
-      background: radial-gradient(circle, rgba(15, 23, 42, 0.44) 0%, rgba(7, 12, 24, 0.74) 100%);
-      border: 2px solid rgba(56, 189, 248, 0.48);
-      box-shadow:
-        0 8px 24px rgba(0, 0, 0, 0.58),
-        inset 0 0 18px rgba(0, 213, 255, 0.14);
-      pointer-events: auto;
-      touch-action: none;
-      cursor: pointer;
-      transition: border-color 0.14s ease, box-shadow 0.14s ease;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      overflow: visible;
     }
-    body.mp3-hud-hidden #mobile-right-thumbpad {
-      bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+    .mobile-thumbpad-tether-line {
+      stroke: rgba(251, 191, 36, 0.82);
+      stroke-width: 1.5;
+      stroke-dasharray: 3 2;
+      stroke-linecap: round;
+      opacity: 0;
+      transition: opacity 0.08s ease;
     }
-    #mobile-right-thumbpad.looking {
-      border-color: rgba(0, 213, 255, 0.94);
-      box-shadow:
-        0 8px 26px rgba(0, 0, 0, 0.65),
-        0 0 18px rgba(0, 213, 255, 0.40),
-        inset 0 0 22px rgba(0, 213, 255, 0.24);
+    #mobile-left-thumbpad.walking .mobile-thumbpad-tether-line,
+    #mobile-left-thumbpad.sprinting .mobile-thumbpad-tether-line,
+    #mobile-right-thumbpad.looking .mobile-thumbpad-tether-line {
+      opacity: 1;
     }
+    #mobile-left-thumbpad.sprinting .mobile-thumbpad-tether-line {
+      stroke: #ff4224;
+      stroke-width: 2;
+    }
+    #mobile-left-thumbpad-label,
     #mobile-right-thumbpad-label {
       position: absolute;
       top: 7px;
       left: 50%;
       transform: translateX(-50%);
-      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-family: var(--font-geist-mono);
       font-size: 8.5px;
-      font-weight: 800;
-      letter-spacing: 0.08em;
-      color: rgba(186, 230, 253, 0.85);
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: 0.09em;
+      color: rgba(254, 243, 199, 0.88);
+      text-shadow: 0 0 6px rgba(245, 158, 11, 0.42);
       pointer-events: none;
       white-space: nowrap;
       text-transform: uppercase;
     }
-    #mobile-right-thumbpad.looking #mobile-right-thumbpad-label {
-      color: #38bdf8;
+    #mobile-left-thumbpad.sprinting #mobile-left-thumbpad-label {
+      color: #ff4224;
+      text-shadow: 0 0 8px rgba(255, 66, 36, 0.65);
     }
+    #mobile-right-thumbpad.looking #mobile-right-thumbpad-label {
+      color: var(--hud-phosphor-bright);
+    }
+    .mobile-thumbpad-readout {
+      position: absolute;
+      bottom: 6px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-family: var(--font-geist-mono);
+      font-size: 7.5px;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: 0.06em;
+      color: rgba(251, 191, 36, 0.66);
+      pointer-events: none;
+      white-space: nowrap;
+    }
+    /* Flat-Engineered Precision Target Reticle Puck */
+    #mobile-left-thumbpad-knob,
     #mobile-right-thumbpad-knob {
       position: absolute;
       left: 50%;
       top: 50%;
-      width: 46px;
-      height: 46px;
-      margin: -23px 0 0 -23px;
+      width: 38px;
+      height: 38px;
+      margin: -19px 0 0 -19px;
       border-radius: 50%;
-      background: radial-gradient(circle at 35% 35%, rgba(186, 230, 253, 0.88), rgba(14, 165, 233, 0.62));
-      border: 1.5px solid rgba(224, 242, 254, 0.92);
+      background: radial-gradient(circle, rgba(245, 158, 11, 0.18) 0%, rgba(10, 10, 12, 0.86) 72%);
+      border: 1.5px solid rgba(251, 191, 36, 0.92);
       box-shadow:
-        0 4px 12px rgba(0, 0, 0, 0.52),
-        0 0 12px rgba(56, 189, 248, 0.45);
+        0 3px 10px rgba(0, 0, 0, 0.65),
+        0 0 10px rgba(245, 158, 11, 0.40);
       pointer-events: none;
       will-change: transform;
     }
+    #mobile-left-thumbpad-knob::after,
+    #mobile-right-thumbpad-knob::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 6px;
+      height: 6px;
+      margin: -3px 0 0 -3px;
+      border-radius: 50%;
+      background: #fef3c7;
+      box-shadow: 0 0 8px #fbbf24;
+    }
+    #mobile-left-thumbpad.sprinting #mobile-left-thumbpad-knob {
+      background: radial-gradient(circle, rgba(255, 66, 36, 0.28) 0%, rgba(14, 8, 8, 0.88) 72%);
+      border-color: #ff4224;
+      box-shadow:
+        0 4px 12px rgba(0, 0, 0, 0.70),
+        0 0 16px rgba(255, 66, 36, 0.68);
+    }
+    #mobile-left-thumbpad.sprinting #mobile-left-thumbpad-knob::after {
+      background: #ff4224;
+      box-shadow: 0 0 10px #ff4224;
+    }
+
+    @media (max-width: 768px) {
+      #portfolio-hud-top-left {
+        top: calc(8px + env(safe-area-inset-top, 0px));
+        left: calc(10px + env(safe-area-inset-left, 0px));
+      }
+      #portfolio-hud-bilingual,
+      #portfolio-hud-roles,
+      #portfolio-hud-bottom-right {
+        display: none;
+      }
+      #portfolio-hud-top-right {
+        top: calc(8px + env(safe-area-inset-top, 0px));
+        right: calc(10px + env(safe-area-inset-right, 0px));
+        padding: 3px 7px;
+        font-size: 9px;
+      }
+      #portfolio-hud-tel-engine,
+      #portfolio-hud-tel-engine-sep {
+        display: none;
+      }
+      #portfolio-hud-top-center {
+        top: calc(34px + env(safe-area-inset-top, 0px));
+        left: 50%;
+        transform: translateX(-50%);
+      }
+      #mobile-touch-actions {
+        padding: 3px 5px;
+        gap: 4px;
+      }
+      .mobile-action-btn,
+      .portfolio-hud-nav-link {
+        height: 24px;
+        min-width: 44px;
+        padding: 0 7px;
+        font-size: 9px;
+      }
+    }
+
     @media (max-width: 640px) {
       #mobile-right-thumbpad {
         bottom: calc(112px + env(safe-area-inset-bottom, 0px));
@@ -1862,49 +2238,6 @@
       body.mp3-hud-hidden #mobile-right-thumbpad {
         bottom: calc(14px + env(safe-area-inset-bottom, 0px));
       }
-    }
-    #mobile-touch-actions {
-      position: absolute;
-      left: calc(140px + env(safe-area-inset-left, 0px));
-      bottom: calc(14px + env(safe-area-inset-bottom, 0px));
-      width: 56px;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      pointer-events: auto;
-      touch-action: none;
-    }
-    .mobile-action-btn {
-      width: 56px;
-      height: 32px;
-      border-radius: 8px;
-      background: rgba(14, 19, 30, 0.86);
-      border: 1px solid rgba(56, 189, 248, 0.45);
-      color: #e0f2fe;
-      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-      font-size: 9.5px;
-      font-weight: 700;
-      letter-spacing: 0.04em;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      touch-action: none;
-      padding: 0;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.48);
-      transition: background 0.14s ease, border-color 0.14s ease, color 0.14s ease;
-    }
-    .mobile-action-btn:active,
-    .mobile-action-btn.active {
-      background: rgba(0, 213, 255, 0.28);
-      border-color: #00d5ff;
-      color: #ffffff;
-    }
-    .mobile-action-btn.highlight-mount {
-      background: rgba(217, 119, 6, 0.34);
-      border-color: #fbbf24;
-      color: #fef3c7;
-      box-shadow: 0 0 14px rgba(245, 158, 11, 0.42);
     }
 
     @media (max-width: 900px) {
@@ -1972,10 +2305,11 @@
         width: 106px;
         height: 106px;
       }
-      #mobile-left-thumbpad-knob {
-        width: 42px;
-        height: 42px;
-        margin: -21px 0 0 -21px;
+      #mobile-left-thumbpad-knob,
+      #mobile-right-thumbpad-knob {
+        width: 34px;
+        height: 34px;
+        margin: -17px 0 0 -17px;
       }
       #mobile-right-thumbpad {
         right: calc(12px + env(safe-area-inset-right, 0px));
@@ -1986,21 +2320,24 @@
       body.mp3-hud-hidden #mobile-right-thumbpad {
         bottom: calc(12px + env(safe-area-inset-bottom, 0px));
       }
-      #mobile-right-thumbpad-knob {
-        width: 42px;
-        height: 42px;
-        margin: -21px 0 0 -21px;
+      #portfolio-hud-top-center {
+        top: calc(8px + env(safe-area-inset-top, 0px));
+      }
+      #portfolio-hud-bilingual,
+      #portfolio-hud-roles,
+      #portfolio-hud-bottom-right {
+        display: none;
       }
       #mobile-touch-actions {
-        left: calc(124px + env(safe-area-inset-left, 0px));
-        bottom: calc(12px + env(safe-area-inset-bottom, 0px));
-        width: 54px;
-        gap: 5px;
+        padding: 2px 5px;
+        gap: 4px;
       }
-      .mobile-action-btn {
-        width: 54px;
-        height: 30px;
-        font-size: 9px;
+      .mobile-action-btn,
+      .portfolio-hud-nav-link {
+        height: 22px;
+        min-width: 42px;
+        padding: 0 7px;
+        font-size: 8.5px;
       }
       #intro-dialogue-overlay {
         padding: 8px 12px !important;
@@ -3443,31 +3780,108 @@
     <span id="mount-prompt-label">Press E or Click to Inspect</span>
   </div>
 
-  <!-- Mobile Single-Thumbpad & Context Action Controls (Spec 040) -->
+  <!-- Screen-Agnostic Portfolio Perimeter HUD & Glyph Materialization System (Spec 070 / hud.md) -->
+  <header id="portfolio-perimeter-hud" role="banner" aria-label="Portfolio Perimeter HUD">
+    <!-- Top-Left Region: Primary Brand Identity, Year Stamp, Bilingual Accent & Role Descriptors -->
+    <div id="portfolio-hud-top-left">
+      <div class="portfolio-hud-brand-row">
+        <span id="portfolio-hud-brand" data-hud-canonical-text="LUIS // PLATODOOM">LUIS // PLATODOOM</span>
+        <span id="portfolio-hud-stamp" data-hud-canonical-text="©2026 // SYS.070">©2026 // SYS.070</span>
+      </div>
+      <span id="portfolio-hud-bilingual" data-hud-canonical-text="フリーマン・アレー // 空間ポートフォリオ">フリーマン・アレー // 空間ポートフォリオ</span>
+      <span id="portfolio-hud-roles" data-hud-canonical-text="AI ENGINEER &amp; CREATIVE TECHNOLOGIST">AI ENGINEER &amp; CREATIVE TECHNOLOGIST</span>
+    </div>
+
+    <!-- Top-Center Region: Unified Navigation & Mobile Action Bar (Replaces legacy mobile lower-left button column) -->
+    <nav id="portfolio-hud-top-center" aria-label="Primary Portfolio Navigation &amp; Mode Controls">
+      <div id="mobile-touch-actions" role="group" aria-label="Portfolio Navigation &amp; Mobile Quick Actions">
+        <button
+          id="portfolio-hud-mode-pill"
+          class="portfolio-hud-nav-link active-pill"
+          type="button"
+          title="Toggle Scroll-Walk / Interactive Free-Roam Mode"
+          data-hud-canonical-text="SCROLL"
+        >
+          SCROLL
+        </button>
+        <button
+          id="mobile-action-interact-btn"
+          class="mobile-action-btn"
+          type="button"
+          title="Focus / Exit Wall Mount (E)"
+          data-hud-canonical-text="MOUNT"
+        >
+          MOUNT
+        </button>
+        <button
+          id="mobile-action-mode-btn"
+          class="mobile-action-btn"
+          type="button"
+          title="Toggle Cyber-Tactical Radial Menu (Q)"
+          aria-expanded="false"
+          aria-controls="cyber-radial-menu-overlay"
+          data-hud-canonical-text="MENU"
+        >
+          MENU
+        </button>
+        <button
+          id="portfolio-hud-chat-btn"
+          class="portfolio-hud-nav-link"
+          type="button"
+          title="Open DOOM_HEAD Hologram Dialogue Terminal"
+          data-hud-canonical-text="CHAT"
+        >
+          CHAT
+        </button>
+        <button
+          id="mobile-action-jump-btn"
+          class="mobile-action-btn"
+          type="button"
+          title="Jump / Enter Free-Roam (Space)"
+          data-hud-canonical-text="JUMP"
+        >
+          JUMP
+        </button>
+      </div>
+    </nav>
+
+    <!-- Top-Right Region: Real-Time System Telemetry Readout (Geist Mono, Tabular Numerals) -->
+    <div id="portfolio-hud-top-right" role="status" aria-live="off">
+      <span class="portfolio-hud-tel-dot" aria-hidden="true"></span>
+      <span id="portfolio-hud-tel-engine" data-hud-canonical-text="ONLINE // WEBGL2">ONLINE // WEBGL2</span>
+      <span id="portfolio-hud-tel-engine-sep" class="portfolio-hud-tel-sep" aria-hidden="true">|</span>
+      <span id="portfolio-hud-tel-metrics" data-hud-canonical-text="Frame: 02.4 ms, 60 FPS">Frame: 02.4 ms, 60 FPS</span>
+      <span class="portfolio-hud-tel-sep" aria-hidden="true">|</span>
+      <span id="portfolio-hud-tel-scroll" data-hud-canonical-text="000% ALLEY">000% ALLEY</span>
+    </div>
+
+    <!-- Bottom-Right Contextual Utility / Hardware Telemetry Module -->
+    <div id="portfolio-hud-bottom-right" aria-hidden="true">
+      <span id="portfolio-hud-util-status" class="portfolio-hud-util-cell" data-hud-canonical-text="SYS-990 // READY">SYS-990 // READY</span>
+      <span id="portfolio-hud-util-timer" class="portfolio-hud-util-cell">00:00</span>
+      <span id="portfolio-hud-util-format" class="portfolio-hud-util-cell" data-hud-canonical-text="48KHZ // STEREO">48KHZ // STEREO</span>
+    </div>
+  </header>
+
+  <!-- Revamped Mobile Precision Telemetry Analog Reticles (Spec 070 §6) -->
   <div id="mobile-touch-controls" role="region" aria-label="Mobile Touch Locomotion Controls">
     <div
       id="mobile-left-thumbpad"
       role="slider"
-      aria-label="Left Analog Movement & Auto-Sprint Thumbpad"
+      aria-label="Left Analog Movement &amp; Auto-Sprint Thumbpad"
       aria-valuemin="0"
       aria-valuemax="100"
       aria-valuenow="0"
     >
+      <div class="mobile-thumbpad-ticks" aria-hidden="true"></div>
       <div class="mobile-thumbpad-sprint-ring" aria-hidden="true"></div>
       <div class="mobile-thumbpad-crosshair" aria-hidden="true"></div>
-      <span id="mobile-left-thumbpad-label">MOVE</span>
+      <svg class="mobile-thumbpad-tether-svg" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+        <line id="mobile-left-thumbpad-tether" class="mobile-thumbpad-tether-line" x1="50" y1="50" x2="50" y2="50" />
+      </svg>
+      <span id="mobile-left-thumbpad-label" data-hud-canonical-text="MOVE">MOVE</span>
+      <span id="mobile-left-thumbpad-readout" class="mobile-thumbpad-readout" aria-hidden="true">0.00 // IDLE</span>
       <div id="mobile-left-thumbpad-knob" aria-hidden="true"></div>
-    </div>
-    <div id="mobile-touch-actions" role="group" aria-label="Mobile Quick Actions">
-      <button id="mobile-action-jump-btn" class="mobile-action-btn" type="button" title="Jump (Space)">
-        JUMP
-      </button>
-      <button id="mobile-action-interact-btn" class="mobile-action-btn" type="button" title="Focus / Exit Wall Mount (E)">
-        MOUNT
-      </button>
-      <button id="mobile-action-mode-btn" class="mobile-action-btn" type="button" title="Toggle Cyber-Tactical Radial Menu (Q)" aria-expanded="false" aria-controls="cyber-radial-menu-overlay">
-        MENU
-      </button>
     </div>
     <div
       id="mobile-right-thumbpad"
@@ -3477,9 +3891,14 @@
       aria-valuemax="100"
       aria-valuenow="0"
     >
+      <div class="mobile-thumbpad-ticks" aria-hidden="true"></div>
       <div class="mobile-thumbpad-sprint-ring" aria-hidden="true"></div>
       <div class="mobile-thumbpad-crosshair" aria-hidden="true"></div>
-      <span id="mobile-right-thumbpad-label">LOOK</span>
+      <svg class="mobile-thumbpad-tether-svg" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+        <line id="mobile-right-thumbpad-tether" class="mobile-thumbpad-tether-line" x1="50" y1="50" x2="50" y2="50" />
+      </svg>
+      <span id="mobile-right-thumbpad-label" data-hud-canonical-text="LOOK">LOOK</span>
+      <span id="mobile-right-thumbpad-readout" class="mobile-thumbpad-readout" aria-hidden="true">0.00 // STBY</span>
       <div id="mobile-right-thumbpad-knob" aria-hidden="true"></div>
     </div>
   </div>
