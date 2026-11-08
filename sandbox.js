@@ -11874,7 +11874,7 @@ const mobileTouch = {
       const dirX = x / mag;
       const dirY = y / mag;
       this.yawRateRadPerSec = Number((-dirX * gamma * LOOK_THUMBPAD_MAX_YAW_RATE).toFixed(4));
-      this.pitchRateRadPerSec = Number((-dirY * gamma * LOOK_THUMBPAD_MAX_PITCH_RATE).toFixed(4));
+      this.pitchRateRadPerSec = Number((dirY * gamma * LOOK_THUMBPAD_MAX_PITCH_RATE).toFixed(4));
     }
 
     this.syncDOM();
@@ -19204,8 +19204,10 @@ function updateTelemetryHUD() {
 
   const elMobileModeBtn = document.getElementById('mobile-action-mode-btn');
   if (elMobileModeBtn) {
-    elMobileModeBtn.textContent = isFreeRoam || isMountFocus ? 'SCROLL' : 'ROAM';
-    elMobileModeBtn.classList.toggle('active', isFreeRoam);
+    const isRadialOpen = Boolean(sandbox.radialMenu && sandbox.radialMenu.isOpen());
+    elMobileModeBtn.textContent = 'MENU';
+    elMobileModeBtn.classList.toggle('active', isRadialOpen);
+    elMobileModeBtn.setAttribute('aria-expanded', isRadialOpen ? 'true' : 'false');
   }
   const elMobileInteractBtn = document.getElementById('mobile-action-interact-btn');
   if (elMobileInteractBtn) {
@@ -19641,7 +19643,7 @@ function stepSimulation(dt) {
       );
       sandbox.director.povState.pitch = Math.max(
         -1.45,
-        Math.min(1.45, sandbox.director.povState.pitch + mobileTouch.pitchRateRadPerSec * clampedDt)
+        Math.min(1.45, sandbox.director.povState.pitch - mobileTouch.pitchRateRadPerSec * clampedDt)
       );
       syncDirectorHUDInputs();
     } else {
@@ -20025,19 +20027,9 @@ function bindMobileTouchControls() {
       e.stopPropagation();
       if (!sandbox.ready) return;
       if (sandbox.audio) sandbox.audio.unlock();
-      if (sandbox.mode === 'scroll') {
-        if (sandbox.director) {
-          if (sandbox.director.cameraPanState.mode === 'playing') {
-            sandbox.director.stopStartupPan();
-          }
-          sandbox.director.introSequenceState.scrollLocked = false;
-          sandbox.director.introSequenceState.phase = 'scrolling-alley';
-          syncIntroDialogueOverlayUI();
-          syncDirectorHUDInputs();
-        }
-        enterFreeRoamMode();
-      } else {
-        sandbox.returnToScrollMode();
+      if (sandbox.radialMenu) {
+        sandbox.radialMenu.toggle();
+        updateTelemetryHUD();
       }
     });
   }
@@ -24257,6 +24249,14 @@ async function initSandbox() {
     outerRingWidth: 10,
     linearGapPx: 8,
     onOpenChange: (isOpen) => {
+      if (typeof document !== 'undefined') {
+        const elMobileModeBtn = document.getElementById('mobile-action-mode-btn');
+        if (elMobileModeBtn) {
+          elMobileModeBtn.textContent = 'MENU';
+          elMobileModeBtn.classList.toggle('active', Boolean(isOpen));
+          elMobileModeBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+        }
+      }
       if (isOpen) {
         cameraOrbit.isDragging = false;
         cameraOrbit.maxDragTravel = 0;

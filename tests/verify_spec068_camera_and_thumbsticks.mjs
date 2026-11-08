@@ -325,6 +325,51 @@ async function runVerification() {
 
       sb.resetLookThumbpad();
 
+      // 2b. Full UP deflection (nx = 0.0, ny = 1.0) -> pitchRate = +1.5 rad/s (camera tilts UP)
+      sb.cameraOrbit.pitch = 0.0;
+      sb.setLookThumbpadVector(0.0, 1.0);
+      const fullUpState = {
+        pitchRate: sb.mobileTouch.pitchRateRadPerSec,
+      };
+      for (let i = 0; i < 12; i++) {
+        sb.step(1 / 60);
+      }
+      const pitchAfterUp = sb.cameraOrbit.pitch;
+      sb.resetLookThumbpad();
+
+      // 2c. Full DOWN deflection (nx = 0.0, ny = -1.0) -> pitchRate = -1.5 rad/s (camera tilts DOWN)
+      sb.cameraOrbit.pitch = 0.0;
+      sb.setLookThumbpadVector(0.0, -1.0);
+      const fullDownState = {
+        pitchRate: sb.mobileTouch.pitchRateRadPerSec,
+      };
+      for (let i = 0; i < 12; i++) {
+        sb.step(1 / 60);
+      }
+      const pitchAfterDown = sb.cameraOrbit.pitch;
+      sb.resetLookThumbpad();
+
+      // 2d. Mobile MENU button (#mobile-action-mode-btn) showcases the Cyber-Tactical Radial Menu
+      const menuBtnEl = document.getElementById('mobile-action-mode-btn');
+      const menuBtnLabel = menuBtnEl ? menuBtnEl.textContent.trim() : '';
+      if (sb.radialMenu && sb.radialMenu.isOpen()) {
+        sb.radialMenu.close();
+      }
+      menuBtnEl.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 303,
+          pointerType: 'touch',
+        })
+      );
+      const radialOpenAfterTap = Boolean(sb.radialMenu && sb.radialMenu.isOpen());
+      const menuBtnActiveWhenOpen = Boolean(menuBtnEl && menuBtnEl.classList.contains('active'));
+      const radialBoundsOnMobile = sb.radialMenu ? sb.radialMenu.getRenderedBounds() : null;
+      if (sb.radialMenu && sb.radialMenu.isOpen()) {
+        sb.radialMenu.close();
+      }
+
       // 3. Multi-touch pointer isolation via synthetic PointerEvents on #mobile-left-thumbpad and #mobile-right-thumbpad
       const leftEl = document.getElementById('mobile-left-thumbpad');
       const rightEl = document.getElementById('mobile-right-thumbpad');
@@ -402,6 +447,14 @@ async function runVerification() {
         deadzoneState,
         fullRightState,
         deltaYawHalfSec: deltaYaw,
+        fullUpState,
+        pitchAfterUp,
+        fullDownState,
+        pitchAfterDown,
+        menuBtnLabel,
+        radialOpenAfterTap,
+        menuBtnActiveWhenOpen,
+        radialBoundsOnMobile,
         bothActiveState,
         afterLeftReleaseState,
         afterBothReleaseState,
@@ -417,6 +470,36 @@ async function runVerification() {
     assert.ok(
       Math.abs(thumbstickBehaviorReport.deltaYawHalfSec - -1.2) < 0.03,
       `Expected 0.5s full-right look deflection to rotate camera yaw by -1.2 rad, got ${thumbstickBehaviorReport.deltaYawHalfSec}`
+    );
+    assert.ok(
+      Math.abs(thumbstickBehaviorReport.fullUpState.pitchRate - 1.5) < 1e-4,
+      `Expected full-up pitchRate = +1.5 rad/s, got ${thumbstickBehaviorReport.fullUpState.pitchRate}`
+    );
+    assert.ok(
+      thumbstickBehaviorReport.pitchAfterUp > 0.25,
+      `Expected pushing right stick UP to increase cameraOrbit.pitch (> 0.25 rad), got ${thumbstickBehaviorReport.pitchAfterUp}`
+    );
+    assert.ok(
+      Math.abs(thumbstickBehaviorReport.fullDownState.pitchRate - -1.5) < 1e-4,
+      `Expected full-down pitchRate = -1.5 rad/s, got ${thumbstickBehaviorReport.fullDownState.pitchRate}`
+    );
+    assert.ok(
+      thumbstickBehaviorReport.pitchAfterDown < -0.25,
+      `Expected pulling right stick DOWN to decrease cameraOrbit.pitch (< -0.25 rad), got ${thumbstickBehaviorReport.pitchAfterDown}`
+    );
+    assert.equal(thumbstickBehaviorReport.menuBtnLabel, 'MENU', 'Mobile #mobile-action-mode-btn must be labeled MENU');
+    assert.equal(thumbstickBehaviorReport.radialOpenAfterTap, true, 'Tapping mobile MENU button must open radial menu');
+    assert.equal(thumbstickBehaviorReport.menuBtnActiveWhenOpen, true, 'Mobile MENU button must have .active class when radial menu is open');
+    assert.ok(
+      thumbstickBehaviorReport.radialBoundsOnMobile &&
+        thumbstickBehaviorReport.radialBoundsOnMobile.width >= 200 &&
+        thumbstickBehaviorReport.radialBoundsOnMobile.left >= 8 &&
+        thumbstickBehaviorReport.radialBoundsOnMobile.top >= 8 &&
+        thumbstickBehaviorReport.radialBoundsOnMobile.right <=
+          thumbstickBehaviorReport.radialBoundsOnMobile.viewportWidth - 8 &&
+        thumbstickBehaviorReport.radialBoundsOnMobile.bottom <=
+          thumbstickBehaviorReport.radialBoundsOnMobile.viewportHeight - 8,
+      `Expected mobile radial menu to fit within viewport bounds, got ${JSON.stringify(thumbstickBehaviorReport.radialBoundsOnMobile)}`
     );
     assert.equal(thumbstickBehaviorReport.bothActiveState.movePointerId, 101);
     assert.equal(thumbstickBehaviorReport.bothActiveState.lookPointerId, 202);
