@@ -204,7 +204,7 @@ import {
   DYNAMIC_CAM_ASPECT_PORTRAIT,
   DYNAMIC_CAM_BOOM_PULLBACK_FACTOR,
   DYNAMIC_CAM_LOOKAT_Y_ELEVATION_M,
-} from './scene_materialization_hud_070.js?v=070';
+} from './scene_materialization_hud_070.js?v=071';
 
 const IS_DEV_MODE =
   typeof window !== 'undefined' &&
@@ -5840,9 +5840,15 @@ function buildSpawnAndCameraDirectorSystem(floorY = 0.0) {
       if (introSequenceState.boxes.length > 0) {
         introSequenceState.phase = 'dialogue-active';
         introSequenceState.scrollLocked = true;
+        if (sandbox.portfolioHUD) {
+          sandbox.portfolioHUD.resetToDormantPreDialogueState();
+        }
       } else {
         introSequenceState.phase = 'ready-to-scroll';
         introSequenceState.scrollLocked = false;
+        if (sandbox.portfolioHUD) {
+          sandbox.portfolioHUD.playBootChoreography({ force: true });
+        }
       }
 
       syncIntroDialogueOverlayUI();
@@ -5853,6 +5859,10 @@ function buildSpawnAndCameraDirectorSystem(floorY = 0.0) {
     },
 
     completeIntroDialogue({ openDoomChat = false } = {}) {
+      if (cameraPanState.mode === 'playing') {
+        cameraPanState.mode = 'settled';
+        cameraPanState.playing = false;
+      }
       introSequenceState.currentBoxIndex = introSequenceState.boxes.length;
       introSequenceState.phase = 'ready-to-scroll';
       introSequenceState.scrollLocked = false;
@@ -5869,6 +5879,9 @@ function buildSpawnAndCameraDirectorSystem(floorY = 0.0) {
 
       syncIntroDialogueOverlayUI();
       syncDirectorHUDInputs();
+      if (sandbox.portfolioHUD) {
+        sandbox.portfolioHUD.playBootChoreography({ force: true });
+      }
       updateTelemetryHUD();
 
       if (openDoomChat && sandbox && typeof sandbox.enterDoomChatMode === 'function') {
@@ -6368,8 +6381,8 @@ function buildSpawnAndCameraDirectorSystem(floorY = 0.0) {
       if (sandbox.sceneMaterialization) {
         sandbox.sceneMaterialization.playBootMaterialization();
       }
-      if (sandbox.portfolioHUD && !sandbox.portfolioHUD.bootChoreographyPlayed) {
-        sandbox.portfolioHUD.playBootChoreography();
+      if (sandbox.portfolioHUD) {
+        sandbox.portfolioHUD.resetToDormantPreDialogueState();
       }
       syncIntroDialogueOverlayUI();
       syncDirectorHUDInputs();
@@ -6383,7 +6396,7 @@ function buildSpawnAndCameraDirectorSystem(floorY = 0.0) {
       if (sandbox.sceneMaterialization && !sandbox.sceneMaterialization.resolved) {
         sandbox.sceneMaterialization.accelerateToResolved();
       }
-      if (sandbox.portfolioHUD) {
+      if (sandbox.portfolioHUD && !sandbox.portfolioHUD.isIntroSequenceHoldingHUD()) {
         sandbox.portfolioHUD.resolveAllImmediate();
       }
       syncDirectorHUDInputs();
@@ -6897,6 +6910,19 @@ function syncIntroDialogueOverlayUI() {
 
   if (document.body) {
     document.body.classList.toggle('intro-dialogue-active', isDialogueActive);
+  }
+  const isHoldingHUD =
+    isScrollMode &&
+    !d.cameraPOVMode &&
+    (d.cameraPanState.mode === 'playing' || intro.phase === 'pan-playing' || isDialogueActive);
+  if (sandbox.portfolioHUD) {
+    if (isHoldingHUD) {
+      if (sandbox.portfolioHUD.bootChoreographyPlayed) {
+        sandbox.portfolioHUD.resetToDormantPreDialogueState();
+      }
+    } else if (!sandbox.portfolioHUD.bootChoreographyPlayed) {
+      sandbox.portfolioHUD.playBootChoreography({ force: true });
+    }
   }
   if (overlay) {
     overlay.style.display = isDialogueActive ? 'flex' : 'none';
@@ -14826,12 +14852,30 @@ let activeHoloTagState = {
   tagLabel: null,
 };
 
+let _programmaticHoloTrackScrollUntil = 0;
+let _suppressNextTrackScrollSync = false;
+let _holoTrackScrollSettleTimer = null;
+const _holoPreviewActiveFrameByStationId = new Map();
+
+const HOLO_PREVIEW_QUAD_BG_POSITIONS = [
+  '0% 0%',
+  '100% 0%',
+  '0% 100%',
+  '100% 100%',
+];
+
 function syncHoloCustomScrollbar() {
   if (typeof document === 'undefined') return;
-  const viewportEl = document.getElementById('holo-body-scroll-viewport');
   const trackEl = document.getElementById('holo-custom-scrollbar');
   const thumbEl = document.getElementById('holo-custom-scrollbar-thumb');
-  if (!viewportEl || !trackEl || !thumbEl) return;
+  if (!trackEl || !thumbEl) return;
+
+  const horizTrackEl = document.getElementById('holo-works-horizontal-track');
+  const activeSlideEl = horizTrackEl
+    ? horizTrackEl.querySelector('.holo-work-slide.active-slide') || horizTrackEl.firstElementChild
+    : null;
+  const viewportEl = activeSlideEl || document.getElementById('holo-body-scroll-viewport');
+  if (!viewportEl) return;
 
   const trackH = Math.max(0, trackEl.clientHeight);
   if (trackH <= 0) return;
@@ -14845,7 +14889,6 @@ function syncHoloCustomScrollbar() {
   let thumbH;
   let thumbY;
   if (maxScroll <= 1) {
-    // Keep a distinct glowing gold thumb inside the recessed dark-amber track even when content fits
     thumbH = Math.max(34, Math.round(trackH * 0.56));
     thumbY = 0;
     trackEl.setAttribute('aria-valuenow', '0');
@@ -14868,6 +14911,7 @@ function setActiveHoloTagPopup(station, tagLabel, { triggerAnimation = true } = 
   const popupEl = document.getElementById('holo-tag-popup');
   const popupTitleEl = document.getElementById('holo-tag-popup-title');
   const popupDescEl = document.getElementById('holo-tag-popup-desc');
+  const horizTrackEl = document.getElementById('holo-works-horizontal-track');
 
   if (!station || !tagLabel) {
     activeHoloTagState.stationId = station ? station.id : null;
@@ -14882,6 +14926,21 @@ function setActiveHoloTagPopup(station, tagLabel, { triggerAnimation = true } = 
       popupEl.classList.remove('open');
       popupEl.hidden = true;
       popupEl.setAttribute('aria-hidden', 'true');
+    }
+    if (horizTrackEl) {
+      horizTrackEl.querySelectorAll('.holo-work-slide').forEach((slideEl) => {
+        if (station && slideEl.dataset.stationId !== station.id) return;
+        slideEl.querySelectorAll('button.holo-tag').forEach((btn) => {
+          btn.classList.remove('active', 'tag-click-anim');
+          btn.setAttribute('aria-expanded', 'false');
+        });
+        const slidePopupEl = slideEl.querySelector('.holo-tag-popup');
+        if (slidePopupEl) {
+          slidePopupEl.classList.remove('open');
+          slidePopupEl.hidden = true;
+          slidePopupEl.setAttribute('aria-hidden', 'true');
+        }
+      });
     }
     syncHoloCustomScrollbar();
     if (typeof requestAnimationFrame === 'function') {
@@ -14923,10 +14982,37 @@ function setActiveHoloTagPopup(station, tagLabel, { triggerAnimation = true } = 
     popupEl.classList.add('open');
     popupEl.hidden = false;
     popupEl.setAttribute('aria-hidden', 'false');
-    // Retrigger pop-up materialization animation cleanly on tag switch
     popupEl.style.animation = 'none';
     void popupEl.offsetWidth;
     popupEl.style.animation = '';
+  }
+
+  if (horizTrackEl) {
+    const slideEl = horizTrackEl.querySelector(`.holo-work-slide[data-station-id="${station.id}"]`);
+    if (slideEl) {
+      slideEl.querySelectorAll('button.holo-tag').forEach((btn) => {
+        const isMatch = btn.dataset.tagLabel === tagLabel;
+        btn.classList.toggle('active', isMatch);
+        btn.setAttribute('aria-expanded', isMatch ? 'true' : 'false');
+        if (isMatch && triggerAnimation) {
+          btn.classList.remove('tag-click-anim');
+          void btn.offsetWidth;
+          btn.classList.add('tag-click-anim');
+        } else if (!isMatch) {
+          btn.classList.remove('tag-click-anim');
+        }
+      });
+      const slidePopupEl = slideEl.querySelector('.holo-tag-popup');
+      const slidePopupTitleEl = slideEl.querySelector('[data-role="slide-tag-popup-title"]');
+      const slidePopupDescEl = slideEl.querySelector('[data-role="slide-tag-popup-desc"]');
+      if (slidePopupTitleEl) slidePopupTitleEl.textContent = tagLabel;
+      if (slidePopupDescEl) slidePopupDescEl.textContent = desc;
+      if (slidePopupEl) {
+        slidePopupEl.classList.add('open');
+        slidePopupEl.hidden = false;
+        slidePopupEl.setAttribute('aria-hidden', 'false');
+      }
+    }
   }
 
   syncHoloCustomScrollbar();
@@ -14945,10 +15031,484 @@ function setActiveHoloTagPopup(station, tagLabel, { triggerAnimation = true } = 
   }
 }
 
-function initHoloStationPips() {
+function setHoloSlidePreviewFrame(slideEl, station, frameIdx) {
+  if (!slideEl || !station) return;
+  const totalFrames = Math.max(1, Number(station.previewFrameCount) || 4);
+  const idx = ((frameIdx % totalFrames) + totalFrames) % totalFrames;
+  _holoPreviewActiveFrameByStationId.set(station.id, idx);
+
+  const bgPos = HOLO_PREVIEW_QUAD_BG_POSITIONS[idx] || '0% 0%';
+  const stageEl = slideEl.querySelector('[data-role="preview-stage"]');
+  const captionEl = slideEl.querySelector('[data-role="preview-caption"]');
+  const badgeEl = slideEl.querySelector('[data-role="frame-badge"]');
+
+  if (stageEl) {
+    stageEl.style.backgroundPosition = bgPos;
+    stageEl.dataset.activeFrame = String(idx);
+  }
+  if (captionEl && Array.isArray(station.previewFrameCaptions)) {
+    captionEl.textContent = station.previewFrameCaptions[idx] || `${station.code} // LIVE PREVIEW`;
+  }
+  if (badgeEl) {
+    badgeEl.textContent = `FRAME 0${idx + 1} / 0${totalFrames}`;
+  }
+  slideEl.querySelectorAll('.holo-preview-quad-btn').forEach((btn, qIdx) => {
+    const isActive = qIdx === idx;
+    btn.classList.toggle('active-quad', isActive);
+    btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+  });
+}
+
+function scrollHoloWorksTrackToStation(stationIndex, { smooth = true } = {}) {
+  if (typeof document === 'undefined') return;
+  const trackEl = document.getElementById('holo-works-horizontal-track');
+  if (!trackEl) return;
+
+  const slides = Array.from(trackEl.querySelectorAll('.holo-work-slide'));
+  const targetSlide = slides.find((el) => Number(el.dataset.stationIndex) === Number(stationIndex));
+  slides.forEach((el) => {
+    const isMatch = el === targetSlide;
+    el.classList.toggle('active-slide', isMatch);
+    el.setAttribute('aria-hidden', isMatch ? 'false' : 'true');
+  });
+
   const pipsContainer = document.getElementById('holo-station-pips');
-  if (!pipsContainer) return;
-  pipsContainer.innerHTML = '';
+  if (pipsContainer) {
+    pipsContainer.querySelectorAll('.holo-station-pip-btn').forEach((pip) => {
+      const isMatch = Number(pip.dataset.stationIndex) === Number(stationIndex);
+      pip.classList.toggle('active', isMatch);
+      pip.setAttribute('aria-current', isMatch ? 'step' : 'false');
+    });
+  }
+
+  if (!targetSlide) return;
+  const slideIdx0 = Math.max(0, Number(stationIndex) - 1);
+  const trackWidth = trackEl.clientWidth;
+  const targetLeft =
+    trackWidth > 0 ? slideIdx0 * trackWidth : targetSlide.offsetLeft || 0;
+
+  const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
+  _programmaticHoloTrackScrollUntil = now + (smooth ? 420 : 120);
+
+  if (Math.abs(trackEl.scrollLeft - targetLeft) > 2) {
+    try {
+      trackEl.scrollTo({
+        left: targetLeft,
+        behavior: smooth ? 'smooth' : 'instant',
+      });
+    } catch (_e) {
+      trackEl.scrollLeft = targetLeft;
+    }
+    if (!smooth) {
+      trackEl.scrollLeft = targetLeft;
+    }
+  }
+}
+
+function initHoloStationPips() {
+  if (typeof document === 'undefined') return;
+  const pipsContainer = document.getElementById('holo-station-pips');
+  if (pipsContainer) {
+    pipsContainer.innerHTML = '';
+    HOLO_PROJECT_STATIONS.forEach((st) => {
+      const pipBtn = document.createElement('button');
+      pipBtn.type = 'button';
+      pipBtn.className = `holo-station-pip-btn${st.index === 1 ? ' active' : ''}`;
+      pipBtn.dataset.stationIndex = String(st.index);
+      pipBtn.dataset.stationId = st.id;
+      pipBtn.dataset.mountName = st.mountName;
+      pipBtn.dataset.holoInteractive = `pip-${st.code}`;
+      pipBtn.textContent = st.code;
+      pipBtn.title = `${st.code} // ${st.title}`;
+      pipBtn.setAttribute('aria-label', `Select Work ${st.code}: ${st.title}`);
+      pipBtn.setAttribute('aria-current', st.index === 1 ? 'step' : 'false');
+      pipBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (sandbox.audio) {
+          sandbox.audio.trigger('onUpdate', {
+            source: 'holo-station-pip',
+            stationId: st.id,
+          });
+        }
+        if (sandbox.mode === 'mount-focus' || sandbox.mode === 'freeroam') {
+          sandbox.focusWallMount(st.mountName);
+        } else {
+          sandbox.scrollToProjectStation(st.index);
+        }
+      });
+      pipsContainer.appendChild(pipBtn);
+    });
+  }
+
+  const trackEl = document.getElementById('holo-works-horizontal-track');
+  if (!trackEl) return;
+  trackEl.innerHTML = '';
+
+  HOLO_PROJECT_STATIONS.forEach((st) => {
+    const slideEl = document.createElement('section');
+    slideEl.className = `holo-work-slide${st.index === 1 ? ' active-slide' : ''}`;
+    slideEl.id = `holo-work-slide-${st.code}`;
+    slideEl.dataset.stationId = st.id;
+    slideEl.dataset.stationIndex = String(st.index);
+    slideEl.dataset.mountName = st.mountName;
+    slideEl.setAttribute('role', 'group');
+    slideEl.setAttribute('aria-roledescription', 'slide');
+    slideEl.setAttribute('aria-label', `Work ${st.code} of 07: ${st.title}`);
+
+    // Left Column: Project Details, Narrative Callout & Interactive Tags
+    const mainCol = document.createElement('div');
+    mainCol.className = 'holo-main-col';
+
+    const kickerEl = document.createElement('div');
+    kickerEl.className = 'holo-work-slide-kicker';
+    kickerEl.textContent = `WORK ${st.code} / 0${HOLO_PROJECT_STATIONS.length} // ${st.mountName} • ${
+      st.wallSide === 'L' ? 'LEFT CORRIDOR WALL' : 'RIGHT CORRIDOR WALL'
+    } (Z=${st.expectedZ.toFixed(1)}m)`;
+    mainCol.appendChild(kickerEl);
+
+    const slideTitleEl = document.createElement('h3');
+    slideTitleEl.className = 'holo-work-slide-title';
+    slideTitleEl.textContent = st.title;
+    mainCol.appendChild(slideTitleEl);
+
+    const descEl = document.createElement('p');
+    descEl.className = 'holo-description';
+    descEl.textContent = st.description;
+    mainCol.appendChild(descEl);
+
+    if (
+      st.narrativeCallout &&
+      typeof st.narrativeCallout.body === 'string' &&
+      st.narrativeCallout.body.trim().length > 0
+    ) {
+      const narrativeBox = document.createElement('div');
+      narrativeBox.className = 'holo-narrative-callout';
+      narrativeBox.style.display = 'flex';
+      const narrativeHeading = document.createElement('h4');
+      narrativeHeading.className = 'holo-narrative-heading';
+      narrativeHeading.textContent =
+        st.narrativeCallout.heading || 'What the hell does this mean, Luis?';
+      const narrativeBody = document.createElement('p');
+      narrativeBody.className = 'holo-narrative-body';
+      narrativeBody.textContent = st.narrativeCallout.body;
+      narrativeBox.appendChild(narrativeHeading);
+      narrativeBox.appendChild(narrativeBody);
+      mainCol.appendChild(narrativeBox);
+    }
+
+    const tagRow = document.createElement('div');
+    tagRow.className = 'holo-tag-row';
+    tagRow.setAttribute('role', 'group');
+    tagRow.setAttribute('aria-label', `${st.title} Technology Tags`);
+
+    st.tags.forEach((tag, idx) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'holo-tag';
+      btn.dataset.holoInteractive = `slide-${st.code}-tag-${idx}`;
+      btn.dataset.tagIndex = String(idx);
+      btn.dataset.tagLabel = tag;
+      btn.dataset.tagName = tag;
+      btn.setAttribute('aria-expanded', 'false');
+
+      const labelSpan = document.createElement('span');
+      labelSpan.className = 'holo-tag-label';
+      labelSpan.textContent = tag;
+
+      const plusSpan = document.createElement('span');
+      plusSpan.className = 'holo-tag-plus-bubble';
+      plusSpan.setAttribute('aria-hidden', 'true');
+      plusSpan.textContent = '+';
+
+      btn.appendChild(labelSpan);
+      btn.appendChild(plusSpan);
+
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (sandbox.audio) {
+          sandbox.audio.trigger('onUpdate', {
+            source: 'holo-tag-click',
+            stationId: st.id,
+            tag,
+          });
+        }
+        const isAlreadyActive =
+          activeHoloTagState.stationId === st.id && activeHoloTagState.tagLabel === tag;
+        if (isAlreadyActive) {
+          setActiveHoloTagPopup(st, null, { triggerAnimation: false });
+        } else {
+          setActiveHoloTagPopup(st, tag, { triggerAnimation: true });
+        }
+      });
+
+      tagRow.appendChild(btn);
+    });
+    mainCol.appendChild(tagRow);
+
+    const slideTagPopup = document.createElement('div');
+    slideTagPopup.className = 'holo-tag-popup';
+    slideTagPopup.setAttribute('role', 'region');
+    slideTagPopup.setAttribute('aria-live', 'polite');
+    slideTagPopup.setAttribute('aria-hidden', 'true');
+    slideTagPopup.hidden = true;
+
+    const popupHeader = document.createElement('div');
+    popupHeader.className = 'holo-tag-popup-header';
+    const popupBadge = document.createElement('span');
+    popupBadge.className = 'holo-tag-popup-badge';
+    const popupDot = document.createElement('span');
+    popupDot.className = 'holo-tag-popup-dot';
+    popupDot.setAttribute('aria-hidden', 'true');
+    const popupTitle = document.createElement('span');
+    popupTitle.className = 'holo-tag-popup-title';
+    popupTitle.dataset.role = 'slide-tag-popup-title';
+    popupBadge.appendChild(popupDot);
+    popupBadge.appendChild(popupTitle);
+
+    const popupCloseBtn = document.createElement('button');
+    popupCloseBtn.type = 'button';
+    popupCloseBtn.className = 'holo-tag-popup-close-btn';
+    popupCloseBtn.setAttribute('aria-label', 'Close Tag Description');
+    popupCloseBtn.textContent = '✕';
+    popupCloseBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      setActiveHoloTagPopup(st, null, { triggerAnimation: false });
+    });
+
+    popupHeader.appendChild(popupBadge);
+    popupHeader.appendChild(popupCloseBtn);
+
+    const popupDesc = document.createElement('p');
+    popupDesc.className = 'holo-tag-popup-desc';
+    popupDesc.dataset.role = 'slide-tag-popup-desc';
+
+    slideTagPopup.appendChild(popupHeader);
+    slideTagPopup.appendChild(popupDesc);
+    mainCol.appendChild(slideTagPopup);
+
+    // Right Column: 4-Frame Amber Hologram Live-Demo Preview + Metrics + CTA Links
+    const visualPanel = document.createElement('div');
+    visualPanel.className = 'holo-Visual-panel';
+
+    if (st.previewAtlasUrl) {
+      const previewBezel = document.createElement('div');
+      previewBezel.className = 'holo-preview-bezel';
+      previewBezel.dataset.stationId = st.id;
+
+      const previewHeader = document.createElement('div');
+      previewHeader.className = 'holo-preview-header';
+      const sourceLabel = document.createElement('span');
+      sourceLabel.className = 'holo-preview-source-label';
+      sourceLabel.textContent = `HOLO.PREVIEW // ${st.previewSourceLabel || st.mountName}`;
+      const frameBadge = document.createElement('span');
+      frameBadge.className = 'holo-preview-frame-badge';
+      frameBadge.dataset.role = 'frame-badge';
+      frameBadge.textContent = 'FRAME 01 / 04';
+      previewHeader.appendChild(sourceLabel);
+      previewHeader.appendChild(frameBadge);
+      previewBezel.appendChild(previewHeader);
+
+      const mainStage = document.createElement('div');
+      mainStage.className = 'holo-preview-main-stage';
+      mainStage.dataset.role = 'preview-stage';
+      mainStage.dataset.activeFrame = '0';
+      mainStage.style.backgroundImage = `url('${st.previewAtlasUrl}')`;
+      mainStage.style.backgroundPosition = '0% 0%';
+      mainStage.title = 'Click to step through 4 live-demo hologram capture frames';
+
+      const captionBar = document.createElement('div');
+      captionBar.className = 'holo-preview-caption-bar';
+      captionBar.dataset.role = 'preview-caption';
+      captionBar.textContent =
+        (Array.isArray(st.previewFrameCaptions) && st.previewFrameCaptions[0]) ||
+        `${st.code} // LIVE PREVIEW`;
+      mainStage.appendChild(captionBar);
+
+      mainStage.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const curIdx = _holoPreviewActiveFrameByStationId.get(st.id) || 0;
+        setHoloSlidePreviewFrame(slideEl, st, curIdx + 1);
+      });
+      previewBezel.appendChild(mainStage);
+
+      const quadGrid = document.createElement('div');
+      quadGrid.className = 'holo-preview-quad-grid';
+      quadGrid.setAttribute('role', 'group');
+      quadGrid.setAttribute('aria-label', `${st.title} 4-Frame Hologram Preview Selector`);
+
+      for (let q = 0; q < 4; q++) {
+        const quadBtn = document.createElement('button');
+        quadBtn.type = 'button';
+        quadBtn.className = `holo-preview-quad-btn${q === 0 ? ' active-quad' : ''}`;
+        quadBtn.dataset.frameIndex = String(q);
+        quadBtn.style.backgroundImage = `url('${st.previewAtlasUrl}')`;
+        quadBtn.style.backgroundPosition = HOLO_PREVIEW_QUAD_BG_POSITIONS[q];
+        quadBtn.setAttribute('aria-pressed', q === 0 ? 'true' : 'false');
+        const capText =
+          (Array.isArray(st.previewFrameCaptions) && st.previewFrameCaptions[q]) ||
+          `Frame 0${q + 1}`;
+        quadBtn.title = capText;
+        quadBtn.setAttribute('aria-label', capText);
+
+        const idxChip = document.createElement('span');
+        idxChip.className = 'quad-idx';
+        idxChip.textContent = `F0${q + 1}`;
+        quadBtn.appendChild(idxChip);
+
+        quadBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          setHoloSlidePreviewFrame(slideEl, st, q);
+        });
+        quadGrid.appendChild(quadBtn);
+      }
+      previewBezel.appendChild(quadGrid);
+      visualPanel.appendChild(previewBezel);
+    }
+
+    const metricsGrid = document.createElement('div');
+    metricsGrid.className = 'holo-metrics-grid';
+    for (const m of st.metrics) {
+      const box = document.createElement('div');
+      box.className = 'holo-metric-box';
+      const val = document.createElement('span');
+      val.className = 'holo-metric-val';
+      val.textContent = m.value;
+      const lbl = document.createElement('span');
+      lbl.className = 'holo-metric-lbl';
+      lbl.textContent = m.label;
+      box.appendChild(val);
+      box.appendChild(lbl);
+      metricsGrid.appendChild(box);
+    }
+    visualPanel.appendChild(metricsGrid);
+
+    const hasPrimary = Boolean(st.primaryLink && st.primaryLink.url);
+    const hasSecondary = Boolean(st.secondaryLink && st.secondaryLink.url);
+    if (hasPrimary || hasSecondary) {
+      const ctaStack = document.createElement('div');
+      ctaStack.className = 'holo-cta-stack';
+
+      if (hasPrimary) {
+        const primaryA = document.createElement('a');
+        primaryA.className = 'holo-link-btn';
+        primaryA.href = st.primaryLink.url;
+        primaryA.target = '_blank';
+        primaryA.rel = 'noopener noreferrer';
+        const pSpan = document.createElement('span');
+        pSpan.textContent = st.primaryLink.label;
+        const pArrow = document.createElement('span');
+        pArrow.setAttribute('aria-hidden', 'true');
+        pArrow.textContent = '↗';
+        primaryA.appendChild(pSpan);
+        primaryA.appendChild(pArrow);
+        ctaStack.appendChild(primaryA);
+      }
+
+      if (hasSecondary) {
+        const secondaryA = document.createElement('a');
+        secondaryA.className = 'holo-link-btn secondary';
+        secondaryA.href = st.secondaryLink.url;
+        if (st.secondaryLink.action) {
+          secondaryA.dataset.holoAction = st.secondaryLink.action;
+        } else {
+          secondaryA.target = '_blank';
+          secondaryA.rel = 'noopener noreferrer';
+        }
+        const sSpan = document.createElement('span');
+        sSpan.textContent = st.secondaryLink.label;
+        const sArrow = document.createElement('span');
+        sArrow.setAttribute('aria-hidden', 'true');
+        sArrow.textContent = '↗';
+        secondaryA.appendChild(sSpan);
+        secondaryA.appendChild(sArrow);
+
+        secondaryA.addEventListener('click', (e) => {
+          if (
+            st.secondaryLink.action === 'open-whitepaper-column' ||
+            st.secondaryLink.url === '#ssm-whitepaper-column'
+          ) {
+            e.preventDefault();
+            e.stopPropagation();
+            sandbox.openWhitepaperHologramColumn();
+          }
+        });
+        ctaStack.appendChild(secondaryA);
+      }
+
+      visualPanel.appendChild(ctaStack);
+    }
+
+    slideEl.appendChild(mainCol);
+    slideEl.appendChild(visualPanel);
+    trackEl.appendChild(slideEl);
+  });
+
+  if (!trackEl._holoWorksListenersBound) {
+    trackEl._holoWorksListenersBound = true;
+
+    trackEl.addEventListener(
+      'scroll',
+      () => {
+        const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
+        if (now < _programmaticHoloTrackScrollUntil) return;
+        if (_holoTrackScrollSettleTimer) {
+          clearTimeout(_holoTrackScrollSettleTimer);
+        }
+        _holoTrackScrollSettleTimer = setTimeout(() => {
+          _holoTrackScrollSettleTimer = null;
+          const w = Math.max(1, trackEl.clientWidth);
+          const idx0 = Math.max(
+            0,
+            Math.min(HOLO_PROJECT_STATIONS.length - 1, Math.round(trackEl.scrollLeft / w))
+          );
+          const targetSt = HOLO_PROJECT_STATIONS[idx0];
+          if (!targetSt) return;
+          const curActive = sandbox.activeHoloProject;
+          if (!curActive || curActive.id !== targetSt.id) {
+            _suppressNextTrackScrollSync = true;
+            if (sandbox.mode === 'mount-focus' || sandbox.mode === 'freeroam') {
+              sandbox.focusWallMount(targetSt.mountName);
+            } else {
+              sandbox.scrollToProjectStation(targetSt.index);
+            }
+          }
+        }, 90);
+      },
+      { passive: true }
+    );
+
+    let lastWheelStepMs = 0;
+    trackEl.addEventListener(
+      'wheel',
+      (e) => {
+        if (sandbox.mode !== 'mount-focus') return;
+        e.stopPropagation();
+        if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
+          return;
+        }
+        const slideTarget =
+          e.target && typeof e.target.closest === 'function'
+            ? e.target.closest('.holo-work-slide')
+            : null;
+        if (slideTarget) {
+          const canScrollDown =
+            e.deltaY > 0 &&
+            slideTarget.scrollTop + slideTarget.clientHeight < slideTarget.scrollHeight - 2;
+          const canScrollUp = e.deltaY < 0 && slideTarget.scrollTop > 2;
+          if (canScrollDown || canScrollUp) {
+            return;
+          }
+        }
+        if (Math.abs(e.deltaY) < 12) return;
+        e.preventDefault();
+        const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
+        if (now - lastWheelStepMs < 260) return;
+        lastWheelStepMs = now;
+        sandbox.stepFocusedWallMount(e.deltaY > 0 ? 1 : -1);
+      },
+      { passive: false }
+    );
+  }
 }
 
 function updateHolographicPopupUI() {
@@ -14959,6 +15519,9 @@ function updateHolographicPopupUI() {
   const activeStation = getActiveHoloStationForProgress(sandbox.scrollProgress, sandbox.mode);
   sandbox.activeHoloProject = activeStation;
 
+  if (typeof document !== 'undefined' && document.body) {
+    document.body.classList.toggle('mount-focus-mode', isMountFocus);
+  }
   winEl.classList.toggle('mount-focus-active', isMountFocus);
 
   if (!activeStation || sandbox.whitepaperColumnOpen) {
@@ -14992,6 +15555,7 @@ function updateHolographicPopupUI() {
       setActiveHoloTagPopup(activeStation, null, { triggerAnimation: false });
     }
 
+    const counterEl = document.getElementById('holo-station-counter');
     const titleEl = document.getElementById('holo-title');
     const descEl = document.getElementById('holo-description');
     const narrativeBoxEl = document.getElementById('holo-narrative-callout');
@@ -14999,14 +15563,41 @@ function updateHolographicPopupUI() {
     const narrativeBodyEl = document.getElementById('holo-narrative-body');
     const tagsEl = document.getElementById('holo-tags');
     const metricsEl = document.getElementById('holo-metrics');
-    const ctaStackEl = winEl.querySelector('.holo-cta-stack');
+    const ctaStackEl = document.querySelector('#holo-body-scroll-viewport .holo-cta-stack');
     const primaryLinkEl = document.getElementById('holo-primary-link');
     const primaryTextEl = document.getElementById('holo-primary-link-text');
     const secondaryLinkEl = document.getElementById('holo-secondary-link');
     const secondaryTextEl = document.getElementById('holo-secondary-link-text');
 
+    if (counterEl) {
+      counterEl.textContent = `WORK ${activeStation.code} / 0${HOLO_PROJECT_STATIONS.length}`;
+    }
     if (titleEl) titleEl.textContent = activeStation.title;
     if (descEl) descEl.textContent = activeStation.description;
+
+    if (_suppressNextTrackScrollSync) {
+      _suppressNextTrackScrollSync = false;
+      const pipsContainer = document.getElementById('holo-station-pips');
+      if (pipsContainer) {
+        pipsContainer.querySelectorAll('.holo-station-pip-btn').forEach((pip) => {
+          const isMatch = Number(pip.dataset.stationIndex) === Number(activeStation.index);
+          pip.classList.toggle('active', isMatch);
+          pip.setAttribute('aria-current', isMatch ? 'step' : 'false');
+        });
+      }
+      const trackEl = document.getElementById('holo-works-horizontal-track');
+      if (trackEl) {
+        trackEl.querySelectorAll('.holo-work-slide').forEach((el) => {
+          const isMatch = Number(el.dataset.stationIndex) === Number(activeStation.index);
+          el.classList.toggle('active-slide', isMatch);
+          el.setAttribute('aria-hidden', isMatch ? 'false' : 'true');
+        });
+      }
+    } else {
+      scrollHoloWorksTrackToStation(activeStation.index, {
+        smooth: wasActiveWindow && stationChanged,
+      });
+    }
 
     if (narrativeBoxEl) {
       if (
@@ -15151,6 +15742,11 @@ function updateHolographicPopupUI() {
   if (!wasActiveWindow) {
     winEl.classList.add('active');
     winEl.setAttribute('aria-hidden', 'false');
+    if (typeof requestAnimationFrame === 'function') {
+      requestAnimationFrame(() => {
+        scrollHoloWorksTrackToStation(activeStation.index, { smooth: false });
+      });
+    }
     if (sandbox.audio) {
       sandbox.audio.trigger('onActivate', {
         stationId: activeStation.id,
@@ -15503,6 +16099,7 @@ function enterFreeRoamMode() {
   sandbox.scrollVelocity = 0.0;
 
   document.body.classList.add('freeroam-mode');
+  document.body.classList.remove('mount-focus-mode');
 
   const activeChar = sandbox.getActiveCharacter();
   const hasInput =
@@ -17616,6 +18213,9 @@ const sandbox = {
     this.isMountFocused = true;
     this.focusedMount = targetMount;
     this.hoveredMount = null;
+    if (typeof document !== 'undefined' && document.body) {
+      document.body.classList.add('mount-focus-mode');
+    }
     if (this.mathPodPopups) {
       this.mathPodPopups.setGlobalVisibility(false);
     }
@@ -17685,6 +18285,7 @@ const sandbox = {
     this.isMountFocused = false;
     this.focusedMount = null;
     document.body.classList.add('freeroam-mode');
+    document.body.classList.remove('mount-focus-mode');
     if (this.characterShadows) {
       this.characterShadows.update(0.0, holoShaderUniforms.uHoloTime.value, this);
     }
@@ -17718,6 +18319,49 @@ const sandbox = {
     updateTelemetryHUD();
     renderer.render(scene, camera);
     return true;
+  },
+  openWorksShowcase(identifier = 'SCREEN_MOUNT_01', opts = {}) {
+    if (!this.ready) return null;
+    if (this.director) {
+      if (this.director.cameraPanState && this.director.cameraPanState.mode === 'playing') {
+        this.director.stopStartupPan(true);
+      }
+      if (
+        this.director.introSequenceState &&
+        (this.director.introSequenceState.phase === 'pan-playing' ||
+          this.director.introSequenceState.phase === 'dialogue-active')
+      ) {
+        if (typeof this.director.completeIntroDialogue === 'function') {
+          this.director.completeIntroDialogue({ openDoomChat: false });
+        } else {
+          this.director.introSequenceState.scrollLocked = false;
+          this.director.introSequenceState.phase = 'scrolling-alley';
+        }
+      }
+    }
+    if (this.radialMenu && typeof this.radialMenu.isOpen === 'function' && this.radialMenu.isOpen()) {
+      this.radialMenu.close();
+    }
+    if (this.isDoomChatOpen && typeof this.exitDoomChatMode === 'function') {
+      this.exitDoomChatMode();
+    }
+    if (this.isStickerPopupOpen && typeof this.closeStickerPopup === 'function') {
+      this.closeStickerPopup();
+    }
+    if (this.whitepaperColumnOpen && typeof this.closeWhitepaperHologramColumn === 'function') {
+      this.closeWhitepaperHologramColumn();
+    }
+    if (this.isPortalPopupOpen && typeof this.closePortalGameSelectorPopup === 'function') {
+      this.closePortalGameSelectorPopup({ source: 'works-showcase' });
+    }
+    return this.focusWallMount(identifier || 'SCREEN_MOUNT_01', opts);
+  },
+  toggleWorksShowcase(opts = {}) {
+    if (!this.ready) return null;
+    if (this.mode === 'mount-focus') {
+      return this.exitMountFocusMode(opts);
+    }
+    return this.openWorksShowcase('SCREEN_MOUNT_01', opts);
   },
   interactNearestWallMount() {
     if (!this.ready) return null;
@@ -17966,6 +18610,7 @@ const sandbox = {
     mobileTouch.reset();
 
     document.body.classList.remove('freeroam-mode');
+    document.body.classList.remove('mount-focus-mode');
     document.body.classList.remove('mount-pointer-hover');
     this.mode = 'scroll';
     this.scrollVelocity = 0.0;
@@ -19737,8 +20382,7 @@ function updateTelemetryHUD() {
   }
   const elMobileInteractBtn = document.getElementById('mobile-action-interact-btn');
   if (elMobileInteractBtn) {
-    const hasNearMount = Boolean(sandbox.proximityMount || sandbox.hoveredMount || sandbox.activeHoloProject);
-    const nextInteractLabel = isMountFocus ? 'EXIT' : 'MOUNT';
+    const nextInteractLabel = 'WORKS';
     if (!activeDecodeJobs || !activeDecodeJobs.has(elMobileInteractBtn)) {
       if (elMobileInteractBtn.textContent !== nextInteractLabel) {
         elMobileInteractBtn.textContent = nextInteractLabel;
@@ -19746,7 +20390,9 @@ function updateTelemetryHUD() {
       elMobileInteractBtn.setAttribute('data-hud-canonical-text', nextInteractLabel);
     }
     elMobileInteractBtn.classList.toggle('highlight-mount', isMountFocus || Boolean(sandbox.proximityMount));
-    elMobileInteractBtn.classList.toggle('active', hasNearMount);
+    elMobileInteractBtn.classList.toggle('active', isMountFocus);
+    elMobileInteractBtn.classList.toggle('active-pill', isMountFocus);
+    elMobileInteractBtn.setAttribute('aria-expanded', isMountFocus ? 'true' : 'false');
   }
 
   const elTelMode = document.getElementById('tel-mode');
@@ -20507,70 +21153,6 @@ function bindMobileTouchControls() {
       }
     });
   }
-
-  const jumpBtn = document.getElementById('mobile-action-jump-btn');
-  if (jumpBtn) {
-    jumpBtn.addEventListener('pointerdown', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      if (!sandbox.ready) return;
-      if (sandbox.audio) sandbox.audio.unlock();
-      if (sandbox.mode === 'scroll') {
-        if (sandbox.director) {
-          if (sandbox.director.cameraPanState.mode === 'playing') {
-            sandbox.director.stopStartupPan();
-          }
-          sandbox.director.introSequenceState.scrollLocked = false;
-          sandbox.director.introSequenceState.phase = 'scrolling-alley';
-          syncIntroDialogueOverlayUI();
-          syncDirectorHUDInputs();
-        }
-        enterFreeRoamMode();
-      }
-      if (sandbox.mode === 'freeroam') {
-        jumpRequested = true;
-      }
-    });
-  }
-
-  const interactBtn = document.getElementById('mobile-action-interact-btn');
-  if (interactBtn) {
-    interactBtn.addEventListener('pointerdown', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      if (!sandbox.ready) return;
-      if (sandbox.audio) sandbox.audio.unlock();
-      if (sandbox.mode === 'mount-focus') {
-        sandbox.exitMountFocusMode();
-        return;
-      }
-      updateProximityAndHoverWallMounts();
-      const targetMount =
-        sandbox.proximityMount ||
-        sandbox.hoveredMount ||
-        (sandbox.activeHoloProject
-          ? sandbox.resolveWallMount(sandbox.activeHoloProject.mountName)
-          : null) ||
-        sandbox.wallMounts[0];
-      if (targetMount) {
-        sandbox.focusWallMount(targetMount.mountName);
-      }
-    });
-  }
-
-  const modeBtn = document.getElementById('mobile-action-mode-btn');
-  if (modeBtn) {
-    modeBtn.addEventListener('pointerdown', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      if (!sandbox.ready) return;
-      if (sandbox.audio) sandbox.audio.unlock();
-      if (sandbox.radialMenu) {
-        sandbox.radialMenu.toggle();
-        updateTelemetryHUD();
-      }
-    });
-  }
 }
 
 function bindInputListeners() {
@@ -21160,6 +21742,16 @@ function bindInputListeners() {
         sandbox.exitMathPodPopupFocus();
       }
       if (sandbox.mode === 'mount-focus' && isMoveKey) {
+        if (e.code === 'ArrowRight' || e.code === 'KeyD') {
+          e.preventDefault();
+          sandbox.stepFocusedWallMount(1);
+          return;
+        }
+        if (e.code === 'ArrowLeft' || e.code === 'KeyA') {
+          e.preventDefault();
+          sandbox.stepFocusedWallMount(-1);
+          return;
+        }
         sandbox.exitMountFocusMode();
       } else if (sandbox.mode === 'scroll' && isMoveKey) {
         if (sandbox.director && sandbox.director.isScrollLocked()) {
@@ -23589,7 +24181,14 @@ function initSprayPaintLoadingScreen() {
           overlayEl.classList.add('hidden');
           sprayLoader.teardownContext();
         }
-        if (sandbox.director && sandbox.mode === 'scroll' && sandbox.scrollProgress <= 0.01) {
+        if (
+          sandbox.director &&
+          sandbox.mode === 'scroll' &&
+          sandbox.scrollProgress <= 0.01 &&
+          sandbox.director.introSequenceState &&
+          sandbox.director.introSequenceState.phase === 'pan-playing' &&
+          !sandbox.director.cameraPanState.playing
+        ) {
           sandbox.director.playStartupPan();
         }
       }, holdDelay);

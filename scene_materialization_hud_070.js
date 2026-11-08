@@ -546,6 +546,7 @@ export class GlyphDecodeController {
     const effectiveDurationMs = Math.max(140, baseDuration / Math.max(0.25, speedMultiplier));
 
     if (lockedWidthPx > 0 && lockedHeightPx > 0) {
+      el.style.boxSizing = 'border-box';
       el.style.width = `${lockedWidthPx.toFixed(2)}px`;
       el.style.height = `${lockedHeightPx.toFixed(2)}px`;
       el.style.minWidth = `${lockedWidthPx.toFixed(2)}px`;
@@ -555,6 +556,7 @@ export class GlyphDecodeController {
     }
     el.classList.add('hud-cipher-locked');
     el.setAttribute('data-cipher-state', 'dormant');
+    el.setAttribute('data-hud-decoding', 'true');
 
     // In-flow invisible layout anchor + absolute aria-hidden cipher stage (screen readers read aria-label)
     el.textContent = '';
@@ -606,6 +608,7 @@ export class GlyphDecodeController {
       delayMs: Math.max(0, Number(delayMs) || 0),
       durationMs: effectiveDurationMs,
       elapsedMs: 0,
+      startedAtNowMs: typeof performance !== 'undefined' ? performance.now() : null,
       frameStep: Math.max(2, Math.min(4, Math.round(frameStep))),
       lockedWidthPx,
       lockedHeightPx,
@@ -634,6 +637,7 @@ export class GlyphDecodeController {
     // DOM Cleanliness (hud.md §6): remove all temporary wrapper spans and inline locks
     el.innerHTML = '';
     el.textContent = finalString;
+    el.style.boxSizing = '';
     el.style.width = '';
     el.style.height = '';
     el.style.minWidth = '';
@@ -642,6 +646,7 @@ export class GlyphDecodeController {
     el.style.maxHeight = '';
     el.classList.remove('hud-cipher-locked');
     el.setAttribute('data-cipher-state', 'resolved');
+    el.removeAttribute('data-hud-decoding');
     this.completedBootCount++;
     if (typeof onComplete === 'function') {
       onComplete(el);
@@ -659,9 +664,13 @@ export class GlyphDecodeController {
     if (this.activeJobs.size === 0) return;
     this.frameCounter++;
     const dtMs = Math.max(1.0, Math.min(100.0, (Number(dtSec) || 1 / 60) * 1000.0));
+    const nowMs = typeof performance !== 'undefined' ? performance.now() : null;
 
     for (const [el, job] of Array.from(this.activeJobs.entries())) {
-      job.elapsedMs += dtMs;
+      const simElapsed = job.elapsedMs + dtMs;
+      const wallElapsed =
+        nowMs !== null && job.startedAtNowMs !== null ? Math.max(0, nowMs - job.startedAtNowMs) : 0;
+      job.elapsedMs = Math.max(simElapsed, wallElapsed);
       if (job.elapsedMs < job.delayMs) {
         continue;
       }
@@ -716,127 +725,264 @@ export function createPortfolioPerimeterHUD({ sandbox } = {}) {
   const decodeController = new GlyphDecodeController();
   let lastFrameTimeMs = 16.6;
   let smoothedFrameMs = 16.6;
-  let sessionStartMs = typeof performance !== 'undefined' ? performance.now() : Date.now();
   let bootChoreographyPlayed = false;
+  let analogFlickerPlayedCount = 0;
+  let lastAnalogFlickerReason = null;
+  let analogStaggerTimer = null;
+  let leftStickFlickerTimer = null;
+  let rightStickFlickerTimer = null;
+  let wasTouchControlsSuppressed = false;
+  const buttonPointerDownTimestamps = new WeakMap();
 
   function getElements() {
     if (typeof document === 'undefined') return {};
     return {
       root: document.getElementById('portfolio-perimeter-hud'),
+      topLeft: document.getElementById('portfolio-hud-top-left'),
       brand: document.getElementById('portfolio-hud-brand'),
-      stamp: document.getElementById('portfolio-hud-stamp'),
-      bilingual: document.getElementById('portfolio-hud-bilingual'),
       roles: document.getElementById('portfolio-hud-roles'),
       navBar: document.getElementById('mobile-touch-actions'),
       navModeBtn: document.getElementById('portfolio-hud-mode-pill'),
       navInteractBtn: document.getElementById('mobile-action-interact-btn'),
       navMenuBtn: document.getElementById('mobile-action-mode-btn'),
       navChatBtn: document.getElementById('portfolio-hud-chat-btn'),
-      navJumpBtn: document.getElementById('mobile-action-jump-btn'),
-      telEngine: document.getElementById('portfolio-hud-tel-engine'),
+      topRight: document.getElementById('portfolio-hud-top-right'),
       telMetrics: document.getElementById('portfolio-hud-tel-metrics'),
       telScroll: document.getElementById('portfolio-hud-tel-scroll'),
-      utilStatus: document.getElementById('portfolio-hud-util-status'),
-      utilTimer: document.getElementById('portfolio-hud-util-timer'),
-      utilFormat: document.getElementById('portfolio-hud-util-format'),
+      touchControls: document.getElementById('mobile-touch-controls'),
+      leftStick: document.getElementById('mobile-left-thumbpad'),
+      rightStick: document.getElementById('mobile-right-thumbpad'),
       leftStickLabel: document.getElementById('mobile-left-thumbpad-label'),
       rightStickLabel: document.getElementById('mobile-right-thumbpad-label'),
     };
   }
 
-  function playBootChoreography() {
-    const els = getElements();
-    if (!els.root) return;
-    bootChoreographyPlayed = true;
+  function isIntroSequenceHoldingHUD() {
+    if (!sandbox || !sandbox.director) return false;
+    if (sandbox.mode !== 'scroll') return false;
+    const panMode = sandbox.director.cameraPanState ? sandbox.director.cameraPanState.mode : '';
+    const introPhase = sandbox.director.introSequenceState
+      ? sandbox.director.introSequenceState.phase
+      : '';
+    return (
+      panMode === 'playing' ||
+      introPhase === 'pan-playing' ||
+      introPhase === 'dialogue-active'
+    );
+  }
 
-    // Beat 1 (0ms – 100ms): Primary top-left brand identity & top-right telemetry readout
+  function clearAnalogFlickerTimers() {
+    if (analogStaggerTimer !== null) {
+      clearTimeout(analogStaggerTimer);
+      analogStaggerTimer = null;
+    }
+    if (leftStickFlickerTimer !== null) {
+      clearTimeout(leftStickFlickerTimer);
+      leftStickFlickerTimer = null;
+    }
+    if (rightStickFlickerTimer !== null) {
+      clearTimeout(rightStickFlickerTimer);
+      rightStickFlickerTimer = null;
+    }
+  }
+
+  function overrideAnalogFlickerOnTouch(side = 'both') {
+    const els = getElements();
+    if (analogStaggerTimer !== null) {
+      clearTimeout(analogStaggerTimer);
+      analogStaggerTimer = null;
+      if (els.touchControls) {
+        els.touchControls.classList.add('analog-materialized');
+      }
+    }
+    if (side === 'left' || side === 'both') {
+      if (leftStickFlickerTimer !== null) {
+        clearTimeout(leftStickFlickerTimer);
+        leftStickFlickerTimer = null;
+      }
+      if (els.leftStick) {
+        els.leftStick.classList.remove('flicker-on', 'flicker-waiting');
+        els.leftStick.setAttribute('data-flicker-state', 'active-override');
+      }
+    }
+    if (side === 'right' || side === 'both') {
+      if (rightStickFlickerTimer !== null) {
+        clearTimeout(rightStickFlickerTimer);
+        rightStickFlickerTimer = null;
+      }
+      if (els.rightStick) {
+        els.rightStick.classList.remove('flicker-on', 'flicker-waiting');
+        els.rightStick.setAttribute('data-flicker-state', 'active-override');
+      }
+    }
+  }
+
+  function triggerAnalogFlickerOn({ delayMs = 210, reason = 'post-dialogue' } = {}) {
+    const els = getElements();
+    if (!els.touchControls || !els.leftStick || !els.rightStick) return;
+
+    clearAnalogFlickerTimers();
+    lastAnalogFlickerReason = reason;
+
+    const startFlicker = () => {
+      analogStaggerTimer = null;
+      if (isIntroSequenceHoldingHUD()) return;
+      els.touchControls.classList.add('analog-materialized');
+      analogFlickerPlayedCount++;
+
+      // Left stick leads right stick by 65ms (520ms keyframe duration each, Spec 071 §6.2.2)
+      els.leftStick.classList.remove('flicker-waiting', 'flicker-on');
+      void els.leftStick.offsetWidth;
+      els.leftStick.classList.add('flicker-on');
+      els.leftStick.setAttribute('data-flicker-state', 'flicker-on');
+
+      els.rightStick.classList.remove('flicker-waiting', 'flicker-on');
+      void els.rightStick.offsetWidth;
+      els.rightStick.classList.add('flicker-on');
+      els.rightStick.setAttribute('data-flicker-state', 'flicker-on');
+
+      leftStickFlickerTimer = setTimeout(() => {
+        leftStickFlickerTimer = null;
+        if (els.leftStick && els.leftStick.getAttribute('data-flicker-state') === 'flicker-on') {
+          els.leftStick.classList.remove('flicker-on');
+          els.leftStick.setAttribute('data-flicker-state', 'settled');
+        }
+      }, 530);
+
+      rightStickFlickerTimer = setTimeout(() => {
+        rightStickFlickerTimer = null;
+        if (els.rightStick && els.rightStick.getAttribute('data-flicker-state') === 'flicker-on') {
+          els.rightStick.classList.remove('flicker-on');
+          els.rightStick.setAttribute('data-flicker-state', 'settled');
+        }
+      }, 595);
+    };
+
+    const waitMs = Math.max(0, Number(delayMs) || 0);
+    if (waitMs <= 0) {
+      startFlicker();
+    } else {
+      els.leftStick.classList.add('flicker-waiting');
+      els.rightStick.classList.add('flicker-waiting');
+      els.leftStick.setAttribute('data-flicker-state', 'flicker-Pending');
+      els.rightStick.setAttribute('data-flicker-state', 'flicker-Pending');
+      analogStaggerTimer = setTimeout(startFlicker, waitMs);
+    }
+  }
+
+  function resetToDormantPreDialogueState() {
+    const els = getElements();
+    decodeController.resolveAllImmediate();
+    clearAnalogFlickerTimers();
+    bootChoreographyPlayed = false;
+    if (els.root) {
+      els.root.classList.remove('hud-materialized');
+    }
+    if (els.touchControls) {
+      els.touchControls.classList.remove('analog-materialized');
+    }
+    if (els.leftStick) {
+      els.leftStick.classList.remove('flicker-on', 'flicker-waiting');
+      els.leftStick.setAttribute('data-flicker-state', 'dormant');
+    }
+    if (els.rightStick) {
+      els.rightStick.classList.remove('flicker-on', 'flicker-waiting');
+      els.rightStick.setAttribute('data-flicker-state', 'dormant');
+    }
+  }
+
+  function playBootChoreography({ force = false } = {}) {
+    const els = getElements();
+    if (!els.root) return false;
+    if (!force && isIntroSequenceHoldingHUD()) {
+      return false;
+    }
+
+    bootChoreographyPlayed = true;
+    els.root.classList.add('hud-materialized');
+    if (typeof document !== 'undefined' && document.body) {
+      document.body.classList.remove('intro-sequence-active');
+    }
+
+    // Spec 071 §5.1.2: 650ms <= T_decode <= 1100ms staggered post-dialogue Cipher Decode
     decodeController.decodeElement(els.brand, {
       text: 'LUIS // PLATODOOM',
       delayMs: 0,
-      durationMs: 440,
+      durationMs: 680,
       frameStep: 3,
     });
-    decodeController.decodeElement(els.stamp, {
-      text: '©2026 // SYS.070',
-      delayMs: 40,
-      durationMs: 380,
-      frameStep: 3,
-    });
-    decodeController.decodeElement(els.telEngine, {
-      text: 'ONLINE // WEBGL2',
-      delayMs: 20,
-      durationMs: 460,
+    decodeController.decodeElement(els.roles, {
+      text: 'AI ENGINEERING | DATA ANALYTICS',
+      delayMs: 110,
+      durationMs: 780,
       frameStep: 3,
     });
     decodeController.decodeElement(els.telMetrics, {
       text: 'Frame: 02.4 ms, 60 FPS',
-      delayMs: 60,
-      durationMs: 640,
+      delayMs: 50,
+      durationMs: 740,
       frameStep: 3,
     });
     decodeController.decodeElement(els.telScroll, {
-      text: '000% ALLEY',
-      delayMs: 90,
-      durationMs: 420,
+      text: sandbox && sandbox.mode === 'mount-focus' ? 'WORK 01/07' : '000% ALLEY',
+      delayMs: 130,
+      durationMs: 680,
       frameStep: 3,
     });
 
-    // Beat 2 (150ms – 250ms): Primary navigation links stagger sequentially from left to right
     const navItems = [
-      { el: els.navModeBtn, text: sandbox && sandbox.mode === 'freeroam' ? 'ROAM' : 'SCROLL', delay: 150 },
-      { el: els.navInteractBtn, text: 'MOUNT', delay: 175 },
-      { el: els.navMenuBtn, text: 'MENU', delay: 200 },
+      {
+        el: els.navModeBtn,
+        text: sandbox && sandbox.mode === 'freeroam' ? 'ROAM' : 'SCROLL',
+        delay: 75,
+      },
+      { el: els.navInteractBtn, text: 'WORKS', delay: 125 },
+      { el: els.navMenuBtn, text: 'MENU', delay: 175 },
       { el: els.navChatBtn, text: 'CHAT', delay: 225 },
-      { el: els.navJumpBtn, text: 'JUMP', delay: 250 },
     ];
     for (const item of navItems) {
       if (item.el) {
         decodeController.decodeElement(item.el, {
           text: item.text,
           delayMs: item.delay,
-          durationMs: 340,
+          durationMs: 660,
           frameStep: 3,
         });
       }
     }
 
-    // Beat 3 (200ms – 400ms): Secondary role descriptors, subtitles, bottom utility & analog labels
-    decodeController.decodeElement(els.bilingual, {
-      text: 'フリーマン・アレー // 空間ポートフォリオ',
-      delayMs: 210,
-      durationMs: 560,
-      frameStep: 3,
+    // Spec 071 §6.2.1: Stagger mobile analog stick Phosphor Flicker-On 180ms–260ms after HUD decode begins
+    triggerAnalogFlickerOn({ delayMs: 210, reason: 'post-dialogue' });
+    return true;
+  }
+
+  function triggerElementCipherDecode(el, explicitText = null) {
+    if (!el) return null;
+    const targetText =
+      typeof explicitText === 'string' && explicitText.length > 0
+        ? explicitText
+        : el.getAttribute('data-hud-canonical-text') || el.textContent.trim();
+    if (!targetText) return null;
+    return decodeController.decodeElement(el, {
+      text: targetText,
+      delayMs: 0,
+      durationMs: 360,
+      speedMultiplier: 1.0,
+      frameStep: 2,
     });
-    decodeController.decodeElement(els.roles, {
-      text: 'AI ENGINEER & CREATIVE TECHNOLOGIST',
-      delayMs: 260,
-      durationMs: 680,
-      frameStep: 3,
-    });
-    decodeController.decodeElement(els.utilStatus, {
-      text: 'SYS-990 // READY',
-      delayMs: 300,
-      durationMs: 440,
-      frameStep: 3,
-    });
-    decodeController.decodeElement(els.utilFormat, {
-      text: '48KHZ // STEREO',
-      delayMs: 340,
-      durationMs: 420,
-      frameStep: 3,
-    });
-    decodeController.decodeElement(els.leftStickLabel, {
-      text: 'MOVE',
-      delayMs: 280,
-      durationMs: 340,
-      frameStep: 3,
-    });
-    decodeController.decodeElement(els.rightStickLabel, {
-      text: 'LOOK',
-      delayMs: 320,
-      durationMs: 340,
-      frameStep: 3,
-    });
+  }
+
+  function shouldProcessActivation(btn, eventType) {
+    const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
+    if (eventType === 'pointerdown') {
+      buttonPointerDownTimestamps.set(btn, now);
+      return true;
+    }
+    const lastDown = buttonPointerDownTimestamps.get(btn) || 0;
+    if (now - lastDown < 450) {
+      return false;
+    }
+    return true;
   }
 
   function bindInteractions() {
@@ -849,36 +995,61 @@ export function createPortfolioPerimeterHUD({ sandbox } = {}) {
       els.navInteractBtn,
       els.navMenuBtn,
       els.navChatBtn,
-      els.navJumpBtn,
     ].filter(Boolean);
 
-    // Localized 2x-speed hover re-materialization on inactive navigation links (hud.md §5.2)
+    // Spec 071 §5.2.1: Hover re-triggers localized Cipher Decode on ALL interactive HUD buttons (including active pills)
     for (const btn of interactiveNavBtns) {
       btn.addEventListener('pointerenter', (e) => {
         if (e.pointerType === 'touch') return;
-        if (btn.classList.contains('active-pill')) return;
         const currentLabel = btn.getAttribute('data-hud-canonical-text') || btn.textContent.trim();
         if (currentLabel) {
-          decodeController.decodeElement(btn, {
-            text: currentLabel,
-            delayMs: 0,
-            durationMs: 320,
-            speedMultiplier: 2.0,
-            frameStep: 2,
-          });
+          triggerElementCipherDecode(btn, currentLabel);
         }
       });
     }
 
-    // SCROLL / ROAM Mode Toggle Pill
+    // Top-Left Brand Identity Hover & Click Cipher Decode Re-Trigger (Spec 071 §5.2)
+    if (els.topLeft) {
+      const decodeBrandIdentity = () => {
+        if (els.brand) {
+          decodeController.decodeElement(els.brand, {
+            text: 'LUIS // PLATODOOM',
+            delayMs: 0,
+            durationMs: 360,
+            frameStep: 2,
+          });
+        }
+        if (els.roles) {
+          decodeController.decodeElement(els.roles, {
+            text: 'AI ENGINEERING | DATA ANALYTICS',
+            delayMs: 35,
+            durationMs: 360,
+            frameStep: 2,
+          });
+        }
+      };
+      els.topLeft.addEventListener('pointerenter', (e) => {
+        if (e.pointerType === 'touch') return;
+        decodeBrandIdentity();
+      });
+      els.topLeft.addEventListener('pointerdown', (e) => {
+        e.stopPropagation();
+        decodeBrandIdentity();
+      });
+    }
+
+    // 1. SCROLL / ROAM Mode Toggle Pill (Hover + Click/Tap Cipher Decode)
     if (els.navModeBtn) {
-      els.navModeBtn.addEventListener('pointerdown', (e) => {
+      const handleModeActivate = (e) => {
+        if (!shouldProcessActivation(els.navModeBtn, e.type)) return;
         e.preventDefault();
         e.stopPropagation();
         if (!sandbox || !sandbox.ready) return;
         if (sandbox.audio) sandbox.audio.unlock();
         if (sandbox.mode === 'mount-focus') {
           sandbox.exitMountFocusMode();
+          const resolvedLabel = sandbox.mode === 'freeroam' ? 'ROAM' : 'SCROLL';
+          triggerElementCipherDecode(els.navModeBtn, resolvedLabel);
           return;
         }
         if (sandbox.mode === 'freeroam') {
@@ -888,19 +1059,66 @@ export function createPortfolioPerimeterHUD({ sandbox } = {}) {
             if (sandbox.director.cameraPanState.mode === 'playing') {
               sandbox.director.stopStartupPan();
             }
-            sandbox.director.introSequenceState.scrollLocked = false;
-            sandbox.director.introSequenceState.phase = 'scrolling-alley';
+            if (sandbox.director.introSequenceState.phase === 'dialogue-active') {
+              sandbox.director.completeIntroDialogue({ openDoomChat: false });
+            } else {
+              sandbox.director.introSequenceState.scrollLocked = false;
+              sandbox.director.introSequenceState.phase = 'scrolling-alley';
+            }
           }
           if (typeof sandbox.enterFreeRoam === 'function') {
             sandbox.enterFreeRoam();
           }
         }
-      });
+        const resolvedLabel = sandbox.mode === 'freeroam' ? 'ROAM' : 'SCROLL';
+        triggerElementCipherDecode(els.navModeBtn, resolvedLabel);
+      };
+      els.navModeBtn.addEventListener('pointerdown', handleModeActivate);
+      els.navModeBtn.addEventListener('click', handleModeActivate);
     }
 
-    // CHAT (DOOM_HEAD Terminal) Button
+    // 2. WORKS (Full-Screen Horizontal Works Hologram Showcase) Button
+    if (els.navInteractBtn) {
+      const handleWorksActivate = (e) => {
+        if (!shouldProcessActivation(els.navInteractBtn, e.type)) return;
+        e.preventDefault();
+        e.stopPropagation();
+        if (!sandbox || !sandbox.ready) return;
+        if (sandbox.audio) sandbox.audio.unlock();
+        if (typeof sandbox.toggleWorksShowcase === 'function') {
+          sandbox.toggleWorksShowcase();
+        } else if (sandbox.mode === 'mount-focus') {
+          sandbox.exitMountFocusMode();
+        } else {
+          sandbox.focusWallMount('SCREEN_MOUNT_01');
+        }
+        triggerElementCipherDecode(els.navInteractBtn, 'WORKS');
+      };
+      els.navInteractBtn.addEventListener('pointerdown', handleWorksActivate);
+      els.navInteractBtn.addEventListener('click', handleWorksActivate);
+    }
+
+    // 3. MENU (Cyber-Tactical Radial Menu) Button
+    if (els.navMenuBtn) {
+      const handleMenuActivate = (e) => {
+        if (!shouldProcessActivation(els.navMenuBtn, e.type)) return;
+        e.preventDefault();
+        e.stopPropagation();
+        if (!sandbox || !sandbox.ready) return;
+        if (sandbox.audio) sandbox.audio.unlock();
+        if (sandbox.radialMenu) {
+          sandbox.radialMenu.toggle();
+        }
+        triggerElementCipherDecode(els.navMenuBtn, 'MENU');
+      };
+      els.navMenuBtn.addEventListener('pointerdown', handleMenuActivate);
+      els.navMenuBtn.addEventListener('click', handleMenuActivate);
+    }
+
+    // 4. CHAT (DOOM_HEAD Terminal) Button
     if (els.navChatBtn) {
-      els.navChatBtn.addEventListener('pointerdown', (e) => {
+      const handleChatActivate = (e) => {
+        if (!shouldProcessActivation(els.navChatBtn, e.type)) return;
         e.preventDefault();
         e.stopPropagation();
         if (!sandbox || !sandbox.ready) return;
@@ -911,15 +1129,68 @@ export function createPortfolioPerimeterHUD({ sandbox } = {}) {
           const legacyChatBtn = document.getElementById('hud-open-doom-chat-btn');
           if (legacyChatBtn) legacyChatBtn.click();
         }
-      });
+        triggerElementCipherDecode(els.navChatBtn, 'CHAT');
+      };
+      els.navChatBtn.addEventListener('pointerdown', handleChatActivate);
+      els.navChatBtn.addEventListener('click', handleChatActivate);
+    }
+
+    // Immediate Touch Override Safety on Mobile Analog Sticks (Spec 071 §6.2.3)
+    if (els.leftStick) {
+      els.leftStick.addEventListener(
+        'pointerdown',
+        () => {
+          overrideAnalogFlickerOnTouch('left');
+        },
+        { passive: true }
+      );
+    }
+    if (els.rightStick) {
+      els.rightStick.addEventListener(
+        'pointerdown',
+        () => {
+          overrideAnalogFlickerOnTouch('right');
+        },
+        { passive: true }
+      );
     }
   }
 
   function update(dtSec) {
-    decodeController.step(dtSec);
-
     const els = getElements();
     if (!els.root) return;
+
+    const holdingForIntro = isIntroSequenceHoldingHUD();
+    if (typeof document !== 'undefined' && document.body) {
+      document.body.classList.toggle('intro-sequence-active', holdingForIntro);
+    }
+
+    if (holdingForIntro) {
+      if (bootChoreographyPlayed || els.root.classList.contains('hud-materialized')) {
+        resetToDormantPreDialogueState();
+      }
+      return;
+    }
+
+    // Automatically trigger post-dialogue Cipher Decode & Analog Flicker-On the moment the intro dialogue concludes
+    if (!bootChoreographyPlayed) {
+      playBootChoreography({ force: true });
+    }
+
+    // Re-trigger analog stick Phosphor Flicker-On when returning from suppressed overlay (e.g. Works Showcase or DOOM Chat)
+    const isSuppressedOverlay =
+      typeof document !== 'undefined' &&
+      document.body &&
+      (document.body.classList.contains('mount-focus-mode') ||
+        document.body.classList.contains('doom-chat-active') ||
+        document.body.classList.contains('sticker-popup-active') ||
+        document.body.classList.contains('mp3-takeover-active'));
+    if (wasTouchControlsSuppressed && !isSuppressedOverlay && bootChoreographyPlayed) {
+      triggerAnalogFlickerOn({ delayMs: 40, reason: 'overlay-return' });
+    }
+    wasTouchControlsSuppressed = Boolean(isSuppressedOverlay);
+
+    decodeController.step(dtSec);
 
     const dtMs = Math.max(0.5, Math.min(100.0, (Number(dtSec) || 1 / 60) * 1000.0));
     lastFrameTimeMs = dtMs;
@@ -938,14 +1209,16 @@ export function createPortfolioPerimeterHUD({ sandbox } = {}) {
     }
 
     if (els.telScroll && !decodeController.activeJobs.has(els.telScroll) && sandbox) {
-      const pct = String(Math.round((Number(sandbox.scrollProgress) || 0) * 100)).padStart(3, '0');
-      const modeTag =
-        sandbox.mode === 'mount-focus'
-          ? 'FOCUS'
-          : sandbox.mode === 'freeroam'
-            ? 'ROAM '
-            : 'ALLEY';
-      const nextScroll = `${pct}% ${modeTag}`;
+      let nextScroll;
+      if (sandbox.mode === 'mount-focus' && sandbox.focusedMount && sandbox.focusedMount.station) {
+        const stCode = String(sandbox.focusedMount.station.code || '01').padStart(2, '0');
+        const totalWorks = Array.isArray(sandbox.wallMounts) ? String(sandbox.wallMounts.length).padStart(2, '0') : '07';
+        nextScroll = `WORK ${stCode}/${totalWorks}`;
+      } else {
+        const pct = String(Math.round((Number(sandbox.scrollProgress) || 0) * 100)).padStart(3, '0');
+        const modeTag = sandbox.mode === 'freeroam' ? 'ROAM ' : 'ALLEY';
+        nextScroll = `${pct}% ${modeTag}`;
+      }
       if (els.telScroll.textContent !== nextScroll) {
         els.telScroll.textContent = nextScroll;
         els.telScroll.setAttribute('data-hud-canonical-text', nextScroll);
@@ -954,13 +1227,28 @@ export function createPortfolioPerimeterHUD({ sandbox } = {}) {
 
     if (els.navModeBtn && !decodeController.activeJobs.has(els.navModeBtn) && sandbox) {
       const isFreeRoam = sandbox.mode === 'freeroam';
+      const isWorksOpen = sandbox.mode === 'mount-focus';
       const targetModeLabel = isFreeRoam ? 'ROAM' : 'SCROLL';
       if (els.navModeBtn.textContent !== targetModeLabel) {
         els.navModeBtn.textContent = targetModeLabel;
         els.navModeBtn.setAttribute('data-hud-canonical-text', targetModeLabel);
       }
-      els.navModeBtn.classList.toggle('active-pill', true);
+      els.navModeBtn.classList.toggle('active-pill', !isWorksOpen);
       els.navModeBtn.classList.toggle('is-roam', isFreeRoam);
+    }
+
+    if (els.navInteractBtn && !decodeController.activeJobs.has(els.navInteractBtn) && sandbox) {
+      const isWorksOpen = sandbox.mode === 'mount-focus';
+      if (els.navInteractBtn.textContent !== 'WORKS') {
+        els.navInteractBtn.textContent = 'WORKS';
+      }
+      els.navInteractBtn.setAttribute('data-hud-canonical-text', 'WORKS');
+      els.navInteractBtn.classList.toggle('active', isWorksOpen);
+      els.navInteractBtn.classList.toggle('active-pill', isWorksOpen);
+      els.navInteractBtn.classList.toggle(
+        'highlight-mount',
+        isWorksOpen || Boolean(sandbox.proximityMount)
+      );
     }
 
     if (els.navChatBtn && !decodeController.activeJobs.has(els.navChatBtn)) {
@@ -969,28 +1257,7 @@ export function createPortfolioPerimeterHUD({ sandbox } = {}) {
         document.body &&
         document.body.classList.contains('doom-chat-active');
       els.navChatBtn.classList.toggle('active', isChatOpen);
-    }
-
-    if (els.utilTimer && !decodeController.activeJobs.has(els.utilTimer)) {
-      const nowMs = typeof performance !== 'undefined' ? performance.now() : Date.now();
-      const totalSec = Math.max(0, Math.floor((nowMs - sessionStartMs) / 1000));
-      const mm = String(Math.floor(totalSec / 60)).padStart(2, '0');
-      const ss = String(totalSec % 60).padStart(2, '0');
-      const nextTimer = `${mm}:${ss}`;
-      if (els.utilTimer.textContent !== nextTimer) {
-        els.utilTimer.textContent = nextTimer;
-      }
-    }
-
-    if (els.utilStatus && !decodeController.activeJobs.has(els.utilStatus) && sandbox) {
-      const matPhase =
-        sandbox.sceneMaterialization && sandbox.sceneMaterialization.phase === 'materializing'
-          ? `MAT ${Math.round(sandbox.sceneMaterialization.progress * 100)}%`
-          : 'SYS-990 // LOCKED';
-      if (els.utilStatus.textContent !== matPhase) {
-        els.utilStatus.textContent = matPhase;
-        els.utilStatus.setAttribute('data-hud-canonical-text', matPhase);
-      }
+      els.navChatBtn.classList.toggle('active-pill', isChatOpen);
     }
   }
 
@@ -999,20 +1266,35 @@ export function createPortfolioPerimeterHUD({ sandbox } = {}) {
     get bootChoreographyPlayed() {
       return bootChoreographyPlayed;
     },
+    get analogFlickerPlayedCount() {
+      return analogFlickerPlayedCount;
+    },
+    isIntroSequenceHoldingHUD,
     bindInteractions,
     playBootChoreography,
+    resetToDormantPreDialogueState,
+    triggerElementCipherDecode,
+    triggerAnalogFlickerOn,
+    overrideAnalogFlickerOnTouch,
     resolveAllImmediate: () => decodeController.resolveAllImmediate(),
     update,
     getState() {
       const els = getElements();
       return {
         bootChoreographyPlayed,
+        holdingForIntro: isIntroSequenceHoldingHUD(),
         activeDecodeJobs: decodeController.activeJobs.size,
         completedDecodeCount: decodeController.completedBootCount,
+        analogFlickerPlayedCount,
+        lastAnalogFlickerReason,
+        leftStickFlickerState: els.leftStick ? els.leftStick.getAttribute('data-flicker-state') : null,
+        rightStickFlickerState: els.rightStick ? els.rightStick.getAttribute('data-flicker-state') : null,
         lastFrameTimeMs: Number(smoothedFrameMs.toFixed(2)),
         brandText: els.brand ? els.brand.textContent : null,
+        rolesText: els.roles ? els.roles.textContent : null,
         metricsText: els.telMetrics ? els.telMetrics.textContent : null,
         modePillText: els.navModeBtn ? els.navModeBtn.textContent : null,
+        worksPillText: els.navInteractBtn ? els.navInteractBtn.textContent : null,
       };
     },
   };
