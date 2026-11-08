@@ -1673,12 +1673,13 @@ if (typeof document !== 'undefined' && !container) {
   raiseFatalError('Missing #viewport-container DOM element.');
 }
 
-const DEPTH_FOG_COLOR_HEX = 0x000000; // #000000 pitch-black deep space void (Spec 068 Addendum §13 & §15.6)
+const SKY_PORT_COLOR_HEX = 0x808080;  // #808080 Blender default Solid Viewport mesh gray (RGB 0.5, 0.5, 0.5)
+const DEPTH_FOG_COLOR_HEX = 0x000000; // #000000 dark corridor depth fog so brick walls aren't washed out
 const DEPTH_FOG_DENSITY = 0.0085;     // Open corridor visibility so distant assets and walls remain visible along the full 58m alley
 
 const scene = new THREE.Scene();
 scene.name = 'FreemanAlleySandboxScene';
-scene.background = new THREE.Color(0x000000);
+scene.background = new THREE.Color(SKY_PORT_COLOR_HEX);
 scene.fog = new THREE.FogExp2(DEPTH_FOG_COLOR_HEX, DEPTH_FOG_DENSITY);
 
 const camera = new THREE.PerspectiveCamera(
@@ -1698,7 +1699,7 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined' && containe
   });
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.25));
-  renderer.setClearColor(0x000000, 1.0);
+  renderer.setClearColor(SKY_PORT_COLOR_HEX, 1.0);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 0.72;
@@ -5360,7 +5361,7 @@ function buildSpawnAndCameraDirectorSystem(floorY = 0.0) {
       };
     },
 
-    startIntroTalkingSequence() {
+    startIntroTalkingSequence({ preserveActiveIntroDialogue = false } = {}) {
       if (this.cameraPOVMode) {
         this.toggleCameraPOVMode(false);
       }
@@ -5397,7 +5398,14 @@ function buildSpawnAndCameraDirectorSystem(floorY = 0.0) {
         activeChar.isGrounded = true;
         activeChar.root.position.copy(activeChar.position);
         activeChar.root.rotation.set(0, activeChar.yaw, 0);
-        activeChar.startOrderedDialogueSequence(introSequenceState.talkingSequence);
+        const alreadyInIntroSequence =
+          preserveActiveIntroDialogue &&
+          activeChar.dialogueActive &&
+          Array.isArray(activeChar.orderedDialogueSequence) &&
+          activeChar.orderedDialogueSequence.length > 0;
+        if (!alreadyInIntroSequence) {
+          activeChar.startOrderedDialogueSequence(introSequenceState.talkingSequence);
+        }
         activeChar.mixer.update(0.0);
         activeChar.root.updateMatrixWorld(true);
       }
@@ -5989,6 +5997,14 @@ function buildSpawnAndCameraDirectorSystem(floorY = 0.0) {
     },
 
     completeStartupPanWithIntroGrace() {
+      if (
+        introGenerationTelemetry.status !== 'in_flight' ||
+        !_introPrefetchPromise
+      ) {
+        this.startIntroTalkingSequence();
+        return;
+      }
+
       camera.position.copy(cameraPanState.endPos);
       if (mountFocusCameraState) {
         mountFocusCameraState.currentLookAt.copy(cameraPanState.endLookAt);
@@ -6007,14 +6023,6 @@ function buildSpawnAndCameraDirectorSystem(floorY = 0.0) {
         activeChar.startOrderedDialogueSequence(introSequenceState.talkingSequence);
         activeChar.mixer.update(0.0);
         activeChar.root.updateMatrixWorld(true);
-      }
-
-      if (
-        introGenerationTelemetry.status !== 'in_flight' ||
-        !_introPrefetchPromise
-      ) {
-        this.startIntroTalkingSequence();
-        return;
       }
 
       // Bounded 600ms post-pan grace window (Spec 065 §6 & §7.1)
@@ -6036,7 +6044,7 @@ function buildSpawnAndCameraDirectorSystem(floorY = 0.0) {
           introGenerationTelemetry.source = 'anchor_fallback';
           introGenerationTelemetry.introSource = 'anchor_fallback_grace_timeout';
         }
-        this.startIntroTalkingSequence();
+        this.startIntroTalkingSequence({ preserveActiveIntroDialogue: true });
       });
     },
 
@@ -10997,8 +11005,22 @@ class CharacterController {
 
     this.crossfadeTo('IDLE_DEFAULT', 0.0);
     this.mixer.update(0.0);
+    // Overwrite PropertyMixer's cached original rest state (which was captured from the GLB bind T-pose)
+    // with the evaluated IDLE_DEFAULT pose so any partial-weight blend falls back to Idle rather than T-pose.
+    if (Array.isArray(this.mixer._bindings)) {
+      for (const pm of this.mixer._bindings) {
+        if (pm && typeof pm.saveOriginalState === 'function') {
+          pm.saveOriginalState();
+        }
+      }
+    }
     this.updateCompanionLevitation(0.0);
     this.root.updateMatrixWorld(true);
+    for (const sm of this.skinnedMeshes) {
+      if (sm && sm.skeleton && typeof sm.skeleton.update === 'function') {
+        sm.skeleton.update();
+      }
+    }
   }
 
   getOffboardClip(baseName) {
@@ -11424,10 +11446,36 @@ class CharacterController {
       }
     }
 
+    // Identify the dominant currently running action other than nextAction to serve as the outgoing pose.
+    // Never crossfade an action with itself (which schedules fadeIn from weight 0 with no outgoing action,
+    // dropping cumulative mixer weight to 0 and exposing the bind pose).
+    let outgoingAction = null;
+    let bestOutgoingWeight = 0.0;
+    for (const [, act] of this.actions) {
+      if (act !== nextAction && act.isRunning()) {
+        const w = act.getEffectiveWeight();
+        if (w > bestOutgoingWeight) {
+          bestOutgoingWeight = w;
+          outgoingAction = act;
+        }
+      }
+    }
+
+    // If nextAction is already the active action and is in the initial frames of crossfading in from outgoingAction,
+    // preserve the in-progress crossfade seamlessly instead of restarting from weight 0.
+    if (
+      this.currentAction === nextAction &&
+      nextAction.isRunning() &&
+      nextAction.time <= 0.05 &&
+      outgoingAction !== null
+    ) {
+      return resolvedName;
+    }
+
     // Stop any stale third actions that are neither the outgoing action nor the incoming action
     // so multi-step dialogue chains maintain clean 2-action normalized crossfades without T-pose flashing
     for (const [, act] of this.actions) {
-      if (act !== this.currentAction && act !== nextAction && act.isRunning()) {
+      if (act !== outgoingAction && act !== nextAction && act.isRunning()) {
         act.stop();
       }
     }
@@ -11445,18 +11493,18 @@ class CharacterController {
       }
     }
 
-    if (!this.currentAction || duration <= 0.0) {
-      if (this.currentAction && this.currentAction !== nextAction) {
-        this.currentAction.stop();
+    if (!outgoingAction || duration <= 0.0) {
+      if (outgoingAction && outgoingAction !== nextAction) {
+        outgoingAction.stop();
       }
+      nextAction.setEffectiveWeight(1.0);
       nextAction.play();
     } else {
-      this.currentAction.enabled = true;
-      if (this.currentAction.getEffectiveWeight() < 0.05) {
-        this.currentAction.setEffectiveWeight(1.0);
-      }
+      outgoingAction.enabled = true;
+      outgoingAction.setEffectiveWeight(1.0);
+      nextAction.setEffectiveWeight(1.0);
       nextAction.play();
-      this.currentAction.crossFadeTo(nextAction, duration, false);
+      outgoingAction.crossFadeTo(nextAction, duration, false);
     }
 
     this.currentAction = nextAction;
@@ -24097,8 +24145,6 @@ async function initSandbox() {
   }
 
   // 3. Stage Colored LUIS + Floating DOOM_Companion Character at SPAWN_PLAYER
-  scene.add(hoodieGLTF.scene);
-
   const hoodieController = new CharacterController({
     id: 'hoodie',
     label: 'character_hoodie.glb (Full Color + DOOM Head)',
@@ -24110,6 +24156,7 @@ async function initSandbox() {
     baseColor: 0xe2e8f0,
   });
   hoodieController.setHolographicShader(false);
+  scene.add(hoodieGLTF.scene);
 
   sandbox.characters = {
     hoodie: hoodieController,

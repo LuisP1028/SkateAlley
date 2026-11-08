@@ -233,12 +233,12 @@ async function runVisualSensoryAudit() {
       };
     });
 
-    assert.equal(skyAndAtmosphereAudit.sceneBgHex, '000000', 'scene.background must be #000000');
+    assert.equal(skyAndAtmosphereAudit.sceneBgHex, '808080', 'scene.background must be #808080');
     assert.equal(skyAndAtmosphereAudit.sceneFogHex, '000000', 'scene.fog.color must be #000000');
-    assert.equal(skyAndAtmosphereAudit.clearColorHex, '000000', 'renderer clearColor must be #000000');
+    assert.equal(skyAndAtmosphereAudit.clearColorHex, '808080', 'renderer clearColor must be #808080');
     assert.equal(skyAndAtmosphereAudit.sfxDepthFogHex, '#000000', 'sfx.depthFog.colorHex must be #000000');
     assert.ok(skyAndAtmosphereAudit.groundFogMaxY <= 1.8, 'Ground fog must remain anchored <= 1.80m');
-    console.log('  ✓ Pitch-black deep space sky port (#000000) & low-altitude ground fog verified.');
+    console.log('  ✓ Blender mesh gray sky port (#808080) & low-altitude ground fog verified.');
 
     // 1B. Large-Scale Showcases (3.52m x 2.16m) & Cyber-Drip Graffiti Headers (3.84m x 1.20m) (§14 & §15.7)
     const spatialMountsAudit = await page.evaluate(() => {

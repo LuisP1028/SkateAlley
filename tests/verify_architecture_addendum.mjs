@@ -258,9 +258,9 @@ async function runArchitectureAddendumVerification() {
     await page.waitForTimeout(100);
 
     // -------------------------------------------------------------------------
-    // 2.1 Addendum Pillar 6: Pitch-Black Sky Port (#000000) (§13 & §15.6)
+    // 2.1 Addendum Pillar 6: Environmental Sky Port Blender Mesh Gray (#808080)
     // -------------------------------------------------------------------------
-    console.log('\n[Phase 2.1] Verifying Environmental Sky Port Pitch-Black Void (#000000)...');
+    console.log('\n[Phase 2.1] Verifying Environmental Sky Port Blender Mesh Gray (#808080)...');
     const skyPortTelemetry = await page.evaluate(() => {
       const scene = window.__THREE_SCENE__;
       const renderer = window.__THREE_RENDERER__;
@@ -276,14 +276,14 @@ async function runArchitectureAddendumVerification() {
       };
     });
 
-    assert.equal(skyPortTelemetry.sceneBgHex, '000000', 'scene.background must be #000000');
+    assert.equal(skyPortTelemetry.sceneBgHex, '808080', 'scene.background must be #808080');
     assert.equal(skyPortTelemetry.fogColorHex, '000000', 'scene.fog.color must be #000000');
     assert.equal(skyPortTelemetry.sfxDepthFogHex, '#000000', 'sandbox.sfx.depthFog.colorHex must be #000000');
-    assert.equal(skyPortTelemetry.rendererClearColorHex, '000000', 'renderer clearColor must be #000000');
+    assert.equal(skyPortTelemetry.rendererClearColorHex, '808080', 'renderer clearColor must be #808080');
     assert.equal(skyPortTelemetry.rendererClearAlpha, 1.0, 'renderer clearAlpha must be 1.0');
     assert.equal(skyPortTelemetry.groundFogPresent, true, 'Low-altitude ground fog must remain active');
     console.log(
-      `  ✓ Pitch-black sky port verified (scene.background=#${skyPortTelemetry.sceneBgHex}, fog=#${skyPortTelemetry.fogColorHex}, clearColor=#${skyPortTelemetry.rendererClearColorHex}).`
+      `  ✓ Blender mesh gray sky port verified (scene.background=#${skyPortTelemetry.sceneBgHex}, fog=#${skyPortTelemetry.fogColorHex}, clearColor=#${skyPortTelemetry.rendererClearColorHex}).`
     );
 
     // -------------------------------------------------------------------------
@@ -500,6 +500,70 @@ async function runArchitectureAddendumVerification() {
     );
     console.log(
       `  ✓ PlatoDoom Proximity Pop-Out verified: baseline(scale=5.0, z=42.0129) -> popped@z=36.0m(scale=${popOutTelemetry.poppedState.canvasScaleX}, z=${popOutTelemetry.poppedState.canvasPositionZ}) -> hysteresis@z=34.8m(isPoppedOut=true) -> midEase@0.19s(p=${popOutTelemetry.midTransitionState.popOutProgress}) -> released@z=33.5m(scale=5.0, z=42.0129).`
+    );
+
+    // -------------------------------------------------------------------------
+    // 6. Spawn & Post-Pan Intro Transition T-Pose Prevention Check
+    // -------------------------------------------------------------------------
+    console.log('\n[6/6] Verifying Character Spawn & Post-Pan Dialogue Transition (Zero T-Pose)...');
+    const spawnPoseTelemetry = await page.evaluate(() => {
+      const sb = window.sandbox;
+      const char = sb.getActiveCharacter();
+      const leftArm = char.root.getObjectByName('LeftArm');
+      const leftHand = char.root.getObjectByName('LeftHand');
+      const rightHand = char.root.getObjectByName('RightHand');
+
+      const sampleJoints = () => {
+        char.root.updateMatrixWorld(true);
+        const lh = leftHand.getWorldPosition(leftHand.position.clone());
+        const rh = rightHand.getWorldPosition(rightHand.position.clone());
+        let weightSum = 0;
+        for (const [, act] of char.actions.entries()) {
+          if (act.isRunning()) weightSum += act.getEffectiveWeight();
+        }
+        return {
+          leftArmQuatX: Number(leftArm.quaternion.x.toFixed(4)),
+          leftHandY: Number(lh.y.toFixed(4)),
+          rightHandY: Number(rh.y.toFixed(4)),
+          weightSum: Number(weightSum.toFixed(4)),
+          clip: char.currentClipName,
+        };
+      };
+
+      // Reset to startup pan pose, then complete pan into intro talking sequence and stress-test double invocation
+      sb.director.playStartupPan();
+      char.mixer.update(0.0);
+      const duringPan = sampleJoints();
+
+      sb.director.completeStartupPanWithIntroGrace();
+      const atPanComplete = sampleJoints();
+
+      // Explicitly invoke startIntroTalkingSequence() again immediately to verify zero self-crossfade weight drop
+      sb.director.startIntroTalkingSequence();
+      const afterSecondStart = sampleJoints();
+
+      char.mixer.update(0.1);
+      const after100ms = sampleJoints();
+
+      return { duringPan, atPanComplete, afterSecondStart, after100ms };
+    });
+
+    for (const [phaseName, sample] of Object.entries(spawnPoseTelemetry)) {
+      assert.ok(
+        sample.leftArmQuatX > 0.35,
+        `T-pose detected in ${phaseName}: LeftArm.quaternion.x=${sample.leftArmQuatX} (expected > 0.35, T-pose is -0.017)`
+      );
+      assert.ok(
+        sample.leftHandY < 1.25 && sample.rightHandY < 1.25,
+        `Raised T-pose hands detected in ${phaseName}: LeftHand.y=${sample.leftHandY}, RightHand.y=${sample.rightHandY} (expected < 1.25m, T-pose is ~1.505m)`
+      );
+      assert.ok(
+        Math.abs(sample.weightSum - 1.0) < 0.02,
+        `Mixer cumulative weight dropped in ${phaseName}: weightSum=${sample.weightSum} (expected 1.0)`
+      );
+    }
+    console.log(
+      `  ✓ Zero T-pose verified across spawn & dialogue handoff: duringPan(lhY=${spawnPoseTelemetry.duringPan.leftHandY}m, w=${spawnPoseTelemetry.duringPan.weightSum}) -> atPanComplete(lhY=${spawnPoseTelemetry.atPanComplete.leftHandY}m, w=${spawnPoseTelemetry.atPanComplete.weightSum}) -> afterSecondStart(lhY=${spawnPoseTelemetry.afterSecondStart.leftHandY}m, w=${spawnPoseTelemetry.afterSecondStart.weightSum}) -> +100ms(lhY=${spawnPoseTelemetry.after100ms.leftHandY}m, w=${spawnPoseTelemetry.after100ms.weightSum}).`
     );
 
     await context.close();
