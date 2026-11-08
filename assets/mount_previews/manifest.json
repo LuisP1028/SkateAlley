@@ -1,0 +1,78 @@
+{
+  "tileWidth": 512,
+  "tileHeight": 288,
+  "atlasWidth": 1024,
+  "atlasHeight": 576,
+  "mounts": {
+    "SCREEN_MOUNT_01": {
+      "file": "assets/mount_previews/SCREEN_MOUNT_01_preview.webp",
+      "bytes": 147362,
+      "frames": [
+        "01 // LTA 3,875-NODE MEDICARE KNOWLEDGE GRAPH",
+        "02 // DME JURISDICTION & FEE SCHEDULE OVERLAY",
+        "03 // GRAPHRAG MEDICAL DURABLE GOODS ASSISTANT",
+        "04 // 8-HOP IVIG STATUTORY-TO-CLINICAL LINEAGE"
+      ]
+    },
+    "SCREEN_MOUNT_02": {
+      "file": "assets/mount_previews/SCREEN_MOUNT_02_preview.webp",
+      "bytes": 67328,
+      "frames": [
+        "01 // PLATODOOM DIGITAL TWIN 5-LAYER ARCHITECTURE",
+        "02 // TWITTERETL GNN & TOPOLOGY ENGINE DATAFLOW",
+        "03 // GENERATIVE PIPELINE & DOOM VERSE ORCHESTRATOR",
+        "04 // PLATODOOM BRAIN KNOWLEDGE & ONTOLOGY GRAPH"
+      ]
+    },
+    "SCREEN_MOUNT_03": {
+      "file": "assets/mount_previews/SCREEN_MOUNT_03_preview.webp",
+      "bytes": 129440,
+      "frames": [
+        "01 // BAYESIAN SSM KALMAN & MCMC TERMINAL BOOT",
+        "02 // COINTEGRATED SPREAD & POSTERIOR HDI SIGNAL",
+        "03 // LIVE TOPSTEPX EXECUTION & POSITION BRACKETS",
+        "04 // $50K TOPSTEPXFA PASSED (+$680 RP&L / $150K BAL)"
+      ]
+    },
+    "SCREEN_MOUNT_07": {
+      "file": "assets/mount_previews/SCREEN_MOUNT_07_preview.webp",
+      "bytes": 119434,
+      "frames": [
+        "01 // BGE 1024-D EMBEDDINGS",
+        "02 // 9-ROLE LINEARSVC",
+        "03 // <1 HR TURNAROUND",
+        "04 // DECISION MATRIX"
+      ]
+    },
+    "SCREEN_MOUNT_04": {
+      "file": "assets/mount_previews/SCREEN_MOUNT_04_preview.webp",
+      "bytes": 150256,
+      "frames": [
+        "01 // 19-AGENT SWARM HUD",
+        "02 // STRUCTURED CONTEXT",
+        "03 // SWARM ALIGNMENT",
+        "04 // DRIFT AUDIT"
+      ]
+    },
+    "SCREEN_MOUNT_05": {
+      "file": "assets/mount_previews/SCREEN_MOUNT_05_preview.webp",
+      "bytes": 86432,
+      "frames": [
+        "01 // DIRECTOR & SEED DAG",
+        "02 // ETL -> NEO4J GRAPH",
+        "03 // GNN TOPOLOGY DAG",
+        "04 // E2E MEDIA OUTPUT"
+      ]
+    },
+    "SCREEN_MOUNT_06": {
+      "file": "assets/mount_previews/SCREEN_MOUNT_06_preview.webp",
+      "bytes": 123020,
+      "frames": [
+        "01 // CNN MALWARE SCANNER",
+        "02 // VAE LATENT MANIFOLD",
+        "03 // 3D DIFFUSION MESH",
+        "04 // NEURAL VOICE CLONE"
+      ]
+    }
+  }
+}

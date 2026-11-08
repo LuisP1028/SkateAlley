@@ -729,10 +729,29 @@ export function createScreenMountHolographicMaterial(
   applyStencilReject
 ) {
   const opacityUniform = { value: 0.32 };
+  const initialPreviewRect =
+    screenTexture && screenTexture.userData && screenTexture.userData.previewUvRect
+      ? screenTexture.userData.previewUvRect.clone()
+      : new THREE.Vector4(0.5547, 0.1199, 0.9453, 0.6556);
+  const initialFilmstripRect =
+    screenTexture && screenTexture.userData && screenTexture.userData.filmstripUvRect
+      ? screenTexture.userData.filmstripUvRect.clone()
+      : new THREE.Vector4(0.0516, 0.0663, 0.5203, 0.3699);
+  const initialPreviewAtlas =
+    screenTexture && screenTexture.userData && screenTexture.userData.previewAtlasTexture
+      ? screenTexture.userData.previewAtlasTexture
+      : null;
+
   const mat = new THREE.ShaderMaterial({
     name: `${station.mountName}_HoloDisplayShaderMat`,
     uniforms: {
       uMap: { value: screenTexture },
+      uPreviewAtlas: { value: initialPreviewAtlas },
+      uHasPreviewAtlas: { value: initialPreviewAtlas ? 1.0 : 0.0 },
+      uPreviewRect: { value: initialPreviewRect },
+      uFilmstripRect: { value: initialFilmstripRect },
+      uPreviewFrameIndex: { value: 0.0 },
+      uPreviewTransition: { value: 0.0 },
       uTime: uTimeUniform || { value: 0.0 },
       uStationIndex: { value: station.index },
       uOpacity: opacityUniform,
@@ -757,6 +776,12 @@ export function createScreenMountHolographicMaterial(
     `,
     fragmentShader: `
       uniform sampler2D uMap;
+      uniform sampler2D uPreviewAtlas;
+      uniform float uHasPreviewAtlas;
+      uniform vec4 uPreviewRect;
+      uniform vec4 uFilmstripRect;
+      uniform float uPreviewFrameIndex;
+      uniform float uPreviewTransition;
       uniform float uTime;
       uniform float uStationIndex;
       uniform float uOpacity;
@@ -795,6 +820,70 @@ export function createScreenMountHolographicMaterial(
         // Discard exterior margin outside the rounded-rectangle card bezel (Spec 036 §3.1, §5.1)
         if (baseTex.a < 0.01) discard;
 
+        float fIdx = clamp(floor(uPreviewFrameIndex + 0.5), 0.0, 3.0);
+        float activeCol = mod(fIdx, 2.0);
+        float activeRowFromTop = floor(fIdx / 2.0);
+
+        // 1. Right-Column Main 4-Frame Live-Demo Hologram Viewport (GPU Atlas Quadrant Stepping)
+        bool inMainPreview = (
+          uHasPreviewAtlas > 0.5 &&
+          vUv.x >= uPreviewRect.x && vUv.x <= uPreviewRect.z &&
+          vUv.y >= uPreviewRect.y && vUv.y <= uPreviewRect.w
+        );
+        if (inMainPreview) {
+          vec2 localUv = (vUv - uPreviewRect.xy) / max(vec2(0.0001), uPreviewRect.zw - uPreviewRect.xy);
+          float switchShear = (uPreviewTransition * 0.014 + uGlitchIntensity * 0.010) *
+            sin(localUv.y * 110.0 + uTime * 38.0);
+          localUv.x = clamp(localUv.x + switchShear, 0.003, 0.997);
+          localUv.y = clamp(localUv.y, 0.003, 0.997);
+
+          vec2 atlasUv = vec2(
+            activeCol * 0.5 + localUv.x * 0.5,
+            (1.0 - activeRowFromTop) * 0.5 + localUv.y * 0.5
+          );
+          vec4 previewSample = texture2D(uPreviewAtlas, atlasUv);
+          if (uGlitchIntensity > 0.04 || uPreviewTransition > 0.15) {
+            float pShift = 0.004 * (uGlitchIntensity + uPreviewTransition * 0.7);
+            vec4 pGold = texture2D(uPreviewAtlas, vec2(clamp(atlasUv.x + pShift, 0.002, 0.998), atlasUv.y));
+            previewSample.rgb = mix(previewSample.rgb, pGold.rgb * vec3(1.05, 0.92, 0.50), 0.32);
+          }
+          vec3 holoPreviewCol = previewSample.rgb * vec3(1.16, 0.98, 0.72) +
+            vec3(0.98, 0.76, 0.22) * (uPreviewTransition * 0.12);
+          float edgeDistX = min(localUv.x, 1.0 - localUv.x);
+          float edgeDistY = min(localUv.y, 1.0 - localUv.y);
+          float borderMask = 1.0 - smoothstep(0.0, 0.012, min(edgeDistX, edgeDistY));
+          baseTex.rgb = mix(holoPreviewCol, vec3(0.99, 0.82, 0.28), borderMask * 0.75);
+          baseTex.a = max(baseTex.a, 0.90);
+        }
+
+        // 2. Bottom-Left 4-Frame Hologram Contact Matrix (Synchronized Active Quadrant Highlight)
+        bool inFilmstrip = (
+          uHasPreviewAtlas > 0.5 &&
+          vUv.x >= uFilmstripRect.x && vUv.x <= uFilmstripRect.z &&
+          vUv.y >= uFilmstripRect.y && vUv.y <= uFilmstripRect.w
+        );
+        if (inFilmstrip) {
+          vec2 stripUv = (vUv - uFilmstripRect.xy) / max(vec2(0.0001), uFilmstripRect.zw - uFilmstripRect.xy);
+          float cellCol = floor(clamp(stripUv.x, 0.0, 0.999) * 2.0);
+          float cellRowFromTop = floor(clamp(1.0 - stripUv.y, 0.0, 0.999) * 2.0);
+          bool isActiveCell = (abs(cellCol - activeCol) < 0.25 && abs(cellRowFromTop - activeRowFromTop) < 0.25);
+
+          vec2 cellLocalUv = vec2(fract(stripUv.x * 2.0), fract(stripUv.y * 2.0));
+          float cellEdge = min(
+            min(cellLocalUv.x, 1.0 - cellLocalUv.x),
+            min(cellLocalUv.y, 1.0 - cellLocalUv.y)
+          );
+          float cellBorder = 1.0 - smoothstep(0.0, 0.028, cellEdge);
+
+          if (isActiveCell) {
+            baseTex.rgb = baseTex.rgb * 1.26 + vec3(0.98, 0.78, 0.24) * (cellBorder * 0.72 + 0.06);
+            baseTex.a = max(baseTex.a, 0.92);
+          } else {
+            baseTex.rgb = baseTex.rgb * 0.84 + vec3(0.75, 0.45, 0.08) * (cellBorder * 0.28);
+            baseTex.a = max(baseTex.a, 0.80);
+          }
+        }
+
         // Horizontal holographic scanlines
         float scanline = 0.90 + 0.10 * sin(uv.y * 280.0 - uTime * 9.0);
 
@@ -813,7 +902,7 @@ export function createScreenMountHolographicMaterial(
         // Unified Holographic Showcase Card Alpha (Spec 036 §3.1, §5.1):
         // - Exterior outside rounded bezel is discarded above (baseTex.a < 0.01)
         // - Smoked-amber card substrate (baseTex.a ~ 0.44) renders as translucent holographic glass
-        // - Borders, ignited light bars, pills, typography, metric boxes & CTAs (baseTex.a > 0.65) render crisply
+        // - Borders, ignited light bars, pills, typography, metric boxes & live-demo hologram previews (baseTex.a > 0.65) render crisply
         float glassAlpha = clamp(uOpacity * 1.18 + fresnel * 0.12 + scanbeam * 0.16, 0.34, 0.54);
         float glyphWeight = smoothstep(0.48, 0.72, baseTex.a);
         float glyphAlpha = clamp(baseTex.a * 0.98 + scanbeam * 0.14, 0.84, 0.98);
@@ -828,6 +917,10 @@ export function createScreenMountHolographicMaterial(
     depthWrite: false,
     fog: false,
   });
+
+  if (screenTexture && screenTexture.userData) {
+    screenTexture.userData.boundShaderMat = mat;
+  }
 
   if (applyStencilReject) applyStencilReject(mat);
   return mat;
@@ -925,6 +1018,25 @@ export function updateWallMountHolographicParity(
   mountRecord.scanbeamY = evalState.scanbeamY;
   mountRecord.diffusedGlowIntensity = evalState.diffusedGlowIntensity;
 
+  // Deterministic 4-frame live-demo hologram preview cycling (GPU UV quadrant step, 0 CPU redraw lag)
+  const previewFrameCount = Math.max(1, Math.min(4, Number(st.previewFrameCount) || 4));
+  const previewFps = Number(st.previewFps) || 0.65;
+  const previewPhase = Math.max(0.0, timeSec) * previewFps + st.index * 0.75;
+  const activePreviewFrameIndex =
+    ((Math.floor(previewPhase) % previewFrameCount) + previewFrameCount) % previewFrameCount;
+  const phaseFract = previewPhase - Math.floor(previewPhase);
+  const previewTransition =
+    phaseFract < 0.08
+      ? 1.0 - phaseFract / 0.08
+      : phaseFract > 0.94
+        ? (phaseFract - 0.94) / 0.06
+        : 0.0;
+
+  mountRecord.hasLiveDemoPreview = true;
+  mountRecord.previewFrameCount = previewFrameCount;
+  mountRecord.activePreviewFrameIndex = activePreviewFrameIndex;
+  mountRecord.previewTransitionPulse = Number(previewTransition.toFixed(4));
+
   if (mountRecord.faceMat && mountRecord.faceMat.uniforms) {
     const u = mountRecord.faceMat.uniforms;
     if (u.uTime) u.uTime.value = timeSec;
@@ -933,6 +1045,28 @@ export function updateWallMountHolographicParity(
     if (u.uTearOffsetUvX) u.uTearOffsetUvX.value = evalState.tearOffsetUvX;
     if (u.uScanbeamY) u.uScanbeamY.value = evalState.scanbeamY;
     if (u.uIsHighlighted) u.uIsHighlighted.value = isHighlighted ? 1.0 : 0.0;
+    if (u.uPreviewFrameIndex) u.uPreviewFrameIndex.value = activePreviewFrameIndex;
+    if (u.uPreviewTransition) u.uPreviewTransition.value = previewTransition;
+    const mapTex = u.uMap ? u.uMap.value : null;
+    if (mapTex && mapTex.userData) {
+      if (u.uPreviewRect && mapTex.userData.previewUvRect) {
+        u.uPreviewRect.value.copy(mapTex.userData.previewUvRect);
+      }
+      if (u.uFilmstripRect && mapTex.userData.filmstripUvRect) {
+        u.uFilmstripRect.value.copy(mapTex.userData.filmstripUvRect);
+      }
+      if (
+        u.uHasPreviewAtlas &&
+        u.uHasPreviewAtlas.value < 0.5 &&
+        mapTex.userData.previewAtlasTexture
+      ) {
+        u.uPreviewAtlas.value = mapTex.userData.previewAtlasTexture;
+        u.uHasPreviewAtlas.value = 1.0;
+      }
+    }
+    mountRecord.previewAtlasLoaded = Boolean(
+      u.uHasPreviewAtlas && u.uHasPreviewAtlas.value > 0.5
+    );
     if (u.uOpacity) {
       const targetGlassOpacity = mountRecord.state === 'standby'
         ? mountRecord.standbyOpacity

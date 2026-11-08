@@ -813,6 +813,15 @@ const HOLO_PROJECT_STATIONS = [
       label: 'SRC_CODE (GitHub)',
       url: 'https://github.com/LuisP1028/lag-policy-engine-showcase',
     },
+    previewAtlasUrl: './assets/mount_previews/SCREEN_MOUNT_01_preview.webp',
+    previewFrameCount: 4,
+    previewSourceLabel: 'LIVE_DEMO // LAG_POLICY_SHOWCASE',
+    previewFrameCaptions: [
+      '01 // LTA 3,875-NODE KNOWLEDGE GRAPH',
+      '02 // DME JURISDICTION & FEE OVERLAY',
+      '03 // GRAPHRAG MEDICAL ASSISTANT',
+      '04 // 8-HOP IVIG LINEAGE CHAIN',
+    ],
   },
   {
     id: 'proj-02',
@@ -847,6 +856,15 @@ const HOLO_PROJECT_STATIONS = [
       label: 'SRC_CODE (Repository)',
       url: 'https://huggingface.co/spaces/ChoppedCheese/DigitalTwin/tree/main',
     },
+    previewAtlasUrl: './assets/mount_previews/SCREEN_MOUNT_02_preview.webp',
+    previewFrameCount: 4,
+    previewSourceLabel: 'LIVE_DEMO // DIGITALTWIN.HF.SPACE',
+    previewFrameCaptions: [
+      '01 // PLATODOOM 5-LAYER ARCHITECTURE',
+      '02 // TWITTERETL GNN TOPOLOGY FLOW',
+      '03 // GENERATIVE PIPELINE ORCHESTRATOR',
+      '04 // PLATODOOM BRAIN ONTOLOGY GRAPH',
+    ],
   },
   {
     id: 'proj-03',
@@ -882,6 +900,15 @@ const HOLO_PROJECT_STATIONS = [
       url: '#ssm-whitepaper-column',
       action: 'open-whitepaper-column',
     },
+    previewAtlasUrl: './assets/mount_previews/SCREEN_MOUNT_03_preview.webp',
+    previewFrameCount: 4,
+    previewSourceLabel: 'LIVE_DEMO // YOUTUBE 1a9GwWK9HkQ',
+    previewFrameCaptions: [
+      '01 // BAYESIAN SSM & MCMC BOOT',
+      '02 // COINTEGRATED SPREAD & HDI',
+      '03 // LIVE TOPSTEPX POSITION BRACKETS',
+      '04 // $50K TOPSTEPXFA PASSED (+$680)',
+    ],
   },
   {
     id: 'proj-07',
@@ -919,6 +946,15 @@ const HOLO_PROJECT_STATIONS = [
     ],
     primaryLink: null,
     secondaryLink: null,
+    previewAtlasUrl: './assets/mount_previews/SCREEN_MOUNT_07_preview.webp',
+    previewFrameCount: 4,
+    previewSourceLabel: 'LIVE_DEMO // RESUMESCANNER.HF.SPACE',
+    previewFrameCaptions: [
+      '01 // BGE-LARGE 1,024-D EMBEDDINGS',
+      '02 // 9-ROLE LINEARSVC HYPERPLANES',
+      '03 // <1 HR CLASSICAL ML TURNAROUND',
+      '04 // 9-ROLE SVM DECISION MATRIX',
+    ],
   },
   {
     id: 'proj-04',
@@ -947,6 +983,15 @@ const HOLO_PROJECT_STATIONS = [
     ],
     primaryLink: null,
     secondaryLink: null,
+    previewAtlasUrl: './assets/mount_previews/SCREEN_MOUNT_04_preview.webp',
+    previewFrameCount: 4,
+    previewSourceLabel: 'LIVE_DEMO // SWARM_ANALYTICS_HUD',
+    previewFrameCaptions: [
+      '01 // 19-AGENT SWARM COMMAND HUD',
+      '02 // STRUCTURED CONTEXT GRAPH BUS',
+      '03 // AUTONOMOUS WORKER ALIGNMENT',
+      '04 // REAL-TIME DRIFT & AUDIT PASS',
+    ],
   },
   {
     id: 'proj-05',
@@ -975,6 +1020,15 @@ const HOLO_PROJECT_STATIONS = [
     ],
     primaryLink: null,
     secondaryLink: null,
+    previewAtlasUrl: './assets/mount_previews/SCREEN_MOUNT_05_preview.webp',
+    previewFrameCount: 4,
+    previewSourceLabel: 'LIVE_DEMO // GENERATIVE_DAG_ENGINE',
+    previewFrameCaptions: [
+      '01 // CHAINED LLM & SEED MUTATION DAG',
+      '02 // ETL -> MATH -> NEO4J PIPELINE',
+      '03 // MULTI-STAGE GNN TOPOLOGY FLOW',
+      '04 // E2E AGENTIC CODE & MEDIA OUTPUT',
+    ],
   },
   {
     id: 'proj-06',
@@ -1003,6 +1057,15 @@ const HOLO_PROJECT_STATIONS = [
     ],
     primaryLink: null,
     secondaryLink: null,
+    previewAtlasUrl: './assets/mount_previews/SCREEN_MOUNT_06_preview.webp',
+    previewFrameCount: 4,
+    previewSourceLabel: 'LIVE_DEMO // MULTIMODAL_DL_LAB',
+    previewFrameCaptions: [
+      '01 // CNN BINARY MALWARE CLASSIFIER',
+      '02 // VAE LATENT MANIFOLD & ANOMALY',
+      '03 // IMAGE-TO-3D DIFFUSION & RIGGING',
+      '04 // ZERO-SHOT NEURAL VOICE CLONING',
+    ],
   },
 ];
 
@@ -2266,6 +2329,92 @@ function createStandbyDockTexture(st) {
   return null;
 }
 
+const stationPreviewAtlasCache = new Map();
+
+function ensureStationPreviewAtlasLoaded(st, onReady) {
+  const atlasUrl = st && st.previewAtlasUrl ? st.previewAtlasUrl : null;
+  if (!atlasUrl || typeof Image === 'undefined') return;
+
+  let entry = stationPreviewAtlasCache.get(atlasUrl);
+  if (entry && entry.loaded && entry.image && entry.texture) {
+    onReady(entry.image, entry.texture);
+    return;
+  }
+  if (!entry) {
+    entry = {
+      url: atlasUrl,
+      loading: false,
+      loaded: false,
+      image: null,
+      texture: null,
+      callbacks: [],
+    };
+    stationPreviewAtlasCache.set(atlasUrl, entry);
+  }
+  entry.callbacks.push(onReady);
+  if (entry.loading) return;
+  entry.loading = true;
+
+  const img = new Image();
+  img.crossOrigin = 'anonymous';
+  img.onload = () => {
+    const atlasTex = new THREE.Texture(img);
+    atlasTex.colorSpace = THREE.SRGBColorSpace;
+    atlasTex.generateMipmaps = false;
+    atlasTex.minFilter = THREE.LinearFilter;
+    atlasTex.magFilter = THREE.LinearFilter;
+    atlasTex.anisotropy = 1;
+    atlasTex.needsUpdate = true;
+
+    entry.loaded = true;
+    entry.loading = false;
+    entry.image = img;
+    entry.texture = atlasTex;
+    const cbs = entry.callbacks.splice(0);
+    for (const cb of cbs) {
+      try {
+        cb(img, atlasTex);
+      } catch (err) {
+        console.warn('[StationPreviewAtlas] Callback error:', err);
+      }
+    }
+  };
+  img.onerror = (err) => {
+    entry.loading = false;
+    console.warn(`[StationPreviewAtlas] Failed to load preview atlas '${atlasUrl}':`, err);
+  };
+  img.src = atlasUrl;
+}
+
+function drawAmberCornerBrackets(ctx, x, y, w, h, arm = 14, inset = 5, lineWidth = 2) {
+  ctx.save();
+  ctx.strokeStyle = 'rgba(251, 191, 36, 0.92)';
+  ctx.lineWidth = lineWidth;
+  const l = x + inset;
+  const r = x + w - inset;
+  const t = y + inset;
+  const b = y + h - inset;
+  ctx.beginPath();
+  // tl
+  ctx.moveTo(l, t + arm);
+  ctx.lineTo(l, t);
+  ctx.lineTo(l + arm, t);
+  // tr
+  ctx.moveTo(r - arm, t);
+  ctx.lineTo(r, t);
+  ctx.lineTo(r, t + arm);
+  // bl
+  ctx.moveTo(l, b - arm);
+  ctx.lineTo(l, b);
+  ctx.lineTo(l + arm, b);
+  // br
+  ctx.moveTo(r - arm, b);
+  ctx.lineTo(r, b);
+  ctx.lineTo(r, b - arm);
+  ctx.stroke();
+  ctx.restore();
+}
+
 function createProjectScreenTexture(st) {
   const canvas = document.createElement('canvas');
   canvas.width = 1024;
@@ -2403,8 +2552,7 @@ function createProjectScreenTexture(st) {
   const padX = 56;
   const rightEdge = W - 56; // 1224
 
-  // 6. Clean Top Header Bar (Spec 068 §5.1: No badge, no coords, no 3-line tether icon, no kicker;
-  //    Title on top-left and Exit button in top-right slot where tether/TOC icon formerly sat)
+  // 6. Clean Top Header Bar (Spec 068 §5.1: Title on top-left and Exit button in top-right slot)
   const exitText = '✕ EXIT';
   ctx.save();
   ctx.font = 'bold 17px ui-monospace, SFMono-Regular, Menlo, monospace';
@@ -2456,22 +2604,22 @@ function createProjectScreenTexture(st) {
   ctx.lineTo(rightEdge, headerBottomY);
   ctx.stroke();
 
-  // 7. 2-Column Body Grid (Spec 068 §5.4–§5.6: Enlarged Description, '+' Bubble Tags, Compact Summary Strip, No Footer)
-  const leftW = 648;
-  const descStartY = headerBottomY + 48;
+  // 7. 2-Column Body Grid with Dedicated 4-Frame Amber Hologram Live-Demo Previews
+  const leftW = 616;
+  const descStartY = headerBottomY + 38;
   const canvasBodyCopy = st.canvasSummary || st.description;
-  const maxBodyLines = st.canvasInspectCue ? 5 : 6;
+  const maxBodyLines = st.canvasInspectCue ? 4 : 5;
 
-  // 7a. Left Column — Enlarged Description Paragraph (24px font, 35px line-height)
+  // 7a. Left Column — Enlarged Description Paragraph
   ctx.save();
-  ctx.font = '500 24px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+  ctx.font = '500 22.5px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
   ctx.fillStyle = '#fef3c7';
   ctx.shadowColor = 'rgba(0, 0, 0, 0.92)';
   ctx.shadowBlur = 6;
   ctx.textAlign = 'left';
   ctx.textBaseline = 'alphabetic';
   const descLines = wrapCanvasTextLines(ctx, canvasBodyCopy, leftW, maxBodyLines);
-  const descLineHeight = 35;
+  const descLineHeight = 32;
   for (let i = 0; i < descLines.length; i++) {
     ctx.fillText(descLines[i], leftX, descStartY + i * descLineHeight);
   }
@@ -2479,11 +2627,11 @@ function createProjectScreenTexture(st) {
 
   let postBodyBottomY = descStartY + Math.max(0, descLines.length - 1) * descLineHeight;
   if (st.canvasInspectCue) {
-    const cueY = postBodyBottomY + 20;
-    const cueH = 34;
+    const cueY = postBodyBottomY + 14;
+    const cueH = 32;
     ctx.save();
-    ctx.font = 'bold 13.5px ui-monospace, SFMono-Regular, Menlo, monospace';
-    const cueW = Math.min(leftW, Math.ceil(ctx.measureText(st.canvasInspectCue).width + 26));
+    ctx.font = 'bold 13px ui-monospace, SFMono-Regular, Menlo, monospace';
+    const cueW = Math.min(leftW, Math.ceil(ctx.measureText(st.canvasInspectCue).width + 24));
     ctx.fillStyle = 'rgba(217, 119, 6, 0.34)';
     ctx.strokeStyle = 'rgba(251, 191, 36, 0.92)';
     ctx.lineWidth = 1.5;
@@ -2496,24 +2644,24 @@ function createProjectScreenTexture(st) {
     ctx.fillStyle = '#fffbeb';
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
-    ctx.fillText(st.canvasInspectCue, leftX + 13, cueY + cueH * 0.5 + 1);
+    ctx.fillText(st.canvasInspectCue, leftX + 12, cueY + cueH * 0.5 + 1);
     ctx.restore();
     postBodyBottomY = cueY + cueH - 4;
   }
 
   // 7b. Left Column — Interactive-Style Technology Tag Chips with Visible "+" Bubble
   let tagX = leftX;
-  let tagY = postBodyBottomY + 26;
-  const chipH = 36;
-  const bubbleR = 10;
+  let tagY = postBodyBottomY + 18;
+  const chipH = 34;
+  const bubbleR = 9.5;
   ctx.save();
   for (const tag of st.tags) {
-    ctx.font = 'bold 15px ui-monospace, SFMono-Regular, Menlo, monospace';
+    ctx.font = 'bold 14.5px ui-monospace, SFMono-Regular, Menlo, monospace';
     const textW = Math.ceil(ctx.measureText(tag).width);
-    const tw = textW + 16 + bubbleR * 2 + 16;
+    const tw = textW + 15 + bubbleR * 2 + 15;
     if (tagX + tw > leftX + leftW && tagX > leftX) {
       tagX = leftX;
-      tagY += chipH + 10;
+      tagY += chipH + 8;
     }
     ctx.fillStyle = 'rgba(68, 30, 6, 0.82)';
     ctx.strokeStyle = 'rgba(245, 158, 11, 0.72)';
@@ -2525,10 +2673,10 @@ function createProjectScreenTexture(st) {
     ctx.fillStyle = '#fde68a';
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
-    ctx.fillText(tag, tagX + 14, tagY + chipH * 0.5 + 1);
+    ctx.fillText(tag, tagX + 13, tagY + chipH * 0.5 + 1);
 
     // Circular "+" Bubble on right side of tag pill
-    const bx = tagX + tw - 10 - bubbleR;
+    const bx = tagX + tw - 9 - bubbleR;
     const by = tagY + chipH * 0.5;
     ctx.fillStyle = 'rgba(217, 119, 6, 0.48)';
     ctx.strokeStyle = '#fbbf24';
@@ -2539,43 +2687,78 @@ function createProjectScreenTexture(st) {
     ctx.stroke();
 
     ctx.fillStyle = '#fffbeb';
-    ctx.font = '800 14px ui-monospace, SFMono-Regular, Menlo, monospace';
+    ctx.font = '800 13.5px ui-monospace, SFMono-Regular, Menlo, monospace';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText('+', bx, by + 0.5);
 
-    tagX += tw + 10;
+    tagX += tw + 9;
   }
   ctx.restore();
 
-  // 7c. Right Column — Compact Visual Sub-Panel (.holo-Visual-panel)
-  const rightPanelX = 732;
-  const rightPanelW = rightEdge - rightPanelX; // 492
-  const panelY = headerBottomY + 24;
-  const hasPrimaryCta = Boolean(st.primaryLink && st.primaryLink.label);
-  const hasSecondaryCta = Boolean(st.secondaryLink && st.secondaryLink.label);
-  const metricBoxH = 68;
-  const panelH = hasPrimaryCta && hasSecondaryCta ? 248 : hasPrimaryCta || hasSecondaryCta ? 182 : 100;
+  const tagsBottomY = tagY + chipH;
+
+  // 7c. Bottom-Left Remaining Space — 4-Frame Amber Hologram Capture Matrix (2x2 Quad Storyboard)
+  const storyboardY = Math.max(tagsBottomY + 14, 436);
+  const storyboardBottomY = 740;
+  const storyboardH = Math.max(180, storyboardBottomY - storyboardY);
 
   ctx.save();
-  ctx.fillStyle = 'rgba(28, 12, 2, 0.74)';
-  ctx.strokeStyle = 'rgba(245, 158, 11, 0.58)';
+  ctx.fillStyle = 'rgba(24, 10, 2, 0.80)';
+  ctx.strokeStyle = 'rgba(245, 158, 11, 0.68)';
   ctx.lineWidth = 1.5;
-  drawRoundedRectPath(ctx, rightPanelX, panelY, rightPanelW, panelH, 12);
+  drawRoundedRectPath(ctx, leftX, storyboardY, leftW, storyboardH, 11);
+  ctx.fill();
+  ctx.stroke();
+  drawAmberCornerBrackets(ctx, leftX, storyboardY, leftW, storyboardH, 12, 5, 1.75);
+
+  // Storyboard Header Strip
+  ctx.fillStyle = 'rgba(78, 34, 6, 0.72)';
+  drawRoundedRectPath(ctx, leftX + 4, storyboardY + 4, leftW - 8, 24, 7);
+  ctx.fill();
+
+  ctx.fillStyle = '#fef3c7';
+  ctx.font = 'bold 12px ui-monospace, SFMono-Regular, Menlo, monospace';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('◈ LIVE_DEMO 4-FRAME HOLOGRAM SEQUENCE', leftX + 14, storyboardY + 16);
+
+  ctx.fillStyle = '#fbbf24';
+  ctx.textAlign = 'right';
+  ctx.fillText('GPU_QUAD_SYNC // 01–04', leftX + leftW - 14, storyboardY + 16);
+  ctx.restore();
+
+  const gridX = leftX + 10;
+  const gridY = storyboardY + 32;
+  const gridW = leftW - 20; // 596
+  const gridH = storyboardH - 40;
+
+  // 7d. Right Column — Top Compact Metrics Strip + Full-Height Live-Demo Amber Hologram Preview Viewport
+  const rightPanelX = 696;
+  const rightPanelW = rightEdge - rightPanelX; // 528
+  const panelY = headerBottomY + 16;
+  const metricStripH = 76;
+  const metricBoxH = 56;
+
+  ctx.save();
+  ctx.fillStyle = 'rgba(28, 12, 2, 0.78)';
+  ctx.strokeStyle = 'rgba(245, 158, 11, 0.62)';
+  ctx.lineWidth = 1.5;
+  drawRoundedRectPath(ctx, rightPanelX, panelY, rightPanelW, metricStripH, 11);
   ctx.fill();
   ctx.stroke();
 
-  const innerX = rightPanelX + 16;
-  const innerW = rightPanelW - 32; // 460
-  const metricGap = 12;
+  const innerX = rightPanelX + 12;
+  const innerW = rightPanelW - 24; // 504
+  const metricGap = 10;
   const metricBoxW = (innerW - metricGap * 2) / 3;
-  const metricBoxY = panelY + 16;
+  const metricBoxY = panelY + 10;
 
   // Compact 3-Column Metrics Grid (.holo-metrics-grid)
   st.metrics.slice(0, 3).forEach((m, idx) => {
     const bx = innerX + idx * (metricBoxW + metricGap);
-    ctx.fillStyle = 'rgba(54, 22, 4, 0.80)';
-    ctx.strokeStyle = 'rgba(245, 158, 11, 0.54)';
+    ctx.fillStyle = 'rgba(54, 22, 4, 0.84)';
+    ctx.strokeStyle = 'rgba(245, 158, 11, 0.58)';
     ctx.lineWidth = 1.5;
     drawRoundedRectPath(ctx, bx, metricBoxY, metricBoxW, metricBoxH, 8);
     ctx.fill();
@@ -2584,57 +2767,211 @@ function createProjectScreenTexture(st) {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'alphabetic';
     ctx.fillStyle = '#fbbf24';
-    ctx.font = '800 19px ui-monospace, SFMono-Regular, Menlo, monospace';
-    ctx.fillText(m.value, bx + metricBoxW * 0.5, metricBoxY + 30);
+    ctx.font = '800 18px ui-monospace, SFMono-Regular, Menlo, monospace';
+    ctx.fillText(m.value, bx + metricBoxW * 0.5, metricBoxY + 25);
 
     ctx.fillStyle = '#fde68a';
-    ctx.font = '600 12px -apple-system, BlinkMacSystemFont, sans-serif';
-    ctx.fillText(m.label.toUpperCase(), bx + metricBoxW * 0.5, metricBoxY + 52);
+    ctx.font = '600 11.5px -apple-system, BlinkMacSystemFont, sans-serif';
+    ctx.fillText(m.label.toUpperCase(), bx + metricBoxW * 0.5, metricBoxY + 45);
   });
-
-  // Primary CTA Button (a.holo-link-btn) — rendered only when primaryLink is assigned
-  const cta1Y = metricBoxY + metricBoxH + 16;
-  const cta1H = 50;
-  if (hasPrimaryCta) {
-    const cta1Grad = ctx.createLinearGradient(innerX, 0, innerX + innerW, 0);
-    cta1Grad.addColorStop(0.0, 'rgba(217, 119, 6, 0.62)');
-    cta1Grad.addColorStop(1.0, 'rgba(180, 83, 9, 0.62)');
-    ctx.fillStyle = cta1Grad;
-    ctx.strokeStyle = 'rgba(252, 211, 77, 0.88)';
-    ctx.lineWidth = 1.5;
-    drawRoundedRectPath(ctx, innerX, cta1Y, innerW, cta1H, 10);
-    ctx.fill();
-    ctx.stroke();
-
-    ctx.fillStyle = '#fffbeb';
-    ctx.font = 'bold 17px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(st.primaryLink.label, innerX + 18, cta1Y + cta1H * 0.5 + 1);
-    ctx.textAlign = 'right';
-    ctx.fillText('↗', innerX + innerW - 18, cta1Y + cta1H * 0.5 + 1);
-  }
-
-  // Secondary CTA Button (a.holo-link-btn.secondary) — rendered only when secondaryLink is assigned
-  if (hasSecondaryCta) {
-    const cta2Y = hasPrimaryCta ? cta1Y + cta1H + 10 : cta1Y;
-    const cta2H = 46;
-    ctx.fillStyle = 'rgba(68, 30, 6, 0.50)';
-    ctx.strokeStyle = 'rgba(245, 158, 11, 0.58)';
-    ctx.lineWidth = 1.5;
-    drawRoundedRectPath(ctx, innerX, cta2Y, innerW, cta2H, 10);
-    ctx.fill();
-    ctx.stroke();
-
-    ctx.fillStyle = '#fde68a';
-    ctx.font = 'bold 15.5px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(st.secondaryLink.label, innerX + 18, cta2Y + cta2H * 0.5 + 1);
-    ctx.textAlign = 'right';
-    ctx.fillText('↗', innerX + innerW - 18, cta2Y + cta2H * 0.5 + 1);
-  }
   ctx.restore();
+
+  // 7e. Right Column Remaining Space — Dedicated Amber-Tinted Hologram Live-Demo Preview Bezel
+  const previewPanelY = panelY + metricStripH + 12;
+  const previewPanelBottomY = 740;
+  const previewPanelH = previewPanelBottomY - previewPanelY;
+
+  ctx.save();
+  ctx.fillStyle = 'rgba(24, 10, 2, 0.84)';
+  ctx.strokeStyle = 'rgba(251, 191, 36, 0.84)';
+  ctx.lineWidth = 1.75;
+  drawRoundedRectPath(ctx, rightPanelX, previewPanelY, rightPanelW, previewPanelH, 12);
+  ctx.fill();
+  ctx.stroke();
+  drawAmberCornerBrackets(ctx, rightPanelX, previewPanelY, rightPanelW, previewPanelH, 16, 6, 2.2);
+
+  // Top Header Strip of Live-Demo Preview Panel
+  ctx.fillStyle = 'rgba(78, 34, 6, 0.78)';
+  drawRoundedRectPath(ctx, rightPanelX + 5, previewPanelY + 5, rightPanelW - 10, 28, 7);
+  ctx.fill();
+
+  ctx.fillStyle = '#fbbf24';
+  ctx.beginPath();
+  ctx.arc(rightPanelX + 18, previewPanelY + 19, 4.5, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = '#fffbeb';
+  ctx.font = 'bold 13px ui-monospace, SFMono-Regular, Menlo, monospace';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(
+    st.previewSourceLabel || 'LIVE_DEMO // HOLOGRAM FEED',
+    rightPanelX + 29,
+    previewPanelY + 19.5
+  );
+
+  ctx.fillStyle = '#fde68a';
+  ctx.font = 'bold 12px ui-monospace, SFMono-Regular, Menlo, monospace';
+  ctx.textAlign = 'right';
+  ctx.fillText('4-FRAME HOLO', rightPanelX + rightPanelW - 14, previewPanelY + 19.5);
+
+  const vpX = rightPanelX + 12;
+  const vpY = previewPanelY + 38;
+  const vpW = rightPanelW - 24; // 504
+  const vpH = previewPanelH - 82;
+
+  // Bottom Status / CTA Strip inside Preview Bezel
+  const footerY = vpY + vpH + 7;
+  const footerH = 31;
+  ctx.fillStyle = 'rgba(54, 22, 4, 0.82)';
+  ctx.strokeStyle = 'rgba(245, 158, 11, 0.55)';
+  ctx.lineWidth = 1.25;
+  drawRoundedRectPath(ctx, vpX, footerY, vpW, footerH, 7);
+  ctx.fill();
+  ctx.stroke();
+
+  // 4 Frame Pips on Left of Footer
+  for (let f = 0; f < 4; f++) {
+    const pipX = vpX + 10 + f * 44;
+    const pipY = footerY + 6;
+    ctx.fillStyle = f === 0 ? 'rgba(245, 158, 11, 0.85)' : 'rgba(92, 40, 8, 0.75)';
+    ctx.strokeStyle = '#fbbf24';
+    ctx.lineWidth = 1;
+    drawRoundedRectPath(ctx, pipX, pipY, 38, 19, 4);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = f === 0 ? '#1c0a00' : '#fde68a';
+    ctx.font = 'bold 11px ui-monospace, SFMono-Regular, Menlo, monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(`F0${f + 1}`, pipX + 19, pipY + 10);
+  }
+
+  // Primary Link / Action Label on Right of Footer
+  const footerActionLabel =
+    st.primaryLink && st.primaryLink.label
+      ? `${st.primaryLink.label} ↗`
+      : 'LIVE_DEMO PREVIEW // CLICK MOUNT ↗';
+  ctx.fillStyle = '#fffbeb';
+  ctx.font = 'bold 12px ui-monospace, SFMono-Regular, Menlo, monospace';
+  ctx.textAlign = 'right';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(footerActionLabel, vpX + vpW - 12, footerY + footerH * 0.5 + 0.5);
+  ctx.restore();
+
+  // Helper to paint either procedural fallback or loaded 2x2 WebP atlas frames into both regions
+  const captions = Array.isArray(st.previewFrameCaptions) && st.previewFrameCaptions.length === 4
+    ? st.previewFrameCaptions
+    : [
+        '01 // PRIMARY LIVE DEMO VIEWPORT',
+        '02 // INTERACTIVE TELEMETRY STATE',
+        '03 // EXECUTION PIPELINE TRACE',
+        '04 // VERIFIED OUTPUT SNAPSHOT',
+      ];
+
+  const renderPreviewRegions = (atlasImg) => {
+    ctx.save();
+    ctx.setTransform(1024 / 1280, 0, 0, 627 / 784, 0, 0);
+
+    // A. Draw Main Right-Column Viewport (vpX, vpY, vpW, vpH)
+    ctx.save();
+    drawRoundedRectPath(ctx, vpX, vpY, vpW, vpH, 7);
+    ctx.clip();
+    ctx.fillStyle = 'rgba(20, 8, 2, 0.94)';
+    ctx.fillRect(vpX, vpY, vpW, vpH);
+
+    if (atlasImg) {
+      const tileW = atlasImg.width * 0.5;
+      const tileH = atlasImg.height * 0.5;
+      ctx.drawImage(atlasImg, 0, 0, tileW, tileH, vpX, vpY, vpW, vpH);
+    } else {
+      // Procedural amber hologram fallback before image finishes loading
+      ctx.strokeStyle = 'rgba(245, 158, 11, 0.22)';
+      ctx.lineWidth = 1;
+      for (let gx = vpX + 28; gx < vpX + vpW; gx += 28) {
+        ctx.beginPath();
+        ctx.moveTo(gx, vpY);
+        ctx.lineTo(gx, vpY + vpH);
+        ctx.stroke();
+      }
+      for (let gy = vpY + 28; gy < vpY + vpH; gy += 28) {
+        ctx.beginPath();
+        ctx.moveTo(vpX, gy);
+        ctx.lineTo(vpX + vpW, gy);
+        ctx.stroke();
+      }
+      ctx.fillStyle = '#fbbf24';
+      ctx.font = 'bold 16px ui-monospace, SFMono-Regular, Menlo, monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(st.previewSourceLabel || st.title, vpX + vpW * 0.5, vpY + vpH * 0.44);
+      ctx.fillStyle = '#fde68a';
+      ctx.font = '13px ui-monospace, SFMono-Regular, Menlo, monospace';
+      ctx.fillText(captions[0], vpX + vpW * 0.5, vpY + vpH * 0.56);
+    }
+
+    // Fine amber scanline pass over main viewport
+    ctx.fillStyle = 'rgba(245, 158, 11, 0.08)';
+    for (let sy = vpY; sy < vpY + vpH; sy += 3) {
+      ctx.fillRect(vpX, sy, vpW, 1);
+    }
+    ctx.restore();
+
+    ctx.strokeStyle = 'rgba(251, 191, 36, 0.86)';
+    ctx.lineWidth = 1.5;
+    drawRoundedRectPath(ctx, vpX, vpY, vpW, vpH, 7);
+    ctx.stroke();
+
+    // B. Draw Bottom-Left 2x2 4-Frame Storyboard Matrix (gridX, gridY, gridW, gridH)
+    ctx.save();
+    drawRoundedRectPath(ctx, gridX, gridY, gridW, gridH, 6);
+    ctx.clip();
+    ctx.fillStyle = 'rgba(18, 8, 2, 0.94)';
+    ctx.fillRect(gridX, gridY, gridW, gridH);
+
+    if (atlasImg) {
+      ctx.drawImage(atlasImg, 0, 0, atlasImg.width, atlasImg.height, gridX, gridY, gridW, gridH);
+    } else {
+      const cellW = gridW * 0.5;
+      const cellH = gridH * 0.5;
+      for (let idx = 0; idx < 4; idx++) {
+        const c = idx % 2;
+        const r = Math.floor(idx / 2);
+        const cx = gridX + c * cellW;
+        const cy = gridY + r * cellH;
+        ctx.fillStyle = idx === 0 ? 'rgba(68, 30, 6, 0.72)' : 'rgba(36, 15, 3, 0.72)';
+        ctx.fillRect(cx + 2, cy + 2, cellW - 4, cellH - 4);
+        ctx.fillStyle = '#fbbf24';
+        ctx.font = 'bold 12px ui-monospace, SFMono-Regular, Menlo, monospace';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+        ctx.fillText(`FRM 0${idx + 1}/04`, cx + 10, cy + 8);
+        ctx.fillStyle = '#fde68a';
+        ctx.font = '11px ui-monospace, SFMono-Regular, Menlo, monospace';
+        ctx.fillText(captions[idx].slice(0, 34), cx + 10, cy + cellH - 20);
+      }
+    }
+
+    // Center crosshair divider lines separating the 2x2 storyboard quadrants
+    ctx.strokeStyle = 'rgba(251, 191, 36, 0.85)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(gridX + gridW * 0.5, gridY);
+    ctx.lineTo(gridX + gridW * 0.5, gridY + gridH);
+    ctx.moveTo(gridX, gridY + gridH * 0.5);
+    ctx.lineTo(gridX + gridW, gridY + gridH * 0.5);
+    ctx.stroke();
+    ctx.restore();
+
+    ctx.strokeStyle = 'rgba(245, 158, 11, 0.78)';
+    ctx.lineWidth = 1.5;
+    drawRoundedRectPath(ctx, gridX, gridY, gridW, gridH, 6);
+    ctx.stroke();
+
+    ctx.restore();
+  };
+
+  renderPreviewRegions(null);
 
   const tex = new THREE.CanvasTexture(canvas);
   tex.colorSpace = THREE.SRGBColorSpace;
@@ -2642,6 +2979,46 @@ function createProjectScreenTexture(st) {
   tex.minFilter = THREE.LinearFilter;
   tex.magFilter = THREE.LinearFilter;
   tex.anisotropy = 1;
+
+  // Store exact UV bounds for GPU fragment shader 4-frame quadrant stepping
+  const previewUvRect = new THREE.Vector4(
+    Number((vpX / W).toFixed(5)),
+    Number((1.0 - (vpY + vpH) / H).toFixed(5)),
+    Number(((vpX + vpW) / W).toFixed(5)),
+    Number((1.0 - vpY / H).toFixed(5))
+  );
+  const filmstripUvRect = new THREE.Vector4(
+    Number((gridX / W).toFixed(5)),
+    Number((1.0 - (gridY + gridH) / H).toFixed(5)),
+    Number(((gridX + gridW) / W).toFixed(5)),
+    Number((1.0 - gridY / H).toFixed(5))
+  );
+
+  tex.userData = {
+    stationId: st.id,
+    mountName: st.mountName,
+    previewUvRect,
+    filmstripUvRect,
+    previewAtlasTexture: null,
+    boundShaderMat: null,
+    refreshWithAtlas(atlasImg, atlasTex) {
+      renderPreviewRegions(atlasImg);
+      tex.userData.previewAtlasTexture = atlasTex;
+      tex.needsUpdate = true;
+      const mat = tex.userData.boundShaderMat;
+      if (mat && mat.uniforms) {
+        if (mat.uniforms.uPreviewAtlas) mat.uniforms.uPreviewAtlas.value = atlasTex;
+        if (mat.uniforms.uHasPreviewAtlas) mat.uniforms.uHasPreviewAtlas.value = 1.0;
+        if (mat.uniforms.uPreviewRect) mat.uniforms.uPreviewRect.value.copy(previewUvRect);
+        if (mat.uniforms.uFilmstripRect) mat.uniforms.uFilmstripRect.value.copy(filmstripUvRect);
+      }
+    },
+  };
+
+  ensureStationPreviewAtlasLoaded(st, (atlasImg, atlasTex) => {
+    tex.userData.refreshWithAtlas(atlasImg, atlasTex);
+  });
+
   tex.needsUpdate = true;
   return tex;
 }
@@ -3420,6 +3797,17 @@ function buildWallScreenMounts(markers, hologramGLTF = null) {
       bezelMesh: activeHoloInstance.subMeshes.structuralFrames,
       bezelMat: activeHoloInstance.materials.structuralFrames,
       faceMat,
+      screenTexture,
+      hasLiveDemoPreview: true,
+      previewFrameCount: st.previewFrameCount || 4,
+      activePreviewFrameIndex: 0,
+      previewTransitionPulse: 0.0,
+      previewAtlasUrl: st.previewAtlasUrl || null,
+      previewAtlasLoaded: Boolean(
+        faceMat.uniforms &&
+        faceMat.uniforms.uHasPreviewAtlas &&
+        faceMat.uniforms.uHasPreviewAtlas.value > 0.5
+      ),
       borderWireMat,
       diffusedLightMesh,
       diffusedLightMat,
@@ -16342,6 +16730,28 @@ const sandbox = {
   wallMounts: [],
   wallMountsByName: {},
   wallMountRaycastTargets: [],
+  setStationPreviewAtlas(mountName, atlasUrl, options = {}) {
+    const m = this.wallMountsByName ? this.wallMountsByName[mountName] : null;
+    if (!m || !m.station || !atlasUrl) return false;
+    m.station.previewAtlasUrl = atlasUrl;
+    m.previewAtlasUrl = atlasUrl;
+    if (options.previewSourceLabel) {
+      m.station.previewSourceLabel = options.previewSourceLabel;
+    }
+    if (Array.isArray(options.previewFrameCaptions) && options.previewFrameCaptions.length === 4) {
+      m.station.previewFrameCaptions = options.previewFrameCaptions.slice(0, 4);
+    }
+    ensureStationPreviewAtlasLoaded(m.station, (atlasImg, atlasTex) => {
+      if (m.screenTexture && m.screenTexture.userData && m.screenTexture.userData.refreshWithAtlas) {
+        m.screenTexture.userData.refreshWithAtlas(atlasImg, atlasTex);
+      }
+      m.previewAtlasLoaded = true;
+      if (this.ready) {
+        renderer.render(scene, camera);
+      }
+    });
+    return true;
+  },
   neonCornersGroup: neonCornersRootGroup,
   neonWallCorners: [],
   neonWallCornersByCategory: { base: [], top: [], riser: [] },
