@@ -34,11 +34,17 @@ from http.server import SimpleHTTPRequestHandler
 _SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
 if _SCRIPTS_DIR not in sys.path:
     sys.path.insert(0, _SCRIPTS_DIR)
-_GREEK_SCRIPTS_DIR = "/Users/diesel/desktop/greek/scripts"
-if os.path.isdir(_GREEK_SCRIPTS_DIR) and _GREEK_SCRIPTS_DIR not in sys.path:
-    sys.path.insert(0, _GREEK_SCRIPTS_DIR)
+for _candidate_scripts_dir in (
+    "/Users/diesel/desktop/greek/scripts",
+    "/Users/egg/Desktop/3dport/scripts",
+):
+    if os.path.isdir(_candidate_scripts_dir) and _candidate_scripts_dir not in sys.path:
+        sys.path.insert(0, _candidate_scripts_dir)
 
-import studio_http_handlers_045
+try:
+    import studio_http_handlers_045
+except ImportError:
+    studio_http_handlers_045 = None
 
 from graphrag_engine import (
     AUTHORITATIVE_INTRO_ANCHOR_CARDS,
@@ -2896,7 +2902,7 @@ class SkateAlleyRequestHandler(SimpleHTTPRequestHandler):
         })
 
     def do_POST(self):
-        if studio_http_handlers_045.try_handle_studio_post(self):
+        if studio_http_handlers_045 and studio_http_handlers_045.try_handle_studio_post(self):
             return
         clean_path = self.path.split("?", 1)[0].rstrip("/")
         if clean_path == "/api/intro/generate":
@@ -3194,7 +3200,7 @@ class SkateAlleyRequestHandler(SimpleHTTPRequestHandler):
         clean_path = self.path.split("?", 1)[0]
         if clean_path in ("/api/health", "/health"):
             return self._serve_health(head_only=True)
-        if studio_http_handlers_045.try_handle_studio_or_melee_get(self, head_only=True):
+        if studio_http_handlers_045 and studio_http_handlers_045.try_handle_studio_or_melee_get(self, head_only=True):
             return
         if self._try_serve_range(head_only=True):
             return
@@ -3206,7 +3212,7 @@ class SkateAlleyRequestHandler(SimpleHTTPRequestHandler):
         clean_path = self.path.split("?", 1)[0].rstrip("/") or "/"
         if clean_path in ("/api/health", "/health"):
             return self._serve_health(head_only=False)
-        if studio_http_handlers_045.try_handle_studio_or_melee_get(self, head_only=False):
+        if studio_http_handlers_045 and studio_http_handlers_045.try_handle_studio_or_melee_get(self, head_only=False):
             return
         if clean_path == "/api/graphrag/status":
             return self._handle_graphrag_status()
@@ -3254,7 +3260,8 @@ def main():
     except Exception as db_err:
         print(f"[skatealley-app-local] WARNING: Initial PostgreSQL schema check deferred: {db_err}", flush=True)
     try:
-        studio_http_handlers_045.maybe_boot_background_coordinator()
+        if studio_http_handlers_045:
+            studio_http_handlers_045.maybe_boot_background_coordinator()
     except Exception as studio_err:
         print(f"[skatealley-app-local] WARNING: Studio coordinator startup warning: {studio_err}", flush=True)
     with ThreadingHTTPServer((args.host, args.port), SkateAlleyRequestHandler) as httpd:
