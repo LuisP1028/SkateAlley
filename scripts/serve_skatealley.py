@@ -2125,9 +2125,9 @@ class SkateAlleyRequestHandler(SimpleHTTPRequestHandler):
             "7. Card 6 (index=6, id='card_06', header='06 // GENERATIVE PIPELINE', requires_question_prompt=false): "
             "Must list skating, committing grand theft auto, fighting in Super Smash Bros, killing zombies, or joining Luis in the alleyway.\n"
             "8. Card 7 (index=7, id='card_07', header='07 // MENU', requires_question_prompt=true): "
-            "Must explain using the menu to leave a message in the alleyway, warn that job recruiters visit so TREAD LIGHTLY "
-            "and explicitly include 'DON’T BE A DICKHEAD, DEVON!', mention GitHub/email/Twitter, note that this conversation "
-            "is generative, and end with a direct question asking if the visitor has any questions for Luis (ending with '?').\n"
+            "Must explain using the menu to leave a message in the alleyway for Luis and others to see, "
+            "mention GitHub/email/Twitter, note that this conversation is generative, and end with a direct "
+            "question asking if the visitor has any questions for Luis (ending with '?').\n"
             "9. Every card 'body' string MUST be between 45 and 440 characters."
         )
 

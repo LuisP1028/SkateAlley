@@ -45,22 +45,6 @@
       "priority": 0.68
     },
     {
-      "id": "Person:devon",
-      "type": "Person",
-      "label": "Devon (Alleyway Sticker Wall Warning)",
-      "aliases": [
-        "devon",
-        "dickhead devon",
-        "recruiter warning",
-        "tread lightly"
-      ],
-      "summary": "Friend called out by name in Luis's welcome sequence warning visitors leaving public messages on the Freeman Alley sticker wall because job recruiters visit the alley: 'DON'T BE A DICKHEAD, DEVON!'",
-      "attributes": {
-        "quote": "Job recruiters will be visiting the alleyway so TREAD LIGHTLY. I MEAN IT. DON'T BE A DICKHEAD, DEVON!"
-      },
-      "priority": 0.62
-    },
-    {
       "id": "Education:corporate_finance_accounting",
       "type": "Education",
       "label": "Corporate Finance & Accounting (Early College Major)",
@@ -1210,13 +1194,6 @@
       "relation": "PERSISTED_IN",
       "weight": 0.85,
       "evidence": "Alleyway sticker placements and visitor messages persist in PostgreSQL across sessions."
-    },
-    {
-      "source": "Pipeline:alley_die_cut_sticker_wall",
-      "target": "Person:devon",
-      "relation": "HAS_WARNING_FOR",
-      "weight": 0.80,
-      "evidence": "Luis warns visitors leaving messages on the sticker menu that recruiters visit the alley: 'DON'T BE A DICKHEAD, DEVON!'"
     },
     {
       "source": "Person:luis",

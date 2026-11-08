@@ -5210,9 +5210,21 @@ const STARTUP_TALKING_SEQUENCE_CLIPS = Object.freeze([
   'TALK_EMPHASIS',
 ]);
 
-const INTRO_DIALOGUE_STORAGE_KEY = 'skatealley_intro_dialogue_boxes_v2';
+const INTRO_DIALOGUE_STORAGE_KEY = 'skatealley_intro_dialogue_boxes_v3';
 const INTRO_POST_PAN_GRACE_MS = 600;
 const INTRO_PREFETCH_CLIENT_TIMEOUT_MS = 8500;
+
+function sanitizeIntroDialogueText(rawText) {
+  if (typeof rawText !== 'string') return '';
+  return rawText
+    .replace(
+      /\s*Job recruiters will be visiting the alleyway so TREAD LIGHTLY\.\s*I MEAN IT\.\s*DON[’']T BE A DICKHEAD,\s*DEVON!\s*/gi,
+      ' '
+    )
+    .replace(/\s*DON[’']T BE A DICKHEAD,\s*DEVON!\s*/gi, ' ')
+    .replace(/[ \t]{2,}/g, ' ')
+    .trim();
+}
 
 const DEFAULT_INTRO_DIALOGUE_BOXES = Object.freeze([
   Object.freeze({
@@ -5254,7 +5266,7 @@ const DEFAULT_INTRO_DIALOGUE_BOXES = Object.freeze([
   Object.freeze({
     id: 'card_07',
     title: '07 // MENU',
-    text: 'You can use the menu to leave a message in the alleyway for myself and others to see. Job recruiters will be visiting the alleyway so TREAD LIGHTLY. I MEAN IT. DON’T BE A DICKHEAD, DEVON! You can also check out my GitHub, send me an email, or follow me on Twitter.\n\nOh and by the way, this conversation is generative. Do you have any questions for me?',
+    text: 'You can use the menu to leave a message in the alleyway for myself and others to see. You can also check out my GitHub, send me an email, or follow me on Twitter.\n\nOh and by the way, this conversation is generative. Do you have any questions for me?',
     requires_question_prompt: true,
   }),
 ]);
@@ -5286,7 +5298,8 @@ function normalizeGenerativeIntroCards(rawCards) {
     const item = rawCards[i];
     if (!item || typeof item !== 'object') return null;
     const header = typeof item.header === 'string' ? item.header.trim() : typeof item.title === 'string' ? item.title.trim() : '';
-    const body = typeof item.body === 'string' ? item.body.trim() : typeof item.text === 'string' ? item.text.trim() : '';
+    const rawBody = typeof item.body === 'string' ? item.body.trim() : typeof item.text === 'string' ? item.text.trim() : '';
+    const body = sanitizeIntroDialogueText(rawBody);
     if (!header || body.length < 40) return null;
     normalized.push({
       id: typeof item.id === 'string' && item.id.trim() ? item.id.trim() : `card_0${i + 1}`,
@@ -5931,12 +5944,13 @@ function buildSpawnAndCameraDirectorSystem(floorY = 0.0) {
               : b && typeof b.header === 'string'
               ? b.header
               : `${numStr} // DIALOGUE`,
-          text:
+          text: sanitizeIntroDialogueText(
             b && typeof b.text === 'string'
               ? b.text
               : b && typeof b.body === 'string'
               ? b.body
-              : '',
+              : ''
+          ),
           requires_question_prompt: Boolean(
             (b && b.requires_question_prompt) || idx === sliced.length - 1
           ),

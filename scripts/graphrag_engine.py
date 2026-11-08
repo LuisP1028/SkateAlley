@@ -117,8 +117,7 @@ AUTHORITATIVE_INTRO_ANCHOR_CARDS = [
         "header": "07 // MENU",
         "body": (
             "You can use the menu to leave a message in the alleyway for myself and others to see. "
-            "Job recruiters will be visiting the alleyway so TREAD LIGHTLY. I MEAN IT. DON’T BE A "
-            "DICKHEAD, DEVON! You can also check out my GitHub, send me an email, or follow me on Twitter.\n\n"
+            "You can also check out my GitHub, send me an email, or follow me on Twitter.\n\n"
             "Oh and by the way, this conversation is generative. Do you have any questions for me?"
         ),
         "requires_question_prompt": True,
@@ -274,8 +273,8 @@ def validate_intro_deck_payload(payload):
             errors.append("Card 2 body must preserve mandatory anchor beat ('e/acc').")
         if "philosophy" not in c2_lower:
             errors.append("Card 2 body must preserve mandatory anchor beat ('Philosophy').")
-        if "devon" not in c7_lower:
-            errors.append("Card 7 body must preserve the recruiter/Devon warning ('DEVON').")
+        if "devon" in c7_lower or "dickhead" in c7_lower or "tread lightly" in c7_lower:
+            errors.append("Card 7 body must not include legacy Devon/tread-lightly text.")
         if not c7_body.rstrip().endswith("?"):
             errors.append("Card 7 body must conclude with a direct question ('?').")
 
