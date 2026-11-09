@@ -14870,11 +14870,9 @@ function syncHoloCustomScrollbar() {
   const thumbEl = document.getElementById('holo-custom-scrollbar-thumb');
   if (!trackEl || !thumbEl) return;
 
-  const horizTrackEl = document.getElementById('holo-works-horizontal-track');
-  const activeSlideEl = horizTrackEl
-    ? horizTrackEl.querySelector('.holo-work-slide.active-slide') || horizTrackEl.firstElementChild
-    : null;
-  const viewportEl = activeSlideEl || document.getElementById('holo-body-scroll-viewport');
+  const viewportEl =
+    document.getElementById('holo-works-horizontal-track') ||
+    document.getElementById('holo-body-scroll-viewport');
   if (!viewportEl) return;
 
   const trackH = Math.max(0, trackEl.clientHeight);
@@ -15069,7 +15067,7 @@ function scrollHoloWorksTrackToStation(stationIndex, { smooth = true } = {}) {
   slides.forEach((el) => {
     const isMatch = el === targetSlide;
     el.classList.toggle('active-slide', isMatch);
-    el.setAttribute('aria-hidden', isMatch ? 'false' : 'true');
+    el.setAttribute('aria-hidden', 'false');
   });
 
   const pipsContainer = document.getElementById('holo-station-pips');
@@ -15082,27 +15080,22 @@ function scrollHoloWorksTrackToStation(stationIndex, { smooth = true } = {}) {
   }
 
   if (!targetSlide) return;
-  const slideIdx0 = Math.max(0, Number(stationIndex) - 1);
-  const trackWidth = trackEl.clientWidth;
-  const targetLeft =
-    trackWidth > 0 ? slideIdx0 * trackWidth : targetSlide.offsetLeft || 0;
+  const trackRect = trackEl.getBoundingClientRect();
+  const slideRect = targetSlide.getBoundingClientRect();
+  const rawTargetTop =
+    trackRect.height > 0
+      ? trackEl.scrollTop + (slideRect.top - trackRect.top) - 4
+      : Math.max(0, targetSlide.offsetTop - trackEl.offsetTop);
+  const maxScrollTop = Math.max(0, trackEl.scrollHeight - trackEl.clientHeight);
+  const targetTop = Math.max(0, Math.min(maxScrollTop, rawTargetTop));
 
   const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
-  _programmaticHoloTrackScrollUntil = now + (smooth ? 420 : 120);
+  _programmaticHoloTrackScrollUntil = now + 180;
 
-  if (Math.abs(trackEl.scrollLeft - targetLeft) > 2) {
-    try {
-      trackEl.scrollTo({
-        left: targetLeft,
-        behavior: smooth ? 'smooth' : 'instant',
-      });
-    } catch (_e) {
-      trackEl.scrollLeft = targetLeft;
-    }
-    if (!smooth) {
-      trackEl.scrollLeft = targetLeft;
-    }
+  if (Math.abs(trackEl.scrollTop - targetTop) > 1) {
+    trackEl.scrollTop = targetTop;
   }
+  syncHoloCustomScrollbar();
 }
 
 function initHoloStationPips() {
@@ -15449,6 +15442,7 @@ function initHoloStationPips() {
     trackEl.addEventListener(
       'scroll',
       () => {
+        syncHoloCustomScrollbar();
         const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
         if (now < _programmaticHoloTrackScrollUntil) return;
         if (_holoTrackScrollSettleTimer) {
@@ -15456,12 +15450,21 @@ function initHoloStationPips() {
         }
         _holoTrackScrollSettleTimer = setTimeout(() => {
           _holoTrackScrollSettleTimer = null;
-          const w = Math.max(1, trackEl.clientWidth);
-          const idx0 = Math.max(
-            0,
-            Math.min(HOLO_PROJECT_STATIONS.length - 1, Math.round(trackEl.scrollLeft / w))
-          );
-          const targetSt = HOLO_PROJECT_STATIONS[idx0];
+          const slides = Array.from(trackEl.querySelectorAll('.holo-work-slide'));
+          if (slides.length === 0) return;
+          const trackRect = trackEl.getBoundingClientRect();
+          const anchorY = trackRect.top + Math.min(140, trackRect.height * 0.30);
+          let bestIdx = 0;
+          let bestDist = Infinity;
+          slides.forEach((sEl, sIdx) => {
+            const r = sEl.getBoundingClientRect();
+            const dist = Math.abs(r.top - anchorY);
+            if (dist < bestDist) {
+              bestDist = dist;
+              bestIdx = sIdx;
+            }
+          });
+          const targetSt = HOLO_PROJECT_STATIONS[bestIdx];
           if (!targetSt) return;
           const curActive = sandbox.activeHoloProject;
           if (!curActive || curActive.id !== targetSt.id) {
@@ -15472,41 +15475,19 @@ function initHoloStationPips() {
               sandbox.scrollToProjectStation(targetSt.index);
             }
           }
-        }, 90);
+        }, 80);
       },
       { passive: true }
     );
 
-    let lastWheelStepMs = 0;
     trackEl.addEventListener(
       'wheel',
       (e) => {
-        if (sandbox.mode !== 'mount-focus') return;
-        e.stopPropagation();
-        if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
-          return;
+        if (sandbox.mode === 'mount-focus') {
+          e.stopPropagation();
         }
-        const slideTarget =
-          e.target && typeof e.target.closest === 'function'
-            ? e.target.closest('.holo-work-slide')
-            : null;
-        if (slideTarget) {
-          const canScrollDown =
-            e.deltaY > 0 &&
-            slideTarget.scrollTop + slideTarget.clientHeight < slideTarget.scrollHeight - 2;
-          const canScrollUp = e.deltaY < 0 && slideTarget.scrollTop > 2;
-          if (canScrollDown || canScrollUp) {
-            return;
-          }
-        }
-        if (Math.abs(e.deltaY) < 12) return;
-        e.preventDefault();
-        const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
-        if (now - lastWheelStepMs < 260) return;
-        lastWheelStepMs = now;
-        sandbox.stepFocusedWallMount(e.deltaY > 0 ? 1 : -1);
       },
-      { passive: false }
+      { passive: true }
     );
   }
 }
@@ -15590,7 +15571,7 @@ function updateHolographicPopupUI() {
         trackEl.querySelectorAll('.holo-work-slide').forEach((el) => {
           const isMatch = Number(el.dataset.stationIndex) === Number(activeStation.index);
           el.classList.toggle('active-slide', isMatch);
-          el.setAttribute('aria-hidden', isMatch ? 'false' : 'true');
+          el.setAttribute('aria-hidden', 'false');
         });
       }
     } else {
@@ -21742,12 +21723,12 @@ function bindInputListeners() {
         sandbox.exitMathPodPopupFocus();
       }
       if (sandbox.mode === 'mount-focus' && isMoveKey) {
-        if (e.code === 'ArrowRight' || e.code === 'KeyD') {
+        if (e.code === 'ArrowRight' || e.code === 'ArrowDown' || e.code === 'KeyD') {
           e.preventDefault();
           sandbox.stepFocusedWallMount(1);
           return;
         }
-        if (e.code === 'ArrowLeft' || e.code === 'KeyA') {
+        if (e.code === 'ArrowLeft' || e.code === 'ArrowUp' || e.code === 'KeyA') {
           e.preventDefault();
           sandbox.stepFocusedWallMount(-1);
           return;
@@ -22877,7 +22858,9 @@ function bindInputListeners() {
     });
   }
 
-  const holoScrollViewportEl = document.getElementById('holo-body-scroll-viewport');
+  const holoScrollViewportEl =
+    document.getElementById('holo-works-horizontal-track') ||
+    document.getElementById('holo-body-scroll-viewport');
   const holoCustomScrollbarEl = document.getElementById('holo-custom-scrollbar');
   const holoCustomThumbEl = document.getElementById('holo-custom-scrollbar-thumb');
   if (holoScrollViewportEl) {
