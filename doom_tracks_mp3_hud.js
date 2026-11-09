@@ -86,38 +86,6 @@ export const DOOM_TRACKS_DEFAULT_CATALOG = Object.freeze([
     bitrateKbps: 192,
     format: 'MP3 / STEREO',
   }),
-  Object.freeze({
-    id: '01_doom_alloy_intro',
-    title: 'DOOM ALLOY // INTRO',
-    src: 'assets/tracks/01_doom_alloy_intro.mp3',
-    duration: 32,
-    bitrateKbps: 128,
-    format: 'MP3 / STEREO',
-  }),
-  Object.freeze({
-    id: '02_sys990_amber_pulse',
-    title: 'SYS-990 AMBER PULSE',
-    src: 'assets/tracks/02_sys990_amber_pulse.mp3',
-    duration: 36,
-    bitrateKbps: 128,
-    format: 'MP3 / STEREO',
-  }),
-  Object.freeze({
-    id: '03_freeman_alley_cipher',
-    title: 'FREEMAN ALLEY CIPHER',
-    src: 'assets/tracks/03_freeman_alley_cipher.mp3',
-    duration: 40,
-    bitrateKbps: 128,
-    format: 'MP3 / STEREO',
-  }),
-  Object.freeze({
-    id: '04_iron_mask_dub',
-    title: 'IRON MASK DUB v2',
-    src: 'assets/tracks/04_iron_mask_dub.mp3',
-    duration: 34,
-    bitrateKbps: 128,
-    format: 'MP3 / STEREO',
-  }),
 ]);
 
 export const MP3_CONTROL_HIT_ZONES = Object.freeze([
@@ -3044,34 +3012,27 @@ export function createDoomTracksMp3HUD(options = {}) {
     }
 
     if (typeof window !== 'undefined') {
-      let hasAutoStartedOnUserClick = false;
-      const autoStartEvents = ['pointerdown', 'pointerup', 'click', 'touchstart', 'touchend', 'keydown'];
-      const removeAutoStartListeners = () => {
-        for (const evt of autoStartEvents) {
-          window.removeEventListener(evt, handleFirstAppInteraction, true);
+      // Unlock HTMLAudioElement / WebAudioContext on user gesture if programmatic post-dialogue play() was blocked by browser autoplay policy
+      const unlockEvents = ['pointerdown', 'pointerup', 'click', 'touchstart', 'touchend', 'keydown'];
+      const removeUnlockListeners = () => {
+        for (const evt of unlockEvents) {
+          window.removeEventListener(evt, handleAudioUnlockOnGesture, true);
         }
       };
-      function handleFirstAppInteraction() {
-        if (hasAutoStartedOnUserClick) {
-          if (!audioEl.paused) {
-            removeAutoStartListeners();
-          } else if (state.playbackState === 'PLAYING') {
+      function handleAudioUnlockOnGesture() {
+        if (audioCtx && audioCtx.state === 'suspended') {
+          audioCtx.resume().catch(() => {});
+        }
+        if (state.playbackState === 'PLAYING') {
+          if (audioEl.paused) {
             playCurrentTrack();
+          } else {
+            removeUnlockListeners();
           }
-          return;
-        }
-        hasAutoStartedOnUserClick = true;
-        if (state.currentTrackIndex !== 0) {
-          loadTrackAtIndex(0, true);
-        } else {
-          playCurrentTrack();
-        }
-        if (!audioEl.paused) {
-          removeAutoStartListeners();
         }
       }
-      for (const evt of autoStartEvents) {
-        window.addEventListener(evt, handleFirstAppInteraction, { capture: true, passive: true });
+      for (const evt of unlockEvents) {
+        window.addEventListener(evt, handleAudioUnlockOnGesture, { capture: true, passive: true });
       }
 
       window.addEventListener('resize', () => {

@@ -944,6 +944,9 @@ export function createPortfolioPerimeterHUD({ sandbox } = {}) {
       els.mp3Hud.classList.remove('mp3-materialized', 'flicker-on', 'flicker-waiting');
       els.mp3Hud.setAttribute('data-flicker-state', 'dormant');
     }
+    if (sandbox && sandbox.mp3Player && sandbox.mp3Player.playbackState === 'PLAYING' && typeof sandbox.mp3Player.stop === 'function') {
+      sandbox.mp3Player.stop();
+    }
     if (els.touchControls) {
       els.touchControls.classList.remove('analog-materialized');
     }
@@ -1003,6 +1006,15 @@ export function createPortfolioPerimeterHUD({ sandbox } = {}) {
     // Stagger top-right MP3 player CRT Phosphor Flicker-On & mobile analog stick Flicker-On after HUD decode begins
     triggerMp3FlickerOn({ delayMs: 150, reason: 'post-dialogue' });
     triggerAnalogFlickerOn({ delayMs: 210, reason: 'post-dialogue' });
+
+    // Start playing "SO INAGAWA - SELFLESS STATE" automatically on post-dialogue bootup
+    if (sandbox && sandbox.mp3Player && typeof sandbox.mp3Player.play === 'function') {
+      if (sandbox.mp3Player.currentTrackIndex !== 0 && typeof sandbox.mp3Player.selectTrack === 'function') {
+        sandbox.mp3Player.selectTrack(0, true);
+      } else {
+        sandbox.mp3Player.play();
+      }
+    }
     return true;
   }
 
