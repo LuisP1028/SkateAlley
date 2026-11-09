@@ -1101,7 +1101,16 @@
     }
 
     @media (max-width: 860px) {
-      .holo-work-slide,
+      .holo-work-slide {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+      .holo-work-slide > .holo-main-col,
+      .holo-work-slide > .holo-Visual-panel {
+        flex-shrink: 0;
+        min-height: auto;
+      }
       .holo-body-grid {
         grid-template-columns: 1fr;
         gap: 10px;
