@@ -731,6 +731,9 @@ export function createPortfolioPerimeterHUD({ sandbox } = {}) {
   let analogStaggerTimer = null;
   let leftStickFlickerTimer = null;
   let rightStickFlickerTimer = null;
+  let mp3StaggerTimer = null;
+  let mp3FlickerTimer = null;
+  let mp3FlickerPlayedCount = 0;
   let wasTouchControlsSuppressed = false;
   const buttonPointerDownTimestamps = new WeakMap();
 
@@ -745,6 +748,7 @@ export function createPortfolioPerimeterHUD({ sandbox } = {}) {
       navInteractBtn: document.getElementById('mobile-action-interact-btn'),
       navMenuBtn: document.getElementById('mobile-action-mode-btn'),
       navChatBtn: document.getElementById('portfolio-hud-chat-btn'),
+      mp3Hud: document.getElementById('doom-tracks-mp3-hud'),
       touchControls: document.getElementById('mobile-touch-controls'),
       leftStick: document.getElementById('mobile-left-thumbpad'),
       rightStick: document.getElementById('mobile-right-thumbpad'),
@@ -779,6 +783,78 @@ export function createPortfolioPerimeterHUD({ sandbox } = {}) {
     if (rightStickFlickerTimer !== null) {
       clearTimeout(rightStickFlickerTimer);
       rightStickFlickerTimer = null;
+    }
+    if (mp3StaggerTimer !== null) {
+      clearTimeout(mp3StaggerTimer);
+      mp3StaggerTimer = null;
+    }
+    if (mp3FlickerTimer !== null) {
+      clearTimeout(mp3FlickerTimer);
+      mp3FlickerTimer = null;
+    }
+  }
+
+  function overrideMp3FlickerOnTouch() {
+    const els = getElements();
+    if (mp3StaggerTimer !== null) {
+      clearTimeout(mp3StaggerTimer);
+      mp3StaggerTimer = null;
+    }
+    if (mp3FlickerTimer !== null) {
+      clearTimeout(mp3FlickerTimer);
+      mp3FlickerTimer = null;
+    }
+    if (els.mp3Hud) {
+      els.mp3Hud.classList.add('mp3-materialized');
+      els.mp3Hud.classList.remove('flicker-on', 'flicker-waiting');
+      els.mp3Hud.setAttribute('data-flicker-state', 'active-override');
+    }
+  }
+
+  function triggerMp3FlickerOn({ delayMs = 150, reason = 'post-dialogue' } = {}) {
+    const els = getElements();
+    if (!els.mp3Hud) return;
+
+    if (mp3StaggerTimer !== null) {
+      clearTimeout(mp3StaggerTimer);
+      mp3StaggerTimer = null;
+    }
+    if (mp3FlickerTimer !== null) {
+      clearTimeout(mp3FlickerTimer);
+      mp3FlickerTimer = null;
+    }
+
+    const startMp3Flicker = () => {
+      mp3StaggerTimer = null;
+      if (isIntroSequenceHoldingHUD()) return;
+      const currentEls = getElements();
+      const mp3El = currentEls.mp3Hud;
+      if (!mp3El) return;
+      mp3El.classList.add('mp3-materialized');
+      mp3El.classList.remove('flicker-waiting', 'flicker-on');
+      void mp3El.offsetWidth;
+      mp3El.classList.add('flicker-on');
+      mp3El.setAttribute('data-flicker-state', 'flicker-on');
+      mp3El.setAttribute('data-flicker-reason', reason);
+      mp3FlickerPlayedCount++;
+
+      mp3FlickerTimer = setTimeout(() => {
+        mp3FlickerTimer = null;
+        if (mp3El && mp3El.getAttribute('data-flicker-state') === 'flicker-on') {
+          mp3El.classList.remove('flicker-on');
+          mp3El.setAttribute('data-flicker-state', 'settled');
+        }
+      }, 530);
+    };
+
+    const waitMs = Math.max(0, Number(delayMs) || 0);
+    if (waitMs <= 0) {
+      startMp3Flicker();
+    } else {
+      els.mp3Hud.classList.remove('mp3-materialized', 'flicker-on');
+      els.mp3Hud.classList.add('flicker-waiting');
+      els.mp3Hud.setAttribute('data-flicker-state', 'flicker-pending');
+      mp3StaggerTimer = setTimeout(startMp3Flicker, waitMs);
     }
   }
 
@@ -874,6 +950,10 @@ export function createPortfolioPerimeterHUD({ sandbox } = {}) {
     if (els.root) {
       els.root.classList.remove('hud-materialized');
     }
+    if (els.mp3Hud) {
+      els.mp3Hud.classList.remove('mp3-materialized', 'flicker-on', 'flicker-waiting');
+      els.mp3Hud.setAttribute('data-flicker-state', 'dormant');
+    }
     if (els.touchControls) {
       els.touchControls.classList.remove('analog-materialized');
     }
@@ -930,7 +1010,8 @@ export function createPortfolioPerimeterHUD({ sandbox } = {}) {
       }
     }
 
-    // Spec 071 §6.2.1: Stagger mobile analog stick Phosphor Flicker-On 180ms–260ms after HUD decode begins
+    // Stagger top-right MP3 player CRT Phosphor Flicker-On & mobile analog stick Flicker-On after HUD decode begins
+    triggerMp3FlickerOn({ delayMs: 150, reason: 'post-dialogue' });
     triggerAnalogFlickerOn({ delayMs: 210, reason: 'post-dialogue' });
     return true;
   }
@@ -1093,6 +1174,15 @@ export function createPortfolioPerimeterHUD({ sandbox } = {}) {
         { passive: true }
       );
     }
+    if (els.mp3Hud) {
+      els.mp3Hud.addEventListener(
+        'pointerdown',
+        () => {
+          overrideMp3FlickerOnTouch();
+        },
+        { passive: true }
+      );
+    }
   }
 
   function update(dtSec) {
@@ -1125,6 +1215,7 @@ export function createPortfolioPerimeterHUD({ sandbox } = {}) {
         document.body.classList.contains('sticker-popup-active') ||
         document.body.classList.contains('mp3-takeover-active'));
     if (wasTouchControlsSuppressed && !isSuppressedOverlay && bootChoreographyPlayed) {
+      triggerMp3FlickerOn({ delayMs: 30, reason: 'overlay-return' });
       triggerAnalogFlickerOn({ delayMs: 40, reason: 'overlay-return' });
     }
     wasTouchControlsSuppressed = Boolean(isSuppressedOverlay);
@@ -1167,11 +1258,16 @@ export function createPortfolioPerimeterHUD({ sandbox } = {}) {
     get analogFlickerPlayedCount() {
       return analogFlickerPlayedCount;
     },
+    get mp3FlickerPlayedCount() {
+      return mp3FlickerPlayedCount;
+    },
     isIntroSequenceHoldingHUD,
     bindInteractions,
     playBootChoreography,
     resetToDormantPreDialogueState,
     triggerElementCipherDecode,
+    triggerMp3FlickerOn,
+    overrideMp3FlickerOnTouch,
     triggerAnalogFlickerOn,
     overrideAnalogFlickerOnTouch,
     resolveAllImmediate: () => decodeController.resolveAllImmediate(),
@@ -1184,7 +1280,9 @@ export function createPortfolioPerimeterHUD({ sandbox } = {}) {
         activeDecodeJobs: decodeController.activeJobs.size,
         completedDecodeCount: decodeController.completedBootCount,
         analogFlickerPlayedCount,
+        mp3FlickerPlayedCount,
         lastAnalogFlickerReason,
+        mp3FlickerState: els.mp3Hud ? els.mp3Hud.getAttribute('data-flicker-state') : null,
         leftStickFlickerState: els.leftStick ? els.leftStick.getAttribute('data-flicker-state') : null,
         rightStickFlickerState: els.rightStick ? els.rightStick.getAttribute('data-flicker-state') : null,
         lastFrameTimeMs: Number(smoothedFrameMs.toFixed(2)),

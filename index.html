@@ -2086,20 +2086,9 @@
       color: #f87171;
       font-weight: 700;
     }
-    .spray-loader-skip-btn {
-      background: rgba(168, 36, 40, 0.25);
-      color: #fca5a5;
-      border: 1px solid rgba(248, 113, 113, 0.45);
-      border-radius: 999px;
-      padding: 2px 10px;
-      font-size: 10px;
-      font-weight: 600;
-      cursor: pointer;
-      letter-spacing: 0.05em;
-    }
-    .spray-loader-skip-btn:hover {
-      background: rgba(168, 36, 40, 0.48);
-      color: #ffffff;
+    .spray-loader-skip-btn,
+    #spray-loader-skip-btn {
+      display: none !important;
     }
 
     /* ======================================================================
@@ -2122,10 +2111,18 @@
       visibility: visible;
       transition: opacity 0.16s ease;
     }
+    body.mp3-takeover-active #portfolio-perimeter-hud {
+      z-index: 96;
+    }
     #portfolio-perimeter-hud:not(.hud-materialized),
     body.intro-sequence-active #portfolio-perimeter-hud,
-    body.intro-dialogue-active #portfolio-perimeter-hud,
-    body.mp3-takeover-active #portfolio-perimeter-hud {
+    body.intro-dialogue-active #portfolio-perimeter-hud {
+      opacity: 0 !important;
+      visibility: hidden !important;
+      pointer-events: none !important;
+    }
+    body.mp3-takeover-active #portfolio-hud-top-left,
+    body.mp3-takeover-active #portfolio-hud-top-center {
       opacity: 0 !important;
       visibility: hidden !important;
       pointer-events: none !important;
@@ -2428,12 +2425,9 @@
     }
     #mobile-right-thumbpad {
       right: calc(clamp(12px, 3vw, 20px) + env(safe-area-inset-right, 0px));
-      bottom: calc(142px + env(safe-area-inset-bottom, 0px));
+      bottom: calc(clamp(12px, 3vw, 20px) + env(safe-area-inset-bottom, 0px));
       width: clamp(100px, 24vw, 112px);
       height: clamp(100px, 24vw, 112px);
-    }
-    body.mp3-hud-hidden #mobile-right-thumbpad {
-      bottom: calc(clamp(12px, 3vw, 20px) + env(safe-area-inset-bottom, 0px));
     }
     #mobile-left-thumbpad.walking,
     #mobile-right-thumbpad.looking,
@@ -2655,9 +2649,6 @@
 
     @media (max-width: 640px) {
       #mobile-right-thumbpad {
-        bottom: calc(112px + env(safe-area-inset-bottom, 0px));
-      }
-      body.mp3-hud-hidden #mobile-right-thumbpad {
         bottom: calc(14px + env(safe-area-inset-bottom, 0px));
       }
     }
@@ -2726,12 +2717,9 @@
       }
       #mobile-right-thumbpad {
         right: calc(12px + env(safe-area-inset-right, 0px));
-        bottom: calc(74px + env(safe-area-inset-bottom, 0px));
+        bottom: calc(12px + env(safe-area-inset-bottom, 0px));
         width: 102px;
         height: 102px;
-      }
-      body.mp3-hud-hidden #mobile-right-thumbpad {
-        bottom: calc(12px + env(safe-area-inset-bottom, 0px));
       }
       #intro-dialogue-overlay {
         padding: 8px 12px !important;
@@ -2764,7 +2752,50 @@
 
     /* ==========================================================================
        SCREEN_MOUNT Amber Holographic Startup Welcome Sequence (Spec 065 §5.3)
+       & Post-Dialogue MP3 Header CRT Phosphor Flicker-On
        ========================================================================== */
+    @keyframes mp3PhosphorFlickerOn {
+      0% {
+        opacity: 0;
+        transform: scale(0.95);
+        filter: brightness(2.4) contrast(1.8);
+      }
+      14% {
+        opacity: 0.92;
+        transform: scale(1.015);
+        filter: brightness(2.1) contrast(1.5) drop-shadow(0 0 18px rgba(245, 158, 11, 0.85));
+      }
+      26% {
+        opacity: 0.14;
+        transform: scale(0.985);
+        filter: brightness(0.8);
+      }
+      42% {
+        opacity: 1;
+        transform: scale(1.01);
+        filter: brightness(1.85) drop-shadow(0 0 22px rgba(251, 191, 36, 0.9));
+      }
+      58% {
+        opacity: 0.28;
+        transform: scale(0.992);
+        filter: brightness(0.95);
+      }
+      74% {
+        opacity: 0.96;
+        transform: scale(1.004);
+        filter: brightness(1.35) drop-shadow(0 0 14px rgba(245, 158, 11, 0.65));
+      }
+      100% {
+        opacity: 1;
+        transform: scale(1);
+        filter: brightness(1) contrast(1);
+      }
+    }
+    #doom-tracks-mp3-hud:not(.mp3-materialized),
+    #doom-tracks-mp3-hud.flicker-waiting,
+    body.intro-sequence-active:not(.mp3-takeover-active) #doom-tracks-mp3-hud,
+    body.intro-sequence-active:not(.mp3-takeover-active) #doom-tracks-mp3-hud *,
+    body.intro-sequence-active:not(.mp3-takeover-active) #doom-tracks-mp3-backdrop,
     body.intro-dialogue-active:not(.mp3-takeover-active) #doom-tracks-mp3-hud,
     body.intro-dialogue-active:not(.mp3-takeover-active) #doom-tracks-mp3-hud *,
     body.intro-dialogue-active:not(.mp3-takeover-active) #doom-tracks-mp3-backdrop,
@@ -2773,6 +2804,9 @@
       opacity: 0 !important;
       visibility: hidden !important;
       pointer-events: none !important;
+    }
+    #doom-tracks-mp3-hud.flicker-on {
+      animation: mp3PhosphorFlickerOn 520ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
     }
     #intro-dialogue-overlay {
       display: none;
@@ -3894,9 +3928,6 @@
     <div class="spray-loader-hud-bar">
       <span id="spray-loader-stage-label" class="spray-loader-stage-tag">STAGE 0 // BLACKOUT</span>
       <span id="spray-loader-pct-label">0%</span>
-      <button id="spray-loader-skip-btn" class="spray-loader-skip-btn" type="button" title="Skip Spray Intro (Esc)">
-        SKIP INTRO
-      </button>
     </div>
   </div>
 
@@ -5521,6 +5552,6 @@
 
   <div id="fatal-error-banner" role="alert"></div>
 
-  <script type="module" src="./sandbox.js?v=071_3"></script>
+  <script type="module" src="./sandbox.js?v=071_4"></script>
 </body>
 </html>

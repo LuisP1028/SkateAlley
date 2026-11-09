@@ -192,7 +192,7 @@ import {
   processMp3ChassisBitmap,
   drawTechnoVectorText,
   measureTechnoVectorText,
-} from './doom_tracks_mp3_hud.js?v=092';
+} from './doom_tracks_mp3_hud.js?v=071_4';
 import {
   createSceneBootMaterializationSystem,
   createPortfolioPerimeterHUD,
@@ -204,7 +204,7 @@ import {
   DYNAMIC_CAM_ASPECT_PORTRAIT,
   DYNAMIC_CAM_BOOM_PULLBACK_FACTOR,
   DYNAMIC_CAM_LOOKAT_Y_ELEVATION_M,
-} from './scene_materialization_hud_070.js?v=071_3';
+} from './scene_materialization_hud_070.js?v=071_4';
 
 const IS_DEV_MODE =
   typeof window !== 'undefined' &&

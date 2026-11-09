@@ -1662,17 +1662,18 @@ export function createDoomTracksMp3HUD(options = {}) {
     const vw = Math.max(320, window.innerWidth || 1280);
     const vh = Math.max(240, window.innerHeight || 720);
 
-    // 1. Compact SCREEN_ONLY viewport rectangle (docked in bottom-right corner)
+    // 1. Compact SCREEN_ONLY viewport rectangle (docked in top-right header alongside #portfolio-perimeter-hud)
     const screenAspect = MP3_SCREEN_ONLY_CROP.w / MP3_SCREEN_ONLY_CROP.h;
-    const isCompactMobile = vw <= 640 || vh <= 500;
-    const w0 = isCompactMobile
-      ? Math.round(Math.min(156, Math.max(132, Math.min(vw * 0.39, vh * 0.25 * screenAspect))))
-      : Math.round(Math.min(410, Math.max(290, vw * 0.275)));
+    const isMobileHeader = vw <= 768;
+    const w0 = isMobileHeader
+      ? Math.round(Math.min(136, Math.max(112, vw * 0.32)))
+      : Math.round(Math.min(232, Math.max(178, vw * 0.16)));
     const h0 = Math.round(w0 / screenAspect);
-    const margin0 = isCompactMobile ? 12 : 18;
+    const right0 = isMobileHeader ? 10 : Math.round(Math.min(24, Math.max(14, vw * 0.022)));
+    const top0 = isMobileHeader ? 10 : Math.round(Math.min(20, Math.max(12, vw * 0.018)));
     const screenRect0 = {
-      x: vw - w0 - margin0,
-      y: vh - h0 - margin0,
+      x: vw - w0 - right0,
+      y: top0,
       w: w0,
       h: h0,
     };
@@ -3052,7 +3053,8 @@ export function createDoomTracksMp3HUD(options = {}) {
 
     deckClipEl.appendChild(deckFrameEl);
     rootEl.appendChild(deckClipEl);
-    document.body.appendChild(rootEl);
+    const headerHostEl = document.getElementById('portfolio-perimeter-hud') || document.body;
+    headerHostEl.appendChild(rootEl);
     document.body.classList.toggle('mp3-hud-hidden', !state.visible);
     applyMorphLayout();
     updateButtonAriaStates();
