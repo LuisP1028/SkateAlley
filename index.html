@@ -2773,8 +2773,7 @@
         filter: brightness(1) contrast(1);
       }
     }
-    #doom-tracks-mp3-hud:not(.mp3-materialized),
-    #doom-tracks-mp3-hud.flicker-waiting,
+    #portfolio-perimeter-hud:not(.hud-materialized) #doom-tracks-mp3-hud,
     body.intro-sequence-active:not(.mp3-takeover-active) #doom-tracks-mp3-hud,
     body.intro-sequence-active:not(.mp3-takeover-active) #doom-tracks-mp3-hud *,
     body.intro-sequence-active:not(.mp3-takeover-active) #doom-tracks-mp3-backdrop,
@@ -2787,6 +2786,7 @@
       visibility: hidden !important;
       pointer-events: none !important;
     }
+    #portfolio-perimeter-hud.hud-materialized #doom-tracks-mp3-hud,
     #doom-tracks-mp3-hud.flicker-on {
       animation: mp3PhosphorFlickerOn 520ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
     }
@@ -5530,6 +5530,6 @@
 
   <div id="fatal-error-banner" role="alert"></div>
 
-  <script type="module" src="./sandbox.js?v=071_5"></script>
+  <script type="module" src="./sandbox.js?v=071_6"></script>
 </body>
 </html>

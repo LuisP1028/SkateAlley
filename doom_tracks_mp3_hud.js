@@ -79,6 +79,14 @@ export const MP3_PALETTE = Object.freeze({
 
 export const DOOM_TRACKS_DEFAULT_CATALOG = Object.freeze([
   Object.freeze({
+    id: '00_so_inagawa_selfless_state',
+    title: 'SO INAGAWA - SELFLESS STATE',
+    src: 'So%20Inagawa%20-%20Selfless%20State.mp3',
+    duration: 375,
+    bitrateKbps: 192,
+    format: 'MP3 / STEREO',
+  }),
+  Object.freeze({
     id: '01_doom_alloy_intro',
     title: 'DOOM ALLOY // INTRO',
     src: 'assets/tracks/01_doom_alloy_intro.mp3',
@@ -3036,6 +3044,36 @@ export function createDoomTracksMp3HUD(options = {}) {
     }
 
     if (typeof window !== 'undefined') {
+      let hasAutoStartedOnUserClick = false;
+      const autoStartEvents = ['pointerdown', 'pointerup', 'click', 'touchstart', 'touchend', 'keydown'];
+      const removeAutoStartListeners = () => {
+        for (const evt of autoStartEvents) {
+          window.removeEventListener(evt, handleFirstAppInteraction, true);
+        }
+      };
+      function handleFirstAppInteraction() {
+        if (hasAutoStartedOnUserClick) {
+          if (!audioEl.paused) {
+            removeAutoStartListeners();
+          } else if (state.playbackState === 'PLAYING') {
+            playCurrentTrack();
+          }
+          return;
+        }
+        hasAutoStartedOnUserClick = true;
+        if (state.currentTrackIndex !== 0) {
+          loadTrackAtIndex(0, true);
+        } else {
+          playCurrentTrack();
+        }
+        if (!audioEl.paused) {
+          removeAutoStartListeners();
+        }
+      }
+      for (const evt of autoStartEvents) {
+        window.addEventListener(evt, handleFirstAppInteraction, { capture: true, passive: true });
+      }
+
       window.addEventListener('resize', () => {
         applyMorphLayout();
         if (state.visible) {

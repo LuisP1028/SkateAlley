@@ -840,8 +840,8 @@ export function createPortfolioPerimeterHUD({ sandbox } = {}) {
     if (waitMs <= 0) {
       startMp3Flicker();
     } else {
-      els.mp3Hud.classList.remove('mp3-materialized', 'flicker-on');
-      els.mp3Hud.classList.add('flicker-waiting');
+      els.mp3Hud.classList.add('mp3-materialized');
+      els.mp3Hud.classList.remove('flicker-on');
       els.mp3Hud.setAttribute('data-flicker-state', 'flicker-pending');
       mp3StaggerTimer = setTimeout(startMp3Flicker, waitMs);
     }

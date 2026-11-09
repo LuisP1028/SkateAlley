@@ -1,6 +1,14 @@
 {
   "tracks": [
     {
+      "id": "00_so_inagawa_selfless_state",
+      "title": "SO INAGAWA - SELFLESS STATE",
+      "src": "So%20Inagawa%20-%20Selfless%20State.mp3",
+      "duration": 375,
+      "bitrateKbps": 192,
+      "format": "MP3 / STEREO"
+    },
+    {
       "id": "01_doom_alloy_intro",
       "title": "DOOM ALLOY // INTRO",
       "src": "assets/tracks/01_doom_alloy_intro.mp3",

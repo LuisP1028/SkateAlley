@@ -192,7 +192,7 @@ import {
   processMp3ChassisBitmap,
   drawTechnoVectorText,
   measureTechnoVectorText,
-} from './doom_tracks_mp3_hud.js?v=071_5';
+} from './doom_tracks_mp3_hud.js?v=071_6';
 import {
   createSceneBootMaterializationSystem,
   createPortfolioPerimeterHUD,
@@ -204,7 +204,7 @@ import {
   DYNAMIC_CAM_ASPECT_PORTRAIT,
   DYNAMIC_CAM_BOOM_PULLBACK_FACTOR,
   DYNAMIC_CAM_LOOKAT_Y_ELEVATION_M,
-} from './scene_materialization_hud_070.js?v=071_5';
+} from './scene_materialization_hud_070.js?v=071_6';
 
 const IS_DEV_MODE =
   typeof window !== 'undefined' &&
@@ -24714,7 +24714,7 @@ async function initSandbox() {
     renderer,
     assetSrc: 'assets/mp3.jpeg',
     glbSrc: 'assets/audiodevice_decimated.glb?v=088',
-    manifestUrl: 'assets/tracks/manifest.json',
+    manifestUrl: 'assets/tracks/manifest.json?v=071_6',
     initiallyVisible: true,
   });
   await earlyMp3Player.initPromise;
