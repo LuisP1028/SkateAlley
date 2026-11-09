@@ -742,13 +742,9 @@ export function createPortfolioPerimeterHUD({ sandbox } = {}) {
       brand: document.getElementById('portfolio-hud-brand'),
       roles: document.getElementById('portfolio-hud-roles'),
       navBar: document.getElementById('mobile-touch-actions'),
-      navModeBtn: document.getElementById('portfolio-hud-mode-pill'),
       navInteractBtn: document.getElementById('mobile-action-interact-btn'),
       navMenuBtn: document.getElementById('mobile-action-mode-btn'),
       navChatBtn: document.getElementById('portfolio-hud-chat-btn'),
-      topRight: document.getElementById('portfolio-hud-top-right'),
-      telMetrics: document.getElementById('portfolio-hud-tel-metrics'),
-      telScroll: document.getElementById('portfolio-hud-tel-scroll'),
       touchControls: document.getElementById('mobile-touch-controls'),
       leftStick: document.getElementById('mobile-left-thumbpad'),
       rightStick: document.getElementById('mobile-right-thumbpad'),
@@ -917,28 +913,11 @@ export function createPortfolioPerimeterHUD({ sandbox } = {}) {
       durationMs: 780,
       frameStep: 3,
     });
-    decodeController.decodeElement(els.telMetrics, {
-      text: 'Frame: 02.4 ms, 60 FPS',
-      delayMs: 50,
-      durationMs: 740,
-      frameStep: 3,
-    });
-    decodeController.decodeElement(els.telScroll, {
-      text: sandbox && sandbox.mode === 'mount-focus' ? 'WORK 01/07' : '000% ALLEY',
-      delayMs: 130,
-      durationMs: 680,
-      frameStep: 3,
-    });
 
     const navItems = [
-      {
-        el: els.navModeBtn,
-        text: sandbox && sandbox.mode === 'freeroam' ? 'ROAM' : 'SCROLL',
-        delay: 75,
-      },
-      { el: els.navInteractBtn, text: 'WORKS', delay: 125 },
-      { el: els.navMenuBtn, text: 'MENU', delay: 175 },
-      { el: els.navChatBtn, text: 'CHAT', delay: 225 },
+      { el: els.navInteractBtn, text: 'WORKS', delay: 75 },
+      { el: els.navMenuBtn, text: 'MENU', delay: 135 },
+      { el: els.navChatBtn, text: 'CHAT', delay: 195 },
     ];
     for (const item of navItems) {
       if (item.el) {
@@ -991,7 +970,6 @@ export function createPortfolioPerimeterHUD({ sandbox } = {}) {
     els.root.dataset.hudBound = 'true';
 
     const interactiveNavBtns = [
-      els.navModeBtn,
       els.navInteractBtn,
       els.navMenuBtn,
       els.navChatBtn,
@@ -1038,46 +1016,7 @@ export function createPortfolioPerimeterHUD({ sandbox } = {}) {
       });
     }
 
-    // 1. SCROLL / ROAM Mode Toggle Pill (Hover + Click/Tap Cipher Decode)
-    if (els.navModeBtn) {
-      const handleModeActivate = (e) => {
-        if (!shouldProcessActivation(els.navModeBtn, e.type)) return;
-        e.preventDefault();
-        e.stopPropagation();
-        if (!sandbox || !sandbox.ready) return;
-        if (sandbox.audio) sandbox.audio.unlock();
-        if (sandbox.mode === 'mount-focus') {
-          sandbox.exitMountFocusMode();
-          const resolvedLabel = sandbox.mode === 'freeroam' ? 'ROAM' : 'SCROLL';
-          triggerElementCipherDecode(els.navModeBtn, resolvedLabel);
-          return;
-        }
-        if (sandbox.mode === 'freeroam') {
-          sandbox.returnToScrollMode();
-        } else {
-          if (sandbox.director) {
-            if (sandbox.director.cameraPanState.mode === 'playing') {
-              sandbox.director.stopStartupPan();
-            }
-            if (sandbox.director.introSequenceState.phase === 'dialogue-active') {
-              sandbox.director.completeIntroDialogue({ openDoomChat: false });
-            } else {
-              sandbox.director.introSequenceState.scrollLocked = false;
-              sandbox.director.introSequenceState.phase = 'scrolling-alley';
-            }
-          }
-          if (typeof sandbox.enterFreeRoam === 'function') {
-            sandbox.enterFreeRoam();
-          }
-        }
-        const resolvedLabel = sandbox.mode === 'freeroam' ? 'ROAM' : 'SCROLL';
-        triggerElementCipherDecode(els.navModeBtn, resolvedLabel);
-      };
-      els.navModeBtn.addEventListener('pointerdown', handleModeActivate);
-      els.navModeBtn.addEventListener('click', handleModeActivate);
-    }
-
-    // 2. WORKS (Full-Screen Horizontal Works Hologram Showcase) Button
+    // 1. WORKS (Full-Screen Vertical Works Hologram Showcase) Button
     if (els.navInteractBtn) {
       const handleWorksActivate = (e) => {
         if (!shouldProcessActivation(els.navInteractBtn, e.type)) return;
@@ -1098,7 +1037,7 @@ export function createPortfolioPerimeterHUD({ sandbox } = {}) {
       els.navInteractBtn.addEventListener('click', handleWorksActivate);
     }
 
-    // 3. MENU (Cyber-Tactical Radial Menu) Button
+    // 2. MENU (Cyber-Tactical Radial Menu) Button
     if (els.navMenuBtn) {
       const handleMenuActivate = (e) => {
         if (!shouldProcessActivation(els.navMenuBtn, e.type)) return;
@@ -1115,7 +1054,7 @@ export function createPortfolioPerimeterHUD({ sandbox } = {}) {
       els.navMenuBtn.addEventListener('click', handleMenuActivate);
     }
 
-    // 4. CHAT (DOOM_HEAD Terminal) Button
+    // 3. CHAT (DOOM_HEAD Terminal) Button
     if (els.navChatBtn) {
       const handleChatActivate = (e) => {
         if (!shouldProcessActivation(els.navChatBtn, e.type)) return;
@@ -1195,47 +1134,6 @@ export function createPortfolioPerimeterHUD({ sandbox } = {}) {
     const dtMs = Math.max(0.5, Math.min(100.0, (Number(dtSec) || 1 / 60) * 1000.0));
     lastFrameTimeMs = dtMs;
     smoothedFrameMs = smoothedFrameMs * 0.88 + dtMs * 0.12;
-    const fps = Math.max(1, Math.min(240, Math.round(1000.0 / Math.max(1.0, smoothedFrameMs))));
-
-    // Update live telemetry only when not actively scrambling that element
-    if (els.telMetrics && !decodeController.activeJobs.has(els.telMetrics)) {
-      const msStr = smoothedFrameMs.toFixed(1).padStart(4, '0');
-      const fpsStr = String(fps).padStart(2, '0');
-      const nextTel = `Frame: ${msStr} ms, ${fpsStr} FPS`;
-      if (els.telMetrics.textContent !== nextTel) {
-        els.telMetrics.textContent = nextTel;
-        els.telMetrics.setAttribute('data-hud-canonical-text', nextTel);
-      }
-    }
-
-    if (els.telScroll && !decodeController.activeJobs.has(els.telScroll) && sandbox) {
-      let nextScroll;
-      if (sandbox.mode === 'mount-focus' && sandbox.focusedMount && sandbox.focusedMount.station) {
-        const stCode = String(sandbox.focusedMount.station.code || '01').padStart(2, '0');
-        const totalWorks = Array.isArray(sandbox.wallMounts) ? String(sandbox.wallMounts.length).padStart(2, '0') : '07';
-        nextScroll = `WORK ${stCode}/${totalWorks}`;
-      } else {
-        const pct = String(Math.round((Number(sandbox.scrollProgress) || 0) * 100)).padStart(3, '0');
-        const modeTag = sandbox.mode === 'freeroam' ? 'ROAM ' : 'ALLEY';
-        nextScroll = `${pct}% ${modeTag}`;
-      }
-      if (els.telScroll.textContent !== nextScroll) {
-        els.telScroll.textContent = nextScroll;
-        els.telScroll.setAttribute('data-hud-canonical-text', nextScroll);
-      }
-    }
-
-    if (els.navModeBtn && !decodeController.activeJobs.has(els.navModeBtn) && sandbox) {
-      const isFreeRoam = sandbox.mode === 'freeroam';
-      const isWorksOpen = sandbox.mode === 'mount-focus';
-      const targetModeLabel = isFreeRoam ? 'ROAM' : 'SCROLL';
-      if (els.navModeBtn.textContent !== targetModeLabel) {
-        els.navModeBtn.textContent = targetModeLabel;
-        els.navModeBtn.setAttribute('data-hud-canonical-text', targetModeLabel);
-      }
-      els.navModeBtn.classList.toggle('active-pill', !isWorksOpen);
-      els.navModeBtn.classList.toggle('is-roam', isFreeRoam);
-    }
 
     if (els.navInteractBtn && !decodeController.activeJobs.has(els.navInteractBtn) && sandbox) {
       const isWorksOpen = sandbox.mode === 'mount-focus';
@@ -1292,8 +1190,6 @@ export function createPortfolioPerimeterHUD({ sandbox } = {}) {
         lastFrameTimeMs: Number(smoothedFrameMs.toFixed(2)),
         brandText: els.brand ? els.brand.textContent : null,
         rolesText: els.roles ? els.roles.textContent : null,
-        metricsText: els.telMetrics ? els.telMetrics.textContent : null,
-        modePillText: els.navModeBtn ? els.navModeBtn.textContent : null,
         worksPillText: els.navInteractBtn ? els.navInteractBtn.textContent : null,
       };
     },

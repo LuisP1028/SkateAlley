@@ -204,7 +204,7 @@ import {
   DYNAMIC_CAM_ASPECT_PORTRAIT,
   DYNAMIC_CAM_BOOM_PULLBACK_FACTOR,
   DYNAMIC_CAM_LOOKAT_Y_ELEVATION_M,
-} from './scene_materialization_hud_070.js?v=071';
+} from './scene_materialization_hud_070.js?v=071_3';
 
 const IS_DEV_MODE =
   typeof window !== 'undefined' &&

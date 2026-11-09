@@ -2258,43 +2258,10 @@
       box-shadow: 0 0 14px rgba(245, 158, 11, 0.45);
     }
 
-    /* Top-Right Region: Enlarged Real-Time System Telemetry Readout (Geist Mono, Tabular Numerals) */
-    #portfolio-hud-top-right {
-      position: absolute;
-      top: calc(clamp(12px, 1.8vw, 20px) + env(safe-area-inset-top, 0px));
-      right: calc(clamp(14px, 2.2vw, 24px) + env(safe-area-inset-right, 0px));
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 8px 14px;
-      background: rgba(8, 9, 12, 0.80);
-      border: 1.5px solid rgba(245, 158, 11, 0.42);
-      border-radius: 8px;
-      font-family: var(--font-geist-mono);
-      font-size: clamp(11.5px, 0.98vw, 13.5px);
-      font-weight: 600;
-      font-variant-numeric: tabular-nums;
-      letter-spacing: 0.03em;
-      color: var(--hud-phosphor-ivory);
-      text-shadow: 0 0 8px rgba(245, 158, 11, 0.35);
-      pointer-events: none;
-      white-space: nowrap;
-    }
-    #portfolio-hud-tel-metrics,
-    #portfolio-hud-tel-scroll {
-      display: inline-block;
-      box-sizing: border-box;
-    }
-    .portfolio-hud-tel-dot {
-      width: 7px;
-      height: 7px;
-      border-radius: 50%;
-      background: var(--hud-phosphor-bright);
-      box-shadow: 0 0 8px var(--hud-phosphor-bright);
-      flex-shrink: 0;
-    }
-    .portfolio-hud-tel-sep {
-      color: rgba(245, 158, 11, 0.45);
+    /* Top-Right Region: Removed per user request (no Frame/FPS telemetry in top-right corner) */
+    #portfolio-hud-top-right,
+    #portfolio-hud-mode-pill {
+      display: none !important;
     }
 
     /* Zero-Jitter Cipher Decode Stage & Hot State Styling (Spec 071 §5.2.3) */
@@ -3952,18 +3919,9 @@
       <span id="portfolio-hud-roles" data-hud-canonical-text="AI ENGINEERING | DATA ANALYTICS">AI ENGINEERING | DATA ANALYTICS</span>
     </div>
 
-    <!-- Top-Center Region: Unified 4-Pill Navigation & Mobile Action Bar (Spec 071 §3.1.2 & §4.1) -->
+    <!-- Top-Center Region: Unified 3-Pill Navigation & Mobile Action Bar (WORKS / MENU / CHAT) -->
     <nav id="portfolio-hud-top-center" aria-label="Primary Portfolio Navigation &amp; Mode Controls">
       <div id="mobile-touch-actions" role="group" aria-label="Portfolio Navigation &amp; Mobile Quick Actions">
-        <button
-          id="portfolio-hud-mode-pill"
-          class="portfolio-hud-nav-link active-pill"
-          type="button"
-          title="Toggle Scroll-Walk / Interactive Free-Roam Mode"
-          data-hud-canonical-text="SCROLL"
-        >
-          SCROLL
-        </button>
         <button
           id="mobile-action-interact-btn"
           class="mobile-action-btn"
@@ -3995,14 +3953,6 @@
         </button>
       </div>
     </nav>
-
-    <!-- Top-Right Region: Real-Time System Telemetry Readout (Spec 071 §3.1.3) -->
-    <div id="portfolio-hud-top-right" role="status" aria-live="off">
-      <span class="portfolio-hud-tel-dot" aria-hidden="true"></span>
-      <span id="portfolio-hud-tel-metrics" data-hud-canonical-text="Frame: 02.4 ms, 60 FPS">Frame: 02.4 ms, 60 FPS</span>
-      <span id="portfolio-hud-tel-scroll-sep" class="portfolio-hud-tel-sep" aria-hidden="true">|</span>
-      <span id="portfolio-hud-tel-scroll" data-hud-canonical-text="000% ALLEY">000% ALLEY</span>
-    </div>
   </header>
 
   <!-- Revamped Mobile Precision Telemetry Analog Reticles (Spec 070 §6 & Spec 071 §6) -->
@@ -5571,6 +5521,6 @@
 
   <div id="fatal-error-banner" role="alert"></div>
 
-  <script type="module" src="./sandbox.js?v=071_2"></script>
+  <script type="module" src="./sandbox.js?v=071_3"></script>
 </body>
 </html>
