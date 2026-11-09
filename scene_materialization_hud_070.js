@@ -784,6 +784,9 @@ export function createPortfolioPerimeterHUD({ sandbox } = {}) {
       clearTimeout(rightStickFlickerTimer);
       rightStickFlickerTimer = null;
     }
+  }
+
+  function clearMp3FlickerTimers() {
     if (mp3StaggerTimer !== null) {
       clearTimeout(mp3StaggerTimer);
       mp3StaggerTimer = null;
@@ -796,14 +799,7 @@ export function createPortfolioPerimeterHUD({ sandbox } = {}) {
 
   function overrideMp3FlickerOnTouch() {
     const els = getElements();
-    if (mp3StaggerTimer !== null) {
-      clearTimeout(mp3StaggerTimer);
-      mp3StaggerTimer = null;
-    }
-    if (mp3FlickerTimer !== null) {
-      clearTimeout(mp3FlickerTimer);
-      mp3FlickerTimer = null;
-    }
+    clearMp3FlickerTimers();
     if (els.mp3Hud) {
       els.mp3Hud.classList.add('mp3-materialized');
       els.mp3Hud.classList.remove('flicker-on', 'flicker-waiting');
@@ -815,14 +811,7 @@ export function createPortfolioPerimeterHUD({ sandbox } = {}) {
     const els = getElements();
     if (!els.mp3Hud) return;
 
-    if (mp3StaggerTimer !== null) {
-      clearTimeout(mp3StaggerTimer);
-      mp3StaggerTimer = null;
-    }
-    if (mp3FlickerTimer !== null) {
-      clearTimeout(mp3FlickerTimer);
-      mp3FlickerTimer = null;
-    }
+    clearMp3FlickerTimers();
 
     const startMp3Flicker = () => {
       mp3StaggerTimer = null;
@@ -946,6 +935,7 @@ export function createPortfolioPerimeterHUD({ sandbox } = {}) {
     const els = getElements();
     decodeController.resolveAllImmediate();
     clearAnalogFlickerTimers();
+    clearMp3FlickerTimers();
     bootChoreographyPlayed = false;
     if (els.root) {
       els.root.classList.remove('hud-materialized');

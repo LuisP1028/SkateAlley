@@ -2064,29 +2064,11 @@
       background-color: #000000;
       cursor: pointer;
     }
-    .spray-loader-hud-bar {
-      position: absolute;
-      bottom: 24px;
-      left: 50%;
-      transform: translateX(-50%);
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      padding: 6px 14px;
-      border-radius: 999px;
-      background: rgba(10, 10, 12, 0.78);
-      border: 1px solid rgba(168, 36, 40, 0.45);
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-      font-size: 11px;
-      letter-spacing: 0.06em;
-      color: #e2e8f0;
-      z-index: 9505;
-    }
-    .spray-loader-stage-tag {
-      color: #f87171;
-      font-weight: 700;
-    }
+    .spray-loader-hud-bar,
+    .spray-loader-stage-tag,
     .spray-loader-skip-btn,
+    #spray-loader-stage-label,
+    #spray-loader-pct-label,
     #spray-loader-skip-btn {
       display: none !important;
     }
@@ -3925,10 +3907,6 @@
   <!-- Interactive Graffiti Spray-Paint Loading Screen & Intro Overlay (spray_paint.md §1–§8) -->
   <div id="spray-paint-loader-overlay" role="region" aria-label="PLATO DOOM Graffiti Spray-Paint Loading Screen">
     <canvas id="spray-paint-loader-canvas"></canvas>
-    <div class="spray-loader-hud-bar">
-      <span id="spray-loader-stage-label" class="spray-loader-stage-tag">STAGE 0 // BLACKOUT</span>
-      <span id="spray-loader-pct-label">0%</span>
-    </div>
   </div>
 
   <div id="scroll-track" aria-hidden="true"></div>
@@ -5552,6 +5530,6 @@
 
   <div id="fatal-error-banner" role="alert"></div>
 
-  <script type="module" src="./sandbox.js?v=071_4"></script>
+  <script type="module" src="./sandbox.js?v=071_5"></script>
 </body>
 </html>
