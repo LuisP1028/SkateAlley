@@ -721,6 +721,8 @@ export class GlyphDecodeController {
   }
 }
 
+export const DESKTOP_REQUIRED_KEYS = Object.freeze(['W', 'A', 'S', 'D', 'Q']);
+
 export function createPortfolioPerimeterHUD({ sandbox } = {}) {
   const decodeController = new GlyphDecodeController();
   let lastFrameTimeMs = 16.6;
@@ -734,6 +736,18 @@ export function createPortfolioPerimeterHUD({ sandbox } = {}) {
   let mp3StaggerTimer = null;
   let mp3FlickerTimer = null;
   let mp3FlickerPlayedCount = 0;
+  let desktopControlsStaggerTimer = null;
+  let desktopControlsFlickerTimer = null;
+  let desktopControlsFlickerPlayedCount = 0;
+  let desktopIntroStaggerTimer = null;
+  let desktopIntroFlickerTimer = null;
+  let desktopIntroResolveTimer = null;
+  let desktopIntroDissolveTimer = null;
+  let desktopIntroFlickerPlayedCount = 0;
+  let desktopIntroPhase = 'dormant'; // 'dormant' | 'deferred-doom-chat' | 'active' | 'resolving' | 'completed'
+  const verifiedKeys = new Set();
+  const livePressedKeys = new Set();
+  const pointerReleaseTimers = new Map();
   let wasTouchControlsSuppressed = false;
   const buttonPointerDownTimestamps = new WeakMap();
 
@@ -749,12 +763,47 @@ export function createPortfolioPerimeterHUD({ sandbox } = {}) {
       navMenuBtn: document.getElementById('mobile-action-mode-btn'),
       navChatBtn: document.getElementById('portfolio-hud-chat-btn'),
       mp3Hud: document.getElementById('doom-tracks-mp3-hud'),
+      desktopControls: document.getElementById('portfolio-hud-desktop-controls'),
+      brKeyW: document.getElementById('hud-br-key-w'),
+      brKeyA: document.getElementById('hud-br-key-a'),
+      brKeyS: document.getElementById('hud-br-key-s'),
+      brKeyD: document.getElementById('hud-br-key-d'),
+      brKeyQ: document.getElementById('hud-br-key-q'),
+      brMoveLabel: document.getElementById('hud-br-move-label'),
+      brMenuLabel: document.getElementById('hud-br-menu-label'),
+      desktopIntroOverlay: document.getElementById('desktop-wasdq-intro-overlay'),
+      desktopIntroCard: document.getElementById('desktop-wasdq-intro-card'),
+      desktopIntroPrompt: document.getElementById('desktop-wasdq-intro-prompt'),
+      desktopIntroCounter: document.getElementById('desktop-wasdq-intro-counter'),
+      desktopIntroMoveCaption: document.getElementById('desktop-wasdq-intro-move-caption'),
+      desktopIntroMenuCaption: document.getElementById('desktop-wasdq-intro-menu-caption'),
+      introKeyW: document.getElementById('hud-intro-key-w'),
+      introKeyA: document.getElementById('hud-intro-key-a'),
+      introKeyS: document.getElementById('hud-intro-key-s'),
+      introKeyD: document.getElementById('hud-intro-key-d'),
+      introKeyQ: document.getElementById('hud-intro-key-q'),
       touchControls: document.getElementById('mobile-touch-controls'),
       leftStick: document.getElementById('mobile-left-thumbpad'),
       rightStick: document.getElementById('mobile-right-thumbpad'),
       leftStickLabel: document.getElementById('mobile-left-thumbpad-label'),
       rightStickLabel: document.getElementById('mobile-right-thumbpad-label'),
     };
+  }
+
+  function isMobileModeActive() {
+    if (typeof document !== 'undefined' && document.body && document.body.classList.contains('mobile-touch-enabled')) {
+      return true;
+    }
+    return Boolean(sandbox && sandbox.mobileTouch && sandbox.mobileTouch.enabled);
+  }
+
+  function isDoomChatCurrentlyActive() {
+    if (sandbox && sandbox.isDoomChatOpen) return true;
+    return Boolean(
+      typeof document !== 'undefined' &&
+        document.body &&
+        document.body.classList.contains('doom-chat-active')
+    );
   }
 
   function isIntroSequenceHoldingHUD() {
@@ -769,6 +818,27 @@ export function createPortfolioPerimeterHUD({ sandbox } = {}) {
       introPhase === 'pan-playing' ||
       introPhase === 'dialogue-active'
     );
+  }
+
+  function isDesktopKeyIntroGating() {
+    if (isMobileModeActive()) return false;
+    if (isIntroSequenceHoldingHUD()) return false;
+    if (isDoomChatCurrentlyActive()) return false;
+    return desktopIntroPhase === 'active' && verifiedKeys.size < DESKTOP_REQUIRED_KEYS.length;
+  }
+
+  function syncBodyIntroGatingClass() {
+    if (typeof document !== 'undefined' && document.body) {
+      document.body.classList.toggle('desktop-key-intro-active', isDesktopKeyIntroGating());
+    }
+  }
+
+  function pulseDesktopIntroGateNudge() {
+    const els = getElements();
+    if (!els.desktopIntroCard || !isDesktopKeyIntroGating()) return;
+    els.desktopIntroCard.classList.remove('gate-nudge');
+    void els.desktopIntroCard.offsetWidth;
+    els.desktopIntroCard.classList.add('gate-nudge');
   }
 
   function clearAnalogFlickerTimers() {
@@ -794,6 +864,454 @@ export function createPortfolioPerimeterHUD({ sandbox } = {}) {
     if (mp3FlickerTimer !== null) {
       clearTimeout(mp3FlickerTimer);
       mp3FlickerTimer = null;
+    }
+  }
+
+  function clearDesktopControlsTimers() {
+    if (desktopControlsStaggerTimer !== null) {
+      clearTimeout(desktopControlsStaggerTimer);
+      desktopControlsStaggerTimer = null;
+    }
+    if (desktopControlsFlickerTimer !== null) {
+      clearTimeout(desktopControlsFlickerTimer);
+      desktopControlsFlickerTimer = null;
+    }
+  }
+
+  function clearDesktopIntroTimers() {
+    if (desktopIntroStaggerTimer !== null) {
+      clearTimeout(desktopIntroStaggerTimer);
+      desktopIntroStaggerTimer = null;
+    }
+    if (desktopIntroFlickerTimer !== null) {
+      clearTimeout(desktopIntroFlickerTimer);
+      desktopIntroFlickerTimer = null;
+    }
+    if (desktopIntroResolveTimer !== null) {
+      clearTimeout(desktopIntroResolveTimer);
+      desktopIntroResolveTimer = null;
+    }
+    if (desktopIntroDissolveTimer !== null) {
+      clearTimeout(desktopIntroDissolveTimer);
+      desktopIntroDissolveTimer = null;
+    }
+  }
+
+  function clearPointerReleaseTimers() {
+    for (const timer of pointerReleaseTimers.values()) {
+      clearTimeout(timer);
+    }
+    pointerReleaseTimers.clear();
+  }
+
+  function getBrKeyMap(els) {
+    return {
+      W: els.brKeyW,
+      A: els.brKeyA,
+      S: els.brKeyS,
+      D: els.brKeyD,
+      Q: els.brKeyQ,
+    };
+  }
+
+  function getIntroKeyMap(els) {
+    return {
+      W: els.introKeyW,
+      A: els.introKeyA,
+      S: els.introKeyS,
+      D: els.introKeyD,
+      Q: els.introKeyQ,
+    };
+  }
+
+  function syncDesktopControlsHighlights() {
+    const els = getElements();
+    const brMap = getBrKeyMap(els);
+    const isRadialOpen = Boolean(
+      sandbox &&
+        sandbox.radialMenu &&
+        typeof sandbox.radialMenu.isOpen === 'function' &&
+        sandbox.radialMenu.isOpen()
+    );
+    for (const k of DESKTOP_REQUIRED_KEYS) {
+      const btn = brMap[k];
+      if (!btn) continue;
+      const active = k === 'Q' ? isRadialOpen || livePressedKeys.has('Q') : livePressedKeys.has(k);
+      btn.classList.toggle('is-pressed', active);
+      btn.classList.toggle('active-pill', active);
+    }
+  }
+
+  function syncDesktopIntroDOM({ decodeCounter = false } = {}) {
+    const els = getElements();
+    if (!els.desktopIntroOverlay) return;
+    els.desktopIntroOverlay.setAttribute('data-intro-phase', desktopIntroPhase);
+
+    const introMap = getIntroKeyMap(els);
+    for (const k of DESKTOP_REQUIRED_KEYS) {
+      const btn = introMap[k];
+      if (!btn) continue;
+      const done = verifiedKeys.has(k);
+      btn.classList.toggle('is-verified', done);
+      btn.classList.toggle('active-pill', done);
+      btn.setAttribute('aria-pressed', done ? 'true' : 'false');
+    }
+
+    const wasdComplete =
+      verifiedKeys.has('W') &&
+      verifiedKeys.has('A') &&
+      verifiedKeys.has('S') &&
+      verifiedKeys.has('D');
+    if (els.desktopIntroMoveCaption) {
+      els.desktopIntroMoveCaption.classList.toggle('is-group-complete', wasdComplete);
+    }
+    if (els.desktopIntroMenuCaption) {
+      els.desktopIntroMenuCaption.classList.toggle('is-group-complete', verifiedKeys.has('Q'));
+    }
+
+    const counterStr = `${String(verifiedKeys.size).padStart(2, '0')} / 05`;
+    if (els.desktopIntroCounter) {
+      els.desktopIntroCounter.setAttribute('data-hud-canonical-text', counterStr);
+      if (decodeCounter) {
+        decodeController.decodeElement(els.desktopIntroCounter, {
+          text: counterStr,
+          delayMs: 0,
+          durationMs: 240,
+          frameStep: 2,
+        });
+      } else if (!decodeController.activeJobs.has(els.desktopIntroCounter)) {
+        els.desktopIntroCounter.textContent = counterStr;
+        els.desktopIntroCounter.setAttribute('aria-label', counterStr);
+      }
+    }
+
+    syncBodyIntroGatingClass();
+  }
+
+  function triggerDesktopControlsFlickerOn({
+    delayMs = 165,
+    decodeText = false,
+    reason = 'post-dialogue',
+  } = {}) {
+    const els = getElements();
+    if (!els.desktopControls || isMobileModeActive()) return;
+
+    clearDesktopControlsTimers();
+
+    const startFlicker = () => {
+      desktopControlsStaggerTimer = null;
+      if (isIntroSequenceHoldingHUD() || isMobileModeActive()) return;
+      const curEls = getElements();
+      const ctrlEl = curEls.desktopControls;
+      if (!ctrlEl) return;
+
+      ctrlEl.classList.add('desktop-controls-materialized');
+      ctrlEl.classList.remove('flicker-waiting', 'flicker-on');
+
+      if (decodeText) {
+        const decodeTargets = [
+          { el: curEls.brKeyW, text: 'W', delay: 0, duration: 360 },
+          { el: curEls.brKeyA, text: 'A', delay: 35, duration: 360 },
+          { el: curEls.brKeyS, text: 'S', delay: 65, duration: 360 },
+          { el: curEls.brKeyD, text: 'D', delay: 95, duration: 360 },
+          { el: curEls.brKeyQ, text: 'Q', delay: 125, duration: 360 },
+          { el: curEls.brMoveLabel, text: 'MOVE', delay: 60, duration: 520 },
+          { el: curEls.brMenuLabel, text: 'MENU', delay: 130, duration: 520 },
+        ];
+        for (const item of decodeTargets) {
+          if (item.el) {
+            decodeController.decodeElement(item.el, {
+              text: item.text,
+              delayMs: item.delay,
+              durationMs: item.duration,
+              frameStep: 3,
+            });
+          }
+        }
+      }
+
+      void ctrlEl.offsetWidth;
+      ctrlEl.classList.add('flicker-on');
+      ctrlEl.setAttribute('data-flicker-state', 'flicker-on');
+      ctrlEl.setAttribute('data-flicker-reason', reason);
+      desktopControlsFlickerPlayedCount++;
+      syncDesktopControlsHighlights();
+
+      desktopControlsFlickerTimer = setTimeout(() => {
+        desktopControlsFlickerTimer = null;
+        if (ctrlEl && ctrlEl.getAttribute('data-flicker-state') === 'flicker-on') {
+          ctrlEl.classList.remove('flicker-on');
+          ctrlEl.setAttribute('data-flicker-state', 'settled');
+        }
+      }, 530);
+    };
+
+    const waitMs = Math.max(0, Number(delayMs) || 0);
+    if (waitMs <= 0) {
+      startFlicker();
+    } else {
+      els.desktopControls.classList.add('desktop-controls-materialized', 'flicker-waiting');
+      els.desktopControls.classList.remove('flicker-on');
+      els.desktopControls.setAttribute('data-flicker-state', 'flicker-pending');
+      desktopControlsStaggerTimer = setTimeout(startFlicker, waitMs);
+    }
+  }
+
+  function startDesktopKeyIntro({ delayMs = 90, reason = 'post-dialogue' } = {}) {
+    const els = getElements();
+    if (!els.desktopIntroOverlay || !els.desktopIntroCard) return false;
+    if (isMobileModeActive() || desktopIntroPhase === 'completed') return false;
+
+    clearDesktopIntroTimers();
+    desktopIntroPhase = 'active';
+    els.desktopIntroOverlay.classList.add('intro-visible');
+    els.desktopIntroOverlay.setAttribute('data-intro-phase', 'active');
+    els.desktopIntroCard.classList.remove('is-resolving', 'dissolve-out', 'gate-nudge');
+    syncDesktopIntroDOM({ decodeCounter: false });
+
+    const igniteIntro = () => {
+      desktopIntroStaggerTimer = null;
+      if (isIntroSequenceHoldingHUD() || isMobileModeActive() || desktopIntroPhase !== 'active') {
+        return;
+      }
+      if (isDoomChatCurrentlyActive()) {
+        desktopIntroPhase = 'deferred-doom-chat';
+        els.desktopIntroOverlay.classList.remove('intro-visible');
+        els.desktopIntroOverlay.setAttribute('data-intro-phase', 'deferred-doom-chat');
+        syncBodyIntroGatingClass();
+        return;
+      }
+
+      const curEls = getElements();
+      const cardEl = curEls.desktopIntroCard;
+      if (!cardEl) return;
+
+      cardEl.classList.remove('flicker-waiting', 'flicker-on');
+      const counterStr = `${String(verifiedKeys.size).padStart(2, '0')} / 05`;
+
+      const decodeBatch = [
+        {
+          el: curEls.desktopIntroPrompt,
+          text: 'CALIBRATE CONTROLS // PRESS EACH KEY',
+          delay: 0,
+          duration: 740,
+        },
+        { el: curEls.desktopIntroCounter, text: counterStr, delay: 45, duration: 540 },
+        { el: curEls.introKeyW, text: 'W', delay: 30, duration: 380 },
+        { el: curEls.introKeyA, text: 'A', delay: 65, duration: 380 },
+        { el: curEls.introKeyS, text: 'S', delay: 100, duration: 380 },
+        { el: curEls.introKeyD, text: 'D', delay: 135, duration: 380 },
+        { el: curEls.introKeyQ, text: 'Q', delay: 170, duration: 380 },
+        { el: curEls.desktopIntroMoveCaption, text: 'MOVE ALLEY', delay: 95, duration: 640 },
+        { el: curEls.desktopIntroMenuCaption, text: 'RADIAL MENU', delay: 155, duration: 640 },
+      ];
+      for (const item of decodeBatch) {
+        if (item.el) {
+          decodeController.decodeElement(item.el, {
+            text: item.text,
+            delayMs: item.delay,
+            durationMs: item.duration,
+            frameStep: 3,
+          });
+        }
+      }
+
+      void cardEl.offsetWidth;
+      cardEl.classList.add('flicker-on');
+      cardEl.setAttribute('data-flicker-state', 'flicker-on');
+      cardEl.setAttribute('data-flicker-reason', reason);
+      desktopIntroFlickerPlayedCount++;
+      syncBodyIntroGatingClass();
+
+      desktopIntroFlickerTimer = setTimeout(() => {
+        desktopIntroFlickerTimer = null;
+        if (cardEl && cardEl.getAttribute('data-flicker-state') === 'flicker-on') {
+          cardEl.classList.remove('flicker-on');
+          cardEl.setAttribute('data-flicker-state', 'settled');
+        }
+      }, 530);
+    };
+
+    const waitMs = Math.max(0, Number(delayMs) || 0);
+    if (waitMs <= 0) {
+      igniteIntro();
+    } else {
+      els.desktopIntroCard.classList.add('flicker-waiting');
+      els.desktopIntroCard.classList.remove('flicker-on');
+      els.desktopIntroCard.setAttribute('data-flicker-state', 'flicker-pending');
+      desktopIntroStaggerTimer = setTimeout(igniteIntro, waitMs);
+    }
+    return true;
+  }
+
+  function completeDesktopKeyIntro() {
+    const els = getElements();
+    clearDesktopIntroTimers();
+    desktopIntroPhase = 'resolving';
+    syncBodyIntroGatingClass(); // Immediate 0ms input gate release (Spec 072 §6.3.4)
+
+    if (els.desktopIntroOverlay) {
+      els.desktopIntroOverlay.setAttribute('data-intro-phase', 'resolving');
+    }
+    if (els.desktopIntroCard) {
+      els.desktopIntroCard.classList.remove('flicker-waiting', 'flicker-on', 'gate-nudge');
+      els.desktopIntroCard.classList.add('is-resolving');
+      els.desktopIntroCard.setAttribute('data-flicker-state', 'resolving');
+    }
+    if (els.desktopIntroPrompt) {
+      decodeController.decodeElement(els.desktopIntroPrompt, {
+        text: 'NAVIGATION ONLINE // READY',
+        delayMs: 0,
+        durationMs: 280,
+        frameStep: 2,
+      });
+    }
+
+    desktopIntroResolveTimer = setTimeout(() => {
+      desktopIntroResolveTimer = null;
+      const curEls = getElements();
+      if (curEls.desktopIntroCard) {
+        curEls.desktopIntroCard.classList.add('dissolve-out');
+        curEls.desktopIntroCard.setAttribute('data-flicker-state', 'dissolving');
+      }
+      desktopIntroDissolveTimer = setTimeout(() => {
+        desktopIntroDissolveTimer = null;
+        desktopIntroPhase = 'completed';
+        const finalEls = getElements();
+        if (finalEls.desktopIntroOverlay) {
+          finalEls.desktopIntroOverlay.classList.remove('intro-visible');
+          finalEls.desktopIntroOverlay.setAttribute('data-intro-phase', 'completed');
+        }
+        if (finalEls.desktopIntroCard) {
+          finalEls.desktopIntroCard.classList.remove('is-resolving', 'dissolve-out', 'flicker-on', 'flicker-waiting');
+          finalEls.desktopIntroCard.setAttribute('data-flicker-state', 'completed');
+        }
+        const introCleanupTargets = [
+          finalEls.desktopIntroPrompt,
+          finalEls.desktopIntroCounter,
+          finalEls.desktopIntroMoveCaption,
+          finalEls.desktopIntroMenuCaption,
+          finalEls.introKeyW,
+          finalEls.introKeyA,
+          finalEls.introKeyS,
+          finalEls.introKeyD,
+          finalEls.introKeyQ,
+        ];
+        for (const tEl of introCleanupTargets) {
+          if (tEl) decodeController.cancelJob(tEl, { restoreResolved: true });
+        }
+        syncBodyIntroGatingClass();
+      }, 265);
+    }, 420);
+  }
+
+  function handleDesktopKeyActuation(
+    rawKey,
+    { source = 'keyboard', isDown = true, isRepeat = false } = {}
+  ) {
+    const key = String(rawKey || '').toUpperCase();
+    if (!DESKTOP_REQUIRED_KEYS.includes(key)) return false;
+
+    if (source === 'pointer') {
+      const prevTimer = pointerReleaseTimers.get(key);
+      if (prevTimer) clearTimeout(prevTimer);
+      livePressedKeys.add(key);
+      pointerReleaseTimers.set(
+        key,
+        setTimeout(() => {
+          pointerReleaseTimers.delete(key);
+          livePressedKeys.delete(key);
+          syncDesktopControlsHighlights();
+        }, 210)
+      );
+    } else if (isDown) {
+      livePressedKeys.add(key);
+    } else {
+      livePressedKeys.delete(key);
+    }
+
+    syncDesktopControlsHighlights();
+
+    if (!isDown) return false;
+    if (isMobileModeActive() || isIntroSequenceHoldingHUD() || isDoomChatCurrentlyActive()) {
+      return false;
+    }
+
+    const els = getElements();
+    if (els.desktopControls && els.desktopControls.classList.contains('flicker-waiting')) {
+      clearDesktopControlsTimers();
+      els.desktopControls.classList.remove('flicker-waiting', 'flicker-on');
+      els.desktopControls.setAttribute('data-flicker-state', 'settled');
+    }
+
+    if (desktopIntroPhase === 'active' && !verifiedKeys.has(key)) {
+      if (els.desktopIntroCard && els.desktopIntroCard.classList.contains('flicker-waiting')) {
+        clearDesktopIntroTimers();
+        els.desktopIntroCard.classList.remove('flicker-waiting', 'flicker-on');
+        els.desktopIntroCard.setAttribute('data-flicker-state', 'settled');
+      }
+
+      verifiedKeys.add(key);
+      const introMap = getIntroKeyMap(els);
+      const keyBtn = introMap[key];
+      if (keyBtn) {
+        keyBtn.classList.add('is-verified', 'active-pill');
+        keyBtn.classList.remove('just-verified');
+        void keyBtn.offsetWidth;
+        keyBtn.classList.add('just-verified');
+        keyBtn.setAttribute('aria-pressed', 'true');
+        decodeController.decodeElement(keyBtn, {
+          text: key,
+          delayMs: 0,
+          durationMs: 250,
+          frameStep: 2,
+        });
+      }
+
+      syncDesktopIntroDOM({ decodeCounter: false });
+
+      if (verifiedKeys.size >= DESKTOP_REQUIRED_KEYS.length) {
+        completeDesktopKeyIntro();
+      }
+      return true;
+    }
+
+    return false;
+  }
+
+  function clearLiveKeyHighlights() {
+    clearPointerReleaseTimers();
+    livePressedKeys.clear();
+    syncDesktopControlsHighlights();
+  }
+
+  function onDeviceModeChanged(isMobile) {
+    syncBodyIntroGatingClass();
+    if (isMobile) {
+      clearDesktopControlsTimers();
+      clearLiveKeyHighlights();
+      if (bootChoreographyPlayed && !isIntroSequenceHoldingHUD()) {
+        const els = getElements();
+        if (els.touchControls && !els.touchControls.classList.contains('analog-materialized')) {
+          triggerAnalogFlickerOn({ delayMs: 40, reason: 'mobile-mode-enter' });
+        }
+      }
+      return;
+    }
+    if (bootChoreographyPlayed && !isIntroSequenceHoldingHUD()) {
+      const els = getElements();
+      if (els.desktopControls && !els.desktopControls.classList.contains('desktop-controls-materialized')) {
+        triggerDesktopControlsFlickerOn({ delayMs: 40, decodeText: true, reason: 'desktop-mode-enter' });
+      }
+      if (desktopIntroPhase === 'dormant' && verifiedKeys.size < DESKTOP_REQUIRED_KEYS.length) {
+        if (isDoomChatCurrentlyActive()) {
+          desktopIntroPhase = 'deferred-doom-chat';
+        } else {
+          startDesktopKeyIntro({ delayMs: 60, reason: 'desktop-mode-enter' });
+        }
+      }
+      syncDesktopIntroDOM({ decodeCounter: false });
+      syncDesktopControlsHighlights();
     }
   }
 
@@ -936,7 +1454,14 @@ export function createPortfolioPerimeterHUD({ sandbox } = {}) {
     decodeController.resolveAllImmediate();
     clearAnalogFlickerTimers();
     clearMp3FlickerTimers();
+    clearDesktopControlsTimers();
+    clearDesktopIntroTimers();
+    clearPointerReleaseTimers();
     bootChoreographyPlayed = false;
+    desktopIntroPhase = 'dormant';
+    verifiedKeys.clear();
+    livePressedKeys.clear();
+
     if (els.root) {
       els.root.classList.remove('hud-materialized');
     }
@@ -944,9 +1469,55 @@ export function createPortfolioPerimeterHUD({ sandbox } = {}) {
       els.mp3Hud.classList.remove('mp3-materialized', 'flicker-on', 'flicker-waiting');
       els.mp3Hud.setAttribute('data-flicker-state', 'dormant');
     }
-    if (sandbox && sandbox.mp3Player && sandbox.mp3Player.playbackState === 'PLAYING' && typeof sandbox.mp3Player.stop === 'function') {
+    if (
+      sandbox &&
+      sandbox.mp3Player &&
+      sandbox.mp3Player.playbackState === 'PLAYING' &&
+      typeof sandbox.mp3Player.stop === 'function'
+    ) {
       sandbox.mp3Player.stop();
     }
+    if (els.desktopControls) {
+      els.desktopControls.classList.remove(
+        'desktop-controls-materialized',
+        'flicker-on',
+        'flicker-waiting'
+      );
+      els.desktopControls.setAttribute('data-flicker-state', 'dormant');
+    }
+    if (els.desktopIntroOverlay) {
+      els.desktopIntroOverlay.classList.remove('intro-visible');
+      els.desktopIntroOverlay.setAttribute('data-intro-phase', 'dormant');
+    }
+    if (els.desktopIntroCard) {
+      els.desktopIntroCard.classList.remove(
+        'flicker-on',
+        'flicker-waiting',
+        'is-resolving',
+        'dissolve-out',
+        'gate-nudge'
+      );
+      els.desktopIntroCard.setAttribute('data-flicker-state', 'dormant');
+    }
+    if (els.desktopIntroPrompt) {
+      els.desktopIntroPrompt.textContent = 'CALIBRATE CONTROLS // PRESS EACH KEY';
+      els.desktopIntroPrompt.setAttribute(
+        'data-hud-canonical-text',
+        'CALIBRATE CONTROLS // PRESS EACH KEY'
+      );
+      els.desktopIntroPrompt.setAttribute('aria-label', 'CALIBRATE CONTROLS // PRESS EACH KEY');
+    }
+    const introMap = getIntroKeyMap(els);
+    for (const k of DESKTOP_REQUIRED_KEYS) {
+      const btn = introMap[k];
+      if (btn) {
+        btn.classList.remove('is-verified', 'active-pill', 'just-verified');
+        btn.setAttribute('aria-pressed', 'false');
+      }
+    }
+    syncDesktopIntroDOM({ decodeCounter: false });
+    syncDesktopControlsHighlights();
+
     if (els.touchControls) {
       els.touchControls.classList.remove('analog-materialized');
     }
@@ -958,9 +1529,10 @@ export function createPortfolioPerimeterHUD({ sandbox } = {}) {
       els.rightStick.classList.remove('flicker-on', 'flicker-waiting');
       els.rightStick.setAttribute('data-flicker-state', 'dormant');
     }
+    syncBodyIntroGatingClass();
   }
 
-  function playBootChoreography({ force = false } = {}) {
+  function playBootChoreography({ force = false, deferKeyIntroForDoomChat = false } = {}) {
     const els = getElements();
     if (!els.root) return false;
     if (!force && isIntroSequenceHoldingHUD()) {
@@ -1003,13 +1575,37 @@ export function createPortfolioPerimeterHUD({ sandbox } = {}) {
       }
     }
 
-    // Stagger top-right MP3 player CRT Phosphor Flicker-On & mobile analog stick Flicker-On after HUD decode begins
     triggerMp3FlickerOn({ delayMs: 150, reason: 'post-dialogue' });
-    triggerAnalogFlickerOn({ delayMs: 210, reason: 'post-dialogue' });
+
+    // Strict XOR Partition (Spec 072 §7): Mobile gets solely analog sticks; Desktop gets WASD+Q HUD & one-time Key Intro
+    if (isMobileModeActive()) {
+      triggerAnalogFlickerOn({ delayMs: 210, reason: 'post-dialogue' });
+    } else {
+      triggerDesktopControlsFlickerOn({
+        delayMs: 165,
+        decodeText: true,
+        reason: 'post-dialogue',
+      });
+      if (desktopIntroPhase !== 'completed') {
+        if (deferKeyIntroForDoomChat || isDoomChatCurrentlyActive()) {
+          desktopIntroPhase = 'deferred-doom-chat';
+          if (els.desktopIntroOverlay) {
+            els.desktopIntroOverlay.classList.remove('intro-visible');
+            els.desktopIntroOverlay.setAttribute('data-intro-phase', 'deferred-doom-chat');
+          }
+          syncBodyIntroGatingClass();
+        } else {
+          startDesktopKeyIntro({ delayMs: 95, reason: 'post-dialogue' });
+        }
+      }
+    }
 
     // Start playing "SO INAGAWA - SELFLESS STATE" automatically on post-dialogue bootup
     if (sandbox && sandbox.mp3Player && typeof sandbox.mp3Player.play === 'function') {
-      if (sandbox.mp3Player.currentTrackIndex !== 0 && typeof sandbox.mp3Player.selectTrack === 'function') {
+      if (
+        sandbox.mp3Player.currentTrackIndex !== 0 &&
+        typeof sandbox.mp3Player.selectTrack === 'function'
+      ) {
         sandbox.mp3Player.selectTrack(0, true);
       } else {
         sandbox.mp3Player.play();
@@ -1045,6 +1641,40 @@ export function createPortfolioPerimeterHUD({ sandbox } = {}) {
       return false;
     }
     return true;
+  }
+
+  function bindDesktopKeyButton(btn, key) {
+    if (!btn) return;
+    btn.addEventListener('pointerenter', (e) => {
+      if (e.pointerType === 'touch' || isMobileModeActive()) return;
+      triggerElementCipherDecode(btn, key);
+    });
+    const onActivate = (e) => {
+      if (!shouldProcessActivation(btn, e.type)) return;
+      e.preventDefault();
+      e.stopPropagation();
+      if (!sandbox || !sandbox.ready || isMobileModeActive() || isIntroSequenceHoldingHUD()) {
+        return;
+      }
+      if (sandbox.audio) sandbox.audio.unlock();
+
+      if (key === 'Q') {
+        if (sandbox.radialMenu) {
+          sandbox.radialMenu.toggle();
+        }
+      } else if (typeof sandbox.triggerDirectionalStepImpulse === 'function') {
+        sandbox.triggerDirectionalStepImpulse(key, { durationMs: 220 });
+      }
+
+      handleDesktopKeyActuation(key, { source: 'pointer', isDown: true });
+      const curEls = getElements();
+      const brBtn = getBrKeyMap(curEls)[key];
+      if (brBtn && !decodeController.activeJobs.has(brBtn)) {
+        triggerElementCipherDecode(brBtn, key);
+      }
+    };
+    btn.addEventListener('pointerdown', onActivate);
+    btn.addEventListener('click', onActivate);
   }
 
   function bindInteractions() {
@@ -1099,7 +1729,7 @@ export function createPortfolioPerimeterHUD({ sandbox } = {}) {
       });
     }
 
-    // 1. WORKS (Full-Screen Vertical Works Hologram Showcase) Button
+    // 1. WORKS (Full-Screen Works Hologram Showcase) Button — Gated while Forced Key Intro is active (Spec 072 §6.2.2)
     if (els.navInteractBtn) {
       const handleWorksActivate = (e) => {
         if (!shouldProcessActivation(els.navInteractBtn, e.type)) return;
@@ -1107,6 +1737,10 @@ export function createPortfolioPerimeterHUD({ sandbox } = {}) {
         e.stopPropagation();
         if (!sandbox || !sandbox.ready) return;
         if (sandbox.audio) sandbox.audio.unlock();
+        if (isDesktopKeyIntroGating()) {
+          pulseDesktopIntroGateNudge();
+          return;
+        }
         if (typeof sandbox.toggleWorksShowcase === 'function') {
           sandbox.toggleWorksShowcase();
         } else if (sandbox.mode === 'mount-focus') {
@@ -1120,7 +1754,7 @@ export function createPortfolioPerimeterHUD({ sandbox } = {}) {
       els.navInteractBtn.addEventListener('click', handleWorksActivate);
     }
 
-    // 2. MENU (Cyber-Tactical Radial Menu) Button
+    // 2. MENU (Cyber-Tactical Radial Menu) Button — Toggles menu & satisfies Q on desktop intro (Spec 072 §6.2.2)
     if (els.navMenuBtn) {
       const handleMenuActivate = (e) => {
         if (!shouldProcessActivation(els.navMenuBtn, e.type)) return;
@@ -1131,13 +1765,16 @@ export function createPortfolioPerimeterHUD({ sandbox } = {}) {
         if (sandbox.radialMenu) {
           sandbox.radialMenu.toggle();
         }
+        if (!isMobileModeActive()) {
+          handleDesktopKeyActuation('Q', { source: 'pointer', isDown: true });
+        }
         triggerElementCipherDecode(els.navMenuBtn, 'MENU');
       };
       els.navMenuBtn.addEventListener('pointerdown', handleMenuActivate);
       els.navMenuBtn.addEventListener('click', handleMenuActivate);
     }
 
-    // 3. CHAT (DOOM_HEAD Terminal) Button
+    // 3. CHAT (DOOM_HEAD Terminal) Button — Gated while Forced Key Intro is active (Spec 072 §6.2.2)
     if (els.navChatBtn) {
       const handleChatActivate = (e) => {
         if (!shouldProcessActivation(els.navChatBtn, e.type)) return;
@@ -1145,6 +1782,10 @@ export function createPortfolioPerimeterHUD({ sandbox } = {}) {
         e.stopPropagation();
         if (!sandbox || !sandbox.ready) return;
         if (sandbox.audio) sandbox.audio.unlock();
+        if (isDesktopKeyIntroGating()) {
+          pulseDesktopIntroGateNudge();
+          return;
+        }
         if (typeof sandbox.toggleDoomChat === 'function') {
           sandbox.toggleDoomChat();
         } else {
@@ -1155,6 +1796,21 @@ export function createPortfolioPerimeterHUD({ sandbox } = {}) {
       };
       els.navChatBtn.addEventListener('pointerdown', handleChatActivate);
       els.navChatBtn.addEventListener('click', handleChatActivate);
+    }
+
+    // 4. Desktop Bottom-Right WASD + Q HUD & Forced Key Intro Keycaps (Spec 072 §5 & §6)
+    const brMap = getBrKeyMap(els);
+    const introMap = getIntroKeyMap(els);
+    for (const k of DESKTOP_REQUIRED_KEYS) {
+      bindDesktopKeyButton(brMap[k], k);
+      bindDesktopKeyButton(introMap[k], k);
+    }
+    if (els.desktopControls) {
+      els.desktopControls.addEventListener('pointerenter', (e) => {
+        if (e.pointerType === 'touch' || isMobileModeActive()) return;
+        if (els.brMoveLabel) triggerElementCipherDecode(els.brMoveLabel, 'MOVE');
+        if (els.brMenuLabel) triggerElementCipherDecode(els.brMenuLabel, 'MENU');
+      });
     }
 
     // Immediate Touch Override Safety on Mobile Analog Sticks (Spec 071 §6.2.3)
@@ -1203,12 +1859,31 @@ export function createPortfolioPerimeterHUD({ sandbox } = {}) {
       return;
     }
 
-    // Automatically trigger post-dialogue Cipher Decode & Analog Flicker-On the moment the intro dialogue concludes
+    // Automatically trigger post-dialogue Cipher Decode & Flicker-On the moment the intro dialogue concludes
     if (!bootChoreographyPlayed) {
-      playBootChoreography({ force: true });
+      playBootChoreography({
+        force: true,
+        deferKeyIntroForDoomChat: isDoomChatCurrentlyActive(),
+      });
     }
 
-    // Re-trigger analog stick Phosphor Flicker-On when returning from suppressed overlay (e.g. Works Showcase or DOOM Chat)
+    // Card 07 "YES" (DOOM_HEAD Chat) deferral & immediate activation upon closing chat (Spec 072 §3.2)
+    const chatOpenNow = isDoomChatCurrentlyActive();
+    if (!isMobileModeActive()) {
+      if (desktopIntroPhase === 'active' && chatOpenNow && verifiedKeys.size === 0) {
+        clearDesktopIntroTimers();
+        desktopIntroPhase = 'deferred-doom-chat';
+        if (els.desktopIntroOverlay) {
+          els.desktopIntroOverlay.classList.remove('intro-visible');
+          els.desktopIntroOverlay.setAttribute('data-intro-phase', 'deferred-doom-chat');
+        }
+      } else if (desktopIntroPhase === 'deferred-doom-chat' && !chatOpenNow) {
+        startDesktopKeyIntro({ delayMs: 30, reason: 'doom-chat-exit' });
+      }
+    }
+    syncBodyIntroGatingClass();
+
+    // Re-trigger Phosphor Flicker-On when returning from suppressed overlay (e.g. Works Showcase or DOOM Chat)
     const isSuppressedOverlay =
       typeof document !== 'undefined' &&
       document.body &&
@@ -1218,7 +1893,15 @@ export function createPortfolioPerimeterHUD({ sandbox } = {}) {
         document.body.classList.contains('mp3-takeover-active'));
     if (wasTouchControlsSuppressed && !isSuppressedOverlay && bootChoreographyPlayed) {
       triggerMp3FlickerOn({ delayMs: 30, reason: 'overlay-return' });
-      triggerAnalogFlickerOn({ delayMs: 40, reason: 'overlay-return' });
+      if (isMobileModeActive()) {
+        triggerAnalogFlickerOn({ delayMs: 40, reason: 'overlay-return' });
+      } else {
+        triggerDesktopControlsFlickerOn({
+          delayMs: 35,
+          decodeText: false,
+          reason: 'overlay-return',
+        });
+      }
     }
     wasTouchControlsSuppressed = Boolean(isSuppressedOverlay);
 
@@ -1227,6 +1910,10 @@ export function createPortfolioPerimeterHUD({ sandbox } = {}) {
     const dtMs = Math.max(0.5, Math.min(100.0, (Number(dtSec) || 1 / 60) * 1000.0));
     lastFrameTimeMs = dtMs;
     smoothedFrameMs = smoothedFrameMs * 0.88 + dtMs * 0.12;
+
+    if (!isMobileModeActive()) {
+      syncDesktopControlsHighlights();
+    }
 
     if (els.navInteractBtn && !decodeController.activeJobs.has(els.navInteractBtn) && sandbox) {
       const isWorksOpen = sandbox.mode === 'mount-focus';
@@ -1242,6 +1929,16 @@ export function createPortfolioPerimeterHUD({ sandbox } = {}) {
       );
     }
 
+    if (els.navMenuBtn && !decodeController.activeJobs.has(els.navMenuBtn) && sandbox) {
+      const isRadialOpen = Boolean(
+        sandbox.radialMenu &&
+          typeof sandbox.radialMenu.isOpen === 'function' &&
+          sandbox.radialMenu.isOpen()
+      );
+      els.navMenuBtn.classList.toggle('active', isRadialOpen);
+      els.navMenuBtn.classList.toggle('active-pill', isRadialOpen);
+    }
+
     if (els.navChatBtn && !decodeController.activeJobs.has(els.navChatBtn)) {
       const isChatOpen =
         typeof document !== 'undefined' &&
@@ -1250,6 +1947,35 @@ export function createPortfolioPerimeterHUD({ sandbox } = {}) {
       els.navChatBtn.classList.toggle('active', isChatOpen);
       els.navChatBtn.classList.toggle('active-pill', isChatOpen);
     }
+  }
+
+  function getDesktopNavState() {
+    const els = getElements();
+    return {
+      isMobileMode: isMobileModeActive(),
+      desktopControlsMaterialized: Boolean(
+        els.desktopControls &&
+          els.desktopControls.classList.contains('desktop-controls-materialized')
+      ),
+      desktopControlsFlickerState: els.desktopControls
+        ? els.desktopControls.getAttribute('data-flicker-state')
+        : null,
+      desktopControlsFlickerPlayedCount,
+      desktopIntroPhase,
+      desktopIntroVisible: Boolean(
+        els.desktopIntroOverlay && els.desktopIntroOverlay.classList.contains('intro-visible')
+      ),
+      desktopIntroFlickerState: els.desktopIntroCard
+        ? els.desktopIntroCard.getAttribute('data-flicker-state')
+        : null,
+      desktopIntroFlickerPlayedCount,
+      isGating: isDesktopKeyIntroGating(),
+      verifiedKeys: Array.from(verifiedKeys),
+      completedCount: verifiedKeys.size,
+      requiredCount: DESKTOP_REQUIRED_KEYS.length,
+      requiredKeys: [...DESKTOP_REQUIRED_KEYS],
+      livePressedKeys: Array.from(livePressedKeys),
+    };
   }
 
   return {
@@ -1263,7 +1989,15 @@ export function createPortfolioPerimeterHUD({ sandbox } = {}) {
     get mp3FlickerPlayedCount() {
       return mp3FlickerPlayedCount;
     },
+    get desktopControlsFlickerPlayedCount() {
+      return desktopControlsFlickerPlayedCount;
+    },
+    get desktopIntroFlickerPlayedCount() {
+      return desktopIntroFlickerPlayedCount;
+    },
     isIntroSequenceHoldingHUD,
+    isDesktopKeyIntroGating,
+    pulseDesktopIntroGateNudge,
     bindInteractions,
     playBootChoreography,
     resetToDormantPreDialogueState,
@@ -1272,6 +2006,12 @@ export function createPortfolioPerimeterHUD({ sandbox } = {}) {
     overrideMp3FlickerOnTouch,
     triggerAnalogFlickerOn,
     overrideAnalogFlickerOnTouch,
+    triggerDesktopControlsFlickerOn,
+    startDesktopKeyIntro,
+    handleDesktopKeyActuation,
+    clearLiveKeyHighlights,
+    onDeviceModeChanged,
+    getDesktopNavState,
     resolveAllImmediate: () => decodeController.resolveAllImmediate(),
     update,
     getState() {
@@ -1283,8 +2023,20 @@ export function createPortfolioPerimeterHUD({ sandbox } = {}) {
         completedDecodeCount: decodeController.completedBootCount,
         analogFlickerPlayedCount,
         mp3FlickerPlayedCount,
+        desktopControlsFlickerPlayedCount,
+        desktopIntroFlickerPlayedCount,
         lastAnalogFlickerReason,
         mp3FlickerState: els.mp3Hud ? els.mp3Hud.getAttribute('data-flicker-state') : null,
+        desktopControlsFlickerState: els.desktopControls
+          ? els.desktopControls.getAttribute('data-flicker-state')
+          : null,
+        desktopIntroPhase,
+        desktopIntroFlickerState: els.desktopIntroCard
+          ? els.desktopIntroCard.getAttribute('data-flicker-state')
+          : null,
+        isDesktopKeyIntroGating: isDesktopKeyIntroGating(),
+        verifiedKeys: Array.from(verifiedKeys),
+        completedKeyCount: verifiedKeys.size,
         leftStickFlickerState: els.leftStick ? els.leftStick.getAttribute('data-flicker-state') : null,
         rightStickFlickerState: els.rightStick ? els.rightStick.getAttribute('data-flicker-state') : null,
         lastFrameTimeMs: Number(smoothedFrameMs.toFixed(2)),

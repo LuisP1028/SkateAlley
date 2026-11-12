@@ -2351,6 +2351,7 @@
       display: block;
     }
     #mobile-touch-controls:not(.analog-materialized),
+    #mobile-touch-controls:not(.analog-materialized) *,
     body.intro-sequence-active #mobile-touch-controls,
     body.intro-sequence-active #mobile-touch-controls *,
     body.intro-dialogue-active #mobile-touch-controls,
@@ -2584,6 +2585,459 @@
     #mobile-left-thumbpad.sprinting #mobile-left-thumbpad-knob::after {
       background: #ff4224;
       box-shadow: 0 0 10px #ff4224;
+    }
+
+    /* ======================================================================
+       Post-Dialogue Desktop WASD + Q Navigation HUD & Forced One-Time Key Intro (Spec 072)
+       ====================================================================== */
+    @keyframes hudModulePhosphorFlickerOn {
+      0% {
+        opacity: 0;
+        filter: brightness(2.35) contrast(1.65);
+        border-color: rgba(254, 243, 199, 0.96);
+        box-shadow:
+          0 0 0 rgba(245, 158, 11, 0),
+          inset 0 0 0 rgba(245, 158, 11, 0);
+      }
+      18% {
+        opacity: 0.88;
+        filter: brightness(2.05) contrast(1.42);
+        border-color: #fef3c7;
+        box-shadow:
+          0 8px 26px rgba(0, 0, 0, 0.68),
+          0 0 24px rgba(251, 191, 36, 0.82),
+          inset 0 0 20px rgba(254, 243, 199, 0.42);
+      }
+      34% {
+        opacity: 0.14;
+        filter: brightness(0.84);
+        border-color: rgba(245, 158, 11, 0.35);
+      }
+      54% {
+        opacity: 0.96;
+        filter: brightness(1.75);
+        border-color: #fbbf24;
+        box-shadow:
+          0 8px 26px rgba(0, 0, 0, 0.68),
+          0 0 20px rgba(245, 158, 11, 0.72),
+          inset 0 0 16px rgba(245, 158, 11, 0.30);
+      }
+      72% {
+        opacity: 0.32;
+        filter: brightness(0.95);
+      }
+      100% {
+        opacity: 1;
+        filter: brightness(1) contrast(1);
+        border-color: rgba(245, 158, 11, 0.48);
+        box-shadow:
+          0 8px 24px rgba(0, 0, 0, 0.66),
+          inset 0 0 14px rgba(245, 158, 11, 0.10);
+      }
+    }
+
+    @keyframes hudModulePhosphorDissolveOut {
+      0% {
+        opacity: 1;
+        filter: brightness(1.35);
+      }
+      32% {
+        opacity: 0.84;
+        filter: brightness(1.9) contrast(1.35);
+        border-color: #fef08a;
+        box-shadow:
+          0 0 24px rgba(251, 191, 36, 0.75),
+          inset 0 0 18px rgba(254, 243, 199, 0.38);
+      }
+      100% {
+        opacity: 0;
+        filter: brightness(0.6);
+      }
+    }
+
+    @keyframes hudKeyVerifiedSurge {
+      0% {
+        filter: brightness(1.95);
+        box-shadow:
+          0 0 26px rgba(254, 240, 138, 0.95),
+          0 0 12px rgba(251, 191, 36, 0.85),
+          inset 0 -1px 0 rgba(9, 10, 13, 0.25);
+      }
+      100% {
+        filter: brightness(1);
+        box-shadow:
+          0 0 16px rgba(251, 191, 36, 0.55),
+          inset 0 -1px 0 rgba(9, 10, 13, 0.25);
+      }
+    }
+
+    @keyframes hudIntroGateNudge {
+      0%, 100% {
+        border-color: rgba(245, 158, 11, 0.48);
+        box-shadow:
+          0 8px 24px rgba(0, 0, 0, 0.66),
+          inset 0 0 14px rgba(245, 158, 11, 0.10);
+      }
+      45% {
+        border-color: #fef08a;
+        box-shadow:
+          0 8px 28px rgba(0, 0, 0, 0.72),
+          0 0 24px rgba(251, 191, 36, 0.78),
+          inset 0 0 18px rgba(251, 191, 36, 0.28);
+      }
+    }
+
+    /* Strict Mobile Exclusion (Spec 072 §7.1): zero WASD/Q elements on mobile */
+    body.mobile-touch-enabled #portfolio-hud-desktop-controls,
+    body.mobile-touch-enabled #portfolio-hud-desktop-controls *,
+    body.mobile-touch-enabled #desktop-wasdq-intro-overlay,
+    body.mobile-touch-enabled #desktop-wasdq-intro-overlay * {
+      display: none !important;
+      visibility: hidden !important;
+      opacity: 0 !important;
+      pointer-events: none !important;
+    }
+
+    /* Suppress proximity prompt while the forced 5-key intro occupies bottom-center */
+    body.desktop-key-intro-active #mount-proximity-prompt {
+      opacity: 0 !important;
+      visibility: hidden !important;
+      pointer-events: none !important;
+    }
+
+    /* Shared Tactile HUD Keycap Anatomy (Spec 072 §4.1.2) */
+    .hud-tactile-key {
+      box-sizing: border-box;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      margin: 0;
+      border-radius: clamp(6px, 0.55vw, 8px);
+      background: rgba(14, 12, 10, 0.86);
+      border: 1.5px solid rgba(245, 158, 11, 0.52);
+      box-shadow:
+        0 2px 6px rgba(0, 0, 0, 0.62),
+        inset 0 -2px 0 rgba(245, 158, 11, 0.18),
+        inset 0 0 8px rgba(245, 158, 11, 0.08);
+      color: #fef3c7;
+      font-family: var(--font-geist-sans);
+      font-weight: 800;
+      letter-spacing: 0.02em;
+      line-height: 1;
+      text-transform: uppercase;
+      text-shadow: 0 0 8px rgba(245, 158, 11, 0.35);
+      cursor: pointer;
+      touch-action: manipulation;
+      white-space: nowrap;
+      transition:
+        background 0.12s ease,
+        border-color 0.12s ease,
+        color 0.12s ease,
+        box-shadow 0.12s ease;
+    }
+    .hud-tactile-key:hover:not(.active-pill):not(.is-pressed):not(.is-verified) {
+      border-color: rgba(251, 191, 36, 0.72);
+      background: rgba(245, 158, 11, 0.18);
+      color: #ffffff;
+      box-shadow:
+        0 2px 8px rgba(0, 0, 0, 0.66),
+        0 0 10px rgba(245, 158, 11, 0.28),
+        inset 0 -2px 0 rgba(251, 191, 36, 0.26);
+    }
+    .hud-tactile-key.active-pill,
+    .hud-tactile-key.is-pressed,
+    .hud-tactile-key.is-verified,
+    .hud-tactile-key:active {
+      background: var(--hud-phosphor-bright);
+      border-color: #fef08a;
+      color: #090a0d;
+      font-weight: 800;
+      text-shadow: none;
+      box-shadow:
+        0 0 16px rgba(251, 191, 36, 0.55),
+        inset 0 -1px 0 rgba(9, 10, 13, 0.25);
+    }
+    .hud-tactile-key.just-verified {
+      animation: hudKeyVerifiedSurge 220ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+    .hud-tactile-key .hud-cipher-char.is-hot {
+      color: #ffffff;
+    }
+    .hud-tactile-key.is-verified .hud-cipher-char.is-resolved,
+    .hud-tactile-key.active-pill .hud-cipher-char.is-resolved {
+      color: #090a0d;
+    }
+
+    .hud-key-cluster {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      gap: clamp(4px, 0.42vw, 6px);
+    }
+    .hud-wasd-grid {
+      display: grid;
+      grid-template-columns: repeat(3, var(--hud-key-size, clamp(26px, 2.05vw, 34px)));
+      grid-template-rows: repeat(2, var(--hud-key-size, clamp(26px, 2.05vw, 34px)));
+      gap: var(--hud-key-gap, clamp(3px, 0.3vw, 5px));
+      align-items: center;
+      justify-items: center;
+    }
+    .hud-wasd-grid .hud-tactile-key,
+    .hud-q-key-slot .hud-tactile-key {
+      width: var(--hud-key-size, clamp(26px, 2.05vw, 34px));
+      height: var(--hud-key-size, clamp(26px, 2.05vw, 34px));
+      font-size: var(--hud-key-font, clamp(11px, 0.92vw, 14px));
+    }
+    .hud-wasd-w {
+      grid-column: 2;
+      grid-row: 1;
+    }
+    .hud-wasd-a {
+      grid-column: 1;
+      grid-row: 2;
+    }
+    .hud-wasd-s {
+      grid-column: 2;
+      grid-row: 2;
+    }
+    .hud-wasd-d {
+      grid-column: 3;
+      grid-row: 2;
+    }
+    .hud-q-key-slot {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex: 1 1 auto;
+      min-width: var(--hud-key-size, clamp(26px, 2.05vw, 34px));
+    }
+    .hud-key-cluster-divider {
+      width: 1px;
+      align-self: stretch;
+      background: linear-gradient(
+        180deg,
+        rgba(245, 158, 11, 0.10) 0%,
+        rgba(245, 158, 11, 0.42) 50%,
+        rgba(245, 158, 11, 0.10) 100%
+      );
+      pointer-events: none;
+    }
+    .hud-key-cluster-label {
+      display: inline-block;
+      box-sizing: border-box;
+      font-family: var(--font-geist-mono);
+      font-size: clamp(9.5px, 0.78vw, 11.5px);
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: 0.08em;
+      line-height: 1.1;
+      text-transform: uppercase;
+      color: rgba(254, 243, 199, 0.88);
+      text-shadow: 0 0 8px rgba(245, 158, 11, 0.30);
+      white-space: nowrap;
+      transition: color 0.14s ease, text-shadow 0.14s ease;
+    }
+    .hud-key-cluster-label.is-group-complete {
+      color: #fbbf24;
+      text-shadow: 0 0 10px rgba(251, 191, 36, 0.55);
+    }
+
+    /* Pillar 1: Persistent Bottom-Right Desktop WASD + Q HUD Module (Spec 072 §5) */
+    #portfolio-hud-desktop-controls {
+      --hud-key-size: clamp(26px, 2.05vw, 34px);
+      --hud-key-gap: clamp(3px, 0.3vw, 5px);
+      --hud-key-font: clamp(11px, 0.92vw, 14px);
+      position: absolute;
+      right: calc(clamp(14px, 2.2vw, 24px) + env(safe-area-inset-right, 0px));
+      bottom: calc(clamp(14px, 2.2vh, 24px) + env(safe-area-inset-bottom, 0px));
+      z-index: 24;
+      display: inline-flex;
+      flex-direction: row;
+      align-items: stretch;
+      gap: clamp(10px, 0.95vw, 14px);
+      padding: clamp(8px, 0.8vw, 12px) clamp(10px, 1.05vw, 16px);
+      background: rgba(8, 9, 12, 0.82);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1.5px solid rgba(245, 158, 11, 0.48);
+      border-radius: clamp(14px, 1.3vw, 18px);
+      box-shadow:
+        0 8px 24px rgba(0, 0, 0, 0.66),
+        inset 0 0 14px rgba(245, 158, 11, 0.10);
+      pointer-events: auto;
+      touch-action: manipulation;
+    }
+    #portfolio-hud-desktop-controls:not(.desktop-controls-materialized),
+    #portfolio-hud-desktop-controls.flicker-waiting,
+    body.intro-sequence-active #portfolio-hud-desktop-controls,
+    body.intro-dialogue-active #portfolio-hud-desktop-controls,
+    body.mount-focus-mode #portfolio-hud-desktop-controls,
+    body.doom-chat-active #portfolio-hud-desktop-controls,
+    body.sticker-popup-active #portfolio-hud-desktop-controls,
+    body.mp3-takeover-active #portfolio-hud-desktop-controls {
+      opacity: 0 !important;
+      visibility: hidden !important;
+      pointer-events: none !important;
+    }
+    #portfolio-hud-desktop-controls.flicker-on {
+      animation: hudModulePhosphorFlickerOn 520ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+
+    /* Pillar 2: Forced One-Time Desktop WASD + Q Key Intro Overlay (Spec 072 §6) */
+    #desktop-wasdq-intro-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 32;
+      pointer-events: none;
+      user-select: none;
+      -webkit-user-select: none;
+      opacity: 0;
+      visibility: hidden;
+    }
+    #desktop-wasdq-intro-overlay.intro-visible {
+      opacity: 1;
+      visibility: visible;
+    }
+    body.intro-sequence-active #desktop-wasdq-intro-overlay,
+    body.intro-dialogue-active #desktop-wasdq-intro-overlay,
+    body.doom-chat-active #desktop-wasdq-intro-overlay,
+    body.mp3-takeover-active #desktop-wasdq-intro-overlay {
+      opacity: 0 !important;
+      visibility: hidden !important;
+      pointer-events: none !important;
+    }
+    #desktop-wasdq-intro-card {
+      --hud-key-size: clamp(36px, 3.1vw, 46px);
+      --hud-key-gap: clamp(4px, 0.4vw, 6px);
+      --hud-key-font: clamp(13px, 1.15vw, 16.5px);
+      position: absolute;
+      left: 50%;
+      bottom: calc(clamp(18px, 3vh, 34px) + env(safe-area-inset-bottom, 0px));
+      transform: translateX(-50%);
+      display: flex;
+      flex-direction: column;
+      gap: clamp(8px, 0.85vh, 12px);
+      padding: clamp(10px, 1.05vw, 14px) clamp(14px, 1.4vw, 22px);
+      min-width: clamp(296px, 25vw, 390px);
+      max-width: min(460px, calc(100vw - 410px));
+      background: rgba(8, 9, 12, 0.86);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1.5px solid rgba(245, 158, 11, 0.52);
+      border-radius: clamp(14px, 1.4vw, 20px);
+      box-shadow:
+        0 10px 30px rgba(0, 0, 0, 0.72),
+        0 0 18px rgba(245, 158, 11, 0.14),
+        inset 0 0 16px rgba(245, 158, 11, 0.12);
+      pointer-events: auto;
+      touch-action: manipulation;
+    }
+    #desktop-wasdq-intro-overlay:not(.intro-visible) #desktop-wasdq-intro-card,
+    #desktop-wasdq-intro-card.flicker-waiting {
+      opacity: 0 !important;
+      pointer-events: none !important;
+    }
+    #desktop-wasdq-intro-card.flicker-on {
+      animation: hudModulePhosphorFlickerOn 520ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+    #desktop-wasdq-intro-card.dissolve-out {
+      animation: hudModulePhosphorDissolveOut 260ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+      pointer-events: none !important;
+    }
+    #desktop-wasdq-intro-card.gate-nudge {
+      animation: hudIntroGateNudge 360ms ease;
+    }
+    .desktop-intro-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding-bottom: clamp(5px, 0.55vh, 8px);
+      border-bottom: 1px solid rgba(245, 158, 11, 0.28);
+    }
+    #desktop-wasdq-intro-prompt {
+      display: inline-block;
+      box-sizing: border-box;
+      font-family: var(--font-geist-mono);
+      font-size: clamp(10px, 0.85vw, 12px);
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      line-height: 1.15;
+      text-transform: uppercase;
+      color: #fffbeb;
+      text-shadow: 0 0 10px rgba(245, 158, 11, 0.42);
+      white-space: nowrap;
+    }
+    #desktop-wasdq-intro-card.is-resolving #desktop-wasdq-intro-prompt {
+      color: #fbbf24;
+      text-shadow: 0 0 14px rgba(251, 191, 36, 0.72);
+    }
+    #desktop-wasdq-intro-counter {
+      display: inline-block;
+      box-sizing: border-box;
+      font-family: var(--font-geist-mono);
+      font-size: clamp(10.5px, 0.9vw, 12.5px);
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: 0.08em;
+      line-height: 1.15;
+      color: #fbbf24;
+      background: rgba(245, 158, 11, 0.14);
+      border: 1px solid rgba(245, 158, 11, 0.42);
+      border-radius: 999px;
+      padding: 2px 8px;
+      white-space: nowrap;
+    }
+    #desktop-wasdq-intro-card.is-resolving #desktop-wasdq-intro-counter {
+      background: var(--hud-phosphor-bright);
+      border-color: #fef08a;
+      color: #090a0d;
+      box-shadow: 0 0 12px rgba(251, 191, 36, 0.55);
+    }
+    .desktop-intro-stage {
+      display: flex;
+      flex-direction: row;
+      align-items: stretch;
+      justify-content: center;
+      gap: clamp(14px, 1.4vw, 24px);
+    }
+
+    /* Compact vertical height adaptation so 901x501..1280x620 never overlaps central Radial Menu */
+    @media (max-height: 640px) {
+      #desktop-wasdq-intro-card {
+        --hud-key-size: clamp(24px, 4.3vh, 31px);
+        --hud-key-gap: 3px;
+        --hud-key-font: clamp(10.5px, 1.9vh, 13px);
+        bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+        padding: 7px 12px;
+        gap: 5px;
+      }
+      .desktop-intro-header {
+        padding-bottom: 4px;
+      }
+      #desktop-wasdq-intro-prompt {
+        font-size: 9.5px;
+      }
+      #desktop-wasdq-intro-counter {
+        font-size: 9.5px;
+        padding: 1px 6px;
+      }
+      #portfolio-hud-desktop-controls {
+        --hud-key-size: clamp(24px, 4.2vh, 29px);
+        bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+        padding: 6px 10px;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      #portfolio-hud-desktop-controls.flicker-on,
+      #desktop-wasdq-intro-card.flicker-on,
+      #desktop-wasdq-intro-card.dissolve-out,
+      .hud-tactile-key.just-verified {
+        animation: none !important;
+      }
     }
 
     @media (max-width: 768px) {
@@ -3962,7 +4416,160 @@
         </button>
       </div>
     </nav>
+
+    <!-- Bottom-Right Region: Screen-Agnostic Desktop WASD + Q Navigation Instruction Module (Spec 072 §5) -->
+    <div
+      id="portfolio-hud-desktop-controls"
+      role="region"
+      aria-label="Desktop Keyboard Navigation Controls: WASD to Move, Q for Radial Menu"
+      data-flicker-state="dormant"
+    >
+      <div class="hud-key-cluster hud-key-cluster-wasd" role="group" aria-label="WASD Movement Keys">
+        <div class="hud-wasd-grid">
+          <button
+            id="hud-br-key-w"
+            class="hud-tactile-key hud-wasd-w"
+            type="button"
+            data-nav-key="W"
+            data-hud-canonical-text="W"
+            aria-label="W Key: Move Forward"
+            title="Move Forward (W)"
+          >W</button>
+          <button
+            id="hud-br-key-a"
+            class="hud-tactile-key hud-wasd-a"
+            type="button"
+            data-nav-key="A"
+            data-hud-canonical-text="A"
+            aria-label="A Key: Move Left"
+            title="Move Left (A)"
+          >A</button>
+          <button
+            id="hud-br-key-s"
+            class="hud-tactile-key hud-wasd-s"
+            type="button"
+            data-nav-key="S"
+            data-hud-canonical-text="S"
+            aria-label="S Key: Move Backward"
+            title="Move Backward (S)"
+          >S</button>
+          <button
+            id="hud-br-key-d"
+            class="hud-tactile-key hud-wasd-d"
+            type="button"
+            data-nav-key="D"
+            data-hud-canonical-text="D"
+            aria-label="D Key: Move Right"
+            title="Move Right (D)"
+          >D</button>
+        </div>
+        <span id="hud-br-move-label" class="hud-key-cluster-label" data-hud-canonical-text="MOVE">MOVE</span>
+      </div>
+      <div class="hud-key-cluster-divider" aria-hidden="true"></div>
+      <div class="hud-key-cluster hud-key-cluster-q" role="group" aria-label="Q Radial Menu Key">
+        <div class="hud-q-key-slot">
+          <button
+            id="hud-br-key-q"
+            class="hud-tactile-key hud-key-q"
+            type="button"
+            data-nav-key="Q"
+            data-hud-canonical-text="Q"
+            aria-label="Q Key: Toggle Radial Command Menu"
+            title="Toggle Radial Command Menu (Q)"
+          >Q</button>
+        </div>
+        <span id="hud-br-menu-label" class="hud-key-cluster-label" data-hud-canonical-text="MENU">MENU</span>
+      </div>
+    </div>
   </header>
+
+  <!-- Post-Dialogue Forced One-Time Desktop WASD + Q Key Intro Overlay (Spec 072 §6) -->
+  <section
+    id="desktop-wasdq-intro-overlay"
+    role="region"
+    aria-live="polite"
+    aria-label="Desktop Navigation Calibration: Press W, A, S, D, and Q Once Each"
+    data-intro-phase="dormant"
+  >
+    <div id="desktop-wasdq-intro-card" data-flicker-state="dormant">
+      <div class="desktop-intro-header">
+        <span
+          id="desktop-wasdq-intro-prompt"
+          data-hud-canonical-text="CALIBRATE CONTROLS // PRESS EACH KEY"
+        >CALIBRATE CONTROLS // PRESS EACH KEY</span>
+        <span
+          id="desktop-wasdq-intro-counter"
+          data-hud-canonical-text="00 / 05"
+        >00 / 05</span>
+      </div>
+      <div class="desktop-intro-stage">
+        <div class="hud-key-cluster hud-key-cluster-wasd" role="group" aria-label="Calibrate WASD Movement Keys">
+          <div class="hud-wasd-grid desktop-intro-wasd-grid">
+            <button
+              id="hud-intro-key-w"
+              class="hud-tactile-key hud-intro-key hud-wasd-w"
+              type="button"
+              data-nav-key="W"
+              data-hud-canonical-text="W"
+              aria-pressed="false"
+              aria-label="Press W Once to Calibrate Forward Movement"
+            >W</button>
+            <button
+              id="hud-intro-key-a"
+              class="hud-tactile-key hud-intro-key hud-wasd-a"
+              type="button"
+              data-nav-key="A"
+              data-hud-canonical-text="A"
+              aria-pressed="false"
+              aria-label="Press A Once to Calibrate Left Movement"
+            >A</button>
+            <button
+              id="hud-intro-key-s"
+              class="hud-tactile-key hud-intro-key hud-wasd-s"
+              type="button"
+              data-nav-key="S"
+              data-hud-canonical-text="S"
+              aria-pressed="false"
+              aria-label="Press S Once to Calibrate Backward Movement"
+            >S</button>
+            <button
+              id="hud-intro-key-d"
+              class="hud-tactile-key hud-intro-key hud-wasd-d"
+              type="button"
+              data-nav-key="D"
+              data-hud-canonical-text="D"
+              aria-pressed="false"
+              aria-label="Press D Once to Calibrate Right Movement"
+            >D</button>
+          </div>
+          <span
+            id="desktop-wasdq-intro-move-caption"
+            class="hud-key-cluster-label"
+            data-hud-canonical-text="MOVE ALLEY"
+          >MOVE ALLEY</span>
+        </div>
+        <div class="hud-key-cluster-divider" aria-hidden="true"></div>
+        <div class="hud-key-cluster hud-key-cluster-q" role="group" aria-label="Calibrate Q Radial Menu Key">
+          <div class="hud-q-key-slot">
+            <button
+              id="hud-intro-key-q"
+              class="hud-tactile-key hud-intro-key hud-key-q"
+              type="button"
+              data-nav-key="Q"
+              data-hud-canonical-text="Q"
+              aria-pressed="false"
+              aria-label="Press Q Once to Calibrate Radial Command Menu"
+            >Q</button>
+          </div>
+          <span
+            id="desktop-wasdq-intro-menu-caption"
+            class="hud-key-cluster-label"
+            data-hud-canonical-text="RADIAL MENU"
+          >RADIAL MENU</span>
+        </div>
+      </div>
+    </div>
+  </section>
 
   <!-- Revamped Mobile Precision Telemetry Analog Reticles (Spec 070 §6 & Spec 071 §6) -->
   <div id="mobile-touch-controls" role="region" aria-label="Mobile Touch Locomotion Controls">
@@ -5530,6 +6137,6 @@
 
   <div id="fatal-error-banner" role="alert"></div>
 
-  <script type="module" src="./sandbox.js?v=071_7"></script>
+  <script type="module" src="./sandbox.js?v=072_1"></script>
 </body>
 </html>

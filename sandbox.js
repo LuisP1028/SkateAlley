@@ -204,7 +204,7 @@ import {
   DYNAMIC_CAM_ASPECT_PORTRAIT,
   DYNAMIC_CAM_BOOM_PULLBACK_FACTOR,
   DYNAMIC_CAM_LOOKAT_Y_ELEVATION_M,
-} from './scene_materialization_hud_070.js?v=071_7';
+} from './scene_materialization_hud_070.js?v=072_1';
 
 const IS_DEV_MODE =
   typeof window !== 'undefined' &&
@@ -5880,7 +5880,10 @@ function buildSpawnAndCameraDirectorSystem(floorY = 0.0) {
       syncIntroDialogueOverlayUI();
       syncDirectorHUDInputs();
       if (sandbox.portfolioHUD) {
-        sandbox.portfolioHUD.playBootChoreography({ force: true });
+        sandbox.portfolioHUD.playBootChoreography({
+          force: true,
+          deferKeyIntroForDoomChat: Boolean(openDoomChat),
+        });
       }
       updateTelemetryHUD();
 
@@ -12103,6 +12106,57 @@ function isMobileTouchForceDisabled() {
   }
 }
 
+function isMobileTouchForceEnabled() {
+  if (typeof window === 'undefined') return false;
+  try {
+    const params = new URLSearchParams(window.location ? window.location.search : '');
+    const explicit = params.get('touch') ?? params.get('mobile');
+    return explicit === '1' || explicit === 'true';
+  } catch {
+    return false;
+  }
+}
+
+const physicalKeysHeld = new Set();
+const directionalStepImpulseTimers = new Map();
+
+function clearAllDirectionalStepImpulses() {
+  for (const timerId of directionalStepImpulseTimers.values()) {
+    clearTimeout(timerId);
+  }
+  directionalStepImpulseTimers.clear();
+}
+
+function isDesktopKeyIntroGatingActive() {
+  return Boolean(
+    sandbox &&
+      sandbox.portfolioHUD &&
+      typeof sandbox.portfolioHUD.isDesktopKeyIntroGating === 'function' &&
+      sandbox.portfolioHUD.isDesktopKeyIntroGating()
+  );
+}
+
+function resolveDesktopNavKeyFromEvent(e, { ignoreModifiers = false } = {}) {
+  if (!e) return null;
+  if (!ignoreModifiers && (e.metaKey || e.ctrlKey || e.altKey)) {
+    return null;
+  }
+  const code = e.code || '';
+  const keyLower = typeof e.key === 'string' ? e.key.toLowerCase() : '';
+  // Prefer logical character key first on non-QWERTY layouts if it matches w/a/s/d/q, else fallback to physical code
+  if (keyLower === 'w') return { navKey: 'W', moveCode: 'KeyW' };
+  if (keyLower === 'a') return { navKey: 'A', moveCode: 'KeyA' };
+  if (keyLower === 's') return { navKey: 'S', moveCode: 'KeyS' };
+  if (keyLower === 'd') return { navKey: 'D', moveCode: 'KeyD' };
+  if (keyLower === 'q') return { navKey: 'Q', moveCode: null };
+  if (code === 'KeyW') return { navKey: 'W', moveCode: 'KeyW' };
+  if (code === 'KeyA') return { navKey: 'A', moveCode: 'KeyA' };
+  if (code === 'KeyS') return { navKey: 'S', moveCode: 'KeyS' };
+  if (code === 'KeyD') return { navKey: 'D', moveCode: 'KeyD' };
+  if (code === 'KeyQ') return { navKey: 'Q', moveCode: null };
+  return null;
+}
+
 function detectInitialMobileTouchMode() {
   if (typeof window === 'undefined') return false;
   try {
@@ -12113,11 +12167,13 @@ function detectInitialMobileTouchMode() {
   } catch {
     // ignore URLSearchParams errors
   }
-  const isCoarse = Boolean(
-    typeof window.matchMedia === 'function' &&
-      (window.matchMedia('(pointer: coarse)').matches ||
-        window.matchMedia('(any-pointer: coarse)').matches)
+  const hasMatchMedia = typeof window.matchMedia === 'function';
+  const primaryCoarse = Boolean(hasMatchMedia && window.matchMedia('(pointer: coarse)').matches);
+  const primaryFine = Boolean(hasMatchMedia && window.matchMedia('(pointer: fine)').matches);
+  const secondaryCoarseOnly = Boolean(
+    hasMatchMedia && !primaryFine && window.matchMedia('(any-pointer: coarse)').matches
   );
+  const isCoarse = primaryCoarse || secondaryCoarseOnly;
   const vw = window.innerWidth || 1280;
   const vh = window.innerHeight || 720;
   return isCoarse || vw <= 900 || vh <= 500;
@@ -12125,6 +12181,9 @@ function detectInitialMobileTouchMode() {
 
 const mobileTouch = {
   enabled: detectInitialMobileTouchMode(),
+  _hardwareTouchObserved: false,
+  _manualOverride: null,
+  _dispatchingResize: false,
   active: false,
   pointerId: null,
   centerClientX: 0,
@@ -12155,8 +12214,10 @@ const mobileTouch = {
   deadzone: THUMBPAD_DEADZONE,
   sprintThreshold: THUMBPAD_SPRINT_THRESHOLD,
   tapThresholdPx: CLICK_MAX_DRAG_PIXELS,
-  setEnabled(flag) {
-    this.enabled = Boolean(flag);
+  setEnabled(flag, { fromResize = false } = {}) {
+    const nextEnabled = Boolean(flag);
+    const changed = this.enabled !== nextEnabled;
+    this.enabled = nextEnabled;
     if (typeof document !== 'undefined' && document.body) {
       document.body.classList.toggle('mobile-touch-enabled', this.enabled);
     }
@@ -12165,8 +12226,23 @@ const mobileTouch = {
     } else {
       this.syncDOM();
     }
-    if (sandbox.mp3Player && typeof sandbox.mp3Player.setDisplayMode === 'function') {
-      window.dispatchEvent(new Event('resize'));
+    if (sandbox && sandbox.portfolioHUD && typeof sandbox.portfolioHUD.onDeviceModeChanged === 'function') {
+      sandbox.portfolioHUD.onDeviceModeChanged(this.enabled);
+    }
+    if (
+      !fromResize &&
+      changed &&
+      !this._dispatchingResize &&
+      sandbox &&
+      sandbox.mp3Player &&
+      typeof sandbox.mp3Player.setDisplayMode === 'function'
+    ) {
+      this._dispatchingResize = true;
+      try {
+        window.dispatchEvent(new Event('resize'));
+      } finally {
+        this._dispatchingResize = false;
+      }
     }
     return this.enabled;
   },
@@ -17494,8 +17570,68 @@ const sandbox = {
   keysPressed,
   cameraOrbit,
   mobileTouch,
-  setMobileTouchEnabled(enabled) {
+  setMobileTouchEnabled(enabled, { manual = true } = {}) {
+    if (manual) {
+      mobileTouch._manualOverride = enabled === null || enabled === undefined ? null : Boolean(enabled);
+    }
     return mobileTouch.setEnabled(enabled);
+  },
+  triggerDirectionalStepImpulse(navKey, { durationMs = 220 } = {}) {
+    if (!this.ready) return false;
+    if (this.director && this.director.isScrollLocked()) return false;
+    const upper = String(navKey || '').toUpperCase();
+    const moveCodeMap = {
+      W: 'KeyW',
+      A: 'KeyA',
+      S: 'KeyS',
+      D: 'KeyD',
+    };
+    const moveCode = moveCodeMap[upper];
+    if (!moveCode) return false;
+
+    if (this.radialMenu && typeof this.radialMenu.isOpen === 'function' && this.radialMenu.isOpen()) {
+      this.radialMenu.cancelDeadzone();
+    }
+    if (this.isDoomChatOpen) {
+      this.exitDoomChatMode();
+    }
+    if (this.isStickerPopupOpen) {
+      this.closeStickerPopup();
+    }
+    if (this.isPopupFocused) {
+      this.exitMathPodPopupFocus();
+    }
+    if (this.mode === 'mount-focus') {
+      if (moveCode === 'KeyD') {
+        this.stepFocusedWallMount(1);
+        return true;
+      }
+      if (moveCode === 'KeyA') {
+        this.stepFocusedWallMount(-1);
+        return true;
+      }
+      this.exitMountFocusMode();
+    } else if (this.mode === 'scroll') {
+      enterFreeRoamMode();
+    }
+
+    if (this.mode === 'freeroam') {
+      keysPressed[moveCode] = true;
+      const existingTimer = directionalStepImpulseTimers.get(moveCode);
+      if (existingTimer) {
+        clearTimeout(existingTimer);
+      }
+      const holdMs = Math.max(60, Number(durationMs) || 220);
+      const timerId = setTimeout(() => {
+        directionalStepImpulseTimers.delete(moveCode);
+        if (!physicalKeysHeld.has(moveCode)) {
+          keysPressed[moveCode] = false;
+        }
+      }, holdMs);
+      directionalStepImpulseTimers.set(moveCode, timerId);
+      return true;
+    }
+    return false;
   },
   setThumbpadVector(lx, ly, opts = {}) {
     return mobileTouch.setVector(lx, ly, opts);
@@ -21021,6 +21157,9 @@ function bindMobileTouchControls() {
       if (sandbox.audio) {
         sandbox.audio.unlock();
       }
+      if (e.pointerType === 'touch') {
+        mobileTouch._hardwareTouchObserved = true;
+      }
       if (!mobileTouch.enabled && !isMobileTouchForceDisabled()) {
         mobileTouch.setEnabled(true);
       }
@@ -21076,6 +21215,9 @@ function bindMobileTouchControls() {
       e.stopPropagation();
       if (sandbox.audio) {
         sandbox.audio.unlock();
+      }
+      if (e.pointerType === 'touch') {
+        mobileTouch._hardwareTouchObserved = true;
       }
       if (!mobileTouch.enabled && !isMobileTouchForceDisabled()) {
         mobileTouch.setEnabled(true);
@@ -21145,7 +21287,7 @@ function bindInputListeners() {
       if (suppressScrollEventSync || !sandbox.ready) return;
       if (sandbox.director && sandbox.director.cameraPOVMode) return;
       if (sandbox.mode === 'scroll') {
-        if (sandbox.director && sandbox.director.isScrollLocked()) {
+        if ((sandbox.director && sandbox.director.isScrollLocked()) || isDesktopKeyIntroGatingActive()) {
           sandbox.targetScrollProgress = 0.0;
           sandbox.scrollProgress = 0.0;
           sandbox.scrollVelocity = 0.0;
@@ -21170,7 +21312,12 @@ function bindInputListeners() {
   window.addEventListener('keydown', (e) => {
     if (!sandbox.ready) return;
     const activeTag = document.activeElement ? document.activeElement.tagName : '';
-    if (activeTag === 'INPUT' || activeTag === 'SELECT' || activeTag === 'TEXTAREA') {
+    const isEditableFocus =
+      activeTag === 'INPUT' ||
+      activeTag === 'SELECT' ||
+      activeTag === 'TEXTAREA' ||
+      Boolean(document.activeElement && document.activeElement.isContentEditable);
+    if (isEditableFocus) {
       if (e.code === 'Escape') {
         if (sandbox.isStickerPopupOpen) {
           e.preventDefault();
@@ -21450,69 +21597,98 @@ function bindInputListeners() {
       return;
     }
 
-    if (e.code === 'Backquote' || e.code === 'KeyQ') {
+    const preRadialNavMatch = resolveDesktopNavKeyFromEvent(e);
+    const isQShortcut = Boolean(preRadialNavMatch && preRadialNavMatch.navKey === 'Q');
+    const isBackquoteShortcut =
+      e.code === 'Backquote' && !isQShortcut && !e.metaKey && !e.ctrlKey && !e.altKey;
+    if (isQShortcut || isBackquoteShortcut) {
       if (characterCameraState.positioningMode && e.code === 'KeyQ') {
         e.preventDefault();
         keysPressed.KeyQ = true;
         return;
       }
+      if (sandbox.portfolioHUD && sandbox.portfolioHUD.isIntroSequenceHoldingHUD()) {
+        return;
+      }
+      if (isBackquoteShortcut && isDesktopKeyIntroGatingActive()) {
+        e.preventDefault();
+        if (sandbox.portfolioHUD && typeof sandbox.portfolioHUD.pulseDesktopIntroGateNudge === 'function') {
+          sandbox.portfolioHUD.pulseDesktopIntroGateNudge();
+        }
+        return;
+      }
+      if (isQShortcut && sandbox.portfolioHUD && typeof sandbox.portfolioHUD.handleDesktopKeyActuation === 'function') {
+        sandbox.portfolioHUD.handleDesktopKeyActuation('Q', {
+          source: 'keyboard',
+          isDown: true,
+          isRepeat: Boolean(e.repeat),
+        });
+      }
       if (sandbox.radialMenu) {
         e.preventDefault();
-        sandbox.radialMenu.toggle();
+        if (!e.repeat) {
+          sandbox.radialMenu.toggle();
+        }
         return;
       }
     }
 
     if (sandbox.radialMenu && sandbox.radialMenu.isOpen()) {
-      if (e.code === 'Escape') {
-        e.preventDefault();
-        e.stopPropagation();
+      const radialMoveMatch = resolveDesktopNavKeyFromEvent(e);
+      if (radialMoveMatch && radialMoveMatch.moveCode) {
+        // Spec 072 §6.2.1: Pressing W/A/S/D while Radial Menu is open smoothly closes Radial Menu and falls through to locomotion
         sandbox.radialMenu.cancelDeadzone();
-        return;
-      }
-      if (e.code === 'Backspace') {
-        e.preventDefault();
-        e.stopPropagation();
-        if (
-          typeof sandbox.radialMenu.navigateBack === 'function' &&
-          sandbox.radialMenu.getState().menuDepth > 0
-        ) {
-          sandbox.radialMenu.navigateBack();
-        } else {
+      } else {
+        if (e.code === 'Escape') {
+          e.preventDefault();
+          e.stopPropagation();
           sandbox.radialMenu.cancelDeadzone();
+          return;
         }
-        return;
-      }
-      if (e.code === 'ArrowRight' || e.code === 'ArrowDown') {
-        e.preventDefault();
-        e.stopPropagation();
-        const total = sandbox.radialMenu.getMenuItems().length;
-        const cur = sandbox.radialMenu.getActiveIndex();
-        const next = cur === null ? 0 : (cur + 1) % total;
-        sandbox.radialMenu.setActiveIndex(next);
-        return;
-      }
-      if (e.code === 'ArrowLeft' || e.code === 'ArrowUp') {
-        e.preventDefault();
-        e.stopPropagation();
-        const total = sandbox.radialMenu.getMenuItems().length;
-        const cur = sandbox.radialMenu.getActiveIndex();
-        const prev = cur === null ? total - 1 : (cur - 1 + total) % total;
-        sandbox.radialMenu.setActiveIndex(prev);
-        return;
-      }
-      if (e.code === 'Enter' || e.code === 'Space') {
-        e.preventDefault();
-        e.stopPropagation();
-        const cur = sandbox.radialMenu.getActiveIndex();
-        if (cur !== null) {
-          sandbox.radialMenu.selectIndex(cur);
+        if (e.code === 'Backspace') {
+          e.preventDefault();
+          e.stopPropagation();
+          if (
+            typeof sandbox.radialMenu.navigateBack === 'function' &&
+            sandbox.radialMenu.getState().menuDepth > 0
+          ) {
+            sandbox.radialMenu.navigateBack();
+          } else {
+            sandbox.radialMenu.cancelDeadzone();
+          }
+          return;
         }
+        if (e.code === 'ArrowRight' || e.code === 'ArrowDown') {
+          e.preventDefault();
+          e.stopPropagation();
+          const total = sandbox.radialMenu.getMenuItems().length;
+          const cur = sandbox.radialMenu.getActiveIndex();
+          const next = cur === null ? 0 : (cur + 1) % total;
+          sandbox.radialMenu.setActiveIndex(next);
+          return;
+        }
+        if (e.code === 'ArrowLeft' || e.code === 'ArrowUp') {
+          e.preventDefault();
+          e.stopPropagation();
+          const total = sandbox.radialMenu.getMenuItems().length;
+          const cur = sandbox.radialMenu.getActiveIndex();
+          const prev = cur === null ? total - 1 : (cur - 1 + total) % total;
+          sandbox.radialMenu.setActiveIndex(prev);
+          return;
+        }
+        if (e.code === 'Enter' || e.code === 'Space') {
+          e.preventDefault();
+          e.stopPropagation();
+          const cur = sandbox.radialMenu.getActiveIndex();
+          if (cur !== null) {
+            sandbox.radialMenu.selectIndex(cur);
+          }
+          return;
+        }
+        e.preventDefault();
+        e.stopPropagation();
         return;
       }
-      e.preventDefault();
-      e.stopPropagation();
-      return;
     }
 
     if (IS_DEV_MODE && e.code === 'Tab') {
@@ -21597,7 +21773,7 @@ function bindInputListeners() {
       }
     }
 
-    if (e.code === 'KeyM') {
+    if (e.code === 'KeyM' && !e.metaKey && !e.ctrlKey && !e.altKey) {
       e.preventDefault();
       if (sandbox.audio) {
         sandbox.audio.toggleMute();
@@ -21605,8 +21781,14 @@ function bindInputListeners() {
       return;
     }
 
-    if (e.code === 'KeyR') {
+    if (e.code === 'KeyR' && !e.metaKey && !e.ctrlKey && !e.altKey) {
       e.preventDefault();
+      if (isDesktopKeyIntroGatingActive()) {
+        if (sandbox.portfolioHUD && typeof sandbox.portfolioHUD.pulseDesktopIntroGateNudge === 'function') {
+          sandbox.portfolioHUD.pulseDesktopIntroGateNudge();
+        }
+        return;
+      }
       sandbox.returnToScrollMode();
       return;
     }
@@ -21637,7 +21819,14 @@ function bindInputListeners() {
       return;
     }
 
-    if (e.code === 'KeyE') {
+    if (e.code === 'KeyE' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+      if (isDesktopKeyIntroGatingActive()) {
+        e.preventDefault();
+        if (sandbox.portfolioHUD && typeof sandbox.portfolioHUD.pulseDesktopIntroGateNudge === 'function') {
+          sandbox.portfolioHUD.pulseDesktopIntroGateNudge();
+        }
+        return;
+      }
       if (characterCameraState.positioningMode) {
         e.preventDefault();
         keysPressed.KeyE = true;
@@ -21686,31 +21875,53 @@ function bindInputListeners() {
       return;
     }
 
-    if (e.code in keysPressed) {
+    if (
+      (e.metaKey || e.ctrlKey || e.altKey) &&
+      (e.code === 'KeyW' || e.code === 'KeyA' || e.code === 'KeyS' || e.code === 'KeyD')
+    ) {
+      return;
+    }
+
+    const moveNavMatch = resolveDesktopNavKeyFromEvent(e);
+    const effectiveCode = moveNavMatch && moveNavMatch.moveCode ? moveNavMatch.moveCode : e.code;
+
+    if (effectiveCode in keysPressed) {
       if (
-        e.code === 'Space' ||
-        e.code === 'ArrowUp' ||
-        e.code === 'ArrowDown' ||
-        e.code === 'ArrowLeft' ||
-        e.code === 'ArrowRight'
+        effectiveCode === 'Space' ||
+        effectiveCode === 'ArrowUp' ||
+        effectiveCode === 'ArrowDown' ||
+        effectiveCode === 'ArrowLeft' ||
+        effectiveCode === 'ArrowRight'
       ) {
         e.preventDefault();
       }
 
       if (characterCameraState.positioningMode) {
-        keysPressed[e.code] = true;
+        keysPressed[effectiveCode] = true;
+        return;
+      }
+
+      const isArrowMoveKey =
+        effectiveCode === 'ArrowUp' ||
+        effectiveCode === 'ArrowDown' ||
+        effectiveCode === 'ArrowLeft' ||
+        effectiveCode === 'ArrowRight';
+
+      if (isArrowMoveKey && isDesktopKeyIntroGatingActive()) {
+        if (sandbox.portfolioHUD && typeof sandbox.portfolioHUD.pulseDesktopIntroGateNudge === 'function') {
+          sandbox.portfolioHUD.pulseDesktopIntroGateNudge();
+        }
         return;
       }
 
       const isMoveKey =
-        e.code === 'KeyW' ||
-        e.code === 'KeyA' ||
-        e.code === 'KeyS' ||
-        e.code === 'KeyD' ||
-        e.code === 'ArrowUp' ||
-        e.code === 'ArrowDown' ||
-        e.code === 'ArrowLeft' ||
-        e.code === 'ArrowRight';
+        effectiveCode === 'KeyW' ||
+        effectiveCode === 'KeyA' ||
+        effectiveCode === 'KeyS' ||
+        effectiveCode === 'KeyD' ||
+        isArrowMoveKey;
+
+      const wasDoomChatOpenBeforeMove = Boolean(sandbox.isDoomChatOpen);
 
       // Pressing any movement key exits DOOM_HEAD Dialogue Mode, Sticker Popup Mode, Popup Focus Mode, Mount Focus Mode, or hands off Scroll-Walk Mode to Free-Roam Mode (§5.2 & §5.3)
       if (sandbox.isDoomChatOpen && isMoveKey) {
@@ -21723,12 +21934,12 @@ function bindInputListeners() {
         sandbox.exitMathPodPopupFocus();
       }
       if (sandbox.mode === 'mount-focus' && isMoveKey) {
-        if (e.code === 'ArrowRight' || e.code === 'ArrowDown' || e.code === 'KeyD') {
+        if (effectiveCode === 'ArrowRight' || effectiveCode === 'ArrowDown' || effectiveCode === 'KeyD') {
           e.preventDefault();
           sandbox.stepFocusedWallMount(1);
           return;
         }
-        if (e.code === 'ArrowLeft' || e.code === 'ArrowUp' || e.code === 'KeyA') {
+        if (effectiveCode === 'ArrowLeft' || effectiveCode === 'ArrowUp' || effectiveCode === 'KeyA') {
           e.preventDefault();
           sandbox.stepFocusedWallMount(-1);
           return;
@@ -21741,9 +21952,33 @@ function bindInputListeners() {
         enterFreeRoamMode();
       }
 
+      if (
+        moveNavMatch &&
+        moveNavMatch.moveCode &&
+        !(sandbox.director && sandbox.director.isScrollLocked())
+      ) {
+        physicalKeysHeld.add(moveNavMatch.moveCode);
+        const existingImpulseTimer = directionalStepImpulseTimers.get(moveNavMatch.moveCode);
+        if (existingImpulseTimer) {
+          clearTimeout(existingImpulseTimer);
+          directionalStepImpulseTimers.delete(moveNavMatch.moveCode);
+        }
+        if (
+          !wasDoomChatOpenBeforeMove &&
+          sandbox.portfolioHUD &&
+          typeof sandbox.portfolioHUD.handleDesktopKeyActuation === 'function'
+        ) {
+          sandbox.portfolioHUD.handleDesktopKeyActuation(moveNavMatch.navKey, {
+            source: 'keyboard',
+            isDown: true,
+            isRepeat: Boolean(e.repeat),
+          });
+        }
+      }
+
       if (sandbox.mode === 'freeroam') {
-        keysPressed[e.code] = true;
-        if (e.code === 'Space') {
+        keysPressed[effectiveCode] = true;
+        if (effectiveCode === 'Space') {
           jumpRequested = true;
         }
       }
@@ -21754,11 +21989,31 @@ function bindInputListeners() {
     if (e.code in keysPressed) {
       keysPressed[e.code] = false;
     }
+    const upMatch = resolveDesktopNavKeyFromEvent(e, { ignoreModifiers: true });
+    if (upMatch && upMatch.moveCode) {
+      physicalKeysHeld.delete(upMatch.moveCode);
+      keysPressed[upMatch.moveCode] = false;
+    }
+    if (
+      upMatch &&
+      sandbox.portfolioHUD &&
+      typeof sandbox.portfolioHUD.handleDesktopKeyActuation === 'function'
+    ) {
+      sandbox.portfolioHUD.handleDesktopKeyActuation(upMatch.navKey, {
+        source: 'keyboard',
+        isDown: false,
+      });
+    }
   });
 
   const resetAllPointerAndTouchStates = () => {
+    clearAllDirectionalStepImpulses();
+    physicalKeysHeld.clear();
     for (const k of Object.keys(keysPressed)) {
       keysPressed[k] = false;
+    }
+    if (sandbox.portfolioHUD && typeof sandbox.portfolioHUD.clearLiveKeyHighlights === 'function') {
+      sandbox.portfolioHUD.clearLiveKeyHighlights();
     }
     cameraOrbit.isDragging = false;
     cameraOrbit.pointerId = null;
@@ -21798,8 +22053,11 @@ function bindInputListeners() {
   let activeSceneObjectPointerId = null;
   const canvas = renderer.domElement;
   canvas.addEventListener('pointerdown', (e) => {
-    if (e.pointerType === 'touch' && !mobileTouch.enabled && !isMobileTouchForceDisabled()) {
-      mobileTouch.setEnabled(true);
+    if (e.pointerType === 'touch') {
+      mobileTouch._hardwareTouchObserved = true;
+      if (!mobileTouch.enabled && !isMobileTouchForceDisabled()) {
+        mobileTouch.setEnabled(true);
+      }
     }
     if (
       (mobileTouch.pointerId !== null && e.pointerId === mobileTouch.pointerId) ||
@@ -22324,6 +22582,10 @@ function bindInputListeners() {
         const clickedPlacedId = placedStickerPointerDownState.placedId;
         placedStickerPointerDownState = null;
         if (!isCancel && Math.hypot(dx, dy) <= CLICK_MAX_DRAG_PIXELS) {
+          if (isDesktopKeyIntroGatingActive()) {
+            sandbox.portfolioHUD?.pulseDesktopIntroGateNudge?.();
+            return;
+          }
           sandbox.openStickerPopup(clickedPlacedId);
         }
         return;
@@ -22333,6 +22595,10 @@ function bindInputListeners() {
         const dy = e.clientY - doomPointerDownState.clientY;
         doomPointerDownState = null;
         if (!isCancel && Math.hypot(dx, dy) <= CLICK_MAX_DRAG_PIXELS) {
+          if (isDesktopKeyIntroGatingActive()) {
+            sandbox.portfolioHUD?.pulseDesktopIntroGateNudge?.();
+            return;
+          }
           sandbox.enterDoomChatMode();
         }
         return;
@@ -22343,6 +22609,10 @@ function bindInputListeners() {
         const clickedCalloutId = popupPointerDownState.calloutId;
         popupPointerDownState = null;
         if (!isCancel && Math.hypot(dx, dy) <= CLICK_MAX_DRAG_PIXELS) {
+          if (isDesktopKeyIntroGatingActive()) {
+            sandbox.portfolioHUD?.pulseDesktopIntroGateNudge?.();
+            return;
+          }
           sandbox.focusMathPodPopup(clickedCalloutId);
         }
         return;
@@ -22354,6 +22624,11 @@ function bindInputListeners() {
           const dx = e.clientX - podPointerDownState.clientX;
           const dy = e.clientY - podPointerDownState.clientY;
           if (!isCancel && Math.hypot(dx, dy) <= CLICK_MAX_DRAG_PIXELS && sandbox.mathPodPopups) {
+            if (isDesktopKeyIntroGatingActive()) {
+              podPointerDownState = null;
+              sandbox.portfolioHUD?.pulseDesktopIntroGateNudge?.();
+              return;
+            }
             const isNowOpen = sandbox.mathPodPopups.togglePinForPod(podPointerDownState.podId);
             if (!isNowOpen && sandbox.focusedMathPodPopupId === podPointerDownState.podId) {
               sandbox.exitMathPodPopupFocus();
@@ -22418,6 +22693,10 @@ function bindInputListeners() {
       const clickedPlacedId = placedStickerPointerDownState.placedId;
       placedStickerPointerDownState = null;
       if (!isCancel && Math.hypot(dx, dy) <= CLICK_MAX_DRAG_PIXELS) {
+        if (isDesktopKeyIntroGatingActive()) {
+          sandbox.portfolioHUD?.pulseDesktopIntroGateNudge?.();
+          return;
+        }
         sandbox.openStickerPopup(clickedPlacedId);
         return;
       }
@@ -22428,6 +22707,10 @@ function bindInputListeners() {
       const dy = e.clientY - doomPointerDownState.clientY;
       doomPointerDownState = null;
       if (!isCancel && Math.hypot(dx, dy) <= CLICK_MAX_DRAG_PIXELS) {
+        if (isDesktopKeyIntroGatingActive()) {
+          sandbox.portfolioHUD?.pulseDesktopIntroGateNudge?.();
+          return;
+        }
         sandbox.enterDoomChatMode();
         return;
       }
@@ -22439,6 +22722,10 @@ function bindInputListeners() {
       const clickedCalloutId = popupPointerDownState.calloutId;
       popupPointerDownState = null;
       if (!isCancel && Math.hypot(dx, dy) <= CLICK_MAX_DRAG_PIXELS) {
+        if (isDesktopKeyIntroGatingActive()) {
+          sandbox.portfolioHUD?.pulseDesktopIntroGateNudge?.();
+          return;
+        }
         sandbox.focusMathPodPopup(clickedCalloutId);
         return;
       }
@@ -22450,6 +22737,10 @@ function bindInputListeners() {
       const clickedPodId = podPointerDownState.podId;
       podPointerDownState = null;
       if (!isCancel && Math.hypot(dx, dy) <= CLICK_MAX_DRAG_PIXELS && sandbox.mathPodPopups) {
+        if (isDesktopKeyIntroGatingActive()) {
+          sandbox.portfolioHUD?.pulseDesktopIntroGateNudge?.();
+          return;
+        }
         const isNowOpen = sandbox.mathPodPopups.togglePinForPod(clickedPodId);
         if (!isNowOpen && sandbox.focusedMathPodPopupId === clickedPodId) {
           sandbox.exitMathPodPopupFocus();
@@ -22513,6 +22804,10 @@ function bindInputListeners() {
         pointerRaycaster.setFromCamera(pointerNDC, camera);
         const hits = pointerRaycaster.intersectObjects(sandbox.wallMountRaycastTargets, false);
         if (hits.length > 0 && hits[0].object.userData.mountName) {
+          if (isDesktopKeyIntroGatingActive()) {
+            sandbox.portfolioHUD?.pulseDesktopIntroGateNudge?.();
+            return;
+          }
           const hitMount = sandbox.wallMountsByName[hits[0].object.userData.mountName];
           if (hitMount) {
             const hitUv = hits[0].uv;
@@ -22665,7 +22960,10 @@ function bindInputListeners() {
 
       if (sandbox.mode === 'scroll') {
         e.preventDefault();
-        if (sandbox.director && sandbox.director.isScrollLocked()) {
+        if ((sandbox.director && sandbox.director.isScrollLocked()) || isDesktopKeyIntroGatingActive()) {
+          if (isDesktopKeyIntroGatingActive()) {
+            sandbox.portfolioHUD?.pulseDesktopIntroGateNudge?.();
+          }
           sandbox.targetScrollProgress = 0.0;
           sandbox.scrollProgress = 0.0;
           sandbox.scrollVelocity = 0.0;
@@ -22716,10 +23014,15 @@ function bindInputListeners() {
     if (crtOpticalPassSystem) {
       crtOpticalPassSystem.onResize(window.innerWidth, window.innerHeight);
     }
-    if (!isMobileTouchForceDisabled()) {
-      const shouldBeMobile = detectInitialMobileTouchMode();
-      if (shouldBeMobile && !mobileTouch.enabled) {
-        mobileTouch.setEnabled(true);
+    if (
+      !mobileTouch._dispatchingResize &&
+      mobileTouch._manualOverride === null &&
+      !isMobileTouchForceDisabled() &&
+      !isMobileTouchForceEnabled()
+    ) {
+      const shouldBeMobile = detectInitialMobileTouchMode() || Boolean(mobileTouch._hardwareTouchObserved);
+      if (shouldBeMobile !== mobileTouch.enabled) {
+        mobileTouch.setEnabled(shouldBeMobile, { fromResize: true });
       }
       if (shouldBeMobile && !sandbox._userManuallyToggledSidebar && !sandbox.sidebarCollapsed) {
         sandbox.toggleSidebar(true);
@@ -23028,6 +23331,10 @@ function bindInputListeners() {
   if (proximityPromptEl) {
     proximityPromptEl.addEventListener('click', (e) => {
       e.stopPropagation();
+      if (isDesktopKeyIntroGatingActive()) {
+        sandbox.portfolioHUD?.pulseDesktopIntroGateNudge?.();
+        return;
+      }
       const targetMountName = proximityPromptEl.dataset.mountName;
       if (targetMountName) {
         sandbox.focusWallMount(targetMountName);
@@ -25432,6 +25739,10 @@ async function initSandbox() {
       }
     },
     onSelect: (item, index) => {
+      if (isDesktopKeyIntroGatingActive()) {
+        sandbox.portfolioHUD?.pulseDesktopIntroGateNudge?.();
+        return;
+      }
       sandbox.lastRadialAction = item.label;
       const telEl = document.getElementById('tel-radial');
       if (telEl) {
